@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Leonardo De la Hoz · Bienestar 360</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --verde: #2D7D5B;
+    --verde-claro: #4CAF82;
+    --naranja: #E8833A;
+    --crema: #FAF7F2;
+    --oscuro: #1A1A1A;
+    --gris: #6B7280;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--crema);
+    font-family: 'DM Sans', sans-serif;
+    color: var(--oscuro);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Background texture */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background:
+      radial-gradient(ellipse 80% 60% at 10% 0%, rgba(45,125,91,0.07) 0%, transparent 60%),
+      radial-gradient(ellipse 60% 50% at 90% 100%, rgba(232,131,58,0.06) 0%, transparent 60%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .container {
+    position: relative;
+    z-index: 1;
+    max-width: 420px;
+    margin: 0 auto;
+    padding: 48px 28px 60px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0;
+  }
+
+  /* Logo mark */
+  .logo-mark {
+    width: 52px;
+    height: 52px;
+    background: var(--verde);
+    border-radius: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 32px;
+    animation: fadeDown 0.6s ease both;
+  }
+
+  .logo-mark span {
+    font-family: 'Playfair Display', serif;
+    font-size: 22px;
+    font-weight: 700;
+    color: white;
+    letter-spacing: -1px;
+  }
+
+  /* Avatar / initials */
+  .avatar {
+    width: 88px;
+    height: 88px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--verde), var(--verde-claro));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 20px;
+    box-shadow: 0 8px 32px rgba(45,125,91,0.25);
+    animation: fadeDown 0.6s 0.1s ease both;
+    opacity: 0;
+  }
+
+  .avatar span {
+    font-family: 'Playfair Display', serif;
+    font-size: 30px;
+    font-weight: 700;
+    color: white;
+    letter-spacing: -1px;
+  }
+
+  .name {
+    font-family: 'Playfair Display', serif;
+    font-size: 26px;
+    font-weight: 700;
+    color: var(--oscuro);
+    text-align: center;
+    line-height: 1.2;
+    margin-bottom: 6px;
+    animation: fadeDown 0.6s 0.15s ease both;
+    opacity: 0;
+  }
+
+  .role {
+    font-size: 13px;
+    font-weight: 400;
+    color: var(--gris);
+    text-align: center;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    margin-bottom: 36px;
+    animation: fadeDown 0.6s 0.2s ease both;
+    opacity: 0;
+  }
+
+  /* Divider */
+  .divider {
+    width: 40px;
+    height: 2px;
+    background: linear-gradient(90deg, var(--verde), var(--naranja));
+    border-radius: 2px;
+    margin-bottom: 36px;
+    animation: fadeDown 0.6s 0.25s ease both;
+    opacity: 0;
+  }
+
+  /* Tagline */
+  .tagline {
+    font-size: 15px;
+    line-height: 1.7;
+    color: var(--gris);
+    text-align: center;
+    max-width: 320px;
+    margin-bottom: 40px;
+    animation: fadeDown 0.6s 0.3s ease both;
+    opacity: 0;
+  }
+
+  .tagline strong {
+    color: var(--oscuro);
+    font-weight: 500;
+  }
+
+  /* CTA principal */
+  .btn-primary {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    width: 100%;
+    padding: 18px 24px;
+    background: var(--verde);
+    color: white;
+    text-decoration: none;
+    border-radius: 16px;
+    font-size: 15px;
+    font-weight: 500;
+    letter-spacing: 0.01em;
+    margin-bottom: 12px;
+    transition: transform 0.2s, box-shadow 0.2s, background 0.2s;
+    box-shadow: 0 4px 20px rgba(45,125,91,0.28);
+    animation: fadeDown 0.6s 0.35s ease both;
+    opacity: 0;
+  }
+
+  .btn-primary:hover {
+    background: #236348;
+    transform: translateY(-2px);
+    box-shadow: 0 8px 28px rgba(45,125,91,0.35);
+  }
+
+  .btn-primary:active {
+    transform: translateY(0);
+  }
+
+  .btn-primary .icon {
+    font-size: 20px;
+    flex-shrink: 0;
+  }
+
+  .btn-secondary {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    width: 100%;
+    padding: 16px 24px;
+    background: white;
+    color: var(--oscuro);
+    text-decoration: none;
+    border-radius: 16px;
+    font-size: 15px;
+    font-weight: 500;
+    border: 1.5px solid rgba(0,0,0,0.08);
+    margin-bottom: 12px;
+    transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    animation: fadeDown 0.6s 0.4s ease both;
+    opacity: 0;
+  }
+
+  .btn-secondary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0,0,0,0.1);
+    border-color: var(--verde-claro);
+  }
+
+  .btn-secondary .icon {
+    font-size: 18px;
+    flex-shrink: 0;
+  }
+
+  /* Pill badge */
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(45,125,91,0.08);
+    color: var(--verde);
+    font-size: 12px;
+    font-weight: 500;
+    padding: 6px 14px;
+    border-radius: 100px;
+    margin-top: 32px;
+    margin-bottom: 8px;
+    animation: fadeDown 0.6s 0.5s ease both;
+    opacity: 0;
+  }
+
+  .badge::before {
+    content: '';
+    width: 6px;
+    height: 6px;
+    background: var(--verde-claro);
+    border-radius: 50%;
+    animation: pulse 2s infinite;
+  }
+
+  .footer-note {
+    font-size: 12px;
+    color: #aaa;
+    text-align: center;
+    margin-top: 8px;
+    animation: fadeDown 0.6s 0.55s ease both;
+    opacity: 0;
+  }
+
+  /* Animations */
+  @keyframes fadeDown {
+    from { opacity: 0; transform: translateY(-12px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50%       { opacity: 0.5; transform: scale(0.8); }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <div class="logo-mark"><span>B·</span></div>
+
+  <div class="avatar"><span>LD</span></div>
+
+  <h1 class="name">Leonardo De la Hoz</h1>
+  <p class="role">Co-founder · Bienestar 360</p>
+
+  <div class="divider"></div>
+
+  <p class="tagline">
+    Acompañamos a las familias a recuperar su bienestar a través de
+    <strong>hábitos de vida sostenibles</strong> — directamente en su WhatsApp.
+  </p>
+
+  <a class="btn-primary"
+     href="https://wa.me/573XXXXXXXXX?text=Hola%2C%20quiero%20conocer%20Bienestar%20360"
+     target="_blank" rel="noopener">
+    <span class="icon">💬</span>
+    Hablar con Vita — nuestro asistente
+  </a>
+
+  <a class="btn-secondary"
+     href="https://bienestar360.co"
+     target="_blank" rel="noopener">
+    <span class="icon">🌿</span>
+    Conocer el programa
+  </a>
+
+  <a class="btn-secondary"
+     href="mailto:leonardo@ledelab.group">
+    <span class="icon">✉️</span>
+    leonardo@ledelab.group
+  </a>
+
+  <div class="badge">Piloto activo · Barranquilla 2026</div>
+  <p class="footer-note">Bienestar 360 · be360.app/leonardo</p>
+
+</div>
+</body>
+</html>
