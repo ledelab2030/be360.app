@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <!-- Background verde -->
+  <rect width="32" height="32" fill="#2B5F45"/>
+  <!-- b — white, serif -->
+  <text x="3" y="21"
+    font-family="Georgia, 'Times New Roman', serif"
+    font-size="20"
+    font-weight="700"
+    fill="#ffffff">b</text>
+  <!-- e — dorado -->
+  <text x="16" y="21"
+    font-family="Georgia, 'Times New Roman', serif"
+    font-size="20"
+    font-weight="700"
+    fill="#C4882F">e</text>
+  <!-- 360 — pequeño, sutil -->
+  <text x="4" y="30"
+    font-family="'Courier New', Courier, monospace"
+    font-size="8"
+    font-weight="400"
+    fill="rgba(255,255,255,0.5)">360</text>
+</svg>
