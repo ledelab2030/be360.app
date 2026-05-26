@@ -1,1248 +1,459 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="es">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>be360 — Healthy families. Brilliant minds.</title>
-  <meta name="description" content="be360 — A science-backed family wellness programme delivered through schools. Evidence-based behavioural health intervention for children and families." />
-
-  <link rel="icon" type="image/svg+xml" href="/assets/favicon.svg" />
-  <link rel="canonical" href="https://be360.app" />
-
-  <meta property="og:title" content="be360 — Healthy families. Brilliant minds." />
-  <meta property="og:description" content="Evidence-based family wellness delivered through schools. Personalised support, zero cost to the institution." />
-  <meta property="og:url" content="https://be360.app" />
-  <meta property="og:type" content="website" />
-
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet" />
-
-  <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-    :root {
-      --verde:        #2B5F45;
-      --verde-oscuro: #1A3C2C;
-      --verde-claro:  #EAF5EE;
-      --dorado:       #C4882F;
-      --crema:        #F8F4EC;
-      --texto:        #1C2A22;
-      --gris:         #6B7C73;
-      --blanco:       #FFFFFF;
-      --sombra:       0 4px 24px rgba(27,60,44,0.08);
-      --sombra-hover: 0 12px 40px rgba(27,60,44,0.18);
-      --radio:        16px;
-    }
-
-    html { scroll-behavior: smooth; }
-
-    body {
-      font-family: 'Outfit', sans-serif;
-      background: var(--crema);
-      color: var(--texto);
-      font-size: 1.0625rem;
-      line-height: 1.7;
-      overflow-x: hidden;
-    }
-
-    /* ─── NAV ─── */
-    nav {
-      position: fixed;
-      top: 0; left: 0; right: 0;
-      z-index: 100;
-      background: rgba(248,244,236,0.93);
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
-      border-bottom: 1px solid rgba(43,95,69,0.1);
-      padding: 0 24px;
-    }
-
-    .nav-inner {
-      max-width: 1200px;
-      margin: 0 auto;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      height: 72px;
-    }
-
-    .logo {
-      font-family: 'Cormorant Garamond', serif;
-      font-size: 1.5rem;
-      font-weight: 600;
-      color: var(--verde);
-      text-decoration: none;
-      letter-spacing: -0.02em;
-    }
-
-    .logo span { color: var(--dorado); }
-
-    .nav-right {
-      display: flex;
-      align-items: center;
-      gap: 32px;
-    }
-
-    .nav-links {
-      display: flex;
-      align-items: center;
-      gap: 28px;
-      list-style: none;
-    }
-
-    .nav-links a {
-      font-size: 0.875rem;
-      font-weight: 500;
-      color: var(--texto);
-      text-decoration: none;
-      opacity: 0.75;
-      transition: opacity 0.2s, color 0.2s;
-    }
-
-    .nav-links a:hover { opacity: 1; color: var(--verde); }
-
-    .btn-nav {
-      background: var(--verde);
-      color: var(--blanco) !important;
-      opacity: 1 !important;
-      padding: 9px 20px;
-      border-radius: 8px;
-      font-weight: 500;
-      transition: background 0.2s, box-shadow 0.2s !important;
-    }
-
-    .btn-nav:hover {
-      background: var(--verde-oscuro) !important;
-      box-shadow: 0 4px 16px rgba(27,60,44,0.25) !important;
-    }
-
-    /* Lang toggle */
-    .lang-btn {
-      font-family: 'Outfit', sans-serif;
-      font-size: 0.72rem;
-      font-weight: 600;
-      letter-spacing: 0.1em;
-      color: var(--gris);
-      background: none;
-      border: 1px solid rgba(43,95,69,0.2);
-      padding: 0.28rem 0.65rem;
-      border-radius: 4px;
-      cursor: pointer;
-      transition: color 0.2s, border-color 0.2s;
-      line-height: 1;
-    }
-
-    .lang-btn:hover { color: var(--verde); border-color: var(--verde); }
-
-    /* ─── HERO ─── */
-    .hero {
-      min-height: 100vh;
-      display: flex;
-      align-items: center;
-      padding: 120px 24px 80px;
-      position: relative;
-      overflow: hidden;
-    }
-
-    .hero::before {
-      content: '';
-      position: absolute;
-      top: -20%; right: -10%;
-      width: 70vw; height: 120%;
-      background: radial-gradient(ellipse at 60% 40%, rgba(43,95,69,0.07) 0%, transparent 70%);
-      pointer-events: none;
-    }
-
-    .hero-inner {
-      max-width: 1200px;
-      margin: 0 auto;
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 64px;
-      align-items: center;
-      width: 100%;
-    }
-
-    .hero-tag {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      background: var(--verde-claro);
-      color: var(--verde);
-      font-size: 0.78rem;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
-      padding: 6px 14px;
-      border-radius: 100px;
-      margin-bottom: 28px;
-    }
-
-    .hero-tag::before {
-      content: '';
-      width: 6px; height: 6px;
-      background: var(--verde);
-      border-radius: 50%;
-    }
-
-    .hero h1 {
-      font-family: 'Cormorant Garamond', serif;
-      font-size: clamp(2.8rem, 5.5vw, 5rem);
-      font-weight: 500;
-      line-height: 1.1;
-      color: var(--texto);
-      margin-bottom: 24px;
-      letter-spacing: -0.02em;
-    }
-
-    .hero h1 em {
-      font-style: italic;
-      color: var(--verde);
-    }
-
-    .hero p {
-      font-size: 1.125rem;
-      color: var(--gris);
-      max-width: 480px;
-      margin-bottom: 40px;
-      line-height: 1.75;
-    }
-
-    .hero-actions {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 16px;
-    }
-
-    .btn-primary {
-      background: var(--verde);
-      color: var(--blanco);
-      padding: 15px 30px;
-      border-radius: 8px;
-      font-family: 'Outfit', sans-serif;
-      font-size: 0.95rem;
-      font-weight: 500;
-      text-decoration: none;
-      transition: background 0.2s, box-shadow 0.2s, transform 0.2s;
-      display: inline-block;
-    }
-
-    .btn-primary:hover {
-      background: var(--verde-oscuro);
-      box-shadow: 0 8px 32px rgba(27,60,44,0.25);
-      transform: translateY(-2px);
-    }
-
-    .btn-secondary {
-      border: 1.5px solid var(--verde);
-      color: var(--verde);
-      padding: 15px 30px;
-      border-radius: 8px;
-      font-family: 'Outfit', sans-serif;
-      font-size: 0.95rem;
-      font-weight: 500;
-      text-decoration: none;
-      transition: background 0.2s, color 0.2s, transform 0.2s;
-      display: inline-block;
-    }
-
-    .btn-secondary:hover {
-      background: var(--verde-claro);
-      transform: translateY(-2px);
-    }
-
-    /* Hero visual */
-    .hero-visual {
-      position: relative;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-    }
-
-    .hero-card-main {
-      background: var(--blanco);
-      border-radius: 24px;
-      padding: 40px;
-      box-shadow: var(--sombra-hover);
-      width: 100%;
-      max-width: 420px;
-    }
-
-    .stat-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 16px;
-    }
-
-    .stat-card {
-      text-align: center;
-      padding: 24px 16px;
-      background: var(--crema);
-      border-radius: 12px;
-    }
-
-    .stat-card:first-child {
-      background: var(--verde);
-      grid-column: span 2;
-      padding: 28px 16px;
-    }
-
-    .stat-number {
-      font-family: 'Cormorant Garamond', serif;
-      font-size: 3rem;
-      font-weight: 600;
-      color: var(--verde);
-      line-height: 1;
-      margin-bottom: 6px;
-    }
-
-    .stat-card:first-child .stat-number {
-      color: var(--blanco);
-      font-size: 3.5rem;
-    }
-
-    .stat-label {
-      font-size: 0.78rem;
-      color: var(--gris);
-      font-weight: 500;
-      line-height: 1.4;
-    }
-
-    .stat-card:first-child .stat-label { color: rgba(255,255,255,0.78); }
-
-    .hero-badge {
-      position: absolute;
-      bottom: -16px; right: -16px;
-      background: var(--dorado);
-      color: var(--blanco);
-      border-radius: 12px;
-      padding: 14px 18px;
-      font-size: 0.78rem;
-      font-weight: 600;
-      text-align: center;
-      box-shadow: 0 8px 24px rgba(196,136,47,0.35);
-      max-width: 160px;
-      line-height: 1.4;
-    }
-
-    /* ─── SECTIONS ─── */
-    section {
-      padding: 96px 24px;
-    }
-
-    .container {
-      max-width: 1200px;
-      margin: 0 auto;
-    }
-
-    .section-tag {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      background: var(--verde-claro);
-      color: var(--verde);
-      font-size: 0.75rem;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.1em;
-      padding: 5px 12px;
-      border-radius: 100px;
-      margin-bottom: 16px;
-    }
-
-    h2 {
-      font-family: 'Cormorant Garamond', serif;
-      font-size: clamp(2rem, 4vw, 3.25rem);
-      font-weight: 500;
-      line-height: 1.15;
-      color: var(--texto);
-      letter-spacing: -0.02em;
-      margin-bottom: 16px;
-    }
-
-    h2 em { font-style: italic; color: var(--verde); }
-
-    .section-lead {
-      font-size: 1.05rem;
-      color: var(--gris);
-      max-width: 580px;
-      line-height: 1.75;
-    }
-
-    .section-header { margin-bottom: 56px; }
-
-    /* ─── WHAT IS BE360 ─── */
-    .what-section { background: var(--blanco); }
-
-    .what-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 64px;
-      align-items: center;
-    }
-
-    .what-text p {
-      color: var(--gris);
-      margin-bottom: 20px;
-      line-height: 1.75;
-    }
-
-    .badge-row {
-      display: flex;
-      gap: 10px;
-      flex-wrap: wrap;
-      margin-top: 20px;
-    }
-
-    .badge {
-      background: var(--verde-claro);
-      color: var(--verde);
-      font-size: 0.78rem;
-      font-weight: 600;
-      padding: 6px 14px;
-      border-radius: 100px;
-    }
-
-    .what-pillars {
-      display: flex;
-      flex-direction: column;
-      gap: 16px;
-    }
-
-    .pillar {
-      display: flex;
-      align-items: flex-start;
-      gap: 16px;
-      padding: 20px;
-      background: var(--crema);
-      border-radius: 12px;
-      transition: box-shadow 0.2s;
-    }
-
-    .pillar:hover { box-shadow: var(--sombra); }
-
-    .pillar-icon {
-      width: 44px; height: 44px;
-      background: var(--verde-claro);
-      border-radius: 10px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 1.25rem;
-      flex-shrink: 0;
-    }
-
-    .pillar-text h4 {
-      font-family: 'Cormorant Garamond', serif;
-      font-size: 1.1rem;
-      font-weight: 600;
-      color: var(--texto);
-      margin-bottom: 4px;
-    }
-
-    .pillar-text p {
-      font-size: 0.875rem;
-      color: var(--gris);
-      margin: 0;
-    }
-
-    /* ─── IMPACT STRIP ─── */
-    .impact-strip {
-      background: var(--verde);
-      padding: 64px 24px;
-    }
-
-    .impact-inner {
-      max-width: 1200px;
-      margin: 0 auto;
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 32px;
-      text-align: center;
-    }
-
-    .impact-stat .stat-number { color: var(--blanco); font-size: 3.5rem; }
-    .impact-stat .stat-label  { color: rgba(255,255,255,0.72); font-size: 0.875rem; }
-
-    /* ─── DOS CAMINOS / TWO PATHS ─── */
-    .caminos-section { background: var(--crema); }
-
-    .caminos-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 24px;
-    }
-
-    .camino-card {
-      background: var(--blanco);
-      border-radius: var(--radio);
-      padding: 48px;
-      box-shadow: var(--sombra);
-      transition: transform 0.25s, box-shadow 0.25s;
-      position: relative;
-      overflow: hidden;
-    }
-
-    .camino-card::before {
-      content: '';
-      position: absolute;
-      top: 0; left: 0; right: 0;
-      height: 4px;
-      background: var(--verde);
-    }
-
-    .camino-card.dorado::before { background: var(--dorado); }
-
-    .camino-card:hover {
-      transform: translateY(-6px);
-      box-shadow: var(--sombra-hover);
-    }
-
-    .camino-icon {
-      width: 60px; height: 60px;
-      background: var(--verde-claro);
-      border-radius: 14px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 1.75rem;
-      margin-bottom: 28px;
-    }
-
-    .camino-card.dorado .camino-icon {
-      background: rgba(196,136,47,0.12);
-    }
-
-    .camino-card h3 {
-      font-family: 'Cormorant Garamond', serif;
-      font-size: 1.75rem;
-      font-weight: 600;
-      color: var(--texto);
-      margin-bottom: 12px;
-    }
-
-    .camino-card > p {
-      color: var(--gris);
-      line-height: 1.7;
-      margin-bottom: 28px;
-      font-size: 0.975rem;
-    }
-
-    .camino-list {
-      list-style: none;
-      margin-bottom: 36px;
-    }
-
-    .camino-list li {
-      display: flex;
-      align-items: flex-start;
-      gap: 10px;
-      font-size: 0.9rem;
-      color: var(--texto);
-      margin-bottom: 10px;
-    }
-
-    .camino-list li::before {
-      content: '✓';
-      color: var(--verde);
-      font-weight: 700;
-      flex-shrink: 0;
-      margin-top: 1px;
-    }
-
-    .camino-card.dorado .camino-list li::before { color: var(--dorado); }
-
-    /* ─── METODOLOGÍA ─── */
-    .metodo-section { background: var(--blanco); }
-
-    .metodo-inner {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 64px;
-      align-items: center;
-    }
-
-    .metodo-blocks {
-      display: flex;
-      flex-direction: column;
-      gap: 16px;
-    }
-
-    .metodo-block {
-      border-left: 3px solid var(--verde-claro);
-      padding: 16px 20px;
-      border-radius: 0 8px 8px 0;
-      transition: border-color 0.2s, background 0.2s;
-    }
-
-    .metodo-block:hover {
-      border-color: var(--verde);
-      background: var(--crema);
-    }
-
-    .metodo-block h4 {
-      font-family: 'Cormorant Garamond', serif;
-      font-size: 1.15rem;
-      font-weight: 600;
-      color: var(--texto);
-      margin-bottom: 5px;
-    }
-
-    .metodo-block p {
-      font-size: 0.875rem;
-      color: var(--gris);
-      line-height: 1.65;
-    }
-
-    /* ─── CONTACT CTA ─── */
-    .cta-section {
-      background: var(--verde-oscuro);
-      padding: 80px 24px;
-      text-align: center;
-    }
-
-    .cta-section h2 {
-      color: var(--blanco);
-      margin-bottom: 16px;
-    }
-
-    .cta-section h2 em { color: rgba(196,136,47,0.9); }
-
-    .cta-section p {
-      color: rgba(255,255,255,0.65);
-      max-width: 520px;
-      margin: 0 auto 40px;
-      font-size: 1.05rem;
-      line-height: 1.75;
-    }
-
-    .cta-group {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 16px;
-      justify-content: center;
-    }
-
-    .btn-white {
-      background: var(--blanco);
-      color: var(--verde-oscuro);
-      padding: 15px 30px;
-      border-radius: 8px;
-      font-family: 'Outfit', sans-serif;
-      font-size: 0.95rem;
-      font-weight: 600;
-      text-decoration: none;
-      transition: opacity 0.2s, transform 0.2s;
-      display: inline-block;
-    }
-
-    .btn-white:hover { opacity: 0.9; transform: translateY(-2px); }
-
-    .btn-outline-white {
-      border: 1.5px solid rgba(255,255,255,0.4);
-      color: rgba(255,255,255,0.85);
-      padding: 15px 30px;
-      border-radius: 8px;
-      font-family: 'Outfit', sans-serif;
-      font-size: 0.95rem;
-      font-weight: 500;
-      text-decoration: none;
-      transition: border-color 0.2s, color 0.2s, transform 0.2s;
-      display: inline-block;
-    }
-
-    .btn-outline-white:hover {
-      border-color: rgba(255,255,255,0.8);
-      color: var(--blanco);
-      transform: translateY(-2px);
-    }
-
-    /* ─── FOOTER ─── */
-    footer {
-      background: var(--verde-oscuro);
-      color: rgba(255,255,255,0.72);
-      padding: 56px 24px 36px;
-      border-top: 1px solid rgba(255,255,255,0.07);
-    }
-
-    .footer-inner { max-width: 1200px; margin: 0 auto; }
-
-    .footer-grid {
-      display: grid;
-      grid-template-columns: 2fr 1fr 1fr;
-      gap: 48px;
-      margin-bottom: 40px;
-    }
-
-    .footer-logo {
-      font-family: 'Cormorant Garamond', serif;
-      font-size: 1.5rem;
-      font-weight: 600;
-      color: var(--blanco);
-      margin-bottom: 10px;
-      letter-spacing: -0.02em;
-    }
-
-    .footer-logo span { color: rgba(196,136,47,0.85); }
-
-    .footer-tagline {
-      font-size: 0.875rem;
-      line-height: 1.65;
-      margin-bottom: 16px;
-      max-width: 300px;
-    }
-
-    .footer-meta {
-      font-size: 0.78rem;
-      color: rgba(255,255,255,0.3);
-    }
-
-    .footer-col h5 {
-      font-size: 0.7rem;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.12em;
-      color: rgba(255,255,255,0.35);
-      margin-bottom: 16px;
-    }
-
-    .footer-col ul { list-style: none; }
-    .footer-col ul li { margin-bottom: 10px; }
-
-    .footer-col ul a {
-      color: rgba(255,255,255,0.6);
-      text-decoration: none;
-      font-size: 0.9rem;
-      transition: color 0.2s;
-    }
-
-    .footer-col ul a:hover { color: var(--blanco); }
-
-    .footer-bottom {
-      border-top: 1px solid rgba(255,255,255,0.07);
-      padding-top: 24px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      flex-wrap: wrap;
-      gap: 12px;
-      font-size: 0.78rem;
-      color: rgba(255,255,255,0.3);
-    }
-
-    .footer-bottom a {
-      color: rgba(255,255,255,0.35);
-      text-decoration: none;
-      transition: color 0.2s;
-    }
-
-    .footer-bottom a:hover { color: rgba(255,255,255,0.7); }
-
-    /* ─── ANIMATIONS ─── */
-    .fade-up {
-      opacity: 0;
-      transform: translateY(28px);
-      transition: opacity 0.7s ease-out, transform 0.7s ease-out;
-    }
-
-    .fade-up.visible { opacity: 1; transform: translateY(0); }
-    .fade-up:nth-child(2) { transition-delay: 0.1s; }
-    .fade-up:nth-child(3) { transition-delay: 0.2s; }
-    .fade-up:nth-child(4) { transition-delay: 0.3s; }
-
-    /* ─── RESPONSIVE ─── */
-    @media (max-width: 900px) {
-      .hero-inner,
-      .what-grid,
-      .metodo-inner  { grid-template-columns: 1fr; }
-      .caminos-grid  { grid-template-columns: 1fr; }
-      .impact-inner  { grid-template-columns: repeat(2, 1fr); }
-      .footer-grid   { grid-template-columns: 1fr 1fr; }
-      .hero-visual   { display: none; }
-      .nav-links     { gap: 16px; }
-    }
-
-    @media (max-width: 640px) {
-      .impact-inner    { grid-template-columns: 1fr 1fr; }
-      .footer-grid     { grid-template-columns: 1fr; }
-      .nav-links .hide-mobile { display: none; }
-      .camino-card     { padding: 32px 24px; }
-    }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="theme-color" content="#0d9488">
+<title>Bienestar 360 · ¿Quién eres?</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+:root{
+  --teal:#0d9488;--teal2:rgba(13,148,136,0.1);--teal3:rgba(13,148,136,0.07);
+  --amber:#d97706;--amber2:rgba(217,119,6,0.1);
+  --blue:#2563eb;
+  --ink:#111827;--ink2:#374151;--mt:#9ca3af;
+  --bg:#fff;--bg2:#f8f9fb;--bg3:#f0f2f7;
+  --border:#e5e7eb;
+}
+body{background:var(--bg);color:var(--ink);font-family:"Plus Jakarta Sans",sans-serif;min-height:100vh;overflow-x:hidden}
+.app{max-width:480px;margin:0 auto;min-height:100vh;position:relative}
+.pbar{height:3px;background:var(--border);position:sticky;top:0;z-index:100}
+.pfill{height:100%;background:var(--teal);transition:width .4s ease;border-radius:0 2px 2px 0}
+.screen{padding:28px 24px 48px;min-height:calc(100vh - 3px);display:flex;flex-direction:column;animation:si .3s ease}
+@keyframes si{from{opacity:0;transform:translateX(14px)}to{opacity:1;transform:translateX(0)}}
+.hidden{display:none!important}
+.logo{font-family:"IBM Plex Mono",monospace;font-size:11px;letter-spacing:3px;color:var(--teal);text-transform:uppercase;margin-bottom:32px}
+.emoji{font-size:48px;margin-bottom:14px;display:block}
+.h1{font-size:26px;font-weight:800;color:var(--ink);line-height:1.2;margin-bottom:8px;letter-spacing:-.5px}
+.sub{font-size:15px;color:var(--mt);line-height:1.65;margin-bottom:28px}
+.choices{display:flex;flex-direction:column;gap:12px;margin-bottom:20px}
+.choice{background:var(--bg2);border:2px solid var(--border);border-radius:16px;padding:17px 18px;cursor:pointer;display:flex;align-items:center;gap:14px;transition:all .15s;user-select:none}
+.choice:hover,.choice.sel{border-color:var(--teal);background:var(--teal3)}
+.ci{font-size:26px;flex-shrink:0}
+.ct{flex:1}
+.cn{font-size:15px;font-weight:700;color:var(--ink);margin-bottom:2px}
+.cd{font-size:12.5px;color:var(--mt)}
+.ck{width:22px;height:22px;border-radius:50%;border:2px solid var(--border);flex-shrink:0;display:flex;align-items:center;justify-content:center;transition:all .15s}
+.choice.sel .ck{background:var(--teal);border-color:var(--teal)}
+.ck-dot{width:9px;height:9px;background:#fff;border-radius:50%;display:none}
+.choice.sel .ck-dot{display:block}
+.qlabel{font-family:"IBM Plex Mono",monospace;font-size:12px;letter-spacing:.5px;color:var(--teal);margin-bottom:6px}
+.qh1{font-size:22px;font-weight:800;color:var(--ink);line-height:1.25;margin-bottom:6px;letter-spacing:-.3px}
+.qsub{font-size:14px;color:var(--mt);margin-bottom:22px;line-height:1.55}
+.opts{display:flex;flex-direction:column;gap:10px}
+.opt{background:var(--bg2);border:2px solid var(--border);border-radius:12px;padding:14px 16px;cursor:pointer;font-size:14px;font-weight:600;color:var(--ink2);transition:all .15s;display:flex;align-items:center;gap:12px;user-select:none}
+.opt:hover,.opt.sel{border-color:var(--teal);background:var(--teal3);color:var(--teal)}
+.oi{font-size:20px;flex-shrink:0}
+.sp{flex:1}
+.btn{width:100%;padding:16px;border-radius:14px;font-size:16px;font-weight:700;font-family:"Plus Jakarta Sans",sans-serif;cursor:pointer;border:none;transition:all .15s;letter-spacing:-.2px;margin-top:10px}
+.btn:first-of-type{margin-top:0}
+.btn-p{background:var(--teal);color:#fff}
+.btn-p:hover{background:#0f766e}
+.btn-p:active{transform:scale(.98)}
+.btn-p:disabled{opacity:.35;cursor:default}
+.btn-s{background:var(--bg3);color:var(--ink2)}
+.btn-wa{background:#25d366;color:#fff;display:flex;align-items:center;justify-content:center;gap:10px}
+.btn-pay{background:var(--blue);color:#fff;display:flex;align-items:center;justify-content:center;gap:10px}
+.back{background:none;border:none;font-size:14px;color:var(--mt);cursor:pointer;padding:0;font-family:"Plus Jakarta Sans",sans-serif;margin-bottom:20px;display:flex;align-items:center;gap:6px}
+.score-box{background:linear-gradient(135deg,var(--teal),#0f766e);border-radius:20px;padding:26px;text-align:center;margin-bottom:22px;color:#fff}
+.sl{font-size:11px;letter-spacing:2px;text-transform:uppercase;opacity:.8;font-family:"IBM Plex Mono",monospace;margin-bottom:8px}
+.sv{font-size:48px;font-weight:800;line-height:1;margin-bottom:6px;letter-spacing:-2px}
+.ss{font-size:14px;opacity:.85;line-height:1.5}
+.cards{display:flex;flex-direction:column;gap:10px;margin-bottom:22px}
+.rcard{background:var(--bg2);border-radius:12px;padding:14px 16px;display:flex;gap:12px;align-items:flex-start}
+.ri{font-size:20px;flex-shrink:0;margin-top:1px}
+.rt{font-size:14px;font-weight:700;color:var(--ink);margin-bottom:2px}
+.rd{font-size:12.5px;color:var(--mt);line-height:1.5}
+.steps{display:flex;flex-direction:column;gap:16px;margin-bottom:22px}
+.step{display:flex;gap:14px;align-items:flex-start}
+.snum{width:32px;height:32px;border-radius:50%;background:var(--teal);color:#fff;font-weight:800;font-size:14px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.stitle{font-size:14px;font-weight:700;color:var(--ink);margin-bottom:2px}
+.sdesc{font-size:13px;color:var(--mt);line-height:1.5}
+.proof{background:var(--teal3);border-radius:12px;padding:16px;margin-bottom:18px;border-left:3px solid var(--teal)}
+.pq{font-size:14px;color:var(--ink2);line-height:1.65;font-style:italic;margin-bottom:7px}
+.pw{font-size:12px;font-weight:700;color:var(--teal)}
+.badge{display:inline-flex;align-items:center;gap:6px;background:var(--amber2);color:var(--amber);font-size:11px;font-weight:700;padding:4px 10px;border-radius:20px;margin-bottom:10px;font-family:"IBM Plex Mono",monospace}
+.pname{font-size:22px;font-weight:800;color:var(--ink);margin-bottom:4px;letter-spacing:-.5px}
+.pprice{font-size:32px;font-weight:800;color:var(--teal);margin-bottom:4px;letter-spacing:-1px}
+.pcycle{font-size:13px;color:var(--mt);margin-bottom:14px}
+.pinc{font-size:12px;font-weight:700;color:var(--ink2);margin-bottom:8px;font-family:"IBM Plex Mono",monospace;letter-spacing:.5px}
+.pitems{display:flex;flex-direction:column;gap:7px;margin-bottom:20px}
+.pitem{font-size:14px;color:var(--ink2);display:flex;gap:8px;align-items:flex-start;line-height:1.4}
+.pitem::before{content:"✓";color:var(--teal);font-weight:700;flex-shrink:0}
+.note{font-size:12px;color:var(--mt);text-align:center;line-height:1.6;margin-top:14px}
+.divider{height:1px;background:var(--border);margin:16px 0}
+</style>
 </head>
 <body>
+<div class="app">
+  <div class="pbar"><div class="pfill" id="pf" style="width:5%"></div></div>
 
-  <!-- ─── NAV ─── -->
-  <nav>
-    <div class="nav-inner">
-      <a href="/" class="logo">be<span>360</span></a>
-      <div class="nav-right">
-        <ul class="nav-links">
-          <li class="hide-mobile">
-            <a href="#methodology" data-en="Methodology" data-es="Metodología">Methodology</a>
-          </li>
-          <li class="hide-mobile">
-            <a href="#schools" data-en="Schools" data-es="Colegios">Schools</a>
-          </li>
-          <li class="hide-mobile">
-            <a href="#partners" data-en="Partners" data-es="Aliados">Partners</a>
-          </li>
-          <li>
-            <a href="#contact" class="btn-nav" data-en="Get started" data-es="Comenzar">Get started</a>
-          </li>
-        </ul>
-        <button class="lang-btn" id="langBtn" onclick="toggleLang()">ES</button>
+  <!-- WELCOME -->
+  <div class="screen" id="s-welcome">
+    <div class="logo">Bienestar 360 · LedeLab</div>
+    <span class="emoji">👋</span>
+    <div class="h1">¿Quién eres?</div>
+    <div class="sub">Cuéntanos en qué contexto estás y te mostramos exactamente lo que necesitas. Sin reuniones. En 3 minutos.</div>
+    <div class="choices" id="welcome-choices">
+      <div class="choice" data-val="colegio" onclick="chooseProfile(this)">
+        <span class="ci">🏫</span>
+        <div class="ct"><div class="cn">Institución educativa</div><div class="cd">Quiero conocer Vita para mi colegio</div></div>
+        <div class="ck"><div class="ck-dot"></div></div>
+      </div>
+      <div class="choice" data-val="ceo" onclick="chooseProfile(this)">
+        <span class="ci">💼</span>
+        <div class="ct"><div class="cn">Dueño de empresa o CEO</div><div class="cd">Quiero implementar IA en mi empresa</div></div>
+        <div class="ck"><div class="ck-dot"></div></div>
+      </div>
+      <div class="choice" data-val="ji" onclick="chooseProfile(this)">
+        <span class="ci">🎓</span>
+        <div class="ct"><div class="cn">Investigador o académico</div><div class="cd">Quiero conocer el Javier Institute MTÜ</div></div>
+        <div class="ck"><div class="ck-dot"></div></div>
       </div>
     </div>
-  </nav>
+    <div class="sp"></div>
+    <button class="btn btn-p" id="btn-welcome" disabled onclick="startFlow()">Continuar →</button>
+    <div class="note">Sin spam · Sin llamadas no solicitadas</div>
+  </div>
 
-  <!-- ─── HERO ─── -->
-  <section class="hero">
-    <div class="hero-inner">
-
-      <div class="hero-content">
-        <div class="hero-tag"
-          data-en="Evidence-based Family Health"
-          data-es="Bienestar Familiar Basado en Evidencia">
-          Evidence-based Family Health
-        </div>
-        <h1
-          data-en="Healthy families,<br><em>brilliant minds.</em>"
-          data-es="Cuerpo sano,<br><em>mentes brillantes.</em>">
-          Healthy families,<br><em>brilliant minds.</em>
-        </h1>
-        <p
-          data-en="A science-backed family wellness programme, delivered through schools that invest in their communities."
-          data-es="Un programa de bienestar familiar con respaldo científico, entregado a través de los colegios que se preocupan por sus comunidades.">
-          A science-backed family wellness programme, delivered through schools that invest in their communities.
-        </p>
-        <div class="hero-actions">
-          <a href="#schools" class="btn-primary"
-            data-en="I'm a school principal"
-            data-es="Soy rector de un colegio">
-            I'm a school principal
-          </a>
-          <a href="#partners" class="btn-secondary"
-            data-en="I'm a partner or funder"
-            data-es="Soy aliado o financiador">
-            I'm a partner or funder
-          </a>
-        </div>
-      </div>
-
-      <div class="hero-visual">
-        <div class="hero-card-main">
-          <div class="stat-grid">
-            <div class="stat-card">
-              <div class="stat-number">4</div>
-              <div class="stat-label"
-                data-en="months to lasting biological change"
-                data-es="meses para cambios biológicos profundos">
-                months to lasting biological change
-              </div>
-            </div>
-            <div class="stat-card">
-              <div class="stat-number">100%</div>
-              <div class="stat-label"
-                data-en="personalised per family"
-                data-es="personalizado por familia">
-                personalised per family
-              </div>
-            </div>
-            <div class="stat-card">
-              <div class="stat-number">$0</div>
-              <div class="stat-label"
-                data-en="cost to the school"
-                data-es="costo para el colegio">
-                cost to the school
-              </div>
-            </div>
-          </div>
-        </div>
-        <div class="hero-badge"
-          data-en="Backed by academic research · University of Tartu, Estonia"
-          data-es="Respaldado por investigación académica · Universidad de Tartu, Estonia">
-          Backed by academic research · University of Tartu, Estonia
-        </div>
-      </div>
-
-    </div>
-  </section>
-
-  <!-- ─── WHAT IS BE360 ─── -->
-  <section class="what-section" id="about">
-    <div class="container">
-      <div class="what-grid">
-        <div class="what-text">
-          <div class="section-tag"
-            data-en="Our mission"
-            data-es="Nuestra misión">
-            Our mission
-          </div>
-          <h2
-            data-en="Family health <em>transforms</em> education"
-            data-es="El bienestar familiar <em>transforma</em> la educación">
-            Family health <em>transforms</em> education
-          </h2>
-          <p
-            data-en="be360 is a personalised wellness accompaniment programme for families. We work on nutrition, sleep, movement, and emotional balance to generate real, sustainable change."
-            data-es="be360 es un programa de acompañamiento personalizado para familias. Trabajamos desde la nutrición, el sueño, el movimiento y el equilibrio emocional para generar cambios reales y sostenibles.">
-            be360 is a personalised wellness accompaniment programme for families. We work on nutrition, sleep, movement, and emotional balance to generate real, sustainable change.
-          </p>
-          <p
-            data-en="We partner with schools that understand healthy families are the foundation of learning. Zero cost to the institution, measurable impact for the whole educational community."
-            data-es="Nos aliamos con colegios que entienden que una familia sana es la base del aprendizaje. Sin costo para la institución, con impacto medible para toda la comunidad educativa.">
-            We partner with schools that understand healthy families are the foundation of learning. Zero cost to the institution, measurable impact for the whole educational community.
-          </p>
-          <div class="badge-row">
-            <span class="badge" data-en="Nutrition"        data-es="Nutrición">Nutrition</span>
-            <span class="badge" data-en="Sleep"            data-es="Sueño">Sleep</span>
-            <span class="badge" data-en="Movement"         data-es="Movimiento">Movement</span>
-            <span class="badge" data-en="Emotional balance" data-es="Gestión emocional">Emotional balance</span>
-            <span class="badge" data-en="Habits"           data-es="Hábitos">Habits</span>
-          </div>
-        </div>
-
-        <div class="what-pillars">
-          <div class="pillar fade-up">
-            <div class="pillar-icon">🌱</div>
-            <div class="pillar-text">
-              <h4 data-en="Biological Reset System" data-es="Sistema de Reversión Biológica">
-                Biological Reset System
-              </h4>
-              <p
-                data-en="A clinical methodology that works from the root causes of health imbalance — not just the symptoms."
-                data-es="Metodología clínica que trabaja desde las causas raíz del desequilibrio en salud, no en los síntomas.">
-                A clinical methodology that works from the root causes of health imbalance — not just the symptoms.
-              </p>
-            </div>
-          </div>
-          <div class="pillar fade-up">
-            <div class="pillar-icon">🧠</div>
-            <div class="pillar-text">
-              <h4 data-en="Motivational Support Component" data-es="Componente de Acompañamiento Motivacional">
-                Motivational Support Component
-              </h4>
-              <p
-                data-en="A behavioural layer that sustains habit change over time. Academically validated."
-                data-es="Capa conductual que sostiene el cambio de hábitos en el tiempo. Validado académicamente.">
-                A behavioural layer that sustains habit change over time. Academically validated.
-              </p>
-            </div>
-          </div>
-          <div class="pillar fade-up">
-            <div class="pillar-icon">💬</div>
-            <div class="pillar-text">
-              <h4 data-en="WhatsApp-based support" data-es="Acompañamiento por WhatsApp">
-                WhatsApp-based support
-              </h4>
-              <p
-                data-en="No extra apps. Personalised guidance on the channel every family already uses."
-                data-es="Sin apps adicionales. Acompañamiento personalizado en el canal que todas las familias ya usan.">
-                No extra apps. Personalised guidance on the channel every family already uses.
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- ─── IMPACT STRIP ─── -->
-  <div class="impact-strip">
-    <div class="impact-inner">
-      <div class="impact-stat fade-up">
-        <div class="stat-number">4</div>
-        <div class="stat-label"
-          data-en="months of continuous support"
-          data-es="meses de acompañamiento continuo">
-          months of continuous support
-        </div>
-      </div>
-      <div class="impact-stat fade-up">
-        <div class="stat-number">100%</div>
-        <div class="stat-label"
-          data-en="personalised for each family"
-          data-es="personalizado para cada familia">
-          personalised for each family
-        </div>
-      </div>
-      <div class="impact-stat fade-up">
-        <div class="stat-number">$0</div>
-        <div class="stat-label"
-          data-en="cost to partner schools"
-          data-es="costo para el colegio aliado">
-          cost to partner schools
-        </div>
-      </div>
-      <div class="impact-stat fade-up">
-        <div class="stat-number">4</div>
-        <div class="stat-label"
-          data-en="modifiable inflammatory risk factors addressed"
-          data-es="factores inflamatorios modificables abordados">
-          modifiable inflammatory risk factors addressed
-        </div>
-      </div>
+  <!-- COLEGIO Q1 -->
+  <div class="screen hidden" id="s-cq1">
+    <button class="back" onclick="goBack('cq1')">← Atrás</button>
+    <div class="qlabel">Pregunta 1 de 3</div>
+    <div class="qh1">¿Cuántos estudiantes tiene tu institución?</div>
+    <div class="qsub">Esto nos ayuda a estimar el impacto potencial de Vita.</div>
+    <div class="opts">
+      <div class="opt" onclick="answerC(0,0,this)"><span class="oi">🏫</span>Menos de 300 estudiantes</div>
+      <div class="opt" onclick="answerC(0,1,this)"><span class="oi">🏛️</span>300 a 800 estudiantes</div>
+      <div class="opt" onclick="answerC(0,2,this)"><span class="oi">🏢</span>Más de 800 estudiantes</div>
     </div>
   </div>
 
-  <!-- ─── TWO PATHS ─── -->
-  <section class="caminos-section">
-    <div class="container">
-      <div class="section-header">
-        <div class="section-tag"
-          data-en="Two ways to join"
-          data-es="Dos formas de ser parte">
-          Two ways to join
-        </div>
-        <h2
-          data-en="How do you want<br><em>to get involved?</em>"
-          data-es="¿Cómo quieres<br><em>sumarte?</em>">
-          How do you want<br><em>to get involved?</em>
-        </h2>
-        <p class="section-lead"
-          data-en="be360 works with two types of allies: schools that want to care for their families, and organisations that want to scale the impact."
-          data-es="be360 trabaja con dos tipos de aliados: colegios que quieren cuidar a sus familias, y organizaciones que quieren escalar el impacto.">
-          be360 works with two types of allies: schools that want to care for their families, and organisations that want to scale the impact.
-        </p>
-      </div>
-
-      <div class="caminos-grid">
-
-        <!-- Schools -->
-        <div class="camino-card fade-up" id="schools">
-          <div class="camino-icon">🏫</div>
-          <h3 data-en="For schools" data-es="Para colegios">For schools</h3>
-          <p
-            data-en="Offer your school community a world-class wellness programme. No institutional investment. Real, measurable differentiation."
-            data-es="Ofrece a las familias de tu comunidad un programa de bienestar de clase mundial. Sin inversión institucional. Con diferenciación real y medible.">
-            Offer your school community a world-class wellness programme. No institutional investment. Real, measurable differentiation.
-          </p>
-          <ul class="camino-list">
-            <li data-en="No cost to the institution"             data-es="Sin costo para la institución">No cost to the institution</li>
-            <li data-en="Immediate deployment via WhatsApp"      data-es="Implementación inmediata vía WhatsApp">Immediate deployment via WhatsApp</li>
-            <li data-en="Community wellness metrics"             data-es="Métricas de bienestar de tu comunidad">Community wellness metrics</li>
-            <li data-en="Family retention and loyalty"           data-es="Diferenciación y fidelización de familias">Family retention and loyalty</li>
-            <li data-en="Science-backed methodology"             data-es="Metodología con respaldo científico">Science-backed methodology</li>
-          </ul>
-          <a href="#contact" class="btn-primary"
-            data-en="See school programme"
-            data-es="Ver programa para colegios">
-            See school programme
-          </a>
-        </div>
-
-        <!-- Partners -->
-        <div class="camino-card dorado fade-up" id="partners">
-          <div class="camino-icon">🌍</div>
-          <h3 data-en="For partners" data-es="Para aliados">For partners</h3>
-          <p
-            data-en="Support a scalable impact model connecting European research with children's health in Latin America."
-            data-es="Apoya un modelo de impacto escalable que conecta la investigación académica europea con la salud infantil latinoamericana.">
-            Support a scalable impact model connecting European research with children's health in Latin America.
-          </p>
-          <ul class="camino-list">
-            <li data-en="Proven, scalable B2B2C model"           data-es="Modelo B2B2C demostrado y escalable">Proven, scalable B2B2C model</li>
-            <li data-en="International academic backing"          data-es="Respaldo académico internacional">International academic backing</li>
-            <li data-en="SDG 3 &amp; 4 alignment"               data-es="Alineación con ODS 3 y 4">SDG 3 &amp; 4 alignment</li>
-            <li data-en="Estonia – Colombia – Europe connection" data-es="Conexión Estonia – Colombia – Europa">Estonia – Colombia – Europe connection</li>
-            <li data-en="Active pilot in Barranquilla"            data-es="Piloto activo en Barranquilla">Active pilot in Barranquilla</li>
-          </ul>
-          <a href="#contact" class="btn-secondary"
-            data-en="See partnership proposal"
-            data-es="Ver propuesta de alianza">
-            See partnership proposal
-          </a>
-        </div>
-
-      </div>
+  <!-- COLEGIO Q2 -->
+  <div class="screen hidden" id="s-cq2">
+    <button class="back" onclick="goBack('cq2')">← Atrás</button>
+    <div class="qlabel">Pregunta 2 de 3</div>
+    <div class="qh1">¿Tienen algún programa de bienestar estudiantil activo?</div>
+    <div class="qsub">No importa si es informal — cualquier iniciativa cuenta.</div>
+    <div class="opts">
+      <div class="opt" onclick="answerC(1,0,this)"><span class="oi">✅</span>Sí, tenemos un programa estructurado</div>
+      <div class="opt" onclick="answerC(1,1,this)"><span class="oi">🔄</span>Algo informal, sin sistema</div>
+      <div class="opt" onclick="answerC(1,2,this)"><span class="oi">❌</span>No tenemos ninguno actualmente</div>
     </div>
-  </section>
+  </div>
 
-  <!-- ─── METHODOLOGY ─── -->
-  <section class="metodo-section" id="methodology">
-    <div class="container">
-      <div class="metodo-inner">
-
-        <div>
-          <div class="section-tag"
-            data-en="The methodology"
-            data-es="La metodología">
-            The methodology
-          </div>
-          <h2
-            data-en="The science of <em>real change</em>"
-            data-es="Ciencia del <em>cambio real</em>">
-            The science of <em>real change</em>
-          </h2>
-          <p class="section-lead"
-            data-en="We don't prescribe diets or routines. We work from each family's biology to generate lasting, sustainable change."
-            data-es="No imponemos dietas ni rutinas. Trabajamos desde la biología de cada familia para generar cambios que duran.">
-            We don't prescribe diets or routines. We work from each family's biology to generate lasting, sustainable change.
-          </p>
-          <div class="badge-row" style="margin-top: 24px;">
-            <span class="badge">TTM</span>
-            <span class="badge">COM-B</span>
-            <span class="badge">Habit Theory</span>
-            <span class="badge">Self-Directed Learning</span>
-          </div>
-        </div>
-
-        <div class="metodo-blocks">
-          <div class="metodo-block fade-up">
-            <h4 data-en="Biological Reset System (BRS)"
-                data-es="Sistema de Reversión Biológica (SRB)">
-              Biological Reset System (BRS)
-            </h4>
-            <p
-              data-en="A clinical protocol addressing 4 pillars of balance: nutrition, sleep, movement, and mindset."
-              data-es="Protocolo clínico que trabaja los 4 pilares del equilibrio: nutrición, sueño, movimiento y mente.">
-              A clinical protocol addressing 4 pillars of balance: nutrition, sleep, movement, and mindset.
-            </p>
-          </div>
-          <div class="metodo-block fade-up">
-            <h4 data-en="Motivational Support Component (MSC)"
-                data-es="Componente de Acompañamiento Motivacional (CAM)">
-              Motivational Support Component (MSC)
-            </h4>
-            <p
-              data-en="Behavioural layer sustaining change over time. Designed around TTM, COM-B, and Habit Theory. Validated in a clinical pilot study."
-              data-es="Capa conductual que sostiene el cambio en el tiempo. Diseñada con base en TTM, COM-B y Habit Theory. Validada en investigación con familias colombianas.">
-              Behavioural layer sustaining change over time. Designed around TTM, COM-B, and Habit Theory. Validated in a clinical pilot study.
-            </p>
-          </div>
-          <div class="metodo-block fade-up">
-            <h4 data-en="Personalised diagnosis and tracking"
-                data-es="Diagnóstico y seguimiento personalizado">
-              Personalised diagnosis and tracking
-            </h4>
-            <p
-              data-en="Each family receives an initial profile and support adapted to their context, goals, and pace of life."
-              data-es="Cada familia recibe un perfil inicial y acompañamiento adaptado a su contexto, sus objetivos y su ritmo de vida.">
-              Each family receives an initial profile and support adapted to their context, goals, and pace of life.
-            </p>
-          </div>
-          <div class="metodo-block fade-up">
-            <h4 data-en="Academic foundation"
-                data-es="Respaldo académico">
-              Academic foundation
-            </h4>
-            <p
-              data-en="Grounded in Master's research in Educational Technology — University of Tartu, Estonia, 2026."
-              data-es="Fundamentado en tesis de Maestría en Tecnología Educativa — Universidad de Tartu, Estonia, 2026.">
-              Grounded in Master's research in Educational Technology — University of Tartu, Estonia, 2026.
-            </p>
-          </div>
-        </div>
-
-      </div>
+  <!-- COLEGIO Q3 -->
+  <div class="screen hidden" id="s-cq3">
+    <button class="back" onclick="goBack('cq3')">← Atrás</button>
+    <div class="qlabel">Pregunta 3 de 3</div>
+    <div class="qh1">¿Cuál es el mayor reto de bienestar que enfrentan?</div>
+    <div class="qsub">Selecciona el que más les preocupa hoy.</div>
+    <div class="opts">
+      <div class="opt" onclick="answerC(2,0,this)"><span class="oi">😔</span>Atención y rendimiento académico</div>
+      <div class="opt" onclick="answerC(2,1,this)"><span class="oi">⚡</span>Ausentismo y salud física</div>
+      <div class="opt" onclick="answerC(2,2,this)"><span class="oi">💬</span>Salud emocional y convivencia</div>
+      <div class="opt" onclick="answerC(2,3,this)"><span class="oi">👨‍👩‍👧</span>Hábitos e involucramiento familiar</div>
     </div>
-  </section>
+  </div>
 
-  <!-- ─── CONTACT CTA ─── -->
-  <section class="cta-section" id="contact">
-    <h2
-      data-en="Ready to <em>get started?</em>"
-      data-es="¿Listo para <em>comenzar?</em>">
-      Ready to <em>get started?</em>
-    </h2>
-    <p
-      data-en="Whether you're a school principal or a potential partner, we'd love to hear from you."
-      data-es="Ya sea que seas rector de un colegio o un posible aliado, nos encantaría saber de ti.">
-      Whether you're a school principal or a potential partner, we'd love to hear from you.
-    </p>
-    <div class="cta-group">
-      <a href="mailto:hello@be360.app" class="btn-white"
-        data-en="Write to us →"
-        data-es="Escríbenos →">
-        Write to us →
-      </a>
-      <a href="https://ledelab.group" class="btn-outline-white"
-        data-en="Built by LedeLab Group ↗"
-        data-es="Desarrollado por LedeLab Group ↗">
-        Built by LedeLab Group ↗
-      </a>
+  <!-- COLEGIO R1: Diagnóstico -->
+  <div class="screen hidden" id="s-cr1">
+    <button class="back" onclick="goBack('cr1')">← Atrás</button>
+    <div class="qlabel">Tu diagnóstico</div>
+    <div class="score-box">
+      <div class="sl">Estudiantes en riesgo estimado</div>
+      <div class="sv" id="c-affected">—</div>
+      <div class="ss" id="c-affected-sub">de tus estudiantes podrían tener factores inflamatorios invisibles afectando su rendimiento</div>
     </div>
-  </section>
-
-  <!-- ─── FOOTER ─── -->
-  <footer>
-    <div class="footer-inner">
-      <div class="footer-grid">
-        <div>
-          <div class="footer-logo">be<span>360</span></div>
-          <p class="footer-tagline"
-            data-en="Healthy families. Brilliant minds. A science-backed family wellness programme delivered through schools."
-            data-es="Cuerpo sano, mentes brillantes. Programa de bienestar familiar con respaldo científico, entregado a través de los colegios.">
-            Healthy families. Brilliant minds. A science-backed family wellness programme delivered through schools.
-          </p>
-          <p class="footer-meta">Barranquilla, Colombia · be360.app</p>
-        </div>
-        <div class="footer-col">
-          <h5 data-en="Programme" data-es="Programa">Programme</h5>
-          <ul>
-            <li><a href="#methodology" data-en="Methodology"   data-es="Metodología">Methodology</a></li>
-            <li><a href="#schools"     data-en="For schools"   data-es="Para colegios">For schools</a></li>
-            <li><a href="#partners"    data-en="For partners"  data-es="Para aliados">For partners</a></li>
-            <li><a href="#contact"     data-en="Contact"       data-es="Contacto">Contact</a></li>
-          </ul>
-        </div>
-        <div class="footer-col">
-          <h5 data-en="Ecosystem" data-es="Ecosistema">Ecosystem</h5>
-          <ul>
-            <li><a href="https://ledelab.group">LedeLab Group OÜ</a></li>
-            <li><a href="https://bienestar360.co" data-en="bienestar360.co (ES)" data-es="bienestar360.co">bienestar360.co (ES)</a></li>
-            <li><a href="mailto:hello@be360.app">hello@be360.app</a></li>
-          </ul>
-        </div>
-      </div>
-      <div class="footer-bottom">
-        <span data-en="© 2026 be360 · Barranquilla, Colombia · All rights reserved."
-              data-es="© 2026 be360 · Barranquilla, Colombia · Todos los derechos reservados.">
-          © 2026 be360 · Bienestar 360 SAS · All rights reserved.
-        </span>
-        <span>
-          <a href="https://ledelab.group"
-            data-en="Technology by LedeLab Group OÜ"
-            data-es="Tecnología por LedeLab Group OÜ">
-            Technology by LedeLab Group OÜ
-          </a>
-        </span>
-      </div>
+    <div class="cards">
+      <div class="rcard"><span class="ri">🧠</span><div><div class="rt">Impacto cognitivo real</div><div class="rd">Inflamación crónica por hábitos del hogar reduce hasta 30% la capacidad de atención. No es disciplina — es biología.</div></div></div>
+      <div class="rcard"><span class="ri">📱</span><div><div class="rt">La solución llega por WhatsApp</div><div class="rd">Vita acompaña a las familias en su teléfono. Sin apps que instalar. Sin cursos que asistir.</div></div></div>
+      <div class="rcard"><span class="ri">🏫</span><div><div class="rt">El colegio facilita, no carga</div><div class="rd">Tu institución ofrece Vita como valor agregado. B360 opera en el backstage. Sin trabajo extra para tu equipo.</div></div></div>
+      <div class="rcard"><span class="ri">💰</span><div><div class="rt">Sin costo para las familias</div><div class="rd">El colegio accede por convenio. Las familias lo usan gratis.</div></div></div>
     </div>
-  </footer>
+    <div class="sp"></div>
+    <button class="btn btn-p" onclick="goto('cr2')">Ver cómo funciona →</button>
+  </div>
 
-  <script>
-    // ── LANG ──
-    const langBtn = document.getElementById('langBtn');
-    let lang = localStorage.getItem('be360-lang') || 'en';
+  <!-- COLEGIO R2: Cómo funciona -->
+  <div class="screen hidden" id="s-cr2">
+    <button class="back" onclick="goto('cr1')">← Atrás</button>
+    <div class="qlabel">Cómo funciona Vita</div>
+    <div class="qh1">Tres pasos. Sin complicaciones.</div>
+    <div class="steps">
+      <div class="step"><div class="snum">1</div><div><div class="stitle">La institución acepta</div><div class="sdesc">Formalizamos el convenio como valor agregado gratuito para la comunidad estudiantil. Sin costo para las familias.</div></div></div>
+      <div class="step"><div class="snum">2</div><div><div class="stitle">Las familias activan Vita</div><div class="sdesc">Reciben un link de WhatsApp. Sin instalar nada, sin plataformas. Vita las guía desde el primer mensaje.</div></div></div>
+      <div class="step"><div class="snum">3</div><div><div class="stitle">B360 hace el trabajo</div><div class="sdesc">Diagnóstico conductual, hábitos anti-inflamatorios, seguimiento personalizado. Todo vía chat. Reporte mensual a la institución.</div></div></div>
+    </div>
+    <div class="proof">
+      <div class="pq">"No podemos exigir alto rendimiento académico a un cuerpo inflamado. Vita es la primera herramienta que ataca el problema desde el hogar."</div>
+      <div class="pw">— Bienestar 360 · Metodología basada en evidencia</div>
+    </div>
+    <div class="sp"></div>
+    <button class="btn btn-p" onclick="goto('cr3')">Ver cómo empezar →</button>
+  </div>
 
-    function applyLang(l) {
-      lang = l;
-      langBtn.textContent = l === 'en' ? 'ES' : 'EN';
-      document.querySelectorAll('[data-en]').forEach(el => {
-        el.innerHTML = el.dataset[l] || el.dataset.en;
-      });
-      document.documentElement.lang = l;
-      localStorage.setItem('be360-lang', l);
-    }
+  <!-- COLEGIO R3: CTA -->
+  <div class="screen hidden" id="s-cr3">
+    <button class="back" onclick="goto('cr2')">← Atrás</button>
+    <div class="qlabel">Tu próximo paso</div>
+    <div class="badge">🎓 Para tu institución</div>
+    <div class="pname">Vita para Colegios</div>
+    <div class="pprice">Convenio gratuito</div>
+    <div class="pcycle">Para las familias · Tarifa mensual por institución según tamaño</div>
+    <div class="pinc">QUÉ INCLUYE:</div>
+    <div class="pitems">
+      <div class="pitem">Vita activo para todos tus estudiantes y familias</div>
+      <div class="pitem">Diagnóstico conductual vía WhatsApp sin instalación</div>
+      <div class="pitem">Seguimiento personalizado por familia</div>
+      <div class="pitem">Reporte mensual para la institución</div>
+      <div class="pitem">Soporte B360 incluido</div>
+      <div class="pitem">Sin costo para las familias</div>
+    </div>
+    <button class="btn btn-wa" onclick="openWA('colegio')">💬 Hablar con un asesor</button>
+    <button class="btn btn-s" onclick="openMail('colegio')">Solicitar información por email</button>
+    <div class="note">Respuesta en menos de 24h · Sin compromiso</div>
+  </div>
 
-    function toggleLang() {
-      applyLang(lang === 'en' ? 'es' : 'en');
-    }
+  <!-- CEO Q1 -->
+  <div class="screen hidden" id="s-eq1">
+    <button class="back" onclick="goBack('eq1')">← Atrás</button>
+    <div class="qlabel">Pregunta 1 de 3</div>
+    <div class="qh1">¿Cuántas personas trabajan en tu empresa?</div>
+    <div class="qsub">Incluyendo tú y cualquier colaborador regular.</div>
+    <div class="opts">
+      <div class="opt" onclick="answerE(0,0,this)"><span class="oi">🧑</span>Solo yo</div>
+      <div class="opt" onclick="answerE(0,1,this)"><span class="oi">👥</span>2 a 5 personas</div>
+      <div class="opt" onclick="answerE(0,2,this)"><span class="oi">👨‍💼</span>6 a 20 personas</div>
+      <div class="opt" onclick="answerE(0,3,this)"><span class="oi">🏢</span>Más de 20</div>
+    </div>
+  </div>
 
-    applyLang(lang);
+  <!-- CEO Q2 -->
+  <div class="screen hidden" id="s-eq2">
+    <button class="back" onclick="goBack('eq2')">← Atrás</button>
+    <div class="qlabel">Pregunta 2 de 3</div>
+    <div class="qh1">¿Cuántas apps abres para saber cómo está tu negocio?</div>
+    <div class="qsub">Email, CRM, hojas de cálculo, WhatsApp, notas...</div>
+    <div class="opts">
+      <div class="opt" onclick="answerE(1,0,this)"><span class="oi">1️⃣</span>1 o 2 — tengo algo centralizado</div>
+      <div class="opt" onclick="answerE(1,1,this)"><span class="oi">📱</span>3 a 5 aplicaciones</div>
+      <div class="opt" onclick="answerE(1,2,this)"><span class="oi">😅</span>Más de 5 — es un caos</div>
+      <div class="opt" onclick="answerE(1,3,this)"><span class="oi">🤷</span>No tengo claridad del estado</div>
+    </div>
+  </div>
 
-    // ── SCROLL FADE ──
-    const observer = new IntersectionObserver(entries => {
-      entries.forEach(e => {
-        if (e.isIntersecting) e.target.classList.add('visible');
-      });
-    }, { threshold: 0.1, rootMargin: '0px 0px -40px 0px' });
+  <!-- CEO Q3 -->
+  <div class="screen hidden" id="s-eq3">
+    <button class="back" onclick="goBack('eq3')">← Atrás</button>
+    <div class="qlabel">Pregunta 3 de 3</div>
+    <div class="qh1">¿Qué tiempo recuperarías con un asistente IA?</div>
+    <div class="qsub">Piensa en tu semana típica.</div>
+    <div class="opts">
+      <div class="opt" onclick="answerE(2,0,this)"><span class="oi">⏱️</span>1 a 2 horas — tareas pequeñas</div>
+      <div class="opt" onclick="answerE(2,1,this)"><span class="oi">⌚</span>3 a 5 horas — gestión y seguimientos</div>
+      <div class="opt" onclick="answerE(2,2,this)"><span class="oi">🕐</span>Más de 5 horas — casi todo lo operativo</div>
+    </div>
+  </div>
 
-    document.querySelectorAll('.fade-up').forEach(el => observer.observe(el));
-  </script>
+  <!-- CEO R1: Diagnóstico -->
+  <div class="screen hidden" id="s-er1">
+    <button class="back" onclick="goBack('er1')">← Atrás</button>
+    <div class="qlabel">Tu diagnóstico IA</div>
+    <div class="score-box">
+      <div class="sl">Plan recomendado</div>
+      <div class="sv" id="e-plan" style="font-size:32px;margin-bottom:8px">Núcleo Pro</div>
+      <div class="ss">Basado en tu perfil, este plan te libera el mayor tiempo operativo desde el primer mes</div>
+    </div>
+    <div class="cards">
+      <div class="rcard"><span class="ri">⚡</span><div><div class="rt">Un cerebro. Todos tus sistemas.</div><div class="rd">Claude conectado a Gmail, Drive, Calendar, Notion, HubSpot y Stripe. Cualquier pregunta sobre tu empresa — respondida con datos reales.</div></div></div>
+      <div class="rcard"><span class="ri">🤖</span><div><div class="rt">Agentes que trabajan solos</div><div class="rd">ATLAS produce tu resumen del lunes. REVENUE alerta pagos y oportunidades. Tú decides, ellos ejecutan.</div></div></div>
+      <div class="rcard"><span class="ri">🗺️</span><div><div class="rt">Tu empresa documentada</div><div class="rd">El Master Plan de tu empresa: un documento interactivo vivo. No un PowerPoint. Un sistema.</div></div></div>
+      <div class="rcard"><span class="ri">📅</span><div><div class="rt">Funcionando en 2 semanas</div><div class="rd">Diagnóstico → Implementación → Entrega. Sin meses de consultoría ni reuniones infinitas.</div></div></div>
+    </div>
+    <div class="sp"></div>
+    <button class="btn btn-p" onclick="goto('er2')">Ver mi plan personalizado →</button>
+  </div>
 
+  <!-- CEO R2: Plan y CTA -->
+  <div class="screen hidden" id="s-er2">
+    <button class="back" onclick="goto('er1')">← Atrás</button>
+    <div class="qlabel">Tu plan</div>
+    <div class="badge">⚡ Recomendado para ti</div>
+    <div class="pname" id="e-plan2">Núcleo Pro</div>
+    <div class="pprice" id="e-price">$4.5M COP</div>
+    <div class="pcycle" id="e-usd">~USD 1,100 · Pago único · Sin mensualidad</div>
+    <div class="pinc">TUS AGENTES IA:</div>
+    <div class="pitems" id="e-agents">
+      <div class="pitem">ATLAS — asistente ejecutivo</div>
+      <div class="pitem">REVENUE — pipeline comercial</div>
+      <div class="pitem">LEDGER — control financiero</div>
+    </div>
+    <div class="pinc">TAMBIÉN INCLUYE:</div>
+    <div class="pitems">
+      <div class="pitem">Stack MCP-First auditado</div>
+      <div class="pitem">Hasta 5 conectores activos</div>
+      <div class="pitem">Master Plan + Roadmap 90 días</div>
+      <div class="pitem">Soporte WhatsApp 60 días</div>
+    </div>
+    <div class="proof">
+      <div class="pq">"¿Cuántas apps abres para saber cómo está tu negocio? Después de Núcleo, la respuesta es una. Claude."</div>
+      <div class="pw">— Leonardo De la Hoz · Fundador LedeLab · Usa este sistema diariamente</div>
+    </div>
+    <button class="btn btn-wa" onclick="openWA('ceo')">💬 Hablar con Leonardo</button>
+    <button class="btn btn-pay" id="btn-stripe" onclick="openStripe()">💳 Reservar y pagar ahora</button>
+    <div class="note">Verificación Stripe en proceso · Payment Link activo en 24h</div>
+  </div>
+
+  <!-- JI MTÜ -->
+  <div class="screen hidden" id="s-ji">
+    <button class="back" onclick="goto('welcome')">← Volver</button>
+    <span class="emoji">🔬</span>
+    <div class="qlabel">Javier Institute MTÜ · Estonia</div>
+    <div class="h1">Investigación en IA y bienestar humano</div>
+    <div class="sub">Instituto sin fines de lucro registrado en Estonia. Investigamos el impacto de los agentes IA en la salud y bienestar de empresarios y educadores.</div>
+    <div class="cards">
+      <div class="rcard"><span class="ri">🧠</span><div><div class="rt">Línea de investigación activa</div><div class="rd">Cambio conductual guiado por IA en contextos educativos y empresariales — basado en evidencia científica.</div></div></div>
+      <div class="rcard"><span class="ri">🎓</span><div><div class="rt">Primer paper en proceso</div><div class="rd">Derivado de tesis MA Educational Technology, University of Tartu, 2026.</div></div></div>
+      <div class="rcard"><span class="ri">🌍</span><div><div class="rt">Estonia + Colombia</div><div class="rd">Puente investigativo entre el ecosistema digital estonio y el contexto latinoamericano.</div></div></div>
+    </div>
+    <div class="sp"></div>
+    <button class="btn btn-p" onclick="openMail('ji')">Contactar al Instituto →</button>
+  </div>
+
+</div>
+<script>
+// ── State ──────────────────────────────────────────────────
+var profile = null;
+var cAnswers = [-1,-1,-1];
+var eAnswers = [-1,-1,-1];
+var current = 'welcome';
+
+// ── Routing ────────────────────────────────────────────────
+function goto(id) {
+  document.getElementById('s-'+current).classList.add('hidden');
+  document.getElementById('s-'+id).classList.remove('hidden');
+  current = id;
+  setProgress(id);
+  window.scrollTo(0,0);
+}
+
+function setProgress(id) {
+  var map = {
+    'welcome':5,'cq1':15,'cq2':35,'cq3':55,
+    'cr1':70,'cr2':82,'cr3':100,
+    'eq1':15,'eq2':35,'eq3':55,
+    'er1':75,'er2':100,'ji':80
+  };
+  document.getElementById('pf').style.width = (map[id]||5)+'%';
+}
+
+// ── Welcome ────────────────────────────────────────────────
+function chooseProfile(el) {
+  document.querySelectorAll('.choice').forEach(function(c){c.classList.remove('sel')});
+  el.classList.add('sel');
+  profile = el.dataset.val;
+  document.getElementById('btn-welcome').disabled = false;
+}
+
+function startFlow() {
+  if(!profile) return;
+  if(profile==='colegio') goto('cq1');
+  else if(profile==='ceo') goto('eq1');
+  else goto('ji');
+}
+
+// ── Colegio questions ──────────────────────────────────────
+function answerC(q, val, el) {
+  var screen = ['cq1','cq2','cq3'][q];
+  document.querySelectorAll('#s-'+screen+' .opt').forEach(function(o){o.classList.remove('sel')});
+  el.classList.add('sel');
+  cAnswers[q] = val;
+  setTimeout(function() {
+    if(q===0) goto('cq2');
+    else if(q===1) goto('cq3');
+    else showColegioResult();
+  }, 180);
+}
+
+function showColegioResult() {
+  var sizes = [300,600,1200];
+  var students = sizes[cAnswers[0]] || 300;
+  var pct = cAnswers[1]===2 ? 0.35 : cAnswers[1]===1 ? 0.25 : 0.18;
+  var affected = Math.round(students * pct);
+  document.getElementById('c-affected').textContent = affected;
+  document.getElementById('c-affected-sub').textContent =
+    'de tus ~' + students + ' estudiantes podrían tener factores inflamatorios invisibles afectando su rendimiento';
+  goto('cr1');
+}
+
+// ── CEO questions ──────────────────────────────────────────
+function answerE(q, val, el) {
+  var screen = ['eq1','eq2','eq3'][q];
+  document.querySelectorAll('#s-'+screen+' .opt').forEach(function(o){o.classList.remove('sel')});
+  el.classList.add('sel');
+  eAnswers[q] = val;
+  setTimeout(function() {
+    if(q===0) goto('eq2');
+    else if(q===1) goto('eq3');
+    else showCEOResult();
+  }, 180);
+}
+
+function showCEOResult() {
+  var apps = eAnswers[1];
+  var plan, price, usd, agents;
+  if(apps >= 2) {
+    plan='Pro'; price='$4.5M COP'; usd='~USD 1,100 · Pago único';
+    agents=['ATLAS — asistente ejecutivo','REVENUE — pipeline comercial','LEDGER — control financiero'];
+  } else {
+    plan='Esencial'; price='$1.8M COP'; usd='~USD 430 · Pago único';
+    agents=['ATLAS — asistente ejecutivo','Stack Card de tu empresa'];
+  }
+  document.getElementById('e-plan').textContent = 'Núcleo ' + plan;
+  document.getElementById('e-plan2').textContent = 'Núcleo ' + plan;
+  document.getElementById('e-price').textContent = price;
+  document.getElementById('e-usd').textContent = usd + ' · Sin mensualidad';
+  var agEl = document.getElementById('e-agents');
+  agEl.innerHTML = agents.map(function(a){ return '<div class="pitem">'+a+'</div>'; }).join('');
+  goto('er1');
+}
+
+// ── Back navigation ────────────────────────────────────────
+function goBack(from) {
+  var map = {
+    'cq1':'welcome','cq2':'cq1','cq3':'cq2',
+    'cr1':'cq3','cr2':'cr1','cr3':'cr2',
+    'eq1':'welcome','eq2':'eq1','eq3':'eq2',
+    'er1':'eq3','er2':'er1'
+  };
+  goto(map[from]||'welcome');
+}
+
+// ── CTAs ───────────────────────────────────────────────────
+function openWA(ctx) {
+  var msg = ctx==='colegio'
+    ? 'Hola%2C%20quiero%20conocer%20m%C3%A1s%20sobre%20Vita%20para%20mi%20colegio'
+    : 'Hola%20Leonardo%2C%20quiero%20empezar%20con%20N%C3%BAcleo';
+  window.open('https://wa.me/573054045990?text='+msg,'_blank');
+}
+
+function openMail(ctx) {
+  var subj = ctx==='colegio'
+    ? 'Quiero%20conocer%20Vita%20para%20mi%20colegio'
+    : ctx==='ji'
+    ? 'Javier%20Institute%20-%20Colaboraci%C3%B3n'
+    : 'Quiero%20informaci%C3%B3n%20sobre%20N%C3%BAcleo';
+  window.open('mailto:leonardo@ledelab.group?subject='+subj,'_blank');
+}
+
+function openStripe() {
+  // Reemplazar con el Payment Link real cuando esté activo
+  alert('Payment Link de Stripe disponible en 24 horas. Escríbenos por WhatsApp para reservar ahora.');
+  openWA('ceo');
+}
+</script>
 </body>
 </html>
