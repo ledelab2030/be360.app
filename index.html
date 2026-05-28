@@ -112,6 +112,11 @@ body{background:var(--bg);color:var(--ink);font-family:"Plus Jakarta Sans",sans-
         <div class="ct"><div class="cn">Investigador o académico</div><div class="cd">Quiero conocer el Javier Institute MTÜ</div></div>
         <div class="ck"><div class="ck-dot"></div></div>
       </div>
+      <div class="choice" data-val="familia" onclick="chooseProfile(this)">
+        <span class="ci">🌱</span>
+        <div class="ct"><div class="cn">Familia</div><div class="cd">Quiero bienestar para mi hijo y mi hogar</div></div>
+        <div class="ck"><div class="ck-dot"></div></div>
+      </div>
     </div>
     <div class="sp"></div>
     <button class="btn btn-p" id="btn-welcome" disabled onclick="startFlow()">Continuar →</button>
@@ -324,6 +329,7 @@ body{background:var(--bg);color:var(--ink);font-family:"Plus Jakarta Sans",sans-
   </div>
 
 </div>
+
 <script>
 // ── State ──────────────────────────────────────────────────
 var profile = null;
@@ -362,6 +368,7 @@ function startFlow() {
   if(!profile) return;
   if(profile==='colegio') goto('cq1');
   else if(profile==='ceo') goto('eq1');
+  else if(profile==='familia') { window.location.href = '/talentos'; return; }
   else goto('ji');
 }
 
@@ -444,8 +451,8 @@ function openMail(ctx) {
   var subj = ctx==='colegio'
     ? 'Quiero%20conocer%20Vita%20para%20mi%20colegio'
     : ctx==='ji'
-    ? 'Javier%20Institute%20-%20Colaboraci%C3%B3n'
-    : 'Quiero%20informaci%C3%B3n%20sobre%20N%C3%BAcleo';
+      ? 'Javier%20Institute%20-%20Colaboraci%C3%B3n'
+      : 'Quiero%20informaci%C3%B3n%20sobre%20N%C3%BAcleo';
   window.open('mailto:leonardo@ledelab.group?subject='+subj,'_blank');
 }
 
