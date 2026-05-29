@@ -62,7 +62,7 @@ Recorre en orden, natural, 1-2 preguntas por área. Conversa, no interrogues.
 5. EMOCIONES: qué emociones siente con frecuencia (alegría, amor, miedo, ira, tristeza, ansiedad, vergüenza…). El estado emocional modula la inflamación.
 
 # CIERRE
-Al cubrir las áreas, ofrece un resumen cálido + UNA primera micro-acción concreta y medible para esta semana, derivada del marco y elegida por el ORDEN DE PILARES (empieza por el pilar más alto que esté descuidado, no por lo más fácil de decir). Registra esa micro-acción en el campo "microcambio" del bloque <dx> — es lo más importante que Vita recuerda para la próxima sesión. Si la persona muestra margen, puedes mencionar un segundo cambio como hoja de ruta, pero por defecto es UNO solo. Recuerda que esto suma con el médico.
+Al cubrir las áreas, ofrece un resumen cálido + UNA primera micro-acción concreta y medible para esta semana, derivada del marco y elegida por el ORDEN DE PILARES (empieza por el pilar más alto que esté descuidado, no por lo más fácil de decir). Registra esa micro-acción en el campo "microcambio" del bloque <dx> — es lo más importante que Vita recuerda para la próxima sesión. Si la persona muestra margen, puedes mencionar un segundo cambio como hoja de ruta, pero por defecto es UNO solo. Al final, invita con calidez a conservar el resumen: que toque el botón «Diagnóstico» (arriba a la derecha) y dé en «Copiar» para tenerlo a la mano. Recuerda que esto suma con el médico.
 
 # FILOSOFÍA DE DATOS (como un buen terapeuta)
 No retienes un expediente completo. Guardas solo lo relevante para continuidad: datos clave, el microcambio sugerido y una observación útil. Menos datos = más confianza y menos fricción de privacidad.
@@ -76,7 +76,7 @@ Hay situaciones que NO te corresponden: ahí derivas, no aconsejas.
 - URGENCIA (riesgo de hacerse daño, crisis): la seguridad va por encima de todo. Recomienda contactar de inmediato la línea de emergencias local o acudir a urgencias y apoyarse en una persona de confianza ahora. No intentes manejar la crisis; no agendes "para después".
 - Si el sujeto es menor de edad: todo contacto con terceros pasa SIEMPRE por el adulto responsable.
 - Si es mayor de edad: los datos íntimos se manejan idealmente con el consentimiento de esa persona.
-- Si preguntan por guardar/exportar: indícales el panel "Diagnóstico" (arriba a la derecha) → Guardar / Exportar.
+- Si preguntan por guardar/exportar: indícales el panel "Diagnóstico" (arriba a la derecha) y dale «Copiar».
 
 # FORMATO DE SALIDA (CRÍTICO)
 Responde SIEMPRE en dos partes:
@@ -135,6 +135,7 @@ function App(){
   const [error,setError]=useState(null);
   const [saved,setSaved]=useState(false);
   const [exported,setExported]=useState(false);
+  const [chatCopied,setChatCopied]=useState(false);
   const scrollRef=useRef(null);
   useEffect(()=>{ if(scrollRef.current) scrollRef.current.scrollTop=scrollRef.current.scrollHeight; },[messages,loading]);
   const filled=FIELDS.filter(f=>f.key!=="microcambio"&&dx[f.key]&&dx[f.key].trim()).length;
@@ -172,6 +173,7 @@ function App(){
   const saveDx=()=>{ try{ localStorage.setItem("vita_dx_"+Date.now(), JSON.stringify({mode,dx})); setSaved(true); setTimeout(()=>setSaved(false),1800);}catch(e){} };
   const exportDx=async()=>{ const txt="DIAGNÓSTICO DE ESTILO DE VIDA · Bienestar 360\nModo: "+(mode==="adult"?"Adulto":"Familia / hijo")+"\n\n"+FIELDS.map(f=>f.label+": "+(dx[f.key]||"—")).join("\n"); try{ await navigator.clipboard.writeText(txt); setExported(true); setTimeout(()=>setExported(false),2000);}catch(e){ const w=window.open("","_blank"); if(w){ w.document.body.style.cssText="font-family:system-ui;padding:20px;white-space:pre-wrap;line-height:1.5"; w.document.body.textContent=txt; } } };
 
+  const copyChat=async()=>{ const lbl=mode==="adult"?"Tú":"Tú (mamá/papá)"; const txt="CONVERSACIÓN CON VITA · Bienestar 360\nModo: "+(mode==="adult"?"Adulto":"Familia / hijo")+"\nFecha: "+new Date().toLocaleString("es-CO")+"\n\n"+messages.map(m=>(m.role==="assistant"?"🌱 Vita":lbl)+":\n"+m.content).join("\n\n")+"\n\n— Esto suma con tu médico, no lo reemplaza."; try{ await navigator.clipboard.writeText(txt); setChatCopied(true); setTimeout(()=>setChatCopied(false),2000);}catch(e){ const w=window.open("","_blank"); if(w){ w.document.body.style.cssText="font-family:system-ui;padding:20px;white-space:pre-wrap;line-height:1.5"; w.document.body.textContent=txt; } } };
   const btnPrimary={background:P.sage,color:"#fff",border:"none",borderRadius:999,padding:"14px 30px",fontSize:15.5,fontWeight:800,fontFamily:"'Nunito',sans-serif",cursor:"pointer",boxShadow:"0 6px 18px rgba(90,122,92,.35)"};
   const cardBtn={background:P.panel,border:"1.5px solid "+P.line,borderRadius:18,padding:"18px 16px",cursor:"pointer",fontFamily:"'Nunito',sans-serif",boxShadow:"0 2px 8px rgba(40,42,36,.08)"};
 
@@ -202,7 +204,7 @@ function App(){
       <div style={{background:"linear-gradient(135deg,"+P.sageDeep+","+P.sage+")",padding:"14px 16px",display:"flex",alignItems:"center",gap:11}}>
         <div style={{width:40,height:40,borderRadius:"50%",background:P.panel,display:"grid",placeItems:"center",fontSize:20}}>🌱</div>
         <div style={{flex:1}}><div style={{fontFamily:"'Fraunces',serif",fontWeight:600,fontSize:19,color:"#fff",lineHeight:1}}>Vita</div><div style={{fontSize:11.5,color:P.sageSoft,marginTop:3}}>{loading?"escribiendo…":(mode==="adult"?"Diagnóstico · adulto":"Diagnóstico · familia")}</div></div>
-        <button onClick={()=>setShowDx(true)} style={{background:"rgba(255,255,255,.18)",border:"none",color:"#fff",borderRadius:999,padding:"7px 13px",fontSize:12.5,fontWeight:700,cursor:"pointer",fontFamily:"'Nunito',sans-serif"}}>Diagnóstico {filled}/{AREA_TOTAL}</button>
+        <button onClick={copyChat} title="Copiar conversación" style={{background:"rgba(255,255,255,.18)",border:"none",color:"#fff",borderRadius:999,width:34,height:34,fontSize:15,cursor:"pointer",flexShrink:0}}>{chatCopied?"✓":"📋"}</button><button onClick={()=>setShowDx(true)} style={{background:"rgba(255,255,255,.18)",border:"none",color:"#fff",borderRadius:999,padding:"7px 13px",fontSize:12.5,fontWeight:700,cursor:"pointer",fontFamily:"'Nunito',sans-serif"}}>Diagnóstico {filled}/{AREA_TOTAL}</button>
       </div>
       <div ref={scrollRef} className="scroll" style={{flex:1,overflowY:"auto",padding:"16px 13px",display:"flex",flexDirection:"column",gap:10,background:"radial-gradient("+P.sageSoft+"55 1px,transparent 1px)",backgroundSize:"22px 22px"}}>
         {messages.map((m,i)=>(<div key={i} className="rise" style={{alignSelf:m.role==="user"?"flex-end":"flex-start",maxWidth:"84%"}}><div style={{background:m.role==="user"?P.user:"#fff",color:P.ink,padding:"10px 13px",borderRadius:m.role==="user"?"16px 16px 4px 16px":"16px 16px 16px 4px",fontSize:14.5,lineHeight:1.5,boxShadow:"0 1px 2px rgba(40,42,36,.10)",whiteSpace:"pre-wrap",border:m.role==="user"?"none":"1px solid "+P.line}}>{renderRich(m.content)}</div></div>))}
@@ -219,7 +221,7 @@ function App(){
           <div className="scroll" style={{flex:1,overflowY:"auto",padding:14}}>
             {FIELDS.map(f=>{const val=dx[f.key];const has=val&&val.trim();const star=f.key==="microcambio";return(<div key={f.key} style={{marginBottom:10,background:star?P.sageSoft:"#fff",border:"1px solid "+(has?P.sage:P.line),borderRadius:12,padding:"10px 12px"}}><div style={{fontSize:11.5,fontWeight:800,color:has?P.sageDeep:P.muted,textTransform:"uppercase",letterSpacing:.4,marginBottom:has?4:0}}>{f.label}</div>{has&&<div style={{fontSize:13.5,color:P.ink,lineHeight:1.45}}>{val}</div>}</div>);})}
           </div>
-          <div style={{padding:12,borderTop:"1px solid "+P.line,display:"flex",gap:8}}><button onClick={saveDx} style={{flex:1,background:saved?P.sage:"#fff",color:saved?"#fff":P.sageDeep,border:"1px solid "+P.sage,borderRadius:12,padding:"11px",fontSize:13.5,fontWeight:800,cursor:"pointer",fontFamily:"'Nunito',sans-serif"}}>{saved?"✓ Guardado":"Guardar"}</button><button onClick={exportDx} style={{flex:1,background:exported?P.sage:P.clay,color:"#fff",border:"none",borderRadius:12,padding:"11px",fontSize:13.5,fontWeight:800,cursor:"pointer",fontFamily:"'Nunito',sans-serif"}}>{exported?"✓ Copiado":"Copiar"}</button></div>
+          <div style={{padding:12,borderTop:"1px solid "+P.line,display:"flex",gap:8}}><button onClick={exportDx} style={{flex:1,background:exported?P.sage:P.clay,color:"#fff",border:"none",borderRadius:12,padding:"11px",fontSize:13.5,fontWeight:800,cursor:"pointer",fontFamily:"'Nunito',sans-serif"}}>{exported?"✓ Copiado":"Copiar mi resumen"}</button></div>
         </div>
       </div>)}
     </Shell>
