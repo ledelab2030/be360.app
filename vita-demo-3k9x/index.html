@@ -59,7 +59,7 @@ No retienes un expediente completo. Guardas solo lo relevante para continuidad: 
 Hay situaciones que NO te corresponden: ahí derivas, no aconsejas.
 - Banderas: trastorno de conducta alimentaria (bajo peso, restricción, atracones/purgas, miedo a engordar, antecedente psiquiátrico por comer poco); salud mental (tristeza profunda, ansiedad intensa, mención de hacerse daño, retraimiento); urgencia médica (dolor agudo, fiebre alta, pérdida de peso brusca).
 - Ante señales de trastorno alimentario: NUNCA des consejos de dieta, calorías, peso, ayuno ni ejercicio. Valida con calidez y deriva a profesional (psicología/psiquiatría/nutrición clínica).
-- RUTINA: recomienda agendar con el profesional apropiado; ofrece ayudar a dar el siguiente paso (Bienestar 360 coordina el contacto con autorización).
+- RUTINA: recomienda al adulto responsable que ÉL MISMO contacte al profesional apropiado (un pediatra como primer paso). NO ofrezcas que Bienestar 360 agende, coordine o remita médicos: aún no existe una red de profesionales, así que nunca prometas ese servicio. En una conversación posterior sí puedes preguntar con calidez si ya hizo el contacto.
 - URGENCIA (riesgo de hacerse daño, crisis): la seguridad va por encima de todo. Recomienda contactar de inmediato la línea de emergencias local o acudir a urgencias y apoyarse en una persona de confianza ahora. No intentes manejar la crisis; no agendes "para después".
 - Si el sujeto es menor de edad: todo contacto con terceros pasa SIEMPRE por el adulto responsable.
 - Si es mayor de edad: los datos íntimos se manejan idealmente con el consentimiento de esa persona.
@@ -102,6 +102,13 @@ const renderRich = (text) => (text||"").split(/(\*\*[^*]+\*\*)/g).map((part,i)=>
   part.startsWith("**")&&part.endsWith("**")
     ? <strong key={i} style={{fontWeight:800}}>{part.slice(2,-2)}</strong>
     : <React.Fragment key={i}>{part}</React.Fragment>
+);
+
+// Shell a nivel de módulo: NO redefinir dentro de App (eso remonta el textarea y hace perder el foco al escribir).
+const Shell=(props)=>(
+  <div style={{minHeight:"100vh",background:P.bg,fontFamily:"'Nunito',sans-serif",color:P.ink,display:"flex",justifyContent:"center",padding:"16px 12px 28px"}}>
+    <div style={{width:"100%",maxWidth:440,position:"relative",display:"flex",flexDirection:"column",height:"calc(100vh - 44px)",background:P.panel,borderRadius:26,overflow:"hidden",boxShadow:"0 24px 60px rgba(40,42,36,.18)",border:"1px solid "+P.line}}>{props.children}</div>
+  </div>
 );
 
 function App(){
@@ -152,11 +159,6 @@ function App(){
   const saveDx=()=>{ try{ localStorage.setItem("vita_dx_"+Date.now(), JSON.stringify({mode,dx})); setSaved(true); setTimeout(()=>setSaved(false),1800);}catch(e){} };
   const exportDx=async()=>{ const txt="DIAGNÓSTICO DE ESTILO DE VIDA · Bienestar 360\nModo: "+(mode==="adult"?"Adulto":"Familia / hijo")+"\n\n"+FIELDS.map(f=>f.label+": "+(dx[f.key]||"—")).join("\n"); try{ await navigator.clipboard.writeText(txt); setExported(true); setTimeout(()=>setExported(false),2000);}catch(e){ const w=window.open("","_blank"); if(w){ w.document.body.style.cssText="font-family:system-ui;padding:20px;white-space:pre-wrap;line-height:1.5"; w.document.body.textContent=txt; } } };
 
-  const Shell=(props)=>(
-    <div style={{minHeight:"100vh",background:P.bg,fontFamily:"'Nunito',sans-serif",color:P.ink,display:"flex",justifyContent:"center",padding:"16px 12px 28px"}}>
-      <div style={{width:"100%",maxWidth:440,position:"relative",display:"flex",flexDirection:"column",height:"calc(100vh - 44px)",background:P.panel,borderRadius:26,overflow:"hidden",boxShadow:"0 24px 60px rgba(40,42,36,.18)",border:"1px solid "+P.line}}>{props.children}</div>
-    </div>
-  );
   const btnPrimary={background:P.sage,color:"#fff",border:"none",borderRadius:999,padding:"14px 30px",fontSize:15.5,fontWeight:800,fontFamily:"'Nunito',sans-serif",cursor:"pointer",boxShadow:"0 6px 18px rgba(90,122,92,.35)"};
   const cardBtn={background:P.panel,border:"1.5px solid "+P.line,borderRadius:18,padding:"18px 16px",cursor:"pointer",fontFamily:"'Nunito',sans-serif",boxShadow:"0 2px 8px rgba(40,42,36,.08)"};
 
