@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Empieza aquí · jAvIer Institute + be360</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Hanken+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<style>
+/* ============================================================
+   CONFIG — Leonardo: edita SOLO estos enlaces en un lugar.
+   ============================================================ */
+/* (Los enlaces reales viven en el bloque JS de abajo: const LINKS) */
+
+:root{
+  --navy:#15243f;
+  --navy2:#1f3357;
+  --amber:#d39a3c;
+  --amber-dk:#b9842b;
+  --green:#3c8a76;
+  --cream:#f6f2ea;
+  --card:#fffdf9;
+  --ink:#19212f;
+  --muted:#5d6678;
+  --line:#e7e0d2;
+  --shadow:0 18px 40px -22px rgba(21,36,63,.45);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{
+  font-family:"Hanken Grotesk",system-ui,sans-serif;
+  background:var(--navy);
+  color:var(--ink);
+  -webkit-font-smoothing:antialiased;
+  line-height:1.55;
+  min-height:100vh;
+}
+/* atmósfera de fondo */
+body::before{
+  content:"";position:fixed;inset:0;z-index:0;pointer-events:none;
+  background:
+    radial-gradient(60% 50% at 15% 0%, rgba(211,154,60,.18), transparent 60%),
+    radial-gradient(50% 55% at 95% 10%, rgba(60,138,118,.20), transparent 60%),
+    radial-gradient(70% 60% at 50% 110%, rgba(31,51,87,.9), transparent 70%);
+}
+.wrap{position:relative;z-index:1;max-width:760px;margin:0 auto;padding:22px 20px 140px}
+
+/* ---------- Header ---------- */
+.brand{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:26px}
+.brand .mark{display:flex;align-items:center;gap:9px;color:#fff;font-weight:700;letter-spacing:.02em;font-size:15px}
+.brand .dot{width:10px;height:10px;border-radius:50%;background:var(--amber);box-shadow:0 0 0 4px rgba(211,154,60,.22)}
+.brand .who{color:#aab6cc;font-size:12.5px;text-align:right;line-height:1.35}
+
+/* ---------- Progress ---------- */
+.progress{height:5px;border-radius:99px;background:rgba(255,255,255,.12);overflow:hidden;margin-bottom:26px}
+.progress > i{display:block;height:100%;width:18%;border-radius:99px;
+  background:linear-gradient(90deg,var(--amber),#e7b65e);transition:width .5s cubic-bezier(.4,0,.1,1)}
+
+/* ---------- Screens ---------- */
+.screen{display:none;animation:rise .55s cubic-bezier(.2,.7,.2,1) both}
+.screen.active{display:block}
+@keyframes rise{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
+
+.panel{background:var(--cream);border-radius:22px;padding:30px 26px;box-shadow:var(--shadow);
+  border:1px solid rgba(255,255,255,.5)}
+
+.eyebrow{font-size:12.5px;font-weight:700;letter-spacing:.13em;text-transform:uppercase;color:var(--amber-dk);margin-bottom:14px}
+h1{font-family:"Fraunces",serif;font-weight:600;font-size:clamp(28px,7vw,42px);line-height:1.04;color:var(--navy);letter-spacing:-.01em}
+h2{font-family:"Fraunces",serif;font-weight:600;font-size:clamp(23px,5.5vw,31px);line-height:1.1;color:var(--navy);letter-spacing:-.01em}
+.lead{font-size:16.5px;color:var(--muted);margin-top:14px;max-width:54ch}
+
+/* hero */
+.hero-tag{display:inline-flex;gap:8px;align-items:center;background:rgba(60,138,118,.12);color:#2c6a59;
+  font-weight:600;font-size:13px;padding:7px 13px;border-radius:99px;margin-top:20px}
+
+/* botón */
+.btn{appearance:none;border:0;cursor:pointer;font-family:inherit;font-weight:700;font-size:16px;
+  border-radius:14px;padding:16px 22px;display:inline-flex;align-items:center;justify-content:center;gap:10px;
+  transition:transform .12s ease,box-shadow .2s ease,background .2s ease;text-decoration:none;width:100%}
+.btn:active{transform:translateY(1px) scale(.995)}
+.btn-primary{background:var(--amber);color:#241a09;box-shadow:0 12px 24px -12px rgba(211,154,60,.85)}
+.btn-primary:hover{background:#e0a747}
+.btn-navy{background:var(--navy);color:#fff}
+.btn-navy:hover{background:var(--navy2)}
+.btn-ghost{background:transparent;color:var(--navy);border:1.5px solid var(--line);font-weight:600}
+.btn-ghost:hover{border-color:var(--navy);background:rgba(21,36,63,.03)}
+.btn-row{display:grid;gap:11px;margin-top:24px}
+
+/* opciones (cards) */
+.opts{display:grid;gap:12px;margin-top:24px}
+.opt{display:flex;gap:14px;align-items:flex-start;text-align:left;background:var(--card);
+  border:1.5px solid var(--line);border-radius:16px;padding:17px 18px;cursor:pointer;width:100%;
+  font-family:inherit;transition:border-color .18s,transform .12s,box-shadow .2s}
+.opt:hover{border-color:var(--amber);transform:translateY(-2px);box-shadow:0 14px 26px -20px rgba(21,36,63,.5)}
+.opt .ico{font-size:23px;line-height:1.1;flex:0 0 auto}
+.opt .txt{display:flex;flex-direction:column}
+.opt .ot{display:block;font-weight:700;color:var(--navy);font-size:16.5px;line-height:1.25}
+.opt .od{display:block;font-size:14px;color:var(--muted);margin-top:3px}
+.opt.sel{border-color:var(--green);background:rgba(60,138,118,.07)}
+
+/* resultado */
+.diag{background:var(--navy);color:#eef2f8;border-radius:18px;padding:22px 22px;margin-top:6px}
+.diag .dl{font-size:12.5px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--amber);margin-bottom:9px}
+.diag p{color:#d4dcec;font-size:15.5px}
+.diag b{color:#fff}
+.reco{background:var(--card);border:1.5px solid var(--line);border-left:4px solid var(--green);
+  border-radius:14px;padding:16px 18px;margin-top:16px}
+.reco .rk{font-size:12px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--green);margin-bottom:5px}
+.reco .rn{font-weight:700;color:var(--navy);font-size:17px;font-family:"Fraunces",serif}
+.reco .rd{font-size:14px;color:var(--muted);margin-top:4px}
+.reco a{color:var(--amber-dk);font-weight:700;text-decoration:none;font-size:14px;display:inline-block;margin-top:8px}
+.reco a:hover{text-decoration:underline}
+
+/* ruta de formación */
+.levels{display:flex;gap:8px;margin-top:18px;flex-wrap:wrap}
+.lvl{flex:1;min-width:120px;background:var(--card);border:1.5px solid var(--line);border-radius:13px;padding:12px 13px}
+.lvl .ln{font-weight:700;color:var(--navy);font-size:14.5px}
+.lvl .ls{font-size:12px;color:var(--muted);margin-top:2px}
+.lvl.live{border-color:var(--amber);background:rgba(211,154,60,.09)}
+.lvl.live .ln::after{content:" • activo";color:var(--amber-dk);font-size:11px;font-weight:700}
+
+/* back */
+.back{background:none;border:0;color:#9fadc6;font-family:inherit;font-size:14px;cursor:pointer;
+  padding:6px 0;margin-bottom:14px;display:inline-flex;gap:6px;align-items:center}
+.back:hover{color:#fff}
+
+/* contacto / footer card */
+.contact{margin-top:14px;background:var(--cream);border-radius:22px;padding:26px;box-shadow:var(--shadow)}
+.cgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:18px}
+.cbtn{display:flex;flex-direction:column;align-items:center;gap:6px;background:var(--card);
+  border:1.5px solid var(--line);border-radius:14px;padding:15px 10px;text-decoration:none;color:var(--navy);
+  font-weight:600;font-size:13.5px;transition:border-color .18s,transform .12s}
+.cbtn:hover{border-color:var(--amber);transform:translateY(-2px)}
+.cbtn .ce{font-size:21px}
+
+/* sticky CTA */
+.sticky{position:fixed;left:0;right:0;bottom:0;z-index:20;padding:12px 16px calc(12px + env(safe-area-inset-bottom));
+  background:linear-gradient(180deg,rgba(21,36,63,0),rgba(21,36,63,.92) 38%);}
+.sticky .inner{max-width:760px;margin:0 auto}
+.sticky .btn-primary{box-shadow:0 14px 30px -10px rgba(0,0,0,.6)}
+.muted-note{color:#9fadc6;font-size:12px;text-align:center;margin-top:30px;line-height:1.5}
+.foot{color:#8a98b2;font-size:12.5px;text-align:center;margin-top:20px}
+.foot b{color:#cdd6e6}
+@media(max-width:430px){.panel,.contact{padding:24px 18px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="brand">
+    <div class="mark"><span class="dot"></span> jAvIer Institute · be360</div>
+    <div class="who">Leonardo De la Hoz<br/>Investigación IA + bienestar</div>
+  </header>
+
+  <div class="progress" aria-hidden="true"><i id="bar"></i></div>
+
+  <!-- ===================== SCREEN 0 · HERO ===================== -->
+  <section class="screen active" id="s-hero">
+    <div class="panel">
+      <div class="eyebrow">Diagnóstico guiado · 60 segundos</div>
+      <h1>Descubre cómo la IA puede mover tu próxima decisión.</h1>
+      <p class="lead">Responde 2–3 preguntas y te muestro, según tu caso, el punto de partida concreto —y agendamos una conversación corta para verlo juntos.</p>
+      <span class="hero-tag">🌱 Sin tecnicismos · pensado para personas reales</span>
+      <div class="btn-row">
+        <button class="btn btn-primary" onclick="go('segment')">Empezar →</button>
+      </div>
+    </div>
+    <p class="foot"><b>jAvIer Institute MTÜ</b> · instituto de investigación registrado en Estonia · javierinstitute.org</p>
+  </section>
+
+  <!-- ===================== SCREEN 1 · SEGMENTO ===================== -->
+  <section class="screen" id="s-segment">
+    <button class="back" onclick="go('hero')">‹ Volver</button>
+    <div class="panel">
+      <div class="eyebrow">Paso 1 de 3</div>
+      <h2>¿Qué te describe mejor?</h2>
+      <p class="lead">Elige el que más se acerque. Con eso afino lo que te muestro.</p>
+      <div class="opts" id="segmentOpts"><!-- JS --></div>
+    </div>
+  </section>
+
+  <!-- ===================== SCREEN 2 · PREGUNTA ===================== -->
+  <section class="screen" id="s-question">
+    <button class="back" onclick="go('segment')">‹ Volver</button>
+    <div class="panel">
+      <div class="eyebrow" id="qEyebrow">Paso 2 de 3</div>
+      <h2 id="qTitle"></h2>
+      <p class="lead" id="qLead"></p>
+      <div class="opts" id="questionOpts"></div>
+    </div>
+  </section>
+
+  <!-- ===================== SCREEN 3 · RESULTADO ===================== -->
+  <section class="screen" id="s-result">
+    <button class="back" onclick="go('question')">‹ Volver</button>
+    <div class="panel">
+      <div class="eyebrow">Tu prediagnóstico</div>
+      <h2 id="rTitle"></h2>
+
+      <div class="diag">
+        <div class="dl">Lo que veo</div>
+        <p id="rDiag"></p>
+      </div>
+
+      <div class="reco" id="rReco">
+        <div class="rk">Tu mejor punto de partida</div>
+        <div class="rn" id="rProgName"></div>
+        <div class="rd" id="rProgDesc"></div>
+        <a id="rProgLink" href="#" target="_blank" rel="noopener"></a>
+      </div>
+
+      <!-- CTA dominante -->
+      <div class="btn-row">
+        <a class="btn btn-primary" id="rAgenda" href="#" target="_blank" rel="noopener">📅 Agenda tu diagnóstico gratis de 20 min</a>
+      </div>
+
+      <!-- segundo nivel: actividades -->
+      <p style="font-size:13.5px;color:var(--muted);text-align:center;margin-top:20px;font-weight:600">¿Listo para más? Estas son las actividades:</p>
+      <div class="levels">
+        <div class="lvl live"><div class="ln">Spark</div><div class="ls">Taller de 1 día. Empiezas aquí.</div></div>
+        <div class="lvl"><div class="ln">Journey</div><div class="ls">Acompañamiento por etapas.</div></div>
+        <div class="lvl"><div class="ln">Pathfinder</div><div class="ls">Programa a profundidad.</div></div>
+        <div class="lvl"><div class="ln">Fellow</div><div class="ls">Comunidad e investigación.</div></div>
+      </div>
+      <div class="btn-row">
+        <a class="btn btn-navy" id="rProgram2" href="#" target="_blank" rel="noopener">Ver el programa recomendado</a>
+        <button class="btn btn-ghost" onclick="go('contact')">Solo quiero dejar mi contacto</button>
+      </div>
+    </div>
+    <p class="muted-note">El diagnóstico de 20 min es gratis y sin compromiso. Sirve para ver, sin tecnicismos, dónde la IA te aporta primero.</p>
+  </section>
+
+  <!-- ===================== SCREEN 4 · CONTACTO ===================== -->
+  <section class="screen" id="s-contact">
+    <button class="back" onclick="go('result')">‹ Volver</button>
+    <div class="contact">
+      <div class="eyebrow">Conectemos</div>
+      <h2>Hablemos cuando quieras.</h2>
+      <p class="lead">Guarda mi contacto o escríbeme directo. Y si te animas, agenda tu diagnóstico de 20 min.</p>
+      <div class="btn-row">
+        <a class="btn btn-primary" id="cAgenda" href="#" target="_blank" rel="noopener">📅 Agenda tu diagnóstico de 20 min</a>
+      </div>
+      <div class="cgrid">
+        <a class="cbtn" id="cContact" href="#"><span class="ce">📇</span>Guardar contacto</a>
+        <a class="cbtn" id="cWhats" href="#" target="_blank" rel="noopener"><span class="ce">💬</span>WhatsApp</a>
+        <a class="cbtn" id="cMail" href="#"><span class="ce">✉️</span>Email</a>
+        <a class="cbtn" id="cLinked" href="#" target="_blank" rel="noopener"><span class="ce">in</span>LinkedIn</a>
+      </div>
+    </div>
+    <p class="foot"><b>Leonardo De la Hoz Borrego</b> · jAvIer Institute · be360 · LedeLab</p>
+  </section>
+
+</div>
+
+<!-- sticky CTA (visible desde el paso de pregunta en adelante) -->
+<div class="sticky" id="sticky" style="display:none">
+  <div class="inner">
+    <a class="btn btn-primary" id="stickyBtn" href="#" target="_blank" rel="noopener">📅 Agenda tu diagnóstico de 20 min</a>
+  </div>
+</div>
+
+<script>
+/* ============================================================
+   LEONARDO: edita estos enlaces y ya.  (un solo lugar)
+   - agenda: pon aquí tu link de calendario (Calendly, Google, etc.)
+     mientras tanto abre un correo prellenado.
+   ============================================================ */
+const LINKS = {
+  agenda:   "mailto:leonardo@javierinstitute.org?subject=Quiero%20agendar%20mi%20diagn%C3%B3stico%20de%2020%20min&body=Hola%20Leonardo%2C%20vengo%20del%20diagn%C3%B3stico%20interactivo.%20Me%20gustar%C3%ADa%20agendar%20los%2020%20min.",
+  programs: "https://javierinstitute.org/programs",
+  institute:"https://javierinstitute.org",
+  be360:    "https://be360.app",
+  email:    "mailto:leonardo@javierinstitute.org",
+  whatsapp: "https://wa.me/57XXXXXXXXXX",   // ← reemplaza con tu número
+  linkedin: "https://www.linkedin.com/in/REEMPLAZAR"  // ← reemplaza
+};
+
+/* vCard para "Guardar contacto" */
+const VCARD = `BEGIN:VCARD
+VERSION:3.0
+N:De la Hoz Borrego;Leonardo;;;
+FN:Leonardo De la Hoz Borrego
+ORG:jAvIer Institute;be360 / LedeLab
+TITLE:Fundador
+EMAIL;TYPE=INTERNET:leonardo@javierinstitute.org
+URL:https://javierinstitute.org
+END:VCARD`;
+
+/* ---------- Segmentos ---------- */
+const SEGMENTS = {
+  empresa: {
+    ico:"🏢", t:"Tengo un negocio o empresa", d:"Quiero usar la IA para crecer o ganar tiempo.",
+    q:{ eyebrow:"Paso 2 de 3", title:"¿Qué te frena hoy?", lead:"Lo que más te pese.",
+      opts:[
+        {ico:"🔁",t:"Tareas repetitivas",d:"Mensajes, cotizaciones, contenido…",k:"repetitivo"},
+        {ico:"📊",t:"Decido sin datos claros",d:"No leo bien mis números.",k:"datos"},
+        {ico:"🧭",t:"No sé por dónde empezar",d:"Sé que sirve, no cómo aplicarla.",k:"inicio"},
+      ]},
+    result:(k)=>({
+      title:"La IA puede quitarte ese peso de encima.",
+      diag: k==="repetitivo" ? "Lo repetitivo es justo lo primero que la IA asume bien. <b>No empieces comprando tecnología; empieza por un mapa</b> de qué tareas liberar primero — eso lo vemos en 20 minutos."
+          : k==="datos" ? "Tus números ya tienen la respuesta; falta leerlos en lenguaje claro. <b>La IA traduce tus ventas y gastos en decisiones</b>, no en planillas. Veamos por dónde."
+          : "Empezar sin rumbo quema tiempo y plata. <b>El primer paso no es una herramienta, es claridad:</b> dónde te aporta primero. Eso es exactamente lo que hace el diagnóstico.",
+      prog:{name:"SPARK Emprende (próximamente)",desc:"Taller de 1 día para construir tu primer caso de uso de IA. Aún en preparación — entra a la lista de espera.",link:LINKS.email,cta:"Entrar a la lista de espera →"}
+    })
+  },
+  colegio: {
+    ico:"🎓", t:"Colegio o institución educativa", d:"Soy rector, directivo o docente.",
+    q:{ eyebrow:"Paso 2 de 3", title:"¿Qué buscas para tu institución?", lead:"Elige tu prioridad.",
+      opts:[
+        {ico:"🌱",t:"Bienestar de estudiantes y familias",d:"Prevención y hábitos.",k:"bienestar"},
+        {ico:"🧠",t:"Formar a mi equipo en IA",d:"Docentes y administrativos.",k:"formacion"},
+        {ico:"✨",t:"Innovar en cómo enseñamos",d:"IA aplicada al aula.",k:"innovar"},
+      ]},
+    result:(k)=>({
+      title: k==="bienestar" ? "be360 encaja con tu institución." : "Empecemos por formar y mostrar.",
+      diag: k==="bienestar" ? "<b>be360</b> es un programa de bienestar familiar preventivo. Lo puedes probar con un <b>piloto gratuito</b> en tu colegio y medir resultados antes de comprometerte."
+          : k==="formacion" ? "El cambio real arranca por las personas. <b>Un taller corto (Spark) pone a tu equipo a usar IA con sentido</b>, no en abstracto. De ahí escalas."
+          : "Innovar en el aula empieza con un caso concreto, no con una plataforma. En 20 min definimos un piloto pequeño y medible para tu institución.",
+      prog: k==="bienestar"
+          ? {name:"be360 · piloto gratuito",desc:"Programa de bienestar familiar preventivo. Tomamos tus datos y coordinamos el piloto.",link:LINKS.be360,cta:"Conocer be360 →"}
+          : {name:"SPARK Salud · taller 1 día",desc:"15 cupos piloto · output-based. El formato base para formar y mostrar valor rápido.",link:LINKS.programs,cta:"Ver el programa →"}
+    })
+  },
+  bienestar: {
+    ico:"🩺", t:"Me interesa IA + salud y bienestar", d:"Para mí, mi familia o mis pacientes.",
+    q:{ eyebrow:"Paso 2 de 3", title:"¿Qué te mueve más?", lead:"Lo que más resuene contigo.",
+      opts:[
+        {ico:"🔄",t:"Cambiar hábitos de verdad",d:"Con guía, no a punta de fuerza de voluntad.",k:"habitos"},
+        {ico:"🛡️",t:"Salud preventiva familiar",d:"Adelantarme, no reaccionar.",k:"preventiva"},
+        {ico:"🤖",t:"Aprender a usar IA para mi bienestar",d:"Que trabaje para mí.",k:"aprender"},
+      ]},
+    result:(k)=>({
+      title:"SPARK Salud está hecho justo para esto.",
+      diag: k==="habitos" ? "Los hábitos no cambian por información, cambian por diseño. <b>En SPARK Salud construyes tu mapa de hábitos guiado por IA</b> en un solo día — base de mi maestría en EdTech (U. de Tartu)."
+          : k==="preventiva" ? "Prevenir es decidir con anticipación. <b>be360 + SPARK Salud</b> te dan el marco para cuidar a tu familia antes de que algo se vuelva problema."
+          : "La IA bien usada es un copiloto de bienestar. <b>SPARK Salud te enseña a ponerla a trabajar para tus hábitos</b>, con un resultado concreto al final del taller.",
+      prog:{name:"SPARK Salud · piloto",desc:"Taller de 1 día · 15 cupos · $180K COP · construyes tu mapa de hábitos guiado por IA.",link:LINKS.programs,cta:"Inscribirme al piloto →"}
+    })
+  },
+  academico: {
+    ico:"🔬", t:"Académico, investigador o ponente", d:"Quiero colaborar o co-crear.",
+    q:{ eyebrow:"Paso 2 de 3", title:"¿Cuál es tu interés?", lead:"Elige el más cercano.",
+      opts:[
+        {ico:"🤝",t:"Colaborar en investigación",d:"Cambio conductual guiado por IA.",k:"colaborar"},
+        {ico:"🧩",t:"Co-crear programas",d:"Diseñar formación juntos.",k:"cocrear"},
+        {ico:"🎤",t:"Invitarte a una charla / panel",d:"Sobre IA aplicada.",k:"charla"},
+      ]},
+    result:(k)=>({
+      title:"Hablemos de construir juntos.",
+      diag: k==="charla" ? "Con gusto. <b>Doy charlas sobre IA aplicada y cambio de hábitos</b> (\"AI Extender\"). Cuéntame del evento y lo coordinamos."
+          : "<b>jAvIer Institute</b> investiga el cambio conductual guiado por IA, desde Estonia y para Iberoamérica. Hay espacio real para colaborar y co-crear. Escríbeme y exploramos el encaje.",
+      prog:{name:"Colaboración jAvIer Institute",desc:"Instituto de investigación IA-nativo (MTÜ, Estonia). Abierto a alianzas académicas.",link:LINKS.email,cta:"Escribir a Leonardo →"}
+    })
+  }
+};
+
+/* ---------- Motor del flujo ---------- */
+const ORDER = {hero:0, segment:1, question:2, result:3, contact:4};
+let state = {segment:null, answer:null};
+
+function setProgress(screen){
+  const steps = ["hero","segment","question","result","contact"];
+  const pct = [18,42,66,90,100][steps.indexOf(screen)] || 18;
+  document.getElementById('bar').style.width = pct + "%";
+}
+function go(screen){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById('s-'+screen).classList.add('active');
+  setProgress(screen);
+  document.getElementById('sticky').style.display = (screen==='result'||screen==='question') ? 'block' : 'none';
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+/* render segmentos */
+const segWrap = document.getElementById('segmentOpts');
+Object.entries(SEGMENTS).forEach(([key,seg])=>{
+  const b=document.createElement('button');
+  b.className='opt';
+  b.innerHTML=`<span class="ico">${seg.ico}</span><span class="txt"><span class="ot">${seg.t}</span><span class="od">${seg.d}</span></span>`;
+  b.onclick=()=>{ state.segment=key; renderQuestion(); go('question'); };
+  segWrap.appendChild(b);
+});
+
+/* render pregunta */
+function renderQuestion(){
+  const seg=SEGMENTS[state.segment];
+  document.getElementById('qEyebrow').textContent=seg.q.eyebrow;
+  document.getElementById('qTitle').textContent=seg.q.title;
+  document.getElementById('qLead').textContent=seg.q.lead;
+  const wrap=document.getElementById('questionOpts');
+  wrap.innerHTML='';
+  seg.q.opts.forEach(o=>{
+    const b=document.createElement('button');
+    b.className='opt';
+    b.innerHTML=`<span class="ico">${o.ico}</span><span class="txt"><span class="ot">${o.t}</span><span class="od">${o.d}</span></span>`;
+    b.onclick=()=>{ state.answer=o.k; renderResult(); go('result'); };
+    wrap.appendChild(b);
+  });
+}
+
+/* render resultado */
+function renderResult(){
+  const seg=SEGMENTS[state.segment];
+  const r=seg.result(state.answer);
+  document.getElementById('rTitle').textContent=r.title;
+  document.getElementById('rDiag').innerHTML=r.diag;
+  document.getElementById('rProgName').textContent=r.prog.name;
+  document.getElementById('rProgDesc').textContent=r.prog.desc;
+  const pl=document.getElementById('rProgLink'); pl.textContent=r.prog.cta; pl.href=r.prog.link;
+  const p2=document.getElementById('rProgram2'); p2.textContent=r.prog.cta.replace(' →',''); p2.href=r.prog.link;
+}
+
+/* wire enlaces fijos */
+function wireLinks(){
+  ['rAgenda','cAgenda','stickyBtn'].forEach(id=>document.getElementById(id).href=LINKS.agenda);
+  document.getElementById('cWhats').href=LINKS.whatsapp;
+  document.getElementById('cMail').href=LINKS.email;
+  document.getElementById('cLinked').href=LINKS.linkedin;
+  // vCard como descarga
+  const blob=new Blob([VCARD],{type:'text/vcard'});
+  document.getElementById('cContact').href=URL.createObjectURL(blob);
+  document.getElementById('cContact').setAttribute('download','Leonardo-De-la-Hoz.vcf');
+}
+wireLinks();
+setProgress('hero');
+</script>
+</body>
+</html>
