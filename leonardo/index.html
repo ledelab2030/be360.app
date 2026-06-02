@@ -163,7 +163,7 @@ h2{font-family:"Fraunces",serif;font-weight:600;font-size:clamp(23px,5.5vw,31px)
       <p class="lead">Responde 2–3 preguntas y te muestro, según tu caso, el punto de partida concreto —y agendamos una conversación corta para verlo juntos.</p>
       <span class="hero-tag">🌱 Sin tecnicismos · pensado para personas reales</span>
       <div class="btn-row">
-        <button class="btn btn-primary" onclick="go('segment')">Empezar →</button>
+        <button class="btn btn-primary" data-go="segment">Empezar →</button>
       </div>
     </div>
     <p class="foot"><b>jAvIer Institute MTÜ</b> · instituto de investigación registrado en Estonia · javierinstitute.org</p>
@@ -171,7 +171,7 @@ h2{font-family:"Fraunces",serif;font-weight:600;font-size:clamp(23px,5.5vw,31px)
 
   <!-- ===================== SCREEN 1 · SEGMENTO ===================== -->
   <section class="screen" id="s-segment">
-    <button class="back" onclick="go('hero')">‹ Volver</button>
+    <button class="back" data-go="hero">‹ Volver</button>
     <div class="panel">
       <div class="eyebrow">Paso 1 de 3</div>
       <h2>¿Qué te describe mejor?</h2>
@@ -182,7 +182,7 @@ h2{font-family:"Fraunces",serif;font-weight:600;font-size:clamp(23px,5.5vw,31px)
 
   <!-- ===================== SCREEN 2 · PREGUNTA ===================== -->
   <section class="screen" id="s-question">
-    <button class="back" onclick="go('segment')">‹ Volver</button>
+    <button class="back" data-go="segment">‹ Volver</button>
     <div class="panel">
       <div class="eyebrow" id="qEyebrow">Paso 2 de 3</div>
       <h2 id="qTitle"></h2>
@@ -193,7 +193,7 @@ h2{font-family:"Fraunces",serif;font-weight:600;font-size:clamp(23px,5.5vw,31px)
 
   <!-- ===================== SCREEN 3 · RESULTADO ===================== -->
   <section class="screen" id="s-result">
-    <button class="back" onclick="go('question')">‹ Volver</button>
+    <button class="back" data-go="question">‹ Volver</button>
     <div class="panel">
       <div class="eyebrow">Tu prediagnóstico</div>
       <h2 id="rTitle"></h2>
@@ -225,7 +225,7 @@ h2{font-family:"Fraunces",serif;font-weight:600;font-size:clamp(23px,5.5vw,31px)
       </div>
       <div class="btn-row">
         <a class="btn btn-navy" id="rProgram2" href="#" target="_blank" rel="noopener">Ver el programa recomendado</a>
-        <button class="btn btn-ghost" onclick="go('contact')">Solo quiero dejar mi contacto</button>
+        <button class="btn btn-ghost" data-go="contact">Solo quiero dejar mi contacto</button>
       </div>
     </div>
     <p class="muted-note">El diagnóstico de 20 min es gratis y sin compromiso. Sirve para ver, sin tecnicismos, dónde la IA te aporta primero.</p>
@@ -233,7 +233,7 @@ h2{font-family:"Fraunces",serif;font-weight:600;font-size:clamp(23px,5.5vw,31px)
 
   <!-- ===================== SCREEN 4 · CONTACTO ===================== -->
   <section class="screen" id="s-contact">
-    <button class="back" onclick="go('result')">‹ Volver</button>
+    <button class="back" data-go="result">‹ Volver</button>
     <div class="contact">
       <div class="eyebrow">Conectemos</div>
       <h2>Hablemos cuando quieras.</h2>
@@ -359,4 +359,98 @@ const SEGMENTS = {
   },
   academico: {
     ico:"🔬", t:"Académico, investigador o ponente", d:"Quiero colaborar o co-crear.",
-    q:{ eyebrow:"P
+    q:{ eyebrow:"Paso 2 de 3", title:"¿Cuál es tu interés?", lead:"Elige el más cercano.",
+      opts:[
+        {ico:"🤝",t:"Colaborar en investigación",d:"Cambio conductual guiado por IA.",k:"colaborar"},
+        {ico:"🧩",t:"Co-crear programas",d:"Diseñar formación juntos.",k:"cocrear"},
+        {ico:"🎤",t:"Invitarte a una charla / panel",d:"Sobre IA aplicada.",k:"charla"},
+      ]},
+    result:(k)=>({
+      title:"Hablemos de construir juntos.",
+      diag: k==="charla" ? "Con gusto. <b>Doy charlas sobre IA aplicada y cambio de hábitos</b> (\"AI Extender\"). Cuéntame del evento y lo coordinamos."
+          : "<b>jAvIer Institute</b> investiga el cambio conductual guiado por IA, desde Estonia y para Iberoamérica. Hay espacio real para colaborar y co-crear. Escríbeme y exploramos el encaje.",
+      prog:{name:"Colaboración jAvIer Institute",desc:"Instituto de investigación IA-nativo (MTÜ, Estonia). Abierto a alianzas académicas.",link:dest('colaboracion','Colaboración con jAvIer Institute','Me interesa explorar una colaboración con jAvIer Institute.'),cta:"Escribir a Leonardo →"}
+    })
+  }
+};
+
+/* ---------- Motor del flujo ---------- */
+const ORDER = {hero:0, segment:1, question:2, result:3, contact:4};
+let state = {segment:null, answer:null};
+
+function setProgress(screen){
+  const steps = ["hero","segment","question","result","contact"];
+  const pct = [18,42,66,90,100][steps.indexOf(screen)] || 18;
+  document.getElementById('bar').style.width = pct + "%";
+}
+function go(screen){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById('s-'+screen).classList.add('active');
+  setProgress(screen);
+  document.getElementById('sticky').style.display = (screen==='result'||screen==='question') ? 'block' : 'none';
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+/* render segmentos */
+const segWrap = document.getElementById('segmentOpts');
+Object.entries(SEGMENTS).forEach(([key,seg])=>{
+  const b=document.createElement('button');
+  b.className='opt';
+  b.innerHTML=`<span class="ico">${seg.ico}</span><span class="txt"><span class="ot">${seg.t}</span><span class="od">${seg.d}</span></span>`;
+  b.onclick=()=>{ state.segment=key; renderQuestion(); go('question'); };
+  segWrap.appendChild(b);
+});
+
+/* render pregunta */
+function renderQuestion(){
+  const seg=SEGMENTS[state.segment];
+  document.getElementById('qEyebrow').textContent=seg.q.eyebrow;
+  document.getElementById('qTitle').textContent=seg.q.title;
+  document.getElementById('qLead').textContent=seg.q.lead;
+  const wrap=document.getElementById('questionOpts');
+  wrap.innerHTML='';
+  seg.q.opts.forEach(o=>{
+    const b=document.createElement('button');
+    b.className='opt';
+    b.innerHTML=`<span class="ico">${o.ico}</span><span class="txt"><span class="ot">${o.t}</span><span class="od">${o.d}</span></span>`;
+    b.onclick=()=>{ state.answer=o.k; renderResult(); go('result'); };
+    wrap.appendChild(b);
+  });
+}
+
+/* render resultado */
+function renderResult(){
+  const seg=SEGMENTS[state.segment];
+  const r=seg.result(state.answer);
+  document.getElementById('rTitle').textContent=r.title;
+  document.getElementById('rDiag').innerHTML=r.diag;
+  document.getElementById('rProgName').textContent=r.prog.name;
+  document.getElementById('rProgDesc').textContent=r.prog.desc;
+  const pl=document.getElementById('rProgLink'); pl.textContent=r.prog.cta; pl.href=r.prog.link;
+  const p2=document.getElementById('rProgram2'); p2.textContent=r.prog.cta.replace(' →',''); p2.href=r.prog.link;
+}
+
+/* wire enlaces fijos */
+function wireLinks(){
+  const agendaHref = dest('agenda','Quiero agendar mi diagnóstico de 20 min','Hola Leonardo, vengo del diagnóstico interactivo y quiero agendar los 20 min.');
+  ['rAgenda','cAgenda','stickyBtn'].forEach(id=>document.getElementById(id).href=agendaHref);
+  document.getElementById('cMail').href=LINKS.email;
+  // Ocultar WhatsApp/LinkedIn si aún son placeholder (evita enlaces rotos)
+  const wa=document.getElementById('cWhats');
+  if(LINKS.whatsapp.includes('XXXX')){ wa.style.display='none'; } else { wa.href=LINKS.whatsapp; }
+  const li=document.getElementById('cLinked');
+  if(LINKS.linkedin.includes('REEMPLAZAR')){ li.style.display='none'; } else { li.href=LINKS.linkedin; }
+  // vCard como descarga
+  const blob=new Blob([VCARD],{type:'text/vcard'});
+  document.getElementById('cContact').href=URL.createObjectURL(blob);
+  document.getElementById('cContact').setAttribute('download','Leonardo-De-la-Hoz.vcf');
+}
+/* Navegación: enganchar por JS (sin onclick inline, sobrevive a embebidos/sanitizers) */
+document.querySelectorAll('[data-go]').forEach(function(el){
+  el.addEventListener('click', function(){ go(this.getAttribute('data-go')); });
+});
+wireLinks();
+setProgress('hero');
+</script>
+</body>
+</html>
