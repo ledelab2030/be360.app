@@ -263,18 +263,36 @@ h2{font-family:"Fraunces",serif;font-weight:600;font-size:clamp(23px,5.5vw,31px)
 <script>
 /* ============================================================
    LEONARDO: edita estos enlaces y ya.  (un solo lugar)
-   - agenda: pon aquí tu link de calendario (Calendly, Google, etc.)
-     mientras tanto abre un correo prellenado.
+   - N8N_LIVE: déjalo en false mientras n8n NO esté activo.
+     Así TODOS los CTA caen en correo prellenado (nada se trunca).
+     Cuando prendas n8n y tengas los links, ponlo en true.
    ============================================================ */
+const N8N_LIVE = false;                       // ← true cuando n8n esté activo
+const CONTACT_EMAIL = "leonardo@javierinstitute.org";
+
 const LINKS = {
-  agenda:   "mailto:leonardo@javierinstitute.org?subject=Quiero%20agendar%20mi%20diagn%C3%B3stico%20de%2020%20min&body=Hola%20Leonardo%2C%20vengo%20del%20diagn%C3%B3stico%20interactivo.%20Me%20gustar%C3%ADa%20agendar%20los%2020%20min.",
-  programs: "https://javierinstitute.org/programs",
   institute:"https://javierinstitute.org",
-  be360:    "https://be360.app",
-  email:    "mailto:leonardo@javierinstitute.org",
-  whatsapp: "https://wa.me/57XXXXXXXXXX",   // ← reemplaza con tu número
-  linkedin: "https://www.linkedin.com/in/REEMPLAZAR"  // ← reemplaza
+  be360:    "https://be360.app",              // sitio informativo (no depende de n8n)
+  email:    "mailto:" + CONTACT_EMAIL,
+  whatsapp: "https://wa.me/57XXXXXXXXXX",      // ← reemplaza tu número (si no, se oculta solo)
+  linkedin: "https://www.linkedin.com/in/REEMPLAZAR"  // ← reemplaza (si no, se oculta solo)
 };
+
+/* Endpoints automáticos — SOLO se usan si N8N_LIVE = true */
+const AUTOMATED = {
+  agenda:     "",                                    // ← pega tu link de calendario cuando lo tengas
+  sparkSalud: "https://javierinstitute.org/programs" // /programs (formulario vía n8n)
+};
+
+/* Mientras n8n NO esté activo: todo lead llega por correo prellenado. */
+function capture(subject, body){
+  return "mailto:" + CONTACT_EMAIL +
+    "?subject=" + encodeURIComponent(subject) +
+    "&body=" + encodeURIComponent(body || "Vengo del diagnóstico interactivo de jAvIer Institute / be360.");
+}
+function dest(key, subject, body){
+  return (N8N_LIVE && AUTOMATED[key]) ? AUTOMATED[key] : capture(subject, body);
+}
 
 /* vCard para "Guardar contacto" */
 const VCARD = `BEGIN:VCARD
@@ -302,7 +320,7 @@ const SEGMENTS = {
       diag: k==="repetitivo" ? "Lo repetitivo es justo lo primero que la IA asume bien. <b>No empieces comprando tecnología; empieza por un mapa</b> de qué tareas liberar primero — eso lo vemos en 20 minutos."
           : k==="datos" ? "Tus números ya tienen la respuesta; falta leerlos en lenguaje claro. <b>La IA traduce tus ventas y gastos en decisiones</b>, no en planillas. Veamos por dónde."
           : "Empezar sin rumbo quema tiempo y plata. <b>El primer paso no es una herramienta, es claridad:</b> dónde te aporta primero. Eso es exactamente lo que hace el diagnóstico.",
-      prog:{name:"SPARK Emprende (próximamente)",desc:"Taller de 1 día para construir tu primer caso de uso de IA. Aún en preparación — entra a la lista de espera.",link:LINKS.email,cta:"Entrar a la lista de espera →"}
+      prog:{name:"SPARK Emprende (próximamente)",desc:"Taller de 1 día para construir tu primer caso de uso de IA. Aún en preparación — entra a la lista de espera.",link:dest('sparkEmprende','Lista de espera — SPARK Emprende','Quiero entrar a la lista de espera de SPARK Emprende.'),cta:"Entrar a la lista de espera →"}
     })
   },
   colegio: {
@@ -320,7 +338,7 @@ const SEGMENTS = {
           : "Innovar en el aula empieza con un caso concreto, no con una plataforma. En 20 min definimos un piloto pequeño y medible para tu institución.",
       prog: k==="bienestar"
           ? {name:"be360 · piloto gratuito",desc:"Programa de bienestar familiar preventivo. Tomamos tus datos y coordinamos el piloto.",link:LINKS.be360,cta:"Conocer be360 →"}
-          : {name:"SPARK Salud · taller 1 día",desc:"15 cupos piloto · output-based. El formato base para formar y mostrar valor rápido.",link:LINKS.programs,cta:"Ver el programa →"}
+          : {name:"SPARK Salud · taller 1 día",desc:"15 cupos piloto · output-based. El formato base para formar y mostrar valor rápido.",link:dest('sparkSalud','Información SPARK Salud','Quiero información del taller SPARK Salud para mi institución.'),cta:"Ver el programa →"}
     })
   },
   bienestar: {
@@ -336,95 +354,9 @@ const SEGMENTS = {
       diag: k==="habitos" ? "Los hábitos no cambian por información, cambian por diseño. <b>En SPARK Salud construyes tu mapa de hábitos guiado por IA</b> en un solo día — base de mi maestría en EdTech (U. de Tartu)."
           : k==="preventiva" ? "Prevenir es decidir con anticipación. <b>be360 + SPARK Salud</b> te dan el marco para cuidar a tu familia antes de que algo se vuelva problema."
           : "La IA bien usada es un copiloto de bienestar. <b>SPARK Salud te enseña a ponerla a trabajar para tus hábitos</b>, con un resultado concreto al final del taller.",
-      prog:{name:"SPARK Salud · piloto",desc:"Taller de 1 día · 15 cupos · $180K COP · construyes tu mapa de hábitos guiado por IA.",link:LINKS.programs,cta:"Inscribirme al piloto →"}
+      prog:{name:"SPARK Salud · piloto",desc:"Taller de 1 día · 15 cupos · $180K COP · construyes tu mapa de hábitos guiado por IA.",link:dest('sparkSalud','Quiero mi cupo en el piloto SPARK Salud','Quiero reservar un cupo en el piloto de SPARK Salud (15 cupos, $180K COP).'),cta:"Inscribirme al piloto →"}
     })
   },
   academico: {
     ico:"🔬", t:"Académico, investigador o ponente", d:"Quiero colaborar o co-crear.",
-    q:{ eyebrow:"Paso 2 de 3", title:"¿Cuál es tu interés?", lead:"Elige el más cercano.",
-      opts:[
-        {ico:"🤝",t:"Colaborar en investigación",d:"Cambio conductual guiado por IA.",k:"colaborar"},
-        {ico:"🧩",t:"Co-crear programas",d:"Diseñar formación juntos.",k:"cocrear"},
-        {ico:"🎤",t:"Invitarte a una charla / panel",d:"Sobre IA aplicada.",k:"charla"},
-      ]},
-    result:(k)=>({
-      title:"Hablemos de construir juntos.",
-      diag: k==="charla" ? "Con gusto. <b>Doy charlas sobre IA aplicada y cambio de hábitos</b> (\"AI Extender\"). Cuéntame del evento y lo coordinamos."
-          : "<b>jAvIer Institute</b> investiga el cambio conductual guiado por IA, desde Estonia y para Iberoamérica. Hay espacio real para colaborar y co-crear. Escríbeme y exploramos el encaje.",
-      prog:{name:"Colaboración jAvIer Institute",desc:"Instituto de investigación IA-nativo (MTÜ, Estonia). Abierto a alianzas académicas.",link:LINKS.email,cta:"Escribir a Leonardo →"}
-    })
-  }
-};
-
-/* ---------- Motor del flujo ---------- */
-const ORDER = {hero:0, segment:1, question:2, result:3, contact:4};
-let state = {segment:null, answer:null};
-
-function setProgress(screen){
-  const steps = ["hero","segment","question","result","contact"];
-  const pct = [18,42,66,90,100][steps.indexOf(screen)] || 18;
-  document.getElementById('bar').style.width = pct + "%";
-}
-function go(screen){
-  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
-  document.getElementById('s-'+screen).classList.add('active');
-  setProgress(screen);
-  document.getElementById('sticky').style.display = (screen==='result'||screen==='question') ? 'block' : 'none';
-  window.scrollTo({top:0,behavior:'smooth'});
-}
-
-/* render segmentos */
-const segWrap = document.getElementById('segmentOpts');
-Object.entries(SEGMENTS).forEach(([key,seg])=>{
-  const b=document.createElement('button');
-  b.className='opt';
-  b.innerHTML=`<span class="ico">${seg.ico}</span><span class="txt"><span class="ot">${seg.t}</span><span class="od">${seg.d}</span></span>`;
-  b.onclick=()=>{ state.segment=key; renderQuestion(); go('question'); };
-  segWrap.appendChild(b);
-});
-
-/* render pregunta */
-function renderQuestion(){
-  const seg=SEGMENTS[state.segment];
-  document.getElementById('qEyebrow').textContent=seg.q.eyebrow;
-  document.getElementById('qTitle').textContent=seg.q.title;
-  document.getElementById('qLead').textContent=seg.q.lead;
-  const wrap=document.getElementById('questionOpts');
-  wrap.innerHTML='';
-  seg.q.opts.forEach(o=>{
-    const b=document.createElement('button');
-    b.className='opt';
-    b.innerHTML=`<span class="ico">${o.ico}</span><span class="txt"><span class="ot">${o.t}</span><span class="od">${o.d}</span></span>`;
-    b.onclick=()=>{ state.answer=o.k; renderResult(); go('result'); };
-    wrap.appendChild(b);
-  });
-}
-
-/* render resultado */
-function renderResult(){
-  const seg=SEGMENTS[state.segment];
-  const r=seg.result(state.answer);
-  document.getElementById('rTitle').textContent=r.title;
-  document.getElementById('rDiag').innerHTML=r.diag;
-  document.getElementById('rProgName').textContent=r.prog.name;
-  document.getElementById('rProgDesc').textContent=r.prog.desc;
-  const pl=document.getElementById('rProgLink'); pl.textContent=r.prog.cta; pl.href=r.prog.link;
-  const p2=document.getElementById('rProgram2'); p2.textContent=r.prog.cta.replace(' →',''); p2.href=r.prog.link;
-}
-
-/* wire enlaces fijos */
-function wireLinks(){
-  ['rAgenda','cAgenda','stickyBtn'].forEach(id=>document.getElementById(id).href=LINKS.agenda);
-  document.getElementById('cWhats').href=LINKS.whatsapp;
-  document.getElementById('cMail').href=LINKS.email;
-  document.getElementById('cLinked').href=LINKS.linkedin;
-  // vCard como descarga
-  const blob=new Blob([VCARD],{type:'text/vcard'});
-  document.getElementById('cContact').href=URL.createObjectURL(blob);
-  document.getElementById('cContact').setAttribute('download','Leonardo-De-la-Hoz.vcf');
-}
-wireLinks();
-setProgress('hero');
-</script>
-</body>
-</html>
+    q:{ eyebrow:"P
