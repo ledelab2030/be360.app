@@ -8,135 +8,83 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Hanken+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet" />
 <style>
-/* ============================================================
-   CONFIG — Leonardo: edita SOLO estos enlaces en un lugar.
-   ============================================================ */
-/* (Los enlaces reales viven en el bloque JS de abajo: const LINKS) */
-
 :root{
-  --navy:#15243f;
-  --navy2:#1f3357;
-  --amber:#d39a3c;
-  --amber-dk:#b9842b;
-  --green:#3c8a76;
-  --cream:#f6f2ea;
-  --card:#fffdf9;
-  --ink:#19212f;
-  --muted:#5d6678;
-  --line:#e7e0d2;
+  --navy:#15243f;--navy2:#1f3357;--amber:#d39a3c;--amber-dk:#b9842b;--green:#3c8a76;
+  --cream:#f6f2ea;--card:#fffdf9;--ink:#19212f;--muted:#5d6678;--line:#e7e0d2;
   --shadow:0 18px 40px -22px rgba(21,36,63,.45);
 }
 *{box-sizing:border-box;margin:0;padding:0}
 html{scroll-behavior:smooth}
-body{
-  font-family:"Hanken Grotesk",system-ui,sans-serif;
-  background:var(--navy);
-  color:var(--ink);
-  -webkit-font-smoothing:antialiased;
-  line-height:1.55;
-  min-height:100vh;
-}
-/* atmósfera de fondo */
-body::before{
-  content:"";position:fixed;inset:0;z-index:0;pointer-events:none;
-  background:
-    radial-gradient(60% 50% at 15% 0%, rgba(211,154,60,.18), transparent 60%),
+body{font-family:"Hanken Grotesk",system-ui,sans-serif;background:var(--navy);color:var(--ink);
+  -webkit-font-smoothing:antialiased;line-height:1.55;min-height:100vh}
+body::before{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;
+  background:radial-gradient(60% 50% at 15% 0%, rgba(211,154,60,.18), transparent 60%),
     radial-gradient(50% 55% at 95% 10%, rgba(60,138,118,.20), transparent 60%),
-    radial-gradient(70% 60% at 50% 110%, rgba(31,51,87,.9), transparent 70%);
-}
+    radial-gradient(70% 60% at 50% 110%, rgba(31,51,87,.9), transparent 70%)}
 .wrap{position:relative;z-index:1;max-width:760px;margin:0 auto;padding:22px 20px 140px}
-
-/* ---------- Header ---------- */
-.brand{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:26px}
+.brand{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:18px}
 .brand .mark{display:flex;align-items:center;gap:9px;color:#fff;font-weight:700;letter-spacing:.02em;font-size:15px}
 .brand .dot{width:10px;height:10px;border-radius:50%;background:var(--amber);box-shadow:0 0 0 4px rgba(211,154,60,.22)}
 .brand .who{color:#aab6cc;font-size:12.5px;text-align:right;line-height:1.35}
-
-/* ---------- Progress ---------- */
+.langbar{display:flex;gap:5px;justify-content:flex-end;margin:-6px 0 18px}
+.langbar button{appearance:none;border:1px solid rgba(255,255,255,.18);background:rgba(255,255,255,.06);
+  color:#c4cee0;font-family:inherit;font-weight:700;font-size:12px;padding:5px 10px;border-radius:99px;cursor:pointer;transition:.15s}
+.langbar button:hover{border-color:var(--amber);color:#fff}
+.langbar button.on{background:var(--amber);color:#241a09;border-color:var(--amber)}
 .progress{height:5px;border-radius:99px;background:rgba(255,255,255,.12);overflow:hidden;margin-bottom:26px}
-.progress > i{display:block;height:100%;width:18%;border-radius:99px;
-  background:linear-gradient(90deg,var(--amber),#e7b65e);transition:width .5s cubic-bezier(.4,0,.1,1)}
-
-/* ---------- Screens ---------- */
+.progress > i{display:block;height:100%;width:8%;border-radius:99px;background:linear-gradient(90deg,var(--amber),#e7b65e);transition:width .5s cubic-bezier(.4,0,.1,1)}
 .screen{display:none;animation:rise .55s cubic-bezier(.2,.7,.2,1) both}
 .screen.active{display:block}
 @keyframes rise{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
-
-.panel{background:var(--cream);border-radius:22px;padding:30px 26px;box-shadow:var(--shadow);
-  border:1px solid rgba(255,255,255,.5)}
-
+.panel{background:var(--cream);border-radius:22px;padding:30px 26px;box-shadow:var(--shadow);border:1px solid rgba(255,255,255,.5)}
 .eyebrow{font-size:12.5px;font-weight:700;letter-spacing:.13em;text-transform:uppercase;color:var(--amber-dk);margin-bottom:14px}
 h1{font-family:"Fraunces",serif;font-weight:600;font-size:clamp(28px,7vw,42px);line-height:1.04;color:var(--navy);letter-spacing:-.01em}
 h2{font-family:"Fraunces",serif;font-weight:600;font-size:clamp(23px,5.5vw,31px);line-height:1.1;color:var(--navy);letter-spacing:-.01em}
 .lead{font-size:16.5px;color:var(--muted);margin-top:14px;max-width:54ch}
-
-/* hero */
-.hero-tag{display:inline-flex;gap:8px;align-items:center;background:rgba(60,138,118,.12);color:#2c6a59;
-  font-weight:600;font-size:13px;padding:7px 13px;border-radius:99px;margin-top:20px}
-
-/* botón */
-.btn{appearance:none;border:0;cursor:pointer;font-family:inherit;font-weight:700;font-size:16px;
-  border-radius:14px;padding:16px 22px;display:inline-flex;align-items:center;justify-content:center;gap:10px;
-  transition:transform .12s ease,box-shadow .2s ease,background .2s ease;text-decoration:none;width:100%}
+.hero-tag{display:inline-flex;gap:8px;align-items:center;background:rgba(60,138,118,.12);color:#2c6a59;font-weight:600;font-size:13px;padding:7px 13px;border-radius:99px;margin-top:20px}
+.btn{appearance:none;border:0;cursor:pointer;font-family:inherit;font-weight:700;font-size:16px;border-radius:14px;padding:16px 22px;display:inline-flex;align-items:center;justify-content:center;gap:10px;transition:transform .12s ease,box-shadow .2s ease,background .2s ease;text-decoration:none;width:100%}
 .btn:active{transform:translateY(1px) scale(.995)}
 .btn-primary{background:var(--amber);color:#241a09;box-shadow:0 12px 24px -12px rgba(211,154,60,.85)}
 .btn-primary:hover{background:#e0a747}
-.btn-navy{background:var(--navy);color:#fff}
-.btn-navy:hover{background:var(--navy2)}
+.btn-navy{background:var(--navy);color:#fff}.btn-navy:hover{background:var(--navy2)}
 .btn-ghost{background:transparent;color:var(--navy);border:1.5px solid var(--line);font-weight:600}
 .btn-ghost:hover{border-color:var(--navy);background:rgba(21,36,63,.03)}
 .btn-row{display:grid;gap:11px;margin-top:24px}
-
-/* opciones (cards) */
 .opts{display:grid;gap:12px;margin-top:24px}
-.opt{display:flex;gap:14px;align-items:flex-start;text-align:left;background:var(--card);
-  border:1.5px solid var(--line);border-radius:16px;padding:17px 18px;cursor:pointer;width:100%;
-  font-family:inherit;transition:border-color .18s,transform .12s,box-shadow .2s}
+.opt{display:flex;gap:14px;align-items:flex-start;text-align:left;background:var(--card);border:1.5px solid var(--line);border-radius:16px;padding:17px 18px;cursor:pointer;width:100%;font-family:inherit;transition:border-color .18s,transform .12s,box-shadow .2s}
 .opt:hover{border-color:var(--amber);transform:translateY(-2px);box-shadow:0 14px 26px -20px rgba(21,36,63,.5)}
 .opt .ico{font-size:23px;line-height:1.1;flex:0 0 auto}
 .opt .txt{display:flex;flex-direction:column}
 .opt .ot{display:block;font-weight:700;color:var(--navy);font-size:16.5px;line-height:1.25}
 .opt .od{display:block;font-size:14px;color:var(--muted);margin-top:3px}
-.opt.sel{border-color:var(--green);background:rgba(60,138,118,.07)}
-
-/* resultado */
-.diag{background:var(--navy);color:#eef2f8;border-radius:18px;padding:22px 22px;margin-top:6px}
+.diag{background:var(--navy);color:#eef2f8;border-radius:18px;padding:22px;margin-top:6px}
 .diag .dl{font-size:12.5px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--amber);margin-bottom:9px}
-.diag p{color:#d4dcec;font-size:15.5px}
-.diag b{color:#fff}
-.reco{background:var(--card);border:1.5px solid var(--line);border-left:4px solid var(--green);
-  border-radius:14px;padding:16px 18px;margin-top:16px}
+.diag p{color:#d4dcec;font-size:15.5px}.diag b{color:#fff}
+.reco{background:var(--card);border:1.5px solid var(--line);border-left:4px solid var(--green);border-radius:14px;padding:16px 18px;margin-top:16px}
 .reco .rk{font-size:12px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--green);margin-bottom:5px}
 .reco .rn{font-weight:700;color:var(--navy);font-size:17px;font-family:"Fraunces",serif}
 .reco .rd{font-size:14px;color:var(--muted);margin-top:4px}
 .reco a{color:var(--amber-dk);font-weight:700;text-decoration:none;font-size:14px;display:inline-block;margin-top:8px}
 .reco a:hover{text-decoration:underline}
-
-/* ruta de formación */
 .levels{display:flex;gap:8px;margin-top:18px;flex-wrap:wrap}
 .lvl{flex:1;min-width:120px;background:var(--card);border:1.5px solid var(--line);border-radius:13px;padding:12px 13px}
 .lvl .ln{font-weight:700;color:var(--navy);font-size:14.5px}
 .lvl .ls{font-size:12px;color:var(--muted);margin-top:2px}
 .lvl.live{border-color:var(--amber);background:rgba(211,154,60,.09)}
-.lvl.live .ln::after{content:" • activo";color:var(--amber-dk);font-size:11px;font-weight:700}
-
-/* back */
-.back{background:none;border:0;color:#9fadc6;font-family:inherit;font-size:14px;cursor:pointer;
-  padding:6px 0;margin-bottom:14px;display:inline-flex;gap:6px;align-items:center}
+.lvl .lz{color:var(--amber-dk);font-size:11px;font-weight:700}
+.back{background:none;border:0;color:#9fadc6;font-family:inherit;font-size:14px;cursor:pointer;padding:6px 0;margin-bottom:14px;display:inline-flex;gap:6px;align-items:center}
 .back:hover{color:#fff}
-
-/* contacto / footer card */
 .contact{margin-top:14px;background:var(--cream);border-radius:22px;padding:26px;box-shadow:var(--shadow)}
 .cgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:18px}
-.cbtn{display:flex;flex-direction:column;align-items:center;gap:6px;background:var(--card);
-  border:1.5px solid var(--line);border-radius:14px;padding:15px 10px;text-decoration:none;color:var(--navy);
-  font-weight:600;font-size:13.5px;transition:border-color .18s,transform .12s}
+.cbtn{display:flex;flex-direction:column;align-items:center;gap:6px;background:var(--card);border:1.5px solid var(--line);border-radius:14px;padding:15px 10px;text-decoration:none;color:var(--navy);font-weight:600;font-size:13.5px;transition:border-color .18s,transform .12s}
 .cbtn:hover{border-color:var(--amber);transform:translateY(-2px)}
 .cbtn .ce{font-size:21px}
-
-/* sticky CTA */
-.sticky{position:fixed;left:0;right:0;bottom:0;z-index:20;padding:12px 16px calc(12px + env(safe-area-inset-bottom));
-  background:linear-gradient(180deg,rgba(21,36,63,0),rgba(21,36,63,.92) 38%);}
+.wlangs{display:grid;grid-template-columns:1fr 1fr;gap:11px;margin-top:24px}
+.wlang{display:flex;align-items:center;gap:11px;background:var(--card);border:1.5px solid var(--line);border-radius:14px;padding:15px 16px;cursor:pointer;font-family:inherit;font-weight:700;color:var(--navy);font-size:16px;transition:border-color .18s,transform .12s}
+.wlang:hover{border-color:var(--amber);transform:translateY(-2px)}
+.wlang.detected{border-color:var(--green);background:rgba(60,138,118,.07)}
+.wlang .fl{font-size:22px}
+.sticky{position:fixed;left:0;right:0;bottom:0;z-index:20;padding:12px 16px calc(12px + env(safe-area-inset-bottom));background:linear-gradient(180deg,rgba(21,36,63,0),rgba(21,36,63,.92) 38%)}
 .sticky .inner{max-width:760px;margin:0 auto}
 .sticky .btn-primary{box-shadow:0 14px 30px -10px rgba(0,0,0,.6)}
 .muted-note{color:#9fadc6;font-size:12px;text-align:center;margin-top:30px;line-height:1.5}
@@ -147,310 +95,505 @@ h2{font-family:"Fraunces",serif;font-weight:600;font-size:clamp(23px,5.5vw,31px)
 </head>
 <body>
 <div class="wrap">
-
   <header class="brand">
     <div class="mark"><span class="dot"></span> jAvIer Institute · be360</div>
-    <div class="who">Leonardo De la Hoz<br/>Investigación IA + bienestar</div>
+    <div class="who">Leonardo De la Hoz<br/><span id="hTag"></span></div>
   </header>
-
+  <div class="langbar" id="langbar"></div>
   <div class="progress" aria-hidden="true"><i id="bar"></i></div>
 
-  <!-- ===================== SCREEN 0 · HERO ===================== -->
-  <section class="screen active" id="s-hero">
+  <!-- WELCOME -->
+  <section class="screen active" id="s-welcome">
     <div class="panel">
-      <div class="eyebrow">Diagnóstico guiado · 60 segundos</div>
-      <h1>Descubre cómo la IA puede mover tu próxima decisión.</h1>
-      <p class="lead">Responde 2–3 preguntas y te muestro, según tu caso, el punto de partida concreto —y agendamos una conversación corta para verlo juntos.</p>
-      <span class="hero-tag">🌱 Sin tecnicismos · pensado para personas reales</span>
-      <div class="btn-row">
-        <button class="btn btn-primary" data-go="segment">Empezar →</button>
-      </div>
+      <div class="eyebrow">🌍 jAvIer Institute · be360</div>
+      <h1 id="wTitle"></h1>
+      <p class="lead" id="wSub"></p>
+      <div class="wlangs" id="wLangs"></div>
     </div>
-    <p class="foot"><b>jAvIer Institute MTÜ</b> · instituto de investigación registrado en Estonia · javierinstitute.org</p>
   </section>
 
-  <!-- ===================== SCREEN 1 · SEGMENTO ===================== -->
+  <!-- HERO -->
+  <section class="screen" id="s-hero">
+    <div class="panel">
+      <div class="eyebrow" id="hEyebrow"></div>
+      <h1 id="hH1"></h1>
+      <p class="lead" id="hLead"></p>
+      <span class="hero-tag" id="hTag2"></span>
+      <div class="btn-row"><button class="btn btn-primary" data-go="segment" id="startBtn"></button></div>
+    </div>
+    <p class="foot" id="hFoot"></p>
+  </section>
+
+  <!-- SEGMENT -->
   <section class="screen" id="s-segment">
-    <button class="back" data-go="hero">‹ Volver</button>
+    <button class="back" data-go="hero"></button>
     <div class="panel">
-      <div class="eyebrow">Paso 1 de 3</div>
-      <h2>¿Qué te describe mejor?</h2>
-      <p class="lead">Elige el que más se acerque. Con eso afino lo que te muestro.</p>
-      <div class="opts" id="segmentOpts"><!-- JS --></div>
+      <div class="eyebrow" id="segStep"></div>
+      <h2 id="segTitle"></h2>
+      <p class="lead" id="segLead"></p>
+      <div class="opts" id="segmentOpts"></div>
     </div>
   </section>
 
-  <!-- ===================== SCREEN 2 · PREGUNTA ===================== -->
+  <!-- QUESTION -->
   <section class="screen" id="s-question">
-    <button class="back" data-go="segment">‹ Volver</button>
+    <button class="back" data-go="segment"></button>
     <div class="panel">
-      <div class="eyebrow" id="qEyebrow">Paso 2 de 3</div>
+      <div class="eyebrow" id="qStep"></div>
       <h2 id="qTitle"></h2>
       <p class="lead" id="qLead"></p>
       <div class="opts" id="questionOpts"></div>
     </div>
   </section>
 
-  <!-- ===================== SCREEN 3 · RESULTADO ===================== -->
+  <!-- RESULT -->
   <section class="screen" id="s-result">
-    <button class="back" data-go="question">‹ Volver</button>
+    <button class="back" data-go="question"></button>
     <div class="panel">
-      <div class="eyebrow">Tu prediagnóstico</div>
+      <div class="eyebrow" id="resEyebrow"></div>
       <h2 id="rTitle"></h2>
-
-      <div class="diag">
-        <div class="dl">Lo que veo</div>
-        <p id="rDiag"></p>
-      </div>
-
-      <div class="reco" id="rReco">
-        <div class="rk">Tu mejor punto de partida</div>
+      <div class="diag"><div class="dl" id="rDiagLabel"></div><p id="rDiag"></p></div>
+      <div class="reco">
+        <div class="rk" id="rRecoLabel"></div>
         <div class="rn" id="rProgName"></div>
         <div class="rd" id="rProgDesc"></div>
         <a id="rProgLink" href="#" target="_blank" rel="noopener"></a>
       </div>
-
-      <!-- CTA dominante -->
+      <div class="btn-row"><a class="btn btn-primary" id="rAgenda" href="#" target="_blank" rel="noopener"></a></div>
+      <p style="font-size:13.5px;color:var(--muted);text-align:center;margin-top:20px;font-weight:600" id="rListoMas"></p>
+      <div class="levels" id="levels"></div>
       <div class="btn-row">
-        <a class="btn btn-primary" id="rAgenda" href="#" target="_blank" rel="noopener">📅 Agenda tu diagnóstico gratis de 20 min</a>
-      </div>
-
-      <!-- segundo nivel: actividades -->
-      <p style="font-size:13.5px;color:var(--muted);text-align:center;margin-top:20px;font-weight:600">¿Listo para más? Estas son las actividades:</p>
-      <div class="levels">
-        <div class="lvl live"><div class="ln">Spark</div><div class="ls">Taller de 1 día. Empiezas aquí.</div></div>
-        <div class="lvl"><div class="ln">Journey</div><div class="ls">Acompañamiento por etapas.</div></div>
-        <div class="lvl"><div class="ln">Pathfinder</div><div class="ls">Programa a profundidad.</div></div>
-        <div class="lvl"><div class="ln">Fellow</div><div class="ls">Comunidad e investigación.</div></div>
-      </div>
-      <div class="btn-row">
-        <a class="btn btn-navy" id="rProgram2" href="#" target="_blank" rel="noopener">Ver el programa recomendado</a>
-        <button class="btn btn-ghost" data-go="contact">Solo quiero dejar mi contacto</button>
+        <a class="btn btn-navy" id="rProgram2" href="#" target="_blank" rel="noopener"></a>
+        <button class="btn btn-ghost" data-go="contact" id="rSolo"></button>
       </div>
     </div>
-    <p class="muted-note">El diagnóstico de 20 min es gratis y sin compromiso. Sirve para ver, sin tecnicismos, dónde la IA te aporta primero.</p>
+    <p class="muted-note" id="rNote"></p>
   </section>
 
-  <!-- ===================== SCREEN 4 · CONTACTO ===================== -->
+  <!-- CONTACT -->
   <section class="screen" id="s-contact">
-    <button class="back" data-go="result">‹ Volver</button>
+    <button class="back" data-go="result"></button>
     <div class="contact">
-      <div class="eyebrow">Conectemos</div>
-      <h2>Hablemos cuando quieras.</h2>
-      <p class="lead">Guarda mi contacto o escríbeme directo. Y si te animas, agenda tu diagnóstico de 20 min.</p>
-      <div class="btn-row">
-        <a class="btn btn-primary" id="cAgenda" href="#" target="_blank" rel="noopener">📅 Agenda tu diagnóstico de 20 min</a>
-      </div>
+      <div class="eyebrow" id="cEyebrow"></div>
+      <h2 id="cTitle"></h2>
+      <p class="lead" id="cLead"></p>
+      <div class="btn-row"><a class="btn btn-primary" id="cAgenda" href="#" target="_blank" rel="noopener"></a></div>
       <div class="cgrid">
-        <a class="cbtn" id="cContact" href="#"><span class="ce">📇</span>Guardar contacto</a>
+        <a class="cbtn" id="cContact" href="#"><span class="ce">📇</span><span id="cGuardarTxt"></span></a>
         <a class="cbtn" id="cWhats" href="#" target="_blank" rel="noopener"><span class="ce">💬</span>WhatsApp</a>
-        <a class="cbtn" id="cMail" href="#"><span class="ce">✉️</span>Email</a>
+        <a class="cbtn" id="cMail" href="#"><span class="ce">✉️</span><span id="cMailTxt"></span></a>
         <a class="cbtn" id="cLinked" href="#" target="_blank" rel="noopener"><span class="ce">in</span>LinkedIn</a>
       </div>
     </div>
-    <p class="foot"><b>Leonardo De la Hoz Borrego</b> · jAvIer Institute · be360 · LedeLab</p>
+    <p class="foot" id="cFoot"></p>
   </section>
-
 </div>
 
-<!-- sticky CTA (visible desde el paso de pregunta en adelante) -->
-<div class="sticky" id="sticky" style="display:none">
-  <div class="inner">
-    <a class="btn btn-primary" id="stickyBtn" href="#" target="_blank" rel="noopener">📅 Agenda tu diagnóstico de 20 min</a>
-  </div>
-</div>
+<div class="sticky" id="sticky" style="display:none"><div class="inner"><a class="btn btn-primary" id="stickyBtn" href="#" target="_blank" rel="noopener"></a></div></div>
 
 <script>
-/* ============================================================
-   LEONARDO: edita estos enlaces y ya.  (un solo lugar)
-   - N8N_LIVE: déjalo en false mientras n8n NO esté activo.
-     Así TODOS los CTA caen en correo prellenado (nada se trunca).
-     Cuando prendas n8n y tengas los links, ponlo en true.
-   ============================================================ */
+/* ===== CONFIG — edita aquí (un solo lugar) ===== */
 const N8N_LIVE = false;                       // ← true cuando n8n esté activo
 const CONTACT_EMAIL = "leonardo@javierinstitute.org";
-
 const LINKS = {
-  institute:"https://javierinstitute.org",
-  be360:    "https://be360.app",              // sitio informativo (no depende de n8n)
-  email:    "mailto:" + CONTACT_EMAIL,
-  whatsapp: "https://wa.me/57XXXXXXXXXX",      // ← reemplaza tu número (si no, se oculta solo)
-  linkedin: "https://www.linkedin.com/in/REEMPLAZAR"  // ← reemplaza (si no, se oculta solo)
+  be360:"https://be360.app",
+  email:"mailto:"+CONTACT_EMAIL,
+  whatsapp:"https://wa.me/57XXXXXXXXXX",       // ← reemplaza (si no, se oculta)
+  linkedin:"https://www.linkedin.com/in/REEMPLAZAR" // ← reemplaza (si no, se oculta)
+};
+const AUTOMATED = { agenda:"", sparkSalud:"https://javierinstitute.org/programs" };
+function capture(s,b){return "mailto:"+CONTACT_EMAIL+"?subject="+encodeURIComponent(s)+"&body="+encodeURIComponent(b);}
+function dest(key,s,b){return (N8N_LIVE && AUTOMATED[key]) ? AUTOMATED[key] : capture(s,b);}
+
+/* ===== Idiomas ===== */
+const LANGNAMES = {es:"Español",en:"English",et:"Eesti",fr:"Français"};
+const FLAGS = {es:"🇪🇸",en:"🇬🇧",et:"🇪🇪",fr:"🇫🇷"};
+
+const UI = {
+ es:{tag:"Investigación IA + bienestar",back:"‹ Volver",
+   wTitle:"Elige tu idioma",wSub:"Puedes cambiarlo cuando quieras desde arriba.",
+   heroEyebrow:"Diagnóstico guiado · 60 segundos",
+   heroH1:"Descubre cómo la IA puede mover tu próxima decisión.",
+   heroLead:"Responde 2–3 preguntas y te muestro, según tu caso, el punto de partida concreto —y agendamos una conversación corta para verlo juntos.",
+   heroTag:"🌱 Sin tecnicismos · pensado para personas reales",startBtn:"Empezar →",
+   heroFoot:"jAvIer Institute MTÜ · instituto de investigación registrado en Estonia · javierinstitute.org",
+   segStep:"Paso 1 de 3",segTitle:"¿Qué te describe mejor?",segLead:"Elige el que más se acerque. Con eso afino lo que te muestro.",
+   qStep:"Paso 2 de 3",resEyebrow:"Tu prediagnóstico",diagLabel:"Lo que veo",recoLabel:"Tu mejor punto de partida",
+   ctaAgenda:"📅 Agenda tu diagnóstico gratis de 20 min",listoMas:"¿Listo para más? Estas son las actividades:",
+   program2:"Ver el programa recomendado",solo:"Solo quiero dejar mi contacto",
+   note:"El diagnóstico de 20 min es gratis y sin compromiso. Sirve para ver, sin tecnicismos, dónde la IA te aporta primero.",
+   cEyebrow:"Conectemos",cTitle:"Hablemos cuando quieras.",cLead:"Guarda mi contacto o escríbeme directo. Y si te animas, agenda tu diagnóstico de 20 min.",
+   guardar:"Guardar contacto",email:"Email",
+   levels:[["Spark","Taller de 1 día. Empiezas aquí."],["Journey","Acompañamiento por etapas."],["Pathfinder","Programa a profundidad."],["Fellow","Comunidad e investigación."]],active:"activo",
+   sticky:"📅 Agenda tu diagnóstico de 20 min",
+   mailLead:"Diagnóstico jAvIer/be360 — ",mailBody:"Hola Leonardo, vengo del diagnóstico interactivo.",
+   agendaSubject:"Quiero agendar mi diagnóstico de 20 min",agendaBody:"Hola Leonardo, vengo del diagnóstico interactivo y quiero agendar los 20 min."},
+ en:{tag:"AI research + wellbeing",back:"‹ Back",
+   wTitle:"Choose your language",wSub:"You can change it anytime from the top.",
+   heroEyebrow:"Guided diagnostic · 60 seconds",
+   heroH1:"Discover how AI can move your next decision.",
+   heroLead:"Answer 2–3 questions and I'll show you, based on your case, a concrete starting point —and we'll book a short call to look at it together.",
+   heroTag:"🌱 No jargon · made for real people",startBtn:"Start →",
+   heroFoot:"jAvIer Institute MTÜ · research institute registered in Estonia · javierinstitute.org",
+   segStep:"Step 1 of 3",segTitle:"What describes you best?",segLead:"Pick the closest one. I'll tailor what I show you.",
+   qStep:"Step 2 of 3",resEyebrow:"Your pre-diagnosis",diagLabel:"What I see",recoLabel:"Your best starting point",
+   ctaAgenda:"📅 Book your free 20-min diagnostic",listoMas:"Ready for more? These are the activities:",
+   program2:"See the recommended program",solo:"I just want to leave my contact",
+   note:"The 20-min diagnostic is free and no-obligation. It's to see, without jargon, where AI helps you first.",
+   cEyebrow:"Let's connect",cTitle:"Let's talk whenever you like.",cLead:"Save my contact or message me directly. And if you're up for it, book your 20-min diagnostic.",
+   guardar:"Save contact",email:"Email",
+   levels:[["Spark","1-day workshop. Start here."],["Journey","Step-by-step guidance."],["Pathfinder","In-depth program."],["Fellow","Community & research."]],active:"active",
+   sticky:"📅 Book your 20-min diagnostic",
+   mailLead:"jAvIer/be360 diagnostic — ",mailBody:"Hi Leonardo, I'm coming from the interactive diagnostic.",
+   agendaSubject:"I'd like to book my 20-min diagnostic",agendaBody:"Hi Leonardo, I'm coming from the interactive diagnostic and I'd like to book the 20 min."},
+ et:{tag:"AI-uuringud + heaolu",back:"‹ Tagasi",
+   wTitle:"Vali oma keel",wSub:"Saad seda igal ajal ülevalt muuta.",
+   heroEyebrow:"Juhitud diagnostika · 60 sekundit",
+   heroH1:"Avasta, kuidas tehisintellekt saab su järgmist otsust edasi viia.",
+   heroLead:"Vasta 2–3 küsimusele ja näitan sulle sinu olukorrale sobiva konkreetse alguspunkti —ning lepime kokku lühikese vestluse, et seda koos vaadata.",
+   heroTag:"🌱 Ilma erialakeeleta · tehtud päris inimestele",startBtn:"Alusta →",
+   heroFoot:"jAvIer Institute MTÜ · Eestis registreeritud uurimisinstituut · javierinstitute.org",
+   segStep:"Samm 1/3",segTitle:"Mis kirjeldab sind kõige paremini?",segLead:"Vali lähim. Selle põhjal kohandan, mida sulle näitan.",
+   qStep:"Samm 2/3",resEyebrow:"Sinu eeldiagnoos",diagLabel:"Mida ma näen",recoLabel:"Sinu parim alguspunkt",
+   ctaAgenda:"📅 Broneeri tasuta 20-min diagnostika",listoMas:"Valmis enamaks? Need on tegevused:",
+   program2:"Vaata soovitatud programmi",solo:"Soovin lihtsalt jätta oma kontakti",
+   note:"20-minutiline diagnostika on tasuta ja kohustusteta. See aitab näha ilma erialakeeleta, kus AI sind kõigepealt aitab.",
+   cEyebrow:"Võtame ühendust",cTitle:"Räägime, millal soovid.",cLead:"Salvesta mu kontakt või kirjuta mulle otse. Ja kui soovid, broneeri oma 20-min diagnostika.",
+   guardar:"Salvesta kontakt",email:"E-post",
+   levels:[["Spark","1-päevane töötuba. Alusta siit."],["Journey","Etapiviisiline tugi."],["Pathfinder","Süvaprogramm."],["Fellow","Kogukond ja teadustöö."]],active:"aktiivne",
+   sticky:"📅 Broneeri 20-min diagnostika",
+   mailLead:"jAvIer/be360 diagnostika — ",mailBody:"Tere Leonardo, tulen interaktiivsest diagnostikast.",
+   agendaSubject:"Soovin broneerida oma 20-min diagnostika",agendaBody:"Tere Leonardo, tulen interaktiivsest diagnostikast ja soovin broneerida 20 min."},
+ fr:{tag:"Recherche IA + bien-être",back:"‹ Retour",
+   wTitle:"Choisis ta langue",wSub:"Tu peux la changer à tout moment en haut.",
+   heroEyebrow:"Diagnostic guidé · 60 secondes",
+   heroH1:"Découvre comment l'IA peut faire avancer ta prochaine décision.",
+   heroLead:"Réponds à 2–3 questions et je te montre, selon ton cas, un point de départ concret —et on planifie un court échange pour le voir ensemble.",
+   heroTag:"🌱 Sans jargon · pensé pour de vraies personnes",startBtn:"Commencer →",
+   heroFoot:"jAvIer Institute MTÜ · institut de recherche enregistré en Estonie · javierinstitute.org",
+   segStep:"Étape 1 sur 3",segTitle:"Qu'est-ce qui te décrit le mieux ?",segLead:"Choisis le plus proche. J'adapte ce que je te montre.",
+   qStep:"Étape 2 sur 3",resEyebrow:"Ton pré-diagnostic",diagLabel:"Ce que je vois",recoLabel:"Ton meilleur point de départ",
+   ctaAgenda:"📅 Réserve ton diagnostic gratuit de 20 min",listoMas:"Prêt pour plus ? Voici les activités :",
+   program2:"Voir le programme recommandé",solo:"Je veux juste laisser mon contact",
+   note:"Le diagnostic de 20 min est gratuit et sans engagement. Il sert à voir, sans jargon, où l'IA t'aide en premier.",
+   cEyebrow:"Connectons-nous",cTitle:"Parlons quand tu veux.",cLead:"Enregistre mon contact ou écris-moi directement. Et si tu veux, réserve ton diagnostic de 20 min.",
+   guardar:"Enregistrer le contact",email:"E-mail",
+   levels:[["Spark","Atelier d'1 jour. Commence ici."],["Journey","Accompagnement par étapes."],["Pathfinder","Programme approfondi."],["Fellow","Communauté et recherche."]],active:"actif",
+   sticky:"📅 Réserve ton diagnostic de 20 min",
+   mailLead:"Diagnostic jAvIer/be360 — ",mailBody:"Bonjour Leonardo, je viens du diagnostic interactif.",
+   agendaSubject:"Je souhaite réserver mon diagnostic de 20 min",agendaBody:"Bonjour Leonardo, je viens du diagnostic interactif et je souhaite réserver les 20 min."}
 };
 
-/* Endpoints automáticos — SOLO se usan si N8N_LIVE = true */
-const AUTOMATED = {
-  agenda:     "",                                    // ← pega tu link de calendario cuando lo tengas
-  sparkSalud: "https://javierinstitute.org/programs" // /programs (formulario vía n8n)
+/* ===== Segmentos por idioma ===== */
+function S(t,d){return {t:t,d:d};}
+const SEG = {
+ es:[
+  {ico:"🏢",t:"Tengo un negocio o empresa",d:"Quiero usar la IA para crecer o ganar tiempo.",
+   q:{title:"¿Qué te frena hoy?",lead:"Lo que más te pese.",opts:[
+     {ico:"🔁",t:"Tareas repetitivas",d:"Mensajes, cotizaciones, contenido…",k:"a"},
+     {ico:"📊",t:"Decido sin datos claros",d:"No leo bien mis números.",k:"b"},
+     {ico:"🧭",t:"No sé por dónde empezar",d:"Sé que sirve, no cómo aplicarla.",k:"c"}]},
+   title:"La IA puede quitarte ese peso de encima.",
+   diag:{a:"Lo repetitivo es justo lo primero que la IA asume bien. <b>No empieces comprando tecnología; empieza por un mapa</b> de qué tareas liberar primero — eso lo vemos en 20 minutos.",
+     b:"Tus números ya tienen la respuesta; falta leerlos en lenguaje claro. <b>La IA traduce tus ventas y gastos en decisiones</b>, no en planillas. Veamos por dónde.",
+     c:"Empezar sin rumbo quema tiempo y plata. <b>El primer paso no es una herramienta, es claridad:</b> dónde te aporta primero. Eso es exactamente lo que hace el diagnóstico."},
+   prog:{a:0,b:0,c:0,list:[{name:"SPARK Emprende (próximamente)",desc:"Taller de 1 día para construir tu primer caso de uso de IA. Aún en preparación — entra a la lista de espera.",cta:"Entrar a la lista de espera →",key:"sparkEmprende"}]}},
+  {ico:"🎓",t:"Colegio o institución educativa",d:"Soy rector, directivo o docente.",
+   q:{title:"¿Qué buscas para tu institución?",lead:"Elige tu prioridad.",opts:[
+     {ico:"🌱",t:"Bienestar de estudiantes y familias",d:"Prevención y hábitos.",k:"a"},
+     {ico:"🧠",t:"Formar a mi equipo en IA",d:"Docentes y administrativos.",k:"b"},
+     {ico:"✨",t:"Innovar en cómo enseñamos",d:"IA aplicada al aula.",k:"c"}]},
+   title:{a:"be360 encaja con tu institución.",b:"Empecemos por formar y mostrar.",c:"Empecemos por formar y mostrar."},
+   diag:{a:"<b>be360</b> es un programa de bienestar familiar preventivo. Lo puedes probar con un <b>piloto gratuito</b> en tu colegio y medir resultados antes de comprometerte.",
+     b:"El cambio real arranca por las personas. <b>Un taller corto (Spark) pone a tu equipo a usar IA con sentido</b>, no en abstracto. De ahí escalas.",
+     c:"Innovar en el aula empieza con un caso concreto, no con una plataforma. En 20 min definimos un piloto pequeño y medible para tu institución."},
+   prog:{a:0,b:1,c:1,list:[
+     {name:"be360 · piloto gratuito",desc:"Programa de bienestar familiar preventivo. Tomamos tus datos y coordinamos el piloto.",cta:"Conocer be360 →",key:"be360site"},
+     {name:"SPARK Salud · taller 1 día",desc:"15 cupos piloto · output-based. El formato base para formar y mostrar valor rápido.",cta:"Ver el programa →",key:"sparkSalud"}]}},
+  {ico:"🩺",t:"Me interesa IA + salud y bienestar",d:"Para mí, mi familia o mis pacientes.",
+   q:{title:"¿Qué te mueve más?",lead:"Lo que más resuene contigo.",opts:[
+     {ico:"🔄",t:"Cambiar hábitos de verdad",d:"Con guía, no a punta de fuerza de voluntad.",k:"a"},
+     {ico:"🛡️",t:"Salud preventiva familiar",d:"Adelantarme, no reaccionar.",k:"b"},
+     {ico:"🤖",t:"Aprender a usar IA para mi bienestar",d:"Que trabaje para mí.",k:"c"}]},
+   title:"SPARK Salud está hecho justo para esto.",
+   diag:{a:"Los hábitos no cambian por información, cambian por diseño. <b>En SPARK Salud construyes tu mapa de hábitos guiado por IA</b> en un solo día — base de mi maestría en EdTech (U. de Tartu).",
+     b:"Prevenir es decidir con anticipación. <b>be360 + SPARK Salud</b> te dan el marco para cuidar a tu familia antes de que algo se vuelva problema.",
+     c:"La IA bien usada es un copiloto de bienestar. <b>SPARK Salud te enseña a ponerla a trabajar para tus hábitos</b>, con un resultado concreto al final del taller."},
+   prog:{a:0,b:0,c:0,list:[{name:"SPARK Salud · piloto",desc:"Taller de 1 día · 15 cupos · $180K COP · construyes tu mapa de hábitos guiado por IA.",cta:"Inscribirme al piloto →",key:"sparkSalud"}]}},
+  {ico:"🔬",t:"Académico, investigador o ponente",d:"Quiero colaborar o co-crear.",
+   q:{title:"¿Cuál es tu interés?",lead:"Elige el más cercano.",opts:[
+     {ico:"🤝",t:"Colaborar en investigación",d:"Cambio conductual guiado por IA.",k:"a"},
+     {ico:"🧩",t:"Co-crear programas",d:"Diseñar formación juntos.",k:"b"},
+     {ico:"🎤",t:"Invitarte a una charla / panel",d:"Sobre IA aplicada.",k:"c"}]},
+   title:"Hablemos de construir juntos.",
+   diag:{a:"<b>jAvIer Institute</b> investiga el cambio conductual guiado por IA, desde Estonia y para Iberoamérica. Hay espacio real para colaborar y co-crear. Escríbeme y exploramos el encaje.",
+     b:"<b>jAvIer Institute</b> investiga el cambio conductual guiado por IA, desde Estonia y para Iberoamérica. Hay espacio real para colaborar y co-crear. Escríbeme y exploramos el encaje.",
+     c:"Con gusto. <b>Doy charlas sobre IA aplicada y cambio de hábitos</b> (\"AI Extender\"). Cuéntame del evento y lo coordinamos."},
+   prog:{a:0,b:0,c:0,list:[{name:"Colaboración jAvIer Institute",desc:"Instituto de investigación IA-nativo (MTÜ, Estonia). Abierto a alianzas académicas.",cta:"Escribir a Leonardo →",key:"colaboracion"}]}}
+ ],
+ en:[
+  {ico:"🏢",t:"I have a business or company",d:"I want to use AI to grow or save time.",
+   q:{title:"What's holding you back today?",lead:"Whatever weighs on you most.",opts:[
+     {ico:"🔁",t:"Repetitive tasks",d:"Messages, quotes, content…",k:"a"},
+     {ico:"📊",t:"I decide without clear data",d:"I can't read my numbers well.",k:"b"},
+     {ico:"🧭",t:"I don't know where to start",d:"I know it helps, not how to apply it.",k:"c"}]},
+   title:"AI can take that weight off you.",
+   diag:{a:"Repetitive work is exactly what AI takes on well first. <b>Don't start by buying technology; start with a map</b> of which tasks to free up first — that's what we do in 20 minutes.",
+     b:"Your numbers already hold the answer; they just need reading in plain language. <b>AI turns your sales and costs into decisions</b>, not spreadsheets. Let's see where.",
+     c:"Starting with no direction burns time and money. <b>The first step isn't a tool, it's clarity:</b> where it helps you first. That's exactly what the diagnostic does."},
+   prog:{a:0,b:0,c:0,list:[{name:"SPARK Emprende (coming soon)",desc:"1-day workshop to build your first AI use case. Still in preparation — join the waitlist.",cta:"Join the waitlist →",key:"sparkEmprende"}]}},
+  {ico:"🎓",t:"School or educational institution",d:"I'm a principal, director or teacher.",
+   q:{title:"What are you looking for, for your institution?",lead:"Pick your priority.",opts:[
+     {ico:"🌱",t:"Wellbeing of students and families",d:"Prevention and habits.",k:"a"},
+     {ico:"🧠",t:"Train my team in AI",d:"Teachers and staff.",k:"b"},
+     {ico:"✨",t:"Innovate how we teach",d:"AI applied to the classroom.",k:"c"}]},
+   title:{a:"be360 fits your institution.",b:"Let's start by training and showing.",c:"Let's start by training and showing."},
+   diag:{a:"<b>be360</b> is a preventive family wellbeing program. You can try it with a <b>free pilot</b> at your school and measure results before committing.",
+     b:"Real change starts with people. <b>A short workshop (Spark) gets your team using AI meaningfully</b>, not in the abstract. From there you scale.",
+     c:"Innovating in the classroom starts with a concrete case, not a platform. In 20 min we define a small, measurable pilot for your institution."},
+   prog:{a:0,b:1,c:1,list:[
+     {name:"be360 · free pilot",desc:"Preventive family wellbeing program. We take your details and coordinate the pilot.",cta:"Discover be360 →",key:"be360site"},
+     {name:"SPARK Salud · 1-day workshop",desc:"15 pilot seats · output-based. The base format to train and show value fast.",cta:"See the program →",key:"sparkSalud"}]}},
+  {ico:"🩺",t:"I'm interested in AI + health & wellbeing",d:"For me, my family or my patients.",
+   q:{title:"What moves you most?",lead:"Whatever resonates most.",opts:[
+     {ico:"🔄",t:"Truly change habits",d:"With guidance, not sheer willpower.",k:"a"},
+     {ico:"🛡️",t:"Preventive family health",d:"Get ahead, not react.",k:"b"},
+     {ico:"🤖",t:"Learn to use AI for my wellbeing",d:"Have it work for me.",k:"c"}]},
+   title:"SPARK Salud is made exactly for this.",
+   diag:{a:"Habits don't change through information, they change through design. <b>In SPARK Salud you build your AI-guided habit map</b> in a single day — the basis of my EdTech master's (U. of Tartu).",
+     b:"Prevention is deciding ahead of time. <b>be360 + SPARK Salud</b> give you the framework to care for your family before something becomes a problem.",
+     c:"AI used well is a wellbeing copilot. <b>SPARK Salud teaches you to put it to work for your habits</b>, with a concrete result by the end of the workshop."},
+   prog:{a:0,b:0,c:0,list:[{name:"SPARK Salud · pilot",desc:"1-day workshop · 15 seats · $180K COP · build your AI-guided habit map.",cta:"Join the pilot →",key:"sparkSalud"}]}},
+  {ico:"🔬",t:"Academic, researcher or speaker",d:"I want to collaborate or co-create.",
+   q:{title:"What's your interest?",lead:"Pick the closest.",opts:[
+     {ico:"🤝",t:"Collaborate on research",d:"AI-guided behavior change.",k:"a"},
+     {ico:"🧩",t:"Co-create programs",d:"Design training together.",k:"b"},
+     {ico:"🎤",t:"Invite you to a talk / panel",d:"On applied AI.",k:"c"}]},
+   title:"Let's talk about building together.",
+   diag:{a:"<b>jAvIer Institute</b> researches AI-guided behavior change, from Estonia and for Ibero-America. There's real room to collaborate and co-create. Write to me and we'll explore the fit.",
+     b:"<b>jAvIer Institute</b> researches AI-guided behavior change, from Estonia and for Ibero-America. There's real room to collaborate and co-create. Write to me and we'll explore the fit.",
+     c:"Gladly. <b>I give talks on applied AI and habit change</b> (\"AI Extender\"). Tell me about the event and we'll set it up."},
+   prog:{a:0,b:0,c:0,list:[{name:"jAvIer Institute collaboration",desc:"AI-native research institute (MTÜ, Estonia). Open to academic partnerships.",cta:"Write to Leonardo →",key:"colaboracion"}]}}
+ ],
+ et:[
+  {ico:"🏢",t:"Mul on ettevõte või äri",d:"Tahan kasutada AI-d, et kasvada või aega võita.",
+   q:{title:"Mis sind täna takistab?",lead:"Mis sind kõige rohkem koormab.",opts:[
+     {ico:"🔁",t:"Korduvad ülesanded",d:"Sõnumid, pakkumised, sisu…",k:"a"},
+     {ico:"📊",t:"Otsustan ilma selgete andmeteta",d:"Ma ei loe oma numbreid hästi.",k:"b"},
+     {ico:"🧭",t:"Ma ei tea, kust alustada",d:"Tean, et see aitab, aga mitte kuidas.",k:"c"}]},
+   title:"AI saab selle koorma sinult ära võtta.",
+   diag:{a:"Korduv töö on just see, mille AI esimesena hästi üle võtab. <b>Ära alusta tehnoloogia ostmisest; alusta kaardist</b>, milliseid ülesandeid esimesena vabastada — seda teemegi 20 minutiga.",
+     b:"Sinu numbrites on vastus juba olemas; neid tuleb vaid lihtsas keeles lugeda. <b>AI muudab su müügi ja kulud otsusteks</b>, mitte tabeliteks. Vaatame, kust alustada.",
+     c:"Sihitult alustamine raiskab aega ja raha. <b>Esimene samm pole tööriist, vaid selgus:</b> kus see sind kõigepealt aitab. Just seda diagnostika teebki."},
+   prog:{a:0,b:0,c:0,list:[{name:"SPARK Emprende (peagi)",desc:"1-päevane töötuba, et luua oma esimene AI kasutusjuht. Veel ettevalmistamisel — liitu ootenimekirjaga.",cta:"Liitu ootenimekirjaga →",key:"sparkEmprende"}]}},
+  {ico:"🎓",t:"Kool või haridusasutus",d:"Olen direktor, juht või õpetaja.",
+   q:{title:"Mida otsid oma asutusele?",lead:"Vali oma prioriteet.",opts:[
+     {ico:"🌱",t:"Õpilaste ja perede heaolu",d:"Ennetus ja harjumused.",k:"a"},
+     {ico:"🧠",t:"Koolitada oma meeskonda AI-s",d:"Õpetajad ja töötajad.",k:"b"},
+     {ico:"✨",t:"Uuendada seda, kuidas õpetame",d:"AI klassiruumis.",k:"c"}]},
+   title:{a:"be360 sobib sinu asutusele.",b:"Alustame koolitamisest ja näitamisest.",c:"Alustame koolitamisest ja näitamisest."},
+   diag:{a:"<b>be360</b> on ennetav pere heaolu programm. Saad seda proovida <b>tasuta piloodiga</b> oma koolis ja mõõta tulemusi enne pühendumist.",
+     b:"Tõeline muutus algab inimestest. <b>Lühike töötuba (Spark) paneb su meeskonna AI-d mõtestatult kasutama</b>, mitte abstraktselt. Sealt saad laieneda.",
+     c:"Klassiruumi uuendamine algab konkreetsest juhtumist, mitte platvormist. 20 minutiga määratleme väikese ja mõõdetava piloodi sinu asutusele."},
+   prog:{a:0,b:1,c:1,list:[
+     {name:"be360 · tasuta pilootprojekt",desc:"Ennetav pere heaolu programm. Võtame su andmed ja korraldame piloodi.",cta:"Tutvu be360-ga →",key:"be360site"},
+     {name:"SPARK Salud · 1-päevane töötuba",desc:"15 piloodikohta · tulemuspõhine. Põhiformaat kiireks koolituseks ja väärtuse näitamiseks.",cta:"Vaata programmi →",key:"sparkSalud"}]}},
+  {ico:"🩺",t:"Mind huvitab AI + tervis ja heaolu",d:"Endale, perele või patsientidele.",
+   q:{title:"Mis sind kõige rohkem liigutab?",lead:"Mis sinuga kõige rohkem resoneerub.",opts:[
+     {ico:"🔄",t:"Harjumusi päriselt muuta",d:"Juhendamisega, mitte pelga tahtejõuga.",k:"a"},
+     {ico:"🛡️",t:"Ennetav peretervis",d:"Olla sammuke ees, mitte reageerida.",k:"b"},
+     {ico:"🤖",t:"Õppida kasutama AI-d oma heaoluks",d:"Et see töötaks minu heaks.",k:"c"}]},
+   title:"SPARK Salud on tehtud just selleks.",
+   diag:{a:"Harjumused ei muutu teabe, vaid disaini kaudu. <b>SPARK Saludis ehitad ühe päevaga oma AI-juhitud harjumuste kaardi</b> — minu EdTech magistritöö alus (Tartu Ülikool).",
+     b:"Ennetus tähendab varakult otsustamist. <b>be360 + SPARK Salud</b> annavad raamistiku oma pere eest hoolitsemiseks enne, kui miski probleemiks muutub.",
+     c:"Hästi kasutatud AI on heaolu kaaspiloot. <b>SPARK Salud õpetab panema selle su harjumuste heaks tööle</b>, konkreetse tulemusega töötoa lõpuks."},
+   prog:{a:0,b:0,c:0,list:[{name:"SPARK Salud · pilootprojekt",desc:"1-päevane töötuba · 15 kohta · 180K COP · ehita oma AI-juhitud harjumuste kaart.",cta:"Liitu piloodiga →",key:"sparkSalud"}]}},
+  {ico:"🔬",t:"Akadeemik, teadlane või esineja",d:"Tahan teha koostööd või kaasluua.",
+   q:{title:"Mis on sinu huvi?",lead:"Vali lähim.",opts:[
+     {ico:"🤝",t:"Teha teaduskoostööd",d:"AI-juhitud käitumismuutus.",k:"a"},
+     {ico:"🧩",t:"Kaasluua programme",d:"Kavandada koolitust koos.",k:"b"},
+     {ico:"🎤",t:"Kutsuda sind esinema / paneeli",d:"Rakendusliku AI teemal.",k:"c"}]},
+   title:"Räägime koos ehitamisest.",
+   diag:{a:"<b>jAvIer Institute</b> uurib AI-juhitud käitumismuutust, Eestist ja Ibero-Ameerika jaoks. Koostööks ja kaasloomeks on tõeline ruum. Kirjuta mulle ja uurime sobivust.",
+     b:"<b>jAvIer Institute</b> uurib AI-juhitud käitumismuutust, Eestist ja Ibero-Ameerika jaoks. Koostööks ja kaasloomeks on tõeline ruum. Kirjuta mulle ja uurime sobivust.",
+     c:"Hea meelega. <b>Pean ettekandeid rakenduslikust AI-st ja harjumuste muutmisest</b> (\"AI Extender\"). Räägi üritusest ja lepime kokku."},
+   prog:{a:0,b:0,c:0,list:[{name:"Koostöö jAvIer Institute'iga",desc:"AI-põhine uurimisinstituut (MTÜ, Eesti). Avatud akadeemilistele partnerlustele.",cta:"Kirjuta Leonardole →",key:"colaboracion"}]}}
+ ],
+ fr:[
+  {ico:"🏢",t:"J'ai une entreprise ou un commerce",d:"Je veux utiliser l'IA pour croître ou gagner du temps.",
+   q:{title:"Qu'est-ce qui te freine aujourd'hui ?",lead:"Ce qui te pèse le plus.",opts:[
+     {ico:"🔁",t:"Tâches répétitives",d:"Messages, devis, contenu…",k:"a"},
+     {ico:"📊",t:"Je décide sans données claires",d:"Je lis mal mes chiffres.",k:"b"},
+     {ico:"🧭",t:"Je ne sais pas par où commencer",d:"Je sais que ça aide, pas comment.",k:"c"}]},
+   title:"L'IA peut t'enlever ce poids.",
+   diag:{a:"Le répétitif est justement ce que l'IA prend bien en charge en premier. <b>Ne commence pas par acheter de la technologie ; commence par une carte</b> des tâches à libérer d'abord — c'est ce qu'on fait en 20 minutes.",
+     b:"Tes chiffres ont déjà la réponse ; il faut juste les lire en langage clair. <b>L'IA transforme tes ventes et tes coûts en décisions</b>, pas en tableurs. Voyons par où.",
+     c:"Démarrer sans cap brûle du temps et de l'argent. <b>La première étape n'est pas un outil, c'est la clarté :</b> où ça t'aide en premier. C'est exactement ce que fait le diagnostic."},
+   prog:{a:0,b:0,c:0,list:[{name:"SPARK Emprende (bientôt)",desc:"Atelier d'1 jour pour construire ton premier cas d'usage de l'IA. En préparation — inscris-toi sur la liste d'attente.",cta:"Rejoindre la liste d'attente →",key:"sparkEmprende"}]}},
+  {ico:"🎓",t:"École ou établissement éducatif",d:"Je suis directeur, cadre ou enseignant.",
+   q:{title:"Que cherches-tu pour ton établissement ?",lead:"Choisis ta priorité.",opts:[
+     {ico:"🌱",t:"Bien-être des élèves et des familles",d:"Prévention et habitudes.",k:"a"},
+     {ico:"🧠",t:"Former mon équipe à l'IA",d:"Enseignants et personnel.",k:"b"},
+     {ico:"✨",t:"Innover dans notre façon d'enseigner",d:"L'IA appliquée à la classe.",k:"c"}]},
+   title:{a:"be360 correspond à ton établissement.",b:"Commençons par former et montrer.",c:"Commençons par former et montrer."},
+   diag:{a:"<b>be360</b> est un programme de bien-être familial préventif. Tu peux l'essayer avec un <b>pilote gratuit</b> dans ton école et mesurer les résultats avant de t'engager.",
+     b:"Le vrai changement commence par les personnes. <b>Un court atelier (Spark) amène ton équipe à utiliser l'IA de façon concrète</b>, pas en théorie. Ensuite tu passes à l'échelle.",
+     c:"Innover en classe commence par un cas concret, pas par une plateforme. En 20 min on définit un pilote petit et mesurable pour ton établissement."},
+   prog:{a:0,b:1,c:1,list:[
+     {name:"be360 · pilote gratuit",desc:"Programme de bien-être familial préventif. On prend tes coordonnées et on organise le pilote.",cta:"Découvrir be360 →",key:"be360site"},
+     {name:"SPARK Salud · atelier d'1 jour",desc:"15 places pilotes · axé résultats. Le format de base pour former et montrer la valeur vite.",cta:"Voir le programme →",key:"sparkSalud"}]}},
+  {ico:"🩺",t:"L'IA + santé et bien-être m'intéresse",d:"Pour moi, ma famille ou mes patients.",
+   q:{title:"Qu'est-ce qui te motive le plus ?",lead:"Ce qui résonne le plus avec toi.",opts:[
+     {ico:"🔄",t:"Changer vraiment ses habitudes",d:"Avec un accompagnement, pas à la seule volonté.",k:"a"},
+     {ico:"🛡️",t:"Santé préventive familiale",d:"Anticiper, pas réagir.",k:"b"},
+     {ico:"🤖",t:"Apprendre à utiliser l'IA pour mon bien-être",d:"Qu'elle travaille pour moi.",k:"c"}]},
+   title:"SPARK Salud est fait précisément pour ça.",
+   diag:{a:"Les habitudes ne changent pas par l'information, mais par le design. <b>Dans SPARK Salud tu construis ta carte d'habitudes guidée par l'IA</b> en une journée — la base de mon master en EdTech (U. de Tartu).",
+     b:"Prévenir, c'est décider à l'avance. <b>be360 + SPARK Salud</b> te donnent le cadre pour prendre soin de ta famille avant qu'un souci n'apparaisse.",
+     c:"Bien utilisée, l'IA est un copilote de bien-être. <b>SPARK Salud t'apprend à la mettre au service de tes habitudes</b>, avec un résultat concret à la fin de l'atelier."},
+   prog:{a:0,b:0,c:0,list:[{name:"SPARK Salud · pilote",desc:"Atelier d'1 jour · 15 places · 180K COP · construis ta carte d'habitudes guidée par l'IA.",cta:"Rejoindre le pilote →",key:"sparkSalud"}]}},
+  {ico:"🔬",t:"Universitaire, chercheur ou conférencier",d:"Je veux collaborer ou co-créer.",
+   q:{title:"Quel est ton intérêt ?",lead:"Choisis le plus proche.",opts:[
+     {ico:"🤝",t:"Collaborer en recherche",d:"Changement de comportement guidé par l'IA.",k:"a"},
+     {ico:"🧩",t:"Co-créer des programmes",d:"Concevoir des formations ensemble.",k:"b"},
+     {ico:"🎤",t:"T'inviter à une conférence / un panel",d:"Sur l'IA appliquée.",k:"c"}]},
+   title:"Parlons de construire ensemble.",
+   diag:{a:"<b>jAvIer Institute</b> étudie le changement de comportement guidé par l'IA, depuis l'Estonie et pour l'Ibéro-Amérique. Il y a une vraie place pour collaborer et co-créer. Écris-moi et on explore l'adéquation.",
+     b:"<b>jAvIer Institute</b> étudie le changement de comportement guidé par l'IA, depuis l'Estonie et pour l'Ibéro-Amérique. Il y a une vraie place pour collaborer et co-créer. Écris-moi et on explore l'adéquation.",
+     c:"Avec plaisir. <b>Je donne des conférences sur l'IA appliquée et le changement d'habitudes</b> (\"AI Extender\"). Parle-moi de l'événement et on l'organise."},
+   prog:{a:0,b:0,c:0,list:[{name:"Collaboration jAvIer Institute",desc:"Institut de recherche AI-natif (MTÜ, Estonie). Ouvert aux partenariats académiques.",cta:"Écrire à Leonardo →",key:"colaboracion"}]}}
+ ]
 };
 
-/* Mientras n8n NO esté activo: todo lead llega por correo prellenado. */
-function capture(subject, body){
-  return "mailto:" + CONTACT_EMAIL +
-    "?subject=" + encodeURIComponent(subject) +
-    "&body=" + encodeURIComponent(body || "Vengo del diagnóstico interactivo de jAvIer Institute / be360.");
+/* ===== Estado + motor ===== */
+let L = detectLang();
+let segIdx = null, ansKey = null, current = "welcome";
+
+function detectLang(){
+  var n = (navigator.language||"es").slice(0,2).toLowerCase();
+  return (["es","en","et","fr"].indexOf(n)>=0) ? n : "es";
 }
-function dest(key, subject, body){
-  return (N8N_LIVE && AUTOMATED[key]) ? AUTOMATED[key] : capture(subject, body);
-}
-
-/* vCard para "Guardar contacto" */
-const VCARD = `BEGIN:VCARD
-VERSION:3.0
-N:De la Hoz Borrego;Leonardo;;;
-FN:Leonardo De la Hoz Borrego
-ORG:jAvIer Institute;be360 / LedeLab
-TITLE:Fundador
-EMAIL;TYPE=INTERNET:leonardo@javierinstitute.org
-URL:https://javierinstitute.org
-END:VCARD`;
-
-/* ---------- Segmentos ---------- */
-const SEGMENTS = {
-  empresa: {
-    ico:"🏢", t:"Tengo un negocio o empresa", d:"Quiero usar la IA para crecer o ganar tiempo.",
-    q:{ eyebrow:"Paso 2 de 3", title:"¿Qué te frena hoy?", lead:"Lo que más te pese.",
-      opts:[
-        {ico:"🔁",t:"Tareas repetitivas",d:"Mensajes, cotizaciones, contenido…",k:"repetitivo"},
-        {ico:"📊",t:"Decido sin datos claros",d:"No leo bien mis números.",k:"datos"},
-        {ico:"🧭",t:"No sé por dónde empezar",d:"Sé que sirve, no cómo aplicarla.",k:"inicio"},
-      ]},
-    result:(k)=>({
-      title:"La IA puede quitarte ese peso de encima.",
-      diag: k==="repetitivo" ? "Lo repetitivo es justo lo primero que la IA asume bien. <b>No empieces comprando tecnología; empieza por un mapa</b> de qué tareas liberar primero — eso lo vemos en 20 minutos."
-          : k==="datos" ? "Tus números ya tienen la respuesta; falta leerlos en lenguaje claro. <b>La IA traduce tus ventas y gastos en decisiones</b>, no en planillas. Veamos por dónde."
-          : "Empezar sin rumbo quema tiempo y plata. <b>El primer paso no es una herramienta, es claridad:</b> dónde te aporta primero. Eso es exactamente lo que hace el diagnóstico.",
-      prog:{name:"SPARK Emprende (próximamente)",desc:"Taller de 1 día para construir tu primer caso de uso de IA. Aún en preparación — entra a la lista de espera.",link:dest('sparkEmprende','Lista de espera — SPARK Emprende','Quiero entrar a la lista de espera de SPARK Emprende.'),cta:"Entrar a la lista de espera →"}
-    })
-  },
-  colegio: {
-    ico:"🎓", t:"Colegio o institución educativa", d:"Soy rector, directivo o docente.",
-    q:{ eyebrow:"Paso 2 de 3", title:"¿Qué buscas para tu institución?", lead:"Elige tu prioridad.",
-      opts:[
-        {ico:"🌱",t:"Bienestar de estudiantes y familias",d:"Prevención y hábitos.",k:"bienestar"},
-        {ico:"🧠",t:"Formar a mi equipo en IA",d:"Docentes y administrativos.",k:"formacion"},
-        {ico:"✨",t:"Innovar en cómo enseñamos",d:"IA aplicada al aula.",k:"innovar"},
-      ]},
-    result:(k)=>({
-      title: k==="bienestar" ? "be360 encaja con tu institución." : "Empecemos por formar y mostrar.",
-      diag: k==="bienestar" ? "<b>be360</b> es un programa de bienestar familiar preventivo. Lo puedes probar con un <b>piloto gratuito</b> en tu colegio y medir resultados antes de comprometerte."
-          : k==="formacion" ? "El cambio real arranca por las personas. <b>Un taller corto (Spark) pone a tu equipo a usar IA con sentido</b>, no en abstracto. De ahí escalas."
-          : "Innovar en el aula empieza con un caso concreto, no con una plataforma. En 20 min definimos un piloto pequeño y medible para tu institución.",
-      prog: k==="bienestar"
-          ? {name:"be360 · piloto gratuito",desc:"Programa de bienestar familiar preventivo. Tomamos tus datos y coordinamos el piloto.",link:LINKS.be360,cta:"Conocer be360 →"}
-          : {name:"SPARK Salud · taller 1 día",desc:"15 cupos piloto · output-based. El formato base para formar y mostrar valor rápido.",link:dest('sparkSalud','Información SPARK Salud','Quiero información del taller SPARK Salud para mi institución.'),cta:"Ver el programa →"}
-    })
-  },
-  bienestar: {
-    ico:"🩺", t:"Me interesa IA + salud y bienestar", d:"Para mí, mi familia o mis pacientes.",
-    q:{ eyebrow:"Paso 2 de 3", title:"¿Qué te mueve más?", lead:"Lo que más resuene contigo.",
-      opts:[
-        {ico:"🔄",t:"Cambiar hábitos de verdad",d:"Con guía, no a punta de fuerza de voluntad.",k:"habitos"},
-        {ico:"🛡️",t:"Salud preventiva familiar",d:"Adelantarme, no reaccionar.",k:"preventiva"},
-        {ico:"🤖",t:"Aprender a usar IA para mi bienestar",d:"Que trabaje para mí.",k:"aprender"},
-      ]},
-    result:(k)=>({
-      title:"SPARK Salud está hecho justo para esto.",
-      diag: k==="habitos" ? "Los hábitos no cambian por información, cambian por diseño. <b>En SPARK Salud construyes tu mapa de hábitos guiado por IA</b> en un solo día — base de mi maestría en EdTech (U. de Tartu)."
-          : k==="preventiva" ? "Prevenir es decidir con anticipación. <b>be360 + SPARK Salud</b> te dan el marco para cuidar a tu familia antes de que algo se vuelva problema."
-          : "La IA bien usada es un copiloto de bienestar. <b>SPARK Salud te enseña a ponerla a trabajar para tus hábitos</b>, con un resultado concreto al final del taller.",
-      prog:{name:"SPARK Salud · piloto",desc:"Taller de 1 día · 15 cupos · $180K COP · construyes tu mapa de hábitos guiado por IA.",link:dest('sparkSalud','Quiero mi cupo en el piloto SPARK Salud','Quiero reservar un cupo en el piloto de SPARK Salud (15 cupos, $180K COP).'),cta:"Inscribirme al piloto →"}
-    })
-  },
-  academico: {
-    ico:"🔬", t:"Académico, investigador o ponente", d:"Quiero colaborar o co-crear.",
-    q:{ eyebrow:"Paso 2 de 3", title:"¿Cuál es tu interés?", lead:"Elige el más cercano.",
-      opts:[
-        {ico:"🤝",t:"Colaborar en investigación",d:"Cambio conductual guiado por IA.",k:"colaborar"},
-        {ico:"🧩",t:"Co-crear programas",d:"Diseñar formación juntos.",k:"cocrear"},
-        {ico:"🎤",t:"Invitarte a una charla / panel",d:"Sobre IA aplicada.",k:"charla"},
-      ]},
-    result:(k)=>({
-      title:"Hablemos de construir juntos.",
-      diag: k==="charla" ? "Con gusto. <b>Doy charlas sobre IA aplicada y cambio de hábitos</b> (\"AI Extender\"). Cuéntame del evento y lo coordinamos."
-          : "<b>jAvIer Institute</b> investiga el cambio conductual guiado por IA, desde Estonia y para Iberoamérica. Hay espacio real para colaborar y co-crear. Escríbeme y exploramos el encaje.",
-      prog:{name:"Colaboración jAvIer Institute",desc:"Instituto de investigación IA-nativo (MTÜ, Estonia). Abierto a alianzas académicas.",link:dest('colaboracion','Colaboración con jAvIer Institute','Me interesa explorar una colaboración con jAvIer Institute.'),cta:"Escribir a Leonardo →"}
-    })
-  }
-};
-
-/* ---------- Motor del flujo ---------- */
-const ORDER = {hero:0, segment:1, question:2, result:3, contact:4};
-let state = {segment:null, answer:null};
-
+function $(id){return document.getElementById(id);}
 function setProgress(screen){
-  const steps = ["hero","segment","question","result","contact"];
-  const pct = [18,42,66,90,100][steps.indexOf(screen)] || 18;
-  document.getElementById('bar').style.width = pct + "%";
+  var map={welcome:8,hero:20,segment:42,question:66,result:90,contact:100};
+  $("bar").style.width=(map[screen]||8)+"%";
 }
 function go(screen){
-  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
-  document.getElementById('s-'+screen).classList.add('active');
+  current=screen;
+  document.querySelectorAll(".screen").forEach(function(s){s.classList.remove("active");});
+  $("s-"+screen).classList.add("active");
   setProgress(screen);
-  document.getElementById('sticky').style.display = (screen==='result'||screen==='question') ? 'block' : 'none';
-  window.scrollTo({top:0,behavior:'smooth'});
+  $("sticky").style.display=(screen==="result"||screen==="question")?"block":"none";
+  window.scrollTo({top:0,behavior:"smooth"});
 }
 
-/* render segmentos */
-const segWrap = document.getElementById('segmentOpts');
-Object.entries(SEGMENTS).forEach(([key,seg])=>{
-  const b=document.createElement('button');
-  b.className='opt';
-  b.innerHTML=`<span class="ico">${seg.ico}</span><span class="txt"><span class="ot">${seg.t}</span><span class="od">${seg.d}</span></span>`;
-  b.onclick=()=>{ state.segment=key; renderQuestion(); go('question'); };
-  segWrap.appendChild(b);
-});
-
-/* render pregunta */
-function renderQuestion(){
-  const seg=SEGMENTS[state.segment];
-  document.getElementById('qEyebrow').textContent=seg.q.eyebrow;
-  document.getElementById('qTitle').textContent=seg.q.title;
-  document.getElementById('qLead').textContent=seg.q.lead;
-  const wrap=document.getElementById('questionOpts');
-  wrap.innerHTML='';
-  seg.q.opts.forEach(o=>{
-    const b=document.createElement('button');
-    b.className='opt';
-    b.innerHTML=`<span class="ico">${o.ico}</span><span class="txt"><span class="ot">${o.t}</span><span class="od">${o.d}</span></span>`;
-    b.onclick=()=>{ state.answer=o.k; renderResult(); go('result'); };
+/* render estático según idioma */
+function renderStatic(){
+  var u=UI[L];
+  $("hTag").textContent=u.tag;
+  document.querySelectorAll(".back").forEach(function(b){b.textContent=u.back;});
+  $("wTitle").textContent=u.wTitle; $("wSub").textContent=u.wSub;
+  $("hEyebrow").textContent=u.heroEyebrow; $("hH1").textContent=u.heroH1; $("hLead").textContent=u.heroLead;
+  $("hTag2").textContent=u.heroTag; $("startBtn").textContent=u.startBtn; $("hFoot").textContent=u.heroFoot;
+  $("segStep").textContent=u.segStep; $("segTitle").textContent=u.segTitle; $("segLead").textContent=u.segLead;
+  $("qStep").textContent=u.qStep;
+  $("resEyebrow").textContent=u.resEyebrow; $("rDiagLabel").textContent=u.diagLabel; $("rRecoLabel").textContent=u.recoLabel;
+  $("rAgenda").textContent=u.ctaAgenda; $("rListoMas").textContent=u.listoMas;
+  $("rProgram2").textContent=u.program2; $("rSolo").textContent=u.solo; $("rNote").textContent=u.note;
+  $("cEyebrow").textContent=u.cEyebrow; $("cTitle").textContent=u.cTitle; $("cLead").textContent=u.cLead;
+  $("cAgenda").textContent=u.ctaAgenda; $("cGuardarTxt").textContent=u.guardar; $("cMailTxt").textContent=u.email;
+  $("cFoot").innerHTML="<b>Leonardo De la Hoz Borrego</b> · jAvIer Institute · be360 · LedeLab";
+  $("stickyBtn").textContent=u.sticky;
+  // agenda links
+  var ah=dest("agenda",u.agendaSubject,u.agendaBody);
+  ["rAgenda","cAgenda","stickyBtn"].forEach(function(id){$(id).href=ah;});
+  // contacto
+  $("cMail").href=LINKS.email;
+  var wa=$("cWhats"); if(LINKS.whatsapp.indexOf("XXXX")>=0){wa.style.display="none";}else{wa.style.display="";wa.href=LINKS.whatsapp;}
+  var li=$("cLinked"); if(LINKS.linkedin.indexOf("REEMPLAZAR")>=0){li.style.display="none";}else{li.style.display="";li.href=LINKS.linkedin;}
+  try{var blob=new Blob([VCARD],{type:"text/vcard"});$("cContact").href=URL.createObjectURL(blob);$("cContact").setAttribute("download","Leonardo-De-la-Hoz.vcf");}catch(e){}
+  // niveles
+  var lv=$("levels"); lv.innerHTML="";
+  u.levels.forEach(function(p,i){
+    var d=document.createElement("div"); d.className="lvl"+(i===0?" live":"");
+    d.innerHTML='<div class="ln">'+p[0]+(i===0?' <span class="lz">• '+u.active+'</span>':'')+'</div><div class="ls">'+p[1]+'</div>';
+    lv.appendChild(d);
+  });
+}
+function renderSegments(){
+  var wrap=$("segmentOpts"); wrap.innerHTML="";
+  SEG[L].forEach(function(seg,i){
+    var b=document.createElement("button"); b.className="opt";
+    b.innerHTML='<span class="ico">'+seg.ico+'</span><span class="txt"><span class="ot">'+seg.t+'</span><span class="od">'+seg.d+'</span></span>';
+    b.addEventListener("click",function(){segIdx=i; renderQuestion(); go("question");});
     wrap.appendChild(b);
   });
 }
-
-/* render resultado */
+function renderQuestion(){
+  var seg=SEG[L][segIdx];
+  $("qTitle").textContent=seg.q.title; $("qLead").textContent=seg.q.lead;
+  var wrap=$("questionOpts"); wrap.innerHTML="";
+  seg.q.opts.forEach(function(o){
+    var b=document.createElement("button"); b.className="opt";
+    b.innerHTML='<span class="ico">'+o.ico+'</span><span class="txt"><span class="ot">'+o.t+'</span><span class="od">'+o.d+'</span></span>';
+    b.addEventListener("click",function(){ansKey=o.k; renderResult(); go("result");});
+    wrap.appendChild(b);
+  });
+}
+function progLink(p){
+  if(p.key==="be360site") return LINKS.be360;
+  return dest(p.key, UI[L].mailLead+p.name, UI[L].mailBody);
+}
 function renderResult(){
-  const seg=SEGMENTS[state.segment];
-  const r=seg.result(state.answer);
-  document.getElementById('rTitle').textContent=r.title;
-  document.getElementById('rDiag').innerHTML=r.diag;
-  document.getElementById('rProgName').textContent=r.prog.name;
-  document.getElementById('rProgDesc').textContent=r.prog.desc;
-  const pl=document.getElementById('rProgLink'); pl.textContent=r.prog.cta; pl.href=r.prog.link;
-  const p2=document.getElementById('rProgram2'); p2.textContent=r.prog.cta.replace(' →',''); p2.href=r.prog.link;
+  var seg=SEG[L][segIdx], u=UI[L];
+  var title=(typeof seg.title==="string")?seg.title:seg.title[ansKey];
+  $("rTitle").textContent=title;
+  $("rDiag").innerHTML=seg.diag[ansKey];
+  var p=seg.prog.list[ seg.prog[ansKey] ];
+  $("rProgName").textContent=p.name; $("rProgDesc").textContent=p.desc;
+  var link=progLink(p);
+  $("rProgLink").textContent=p.cta; $("rProgLink").href=link;
+  $("rProgram2").textContent=p.cta.replace(" →",""); $("rProgram2").href=link;
 }
 
-/* wire enlaces fijos */
-function wireLinks(){
-  const agendaHref = dest('agenda','Quiero agendar mi diagnóstico de 20 min','Hola Leonardo, vengo del diagnóstico interactivo y quiero agendar los 20 min.');
-  ['rAgenda','cAgenda','stickyBtn'].forEach(id=>document.getElementById(id).href=agendaHref);
-  document.getElementById('cMail').href=LINKS.email;
-  // Ocultar WhatsApp/LinkedIn si aún son placeholder (evita enlaces rotos)
-  const wa=document.getElementById('cWhats');
-  if(LINKS.whatsapp.includes('XXXX')){ wa.style.display='none'; } else { wa.href=LINKS.whatsapp; }
-  const li=document.getElementById('cLinked');
-  if(LINKS.linkedin.includes('REEMPLAZAR')){ li.style.display='none'; } else { li.href=LINKS.linkedin; }
-  // vCard como descarga
-  const blob=new Blob([VCARD],{type:'text/vcard'});
-  document.getElementById('cContact').href=URL.createObjectURL(blob);
-  document.getElementById('cContact').setAttribute('download','Leonardo-De-la-Hoz.vcf');
+/* selector y bienvenida */
+function buildLangbar(){
+  var bar=$("langbar"); bar.innerHTML="";
+  ["es","en","et","fr"].forEach(function(l){
+    var b=document.createElement("button"); b.textContent=l.toUpperCase();
+    if(l===L) b.className="on";
+    b.addEventListener("click",function(){setLang(l);});
+    bar.appendChild(b);
+  });
 }
-/* Navegación: enganchar por JS (sin onclick inline, sobrevive a embebidos/sanitizers) */
-document.querySelectorAll('[data-go]').forEach(function(el){
-  el.addEventListener('click', function(){ go(this.getAttribute('data-go')); });
+function buildWelcome(){
+  var w=$("wLangs"); w.innerHTML="";
+  ["es","en","et","fr"].forEach(function(l){
+    var b=document.createElement("button"); b.className="wlang"+(l===L?" detected":"");
+    b.innerHTML='<span class="fl">'+FLAGS[l]+'</span> '+LANGNAMES[l];
+    b.addEventListener("click",function(){setLang(l); go("hero");});
+    w.appendChild(b);
+  });
+}
+function setLang(l){
+  L=l;
+  document.documentElement.lang=l;
+  renderStatic(); renderSegments(); buildLangbar(); buildWelcome();
+  if(current==="question") renderQuestion();
+  if(current==="result") renderResult();
+}
+
+const VCARD="BEGIN:VCARD\nVERSION:3.0\nN:De la Hoz Borrego;Leonardo;;;\nFN:Leonardo De la Hoz Borrego\nORG:jAvIer Institute;be360 / LedeLab\nTITLE:Fundador\nEMAIL;TYPE=INTERNET:"+CONTACT_EMAIL+"\nURL:https://javierinstitute.org\nEND:VCARD";
+
+/* navegación de botones data-go (sin onclick inline) */
+document.querySelectorAll("[data-go]").forEach(function(el){
+  el.addEventListener("click",function(){go(this.getAttribute("data-go"));});
 });
-wireLinks();
-setProgress('hero');
+
+/* init */
+document.documentElement.lang=L;
+renderStatic(); renderSegments(); buildLangbar(); buildWelcome();
+setProgress("welcome");
 </script>
 </body>
 </html>
