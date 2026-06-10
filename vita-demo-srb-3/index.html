@@ -217,4 +217,58 @@ function App(){
       <div style={{fontFamily:"'Fraunces',serif",fontSize:23,color:P.sageDeep,marginBottom:8}}>¿Para quién es el diagnóstico?</div>
       <p style={{fontSize:13.5,color:P.muted,marginBottom:26,maxWidth:320}}>Vita adapta la conversación según el caso.</p>
       <div style={{display:"flex",flexDirection:"column",gap:14,width:"100%",maxWidth:320}}>
-        <button onClick={()=>chooseMode("adult")} style={cardBtn}><div style={{fontSize:30,marginBottom:6}}>🧑</div><div style={{fontFamily:"'Fraunces',serif",fontSize:18,color:P.sageDeep}}>Para un adulto</div><div style={{fontSize:13,color:P.muted,m
+        <button onClick={()=>chooseMode("adult")} style={cardBtn}><div style={{fontSize:30,marginBottom:6}}>🧑</div><div style={{fontFamily:"'Fraunces',serif",fontSize:18,color:P.sageDeep}}>Para un adulto</div><div style={{fontSize:13,color:P.muted,marginTop:4}}>La persona habla de sí misma</div></button>
+        <button onClick={()=>chooseMode("child")} style={cardBtn}><div style={{fontSize:30,marginBottom:6}}>👨‍👧</div><div style={{fontFamily:"'Fraunces',serif",fontSize:18,color:P.sageDeep}}>Para un niño/a</div><div style={{fontSize:13,color:P.muted,marginTop:4}}>Lo cuenta su papá o mamá</div></button>
+      </div>
+    </div></Shell>
+  );
+
+  if(stage==="intro") return (
+    <Shell><div className="rise scroll" style={{flex:1,overflowY:"auto",display:"flex",flexDirection:"column",justifyContent:"center",padding:"30px 26px"}}>
+      <div style={{fontSize:40,marginBottom:12,textAlign:"center"}}>🌱</div>
+      <div style={{fontFamily:"'Fraunces',serif",fontSize:23,color:P.sageDeep,lineHeight:1.2,marginBottom:16,textAlign:"center"}}>Cómo vamos a hacerlo</div>
+      <p style={{fontSize:14.5,color:P.ink,lineHeight:1.65,marginBottom:14}}>{mode==="adult"
+        ? "Tu día a día —lo que tomas, lo que comes y a qué hora, cómo te mueves, cuánto duermes y cómo te sientes— moldea cómo funciona tu cuerpo y tu mente. Muchas molestias comunes vienen de hábitos que se pueden ajustar."
+        : "La atención, el ánimo y la energía de un niño se apoyan mucho en los hábitos del hogar: lo que come y bebe, a qué hora, cuánto se mueve y cómo duerme. Pequeños cambios en casa hacen una diferencia real, y tú eres el puente."}</p>
+      <div style={{background:P.sageSoft,borderRadius:16,padding:"16px",marginBottom:18}}>
+        <div style={{display:"flex",gap:11,marginBottom:12}}><div style={{fontSize:18,flexShrink:0}}>🕊️</div><div style={{fontSize:13.5,color:P.ink,lineHeight:1.5}}>{mode==="adult"?"Reconstruimos un día normal, desde que te despiertas hasta que te duermes. Con calma, sin juzgar.":"Reconstruimos un día normal de tu hijo/a, desde que despierta hasta que se duerme. Con calma, sin juzgar."}</div></div>
+        <div style={{display:"flex",gap:11,marginBottom:12}}><div style={{fontSize:18,flexShrink:0}}>💬</div><div style={{fontSize:13.5,color:P.ink,lineHeight:1.5}}>Es una conversación, no un formulario. Toma unos 5 minutos.</div></div>
+        <div style={{display:"flex",gap:11}}><div style={{fontSize:18,flexShrink:0}}>🌿</div><div style={{fontSize:13.5,color:P.ink,lineHeight:1.5}}>Al final te llevas un primer paso concreto para esta semana.</div></div>
+      </div>
+      <button onClick={()=>start(mode)} style={{...btnPrimary,alignSelf:"center"}}>Empezar la conversación →</button>
+      <p style={{fontSize:11.5,color:P.muted,marginTop:18,textAlign:"center",lineHeight:1.5}}>Esto acompaña y suma con tu médico — no lo reemplaza.</p>
+    </div></Shell>
+  );
+
+  return (
+    <Shell>
+      <div style={{background:"linear-gradient(135deg,"+P.sageDeep+","+P.sage+")",padding:"14px 16px",display:"flex",alignItems:"center",gap:11}}>
+        <div style={{width:40,height:40,borderRadius:"50%",background:P.panel,display:"grid",placeItems:"center",fontSize:20}}>🌱</div>
+        <div style={{flex:1}}><div style={{fontFamily:"'Fraunces',serif",fontWeight:600,fontSize:19,color:"#fff",lineHeight:1}}>Vita</div><div style={{fontSize:11.5,color:P.sageSoft,marginTop:3}}>{loading?"escribiendo…":(mode==="adult"?"Diagnóstico · adulto":"Diagnóstico · familia")}</div></div>
+        <button onClick={copyChat} title="Copiar conversación" style={{background:"rgba(255,255,255,.18)",border:"none",color:"#fff",borderRadius:999,width:34,height:34,fontSize:15,cursor:"pointer",flexShrink:0}}>{chatCopied?"✓":"📋"}</button><button onClick={()=>setShowDx(true)} style={{background:"rgba(255,255,255,.18)",border:"none",color:"#fff",borderRadius:999,padding:"7px 13px",fontSize:12.5,fontWeight:700,cursor:"pointer",fontFamily:"'Nunito',sans-serif"}}>Diagnóstico {filled}/{AREA_TOTAL}</button>
+      </div>
+      <div ref={scrollRef} className="scroll" style={{flex:1,overflowY:"auto",padding:"16px 13px",display:"flex",flexDirection:"column",gap:10,background:"radial-gradient("+P.sageSoft+"55 1px,transparent 1px)",backgroundSize:"22px 22px"}}>
+        {messages.map((m,i)=>(<div key={i} className="rise" style={{alignSelf:m.role==="user"?"flex-end":"flex-start",maxWidth:"84%"}}><div style={{background:m.role==="user"?P.user:"#fff",color:P.ink,padding:"10px 13px",borderRadius:m.role==="user"?"16px 16px 4px 16px":"16px 16px 16px 4px",fontSize:14.5,lineHeight:1.5,boxShadow:"0 1px 2px rgba(40,42,36,.10)",whiteSpace:"pre-wrap",border:m.role==="user"?"none":"1px solid "+P.line}}>{renderRich(m.content)}</div></div>))}
+        {loading&&(<div style={{alignSelf:"flex-start",background:"#fff",padding:"12px 15px",borderRadius:"16px 16px 16px 4px",border:"1px solid "+P.line}}><span className="dot"/> <span className="dot"/> <span className="dot"/></div>)}
+        {error&&!loading&&(<div style={{alignSelf:"center",textAlign:"center",color:P.clay,fontSize:12.5,background:"#fff",padding:"10px 14px",borderRadius:12,border:"1px solid "+P.line,maxWidth:"92%"}}>{error}<div style={{marginTop:8}}><button onClick={retry} style={{background:P.sage,border:"none",color:"#fff",borderRadius:999,padding:"7px 18px",fontSize:12.5,fontWeight:700,cursor:"pointer",fontFamily:"'Nunito',sans-serif"}}>Reintentar</button></div><div style={{marginTop:7,fontSize:11,color:P.muted,lineHeight:1.4}}>Si sigue fallando, abre el enlace en tu navegador (Chrome o Safari), no dentro de otra app.</div></div>)}
+      </div>
+      <div style={{padding:"10px 12px",background:P.panel,borderTop:"1px solid "+P.line,display:"flex",gap:8,alignItems:"flex-end"}}>
+        <textarea value={input} onChange={e=>setInput(e.target.value)} onKeyDown={e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();send();}}} placeholder={mode==="adult"?"Escribe como un adulto…":"Escribe como un papá/mamá…"} rows={1} style={{flex:1,resize:"none",border:"1px solid "+P.line,borderRadius:20,padding:"11px 15px",fontSize:14.5,fontFamily:"'Nunito',sans-serif",maxHeight:110,background:"#fff",color:P.ink,outline:"none"}}/>
+        <button onClick={()=>send()} disabled={loading||!input.trim()} style={{width:46,height:46,borderRadius:"50%",border:"none",background:input.trim()?P.sage:P.line,color:"#fff",fontSize:19,cursor:input.trim()?"pointer":"default",flexShrink:0}}>➤</button>
+      </div>
+      {showDx&&(<div onClick={()=>setShowDx(false)} style={{position:"absolute",inset:0,background:"rgba(40,42,36,.45)",display:"flex",justifyContent:"flex-end",zIndex:10}}>
+        <div onClick={e=>e.stopPropagation()} style={{width:"86%",maxWidth:360,background:P.panel,height:"100%",display:"flex",flexDirection:"column",boxShadow:"-10px 0 40px rgba(0,0,0,.25)"}}>
+          <div style={{background:P.sageDeep,padding:"16px 18px",display:"flex",justifyContent:"space-between",alignItems:"center"}}><div><div style={{fontFamily:"'Fraunces',serif",fontSize:18,color:"#fff"}}>Diagnóstico</div><div style={{fontSize:12,color:P.sageSoft,marginTop:2}}>{filled} de {AREA_TOTAL} áreas capturadas</div></div><button onClick={()=>setShowDx(false)} style={{background:"rgba(255,255,255,.16)",border:"none",color:"#fff",width:32,height:32,borderRadius:"50%",fontSize:16,cursor:"pointer"}}>✕</button></div>
+          <div className="scroll" style={{flex:1,overflowY:"auto",padding:14}}>
+            {FIELDS.map(f=>{const val=dx[f.key];const has=val&&val.trim();const star=f.key==="microcambio";return(<div key={f.key} style={{marginBottom:10,background:star?P.sageSoft:"#fff",border:"1px solid "+(has?P.sage:P.line),borderRadius:12,padding:"10px 12px"}}><div style={{fontSize:11.5,fontWeight:800,color:has?P.sageDeep:P.muted,textTransform:"uppercase",letterSpacing:.4,marginBottom:has?4:0}}>{f.label}</div>{has&&<div style={{fontSize:13.5,color:P.ink,lineHeight:1.45}}>{val}</div>}</div>);})}
+          </div>
+          <div style={{padding:12,borderTop:"1px solid "+P.line,display:"flex",gap:8}}><button onClick={exportDx} style={{flex:1,background:exported?P.sage:P.clay,color:"#fff",border:"none",borderRadius:12,padding:"11px",fontSize:13.5,fontWeight:800,cursor:"pointer",fontFamily:"'Nunito',sans-serif"}}>{exported?"✓ Copiado":"Copiar mi resumen"}</button></div>
+        </div>
+      </div>)}
+    </Shell>
+  );
+}
+ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
+</script>
+</body>
+</html>
