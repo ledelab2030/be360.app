@@ -68,17 +68,17 @@ MIENTRAS CAPTURAS, NO ACONSEJES NI CORRIJAS. Estás escuchando, no enseñando: N
 
 Al llenar el <dx> a partir de este recorrido: pon los horarios de despertar/dormir en "sueno"; la actividad física en "actividad"; los síntomas y la autoinmunidad en "sintomas"; la cronología de comidas con horas + la hidratación + la ventana de ingesta en "alimentacion"; y las pantallas/contenido en "mente".
 
-# CIERRE
-Al cubrir las áreas, ofrece un resumen cálido + UNA primera micro-acción concreta y medible para esta semana, derivada del marco y elegida por el ORDEN DE PILARES (empieza por el pilar más alto que esté descuidado, no por lo más fácil de decir). Registra esa micro-acción en el campo "microcambio" del bloque <dx> — es lo más importante que Vita recuerda para la próxima sesión. Si la persona muestra margen, puedes mencionar un segundo cambio como hoja de ruta, pero por defecto es UNO solo. Al final, invita con calidez a conservar el resumen: que toque el botón «Diagnóstico» (arriba a la derecha) y dé en «Copiar» para tenerlo a la mano. Recuerda que esto suma con el médico.
+# CIERRE (CAPTURE-ONLY — no prescribas, ver también PROTOCOLO DE SEGURIDAD)
+Al cubrir las áreas, cierra con calidez: agradece, resume en 1-2 frases lo que entendiste de su día (sin evaluarlo, sin consejos, sin juicios), y explica que esa información queda registrada para que el equipo prepare su primer paso — que le escriben pronto. NUNCA propongas, insinúes ni redactes una recomendación, micro-acción o próximo paso, ni en el texto visible NI en el campo "microcambio" del bloque <dx> — ese campo se deja SIEMPRE vacío (""), lo completa el equipo después, no tú. Invita a que toque el botón «Enviar a revisión» (abajo) para mandar su información. Recuerda que esto acompaña y suma con su médico, nunca lo reemplaza.
 
 # FILOSOFÍA DE DATOS (como un buen terapeuta)
-No retienes un expediente completo. Guardas solo lo relevante para continuidad: datos clave, el microcambio sugerido y una observación útil. Menos datos = más confianza y menos fricción de privacidad.
+No retienes un expediente completo. Guardas solo lo relevante para continuidad: datos clave y una observación útil — NUNCA una recomendación o micro-acción (ver CIERRE). Menos datos = más confianza y menos fricción de privacidad.
 
 # PROTOCOLO DE SEGURIDAD Y DERIVACIÓN (PRIORITARIO SOBRE TODO)
 Hay situaciones que NO te corresponden: ahí derivas, no aconsejas.
 - Banderas: trastorno de conducta alimentaria (bajo peso, restricción, atracones/purgas, miedo a engordar, antecedente psiquiátrico por comer poco); salud mental (tristeza profunda, ansiedad intensa, mención de hacerse daño, retraimiento); urgencia médica (dolor agudo, fiebre alta, pérdida de peso brusca).
 - Ante señales de trastorno alimentario: NUNCA des consejos de dieta, calorías, peso, ayuno ni ejercicio. Valida con calidez y deriva a profesional (psicología/psiquiatría/nutrición clínica).
-- BARANDAL DEL MARCO: en perfiles sensibles — personas jóvenes, embarazo o lactancia, diabéticos en insulina, personas con inmunosupresores o corticoides, o cualquier condición diagnosticada — NO empujes ayunos prolongados ni reducción agresiva de carbohidratos; sugiere con suavidad y recuerda hacerlo con acompañamiento médico. NUNCA sugieras suspender ni reducir medicación. En modo familia (niños): no prescribas ayunos ni restricciones; enfócate en calidad de alimentos, hidratación, sueño y movimiento, y apóyate en el pediatra.
+- BARANDAL DEL MARCO: en perfiles sensibles — personas jóvenes, embarazo o lactancia, diabéticos en insulina, personas con inmunosupresores o corticoides, o cualquier condición diagnosticada — NO empujes ayunos prolongados ni reducción agresiva de carbohidratos; sugiere con suavidad y recuerda hacerlo con acompañamiento médico. NUNCA sugieras suspender ni reducir medicación. En modo familia (niños): con capture-only ya no prescribes nada en ningún modo (ver CIERRE) — este barandal aplica igual si el padre pregunta algo puntual a mitad de la captura: nunca respondas con un consejo sobre ayuno, restricción de carbohidratos o alimentación del niño, ni de pasada; deriva esa pregunta al cierre/equipo y sigue con la siguiente pregunta del recorrido.
 - RUTINA: recomienda al adulto responsable que ÉL MISMO contacte al profesional apropiado (un pediatra como primer paso). NO ofrezcas que Bienestar 360 agende, coordine o remita médicos: aún no existe una red de profesionales, así que nunca prometas ese servicio. En una conversación posterior sí puedes preguntar con calidez si ya hizo el contacto.
 - URGENCIA (riesgo de hacerse daño, crisis): la seguridad va por encima de todo. Recomienda contactar de inmediato la línea de emergencias local o acudir a urgencias y apoyarse en una persona de confianza ahora. No intentes manejar la crisis; no agendes "para después".
 - Si el sujeto es menor de edad: todo contacto con terceros pasa SIEMPRE por el adulto responsable.
@@ -90,13 +90,15 @@ Responde SIEMPRE en dos partes:
 1. Tu mensaje conversacional normal.
 2. Al final, en una línea aparte, un bloque oculto con el diagnóstico capturado hasta ahora, exactamente así:
 <dx>{"nombre":"","edad":"","objetivo":"","origen":"","sueno":"","actividad":"","sintomas":"","alimentacion":"","mente":"","emociones":"","microcambio":""}</dx>
-Rellena solo lo que ya conozcas; deja "" lo que falte. Incluye la hidratación y la ventana de ingesta dentro del campo "alimentacion". Mantén cada valor del <dx> breve (frases cortas, no párrafos largos). El bloque <dx> NUNCA se muestra, es para el sistema. No lo menciones.`;
+Rellena solo lo que ya conozcas; deja "" lo que falte. Incluye la hidratación y la ventana de ingesta dentro del campo "alimentacion". Mantén cada valor del <dx> breve (frases cortas, no párrafos largos). El campo "microcambio" se deja SIEMPRE vacío ("") — nunca lo completes, ni siquiera en el cierre (ver CIERRE): eso lo decide el equipo después de revisar, no tú. El bloque <dx> NUNCA se muestra, es para el sistema. No lo menciones.`;
 
 const MODE_BLOCK = {
   adult: `# MODO: ADULTO
 Hablas DIRECTAMENTE con la persona sobre su propio estilo de vida. Trátala de "tú". En el área 1, además del objetivo ("¿en quién te quieres convertir?"), puedes preguntar de forma natural por peso, altura y género, que son parte del diagnóstico de Peter. El campo "nombre" es el de la persona.`,
   child: `# MODO: FAMILIA (padre/madre habla del hijo/a)
-Hablas con un padre o madre sobre su HIJO/A. Todas las preguntas se refieren al hijo. El campo "nombre" es el del hijo. El "objetivo" lo da el padre (qué le preocupa, qué quiere mejorar). No pidas peso/altura/género salvo que surjan. Mantén calidez con el padre y refuérzalo como el puente hacia el bienestar del hijo.`,
+Hablas con un padre o madre sobre su HIJO/A (rango 2 a 20 años). Todas las preguntas se refieren al hijo. El campo "nombre" es el del hijo. El "objetivo" lo da el padre (qué le preocupa, qué quiere mejorar). No pidas peso/altura/género salvo que surjan; si el peso surge, jamás lo trates como un objetivo a bajar ni hables de "dieta" o imagen corporal — solo anótalo como dato. Mantén calidez con el padre y refuérzalo como el puente hacia el bienestar del hijo.
+
+BARANDAL PEDIÁTRICO (prioridad sobre todo lo demás en este modo, incluido el pilar "VENTANA DE INGESTA" de arriba — ese pilar NO aplica a niños): con un niño o adolescente, NUNCA sugieras ni valides ayuno, ventanas de ingesta restrictivas, restricción de carbohidratos, ni ningún otro cambio de alimentación — ni de pasada, ni siquiera reconociendo un ayuno matinal del niño como "un activo" (a diferencia del modo adulto). Si el padre pregunta directamente algo tipo "¿debería quitarle el pan?", respóndele con calidez que eso lo revisa el equipo junto con el resto de su información, y sigue con la siguiente pregunta del recorrido del día — nunca respondas la pregunta con un consejo, ni aquí ni en el cierre.`,
 };
 const buildPrompt = (m) => BASE + "\n\n" + (MODE_BLOCK[m] || MODE_BLOCK.child);
 
@@ -143,6 +145,9 @@ function App(){
   const [saved,setSaved]=useState(false);
   const [exported,setExported]=useState(false);
   const [chatCopied,setChatCopied]=useState(false);
+  const [sending,setSending]=useState(false);
+  const [sendError,setSendError]=useState(null);
+  const MIN_ENVIAR=4; // mínimo de áreas capturadas para habilitar "Enviar a revisión"
   const scrollRef=useRef(null);
   useEffect(()=>{ if(scrollRef.current) scrollRef.current.scrollTop=scrollRef.current.scrollHeight; },[messages,loading]);
   const filled=FIELDS.filter(f=>f.key!=="microcambio"&&dx[f.key]&&dx[f.key].trim()).length;
@@ -194,6 +199,22 @@ function App(){
 
   const chooseMode=(m)=>{ setMode(m); setStage("intro"); };
 
+  // Capture-only HITL: nada se le muestra al padre como recomendación. Esto manda
+  // el diagnóstico capturado a revisión (Sheet vía Worker) — Peter lo aprueba antes
+  // de que alguien le escriba al padre con un primer paso.
+  const sendToReview=async()=>{
+    if(sending) return;
+    setSending(true); setSendError(null);
+    try{
+      const res=await fetch(WORKER_URL+"/log",{ method:"POST", headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({ mode, dx, ts:new Date().toISOString() }) });
+      const data=await res.json().catch(()=>({}));
+      if(!res.ok || data.ok===false) throw new Error("log failed");
+      setStage("sent");
+    }catch(e){ setSendError("No se pudo enviar. Reintenta."); }
+    finally{ setSending(false); }
+  };
+
   const saveDx=()=>{ try{ localStorage.setItem("vita_dx_"+Date.now(), JSON.stringify({mode,dx})); setSaved(true); setTimeout(()=>setSaved(false),1800);}catch(e){} };
   const exportDx=async()=>{ const txt="DIAGNÓSTICO DE ESTILO DE VIDA · Bienestar 360\nModo: "+(mode==="adult"?"Adulto":"Familia / hijo")+"\n\n"+FIELDS.map(f=>f.label+": "+(dx[f.key]||"—")).join("\n"); try{ await navigator.clipboard.writeText(txt); setExported(true); setTimeout(()=>setExported(false),2000);}catch(e){ const w=window.open("","_blank"); if(w){ w.document.body.style.cssText="font-family:system-ui;padding:20px;white-space:pre-wrap;line-height:1.5"; w.document.body.textContent=txt; } } };
 
@@ -205,8 +226,8 @@ function App(){
     <Shell><div style={{flex:1,display:"flex",flexDirection:"column",justifyContent:"center",alignItems:"center",padding:"32px 26px",textAlign:"center"}}>
       <div style={{fontSize:52,marginBottom:14}}>🌱</div>
       <div style={{fontFamily:"'Fraunces',serif",fontSize:27,color:P.sageDeep,lineHeight:1.15,marginBottom:14}}>Hola, esto es Vita</div>
-      <p style={{fontSize:15,color:P.ink,lineHeight:1.6,maxWidth:360,marginBottom:8}}>Aquí solo <b>conversas</b>. A partir de tu día a día, Vita te propone pequeños pasos para sentirte mejor.</p>
-      <p style={{fontSize:13.5,color:P.muted,lineHeight:1.6,maxWidth:360,marginBottom:24}}>Abre el panel <b>Diagnóstico</b> (arriba a la derecha) para verlo llenarse en tiempo real.</p>
+      <p style={{fontSize:15,color:P.ink,lineHeight:1.6,maxWidth:360,marginBottom:8}}>Aquí solo <b>conversas</b>. A partir de tu día a día, Vita recoge lo necesario para tu diagnóstico.</p>
+      <p style={{fontSize:13.5,color:P.muted,lineHeight:1.6,maxWidth:360,marginBottom:24}}>Abre el panel <b>Diagnóstico</b> (arriba a la derecha) para verlo llenarse en tiempo real. Al final, tu información queda lista para que el equipo prepare tu primer paso.</p>
       <button onClick={()=>setStage("select")} style={btnPrimary}>Comenzar →</button>
       <p style={{fontSize:11.5,color:P.muted,marginTop:22,maxWidth:320}}>Tus datos quedan en tu dispositivo — no en un servidor. Vita anota solo lo relevante, como un terapeuta.</p>
     </div></Shell>
@@ -223,6 +244,15 @@ function App(){
     </div></Shell>
   );
 
+  if(stage==="sent") return (
+    <Shell><div style={{flex:1,display:"flex",flexDirection:"column",justifyContent:"center",alignItems:"center",padding:"32px 26px",textAlign:"center"}}>
+      <div style={{fontSize:52,marginBottom:14}}>🌱</div>
+      <div style={{fontFamily:"'Fraunces',serif",fontSize:25,color:P.sageDeep,lineHeight:1.2,marginBottom:14}}>Listo, ya quedó registrado</div>
+      <p style={{fontSize:15,color:P.ink,lineHeight:1.6,maxWidth:360,marginBottom:10}}>{mode==="adult"?"Tu información":"La información de tu hijo/a"} queda en manos del equipo. Peter la revisa y preparamos tu primer paso — te contactamos pronto.</p>
+      <p style={{fontSize:13,color:P.muted,lineHeight:1.6,maxWidth:340}}>Esto acompaña y suma con el médico — no lo reemplaza.</p>
+    </div></Shell>
+  );
+
   if(stage==="intro") return (
     <Shell><div className="rise scroll" style={{flex:1,overflowY:"auto",display:"flex",flexDirection:"column",justifyContent:"center",padding:"30px 26px"}}>
       <div style={{fontSize:40,marginBottom:12,textAlign:"center"}}>🌱</div>
@@ -233,7 +263,7 @@ function App(){
       <div style={{background:P.sageSoft,borderRadius:16,padding:"16px",marginBottom:18}}>
         <div style={{display:"flex",gap:11,marginBottom:12}}><div style={{fontSize:18,flexShrink:0}}>🕊️</div><div style={{fontSize:13.5,color:P.ink,lineHeight:1.5}}>{mode==="adult"?"Reconstruimos un día normal, desde que te despiertas hasta que te duermes. Con calma, sin juzgar.":"Reconstruimos un día normal de tu hijo/a, desde que despierta hasta que se duerme. Con calma, sin juzgar."}</div></div>
         <div style={{display:"flex",gap:11,marginBottom:12}}><div style={{fontSize:18,flexShrink:0}}>💬</div><div style={{fontSize:13.5,color:P.ink,lineHeight:1.5}}>Es una conversación, no un formulario. Toma unos 5 minutos.</div></div>
-        <div style={{display:"flex",gap:11}}><div style={{fontSize:18,flexShrink:0}}>🌿</div><div style={{fontSize:13.5,color:P.ink,lineHeight:1.5}}>Al final te llevas un primer paso concreto para esta semana.</div></div>
+        <div style={{display:"flex",gap:11}}><div style={{fontSize:18,flexShrink:0}}>🌿</div><div style={{fontSize:13.5,color:P.ink,lineHeight:1.5}}>Al final, tu información queda registrada — el equipo prepara tu primer paso y te contacta.</div></div>
       </div>
       <button onClick={()=>start(mode)} style={{...btnPrimary,alignSelf:"center"}}>Empezar la conversación →</button>
       <p style={{fontSize:11.5,color:P.muted,marginTop:18,textAlign:"center",lineHeight:1.5}}>Esto acompaña y suma con tu médico — no lo reemplaza.</p>
@@ -247,10 +277,17 @@ function App(){
         <div style={{flex:1}}><div style={{fontFamily:"'Fraunces',serif",fontWeight:600,fontSize:19,color:"#fff",lineHeight:1}}>Vita</div><div style={{fontSize:11.5,color:P.sageSoft,marginTop:3}}>{loading?"escribiendo…":(mode==="adult"?"Diagnóstico · adulto":"Diagnóstico · familia")}</div></div>
         <button onClick={copyChat} title="Copiar conversación" style={{background:"rgba(255,255,255,.18)",border:"none",color:"#fff",borderRadius:999,width:34,height:34,fontSize:15,cursor:"pointer",flexShrink:0}}>{chatCopied?"✓":"📋"}</button><button onClick={()=>setShowDx(true)} style={{background:"rgba(255,255,255,.18)",border:"none",color:"#fff",borderRadius:999,padding:"7px 13px",fontSize:12.5,fontWeight:700,cursor:"pointer",fontFamily:"'Nunito',sans-serif"}}>Diagnóstico {filled}/{AREA_TOTAL}</button>
       </div>
+      {filled>=MIN_ENVIAR && (
+        <div style={{padding:"9px 14px",background:P.sageSoft,borderBottom:"1px solid "+P.line,display:"flex",alignItems:"center",justifyContent:"space-between",gap:10}}>
+          <div style={{fontSize:12,color:P.sageDeep,lineHeight:1.4}}>Cuando termines de contarme, envía tu información para que el equipo la revise.</div>
+          <button onClick={sendToReview} disabled={sending} style={{background:P.sage,color:"#fff",border:"none",borderRadius:999,padding:"8px 14px",fontSize:12.5,fontWeight:800,cursor:sending?"default":"pointer",fontFamily:"'Nunito',sans-serif",flexShrink:0,opacity:sending?.7:1}}>{sending?"Enviando…":"Enviar a revisión →"}</button>
+        </div>
+      )}
       <div ref={scrollRef} className="scroll" style={{flex:1,overflowY:"auto",padding:"16px 13px",display:"flex",flexDirection:"column",gap:10,background:"radial-gradient("+P.sageSoft+"55 1px,transparent 1px)",backgroundSize:"22px 22px"}}>
         {messages.map((m,i)=>(<div key={i} className="rise" style={{alignSelf:m.role==="user"?"flex-end":"flex-start",maxWidth:"84%"}}><div style={{background:m.role==="user"?P.user:"#fff",color:P.ink,padding:"10px 13px",borderRadius:m.role==="user"?"16px 16px 4px 16px":"16px 16px 16px 4px",fontSize:14.5,lineHeight:1.5,boxShadow:"0 1px 2px rgba(40,42,36,.10)",whiteSpace:"pre-wrap",border:m.role==="user"?"none":"1px solid "+P.line}}>{renderRich(m.content)}</div></div>))}
         {loading&&(<div style={{alignSelf:"flex-start",background:"#fff",padding:"12px 15px",borderRadius:"16px 16px 16px 4px",border:"1px solid "+P.line}}><span className="dot"/> <span className="dot"/> <span className="dot"/></div>)}
         {error&&!loading&&(<div style={{alignSelf:"center",textAlign:"center",color:P.clay,fontSize:12.5,background:"#fff",padding:"10px 14px",borderRadius:12,border:"1px solid "+P.line,maxWidth:"92%"}}>{error}<div style={{marginTop:8}}><button onClick={retry} style={{background:P.sage,border:"none",color:"#fff",borderRadius:999,padding:"7px 18px",fontSize:12.5,fontWeight:700,cursor:"pointer",fontFamily:"'Nunito',sans-serif"}}>Reintentar</button></div><div style={{marginTop:7,fontSize:11,color:P.muted,lineHeight:1.4}}>Si sigue fallando, abre el enlace en tu navegador (Chrome o Safari), no dentro de otra app.</div></div>)}
+        {sendError&&(<div style={{alignSelf:"center",textAlign:"center",color:P.clay,fontSize:12.5,background:"#fff",padding:"10px 14px",borderRadius:12,border:"1px solid "+P.line,maxWidth:"92%"}}>{sendError}<div style={{marginTop:8}}><button onClick={sendToReview} style={{background:P.sage,border:"none",color:"#fff",borderRadius:999,padding:"7px 18px",fontSize:12.5,fontWeight:700,cursor:"pointer",fontFamily:"'Nunito',sans-serif"}}>Reintentar envío</button></div></div>)}
       </div>
       <div style={{padding:"10px 12px",background:P.panel,borderTop:"1px solid "+P.line,display:"flex",gap:8,alignItems:"flex-end"}}>
         <textarea value={input} onChange={e=>setInput(e.target.value)} onKeyDown={e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();send();}}} placeholder={mode==="adult"?"Escribe como un adulto…":"Escribe como un papá/mamá…"} rows={1} style={{flex:1,resize:"none",border:"1px solid "+P.line,borderRadius:20,padding:"11px 15px",fontSize:14.5,fontFamily:"'Nunito',sans-serif",maxHeight:110,background:"#fff",color:P.ink,outline:"none"}}/>
