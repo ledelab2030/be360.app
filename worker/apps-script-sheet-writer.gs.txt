@@ -1,0 +1,68 @@
+/**
+ * Apps Script — escritor del Sheet "Diagnósticos pendientes (Vita)".
+ *
+ * CÓMO INSTALARLO (Leonardo, una sola vez):
+ * 1. Crea un Google Sheet nuevo, p. ej. "be360 — Diagnósticos pendientes de revisión".
+ *    En la primera fila (encabezados), pega exactamente estas columnas:
+ *    timestamp | modo | nombre | edad | objetivo | origen | sueno | actividad |
+ *    sintomas | alimentacion | mente | emociones | estado | notas_peter
+ *    (Ojo: NO hay columna "microcambio" — capture-only no genera microcambio
+ *    en el demo; el plan real lo arma Peter aparte con srb_draft_generator.txt.)
+ * 2. Extensiones → Apps Script. Borra el contenido de Code.gs y pega este archivo completo.
+ * 3. Reemplaza SHARED_SECRET (línea de abajo) por un string largo y aleatorio — el
+ *    mismo valor va como secret SHEET_WEBHOOK_SECRET en el Worker (wrangler secret put).
+ * 4. Implementar → Nueva implementación → tipo "Aplicación web".
+ *    - Ejecutar como: Yo (tu cuenta).
+ *    - Quién tiene acceso: Cualquier usuario (así el Worker, sin login de Google, puede llamarlo).
+ * 5. Copia la URL de la implementación (termina en /exec) — esa es SHEET_WEBHOOK_URL
+ *    para el Worker.
+ * 6. Prueba: abre el demo, llena algunas respuestas, dale "Enviar a revisión", y
+ *    confirma que aparece una fila nueva en el Sheet.
+ */
+
+var SHARED_SECRET = "PEGAR_AQUI_UN_STRING_LARGO_Y_ALEATORIO";
+
+function doPost(e) {
+  try {
+    var body = JSON.parse(e.postData.contents);
+
+    if (!body.secret || body.secret !== SHARED_SECRET) {
+      return respond({ ok: false, error: "secret inválido" }, 401);
+    }
+    if (!body.dx) {
+      return respond({ ok: false, error: "dx faltante" }, 400);
+    }
+
+    var dx = body.dx;
+    var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheets()[0];
+
+    sheet.appendRow([
+      body.ts || new Date().toISOString(),
+      body.mode || "",
+      dx.nombre || "",
+      dx.edad || "",
+      dx.objetivo || "",
+      dx.origen || "",
+      dx.sueno || "",
+      dx.actividad || "",
+      dx.sintomas || "",
+      dx.alimentacion || "",
+      dx.mente || "",
+      dx.emociones || "",
+      "pendiente",   // estado — Peter cambia a "aprobado" cuando arma el plan
+      ""              // notas_peter — libre para que Peter escriba ahí
+    ]);
+
+    return respond({ ok: true });
+  } catch (err) {
+    return respond({ ok: false, error: String(err) }, 500);
+  }
+}
+
+function respond(obj, status) {
+  return ContentService
+    .createTextOutput(JSON.stringify(obj))
+    .setMimeType(ContentService.MimeType.JSON);
+  // Nota: Apps Script Web Apps no permiten fijar un status HTTP custom en
+  // ContentService; el Worker interpreta ok:false como fallo igual.
+}
