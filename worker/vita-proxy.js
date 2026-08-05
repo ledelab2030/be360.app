@@ -1,128 +1,136 @@
-/**
- * vita-proxy — Cloudflare Worker
- *
- * Dos rutas, ambas restringidas por CORS a be360.app:
- *   POST /        → proxy a la API de Anthropic (Messages API). Igual que antes.
- *   POST /log     → NUEVO (HITL capture-only). Recibe {mode, dx, ts} desde
- *                   vita-demo-srb-3/index.html y lo reenvía al Apps Script que
- *                   escribe la fila en el Sheet de revisión de Peter. La API key
- *                   de Anthropic nunca se usa en /log.
- *
- * Secrets esperados (wrangler secret put <nombre>):
- *   ANTHROPIC_API_KEY   — ya existía, sin cambios.
- *   SHEET_WEBHOOK_URL    — URL del Apps Script Web App (ver worker/apps-script-sheet-writer.gs.txt).
- *   SHEET_WEBHOOK_SECRET — string compartido; el Apps Script lo valida antes de escribir.
- *
- * Ver también: CLAUDE.md §5 (arquitectura HITL) y §8 (deploy con `wrangler deploy`).
- */
+// ============================================================
+// Vita · Cloudflare Worker (proxy seguro a la API de Claude)
+// ------------------------------------------------------------
+// La API key NUNCA va en el frontend. Vive aquí como "secreto"
+// de Cloudflare (Settings → Variables → Add secret):
+//     Nombre:  ANTHROPIC_API_KEY
+//     Valor:   sk-ant-...   (tu key de Anthropic)
+//
+// CORS restringido: solo be360.app puede usar este Worker.
+//
+// NUEVO (HITL capture-only, ago 2026): ruta /log — recibe el
+// diagnóstico capturado por vita-demo-srb-3 y lo reenvía a un
+// Sheet de revisión vía Apps Script. Requiere 2 secrets nuevos:
+//     SHEET_WEBHOOK_URL     — URL /exec del Apps Script Web App
+//     SHEET_WEBHOOK_SECRET  — string compartido que el Apps Script valida
+// Ver worker/apps-script-sheet-writer.gs.txt para instalarlo.
+// Todo lo demás de este archivo es EXACTO al código en producción
+// (verificado vía Cloudflare API el 5 ago 2026) — no se tocó nada
+// del proxy a Anthropic, incluida la deuda técnica conocida (no
+// bloquea peticiones sin header Origin).
+// ============================================================
 
 const ALLOWED_ORIGIN = "https://be360.app";
 
-function corsHeaders(origin) {
-  const allow = origin === ALLOWED_ORIGIN ? ALLOWED_ORIGIN : "";
-  return {
-    "Access-Control-Allow-Origin": allow,
-    "Access-Control-Allow-Methods": "POST, OPTIONS",
-    "Access-Control-Allow-Headers": "Content-Type",
-    "Vary": "Origin",
-  };
-}
-
-function json(data, status, origin) {
-  return new Response(JSON.stringify(data), {
-    status,
-    headers: { "Content-Type": "application/json", ...corsHeaders(origin) },
-  });
-}
-
-async function handleAnthropicProxy(request, env, origin) {
-  let body;
-  try {
-    body = await request.json();
-  } catch (e) {
-    return json({ error: "JSON inválido" }, 400, origin);
-  }
-
-  const res = await fetch("https://api.anthropic.com/v1/messages", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "x-api-key": env.ANTHROPIC_API_KEY,
-      "anthropic-version": "2023-06-01",
-    },
-    body: JSON.stringify(body),
-  });
-
-  const data = await res.json();
-  return json(data, res.status, origin);
-}
-
-async function handleLog(request, env, origin) {
-  let body;
-  try {
-    body = await request.json();
-  } catch (e) {
-    return json({ ok: false, error: "JSON inválido" }, 400, origin);
-  }
-
-  const { mode, dx, ts } = body || {};
-  if (!dx || typeof dx !== "object") {
-    return json({ ok: false, error: "dx faltante" }, 400, origin);
-  }
-
-  // Blindaje server-side: aunque el prompt ya instruye a Vita a dejar
-  // "microcambio" vacío, el Worker nunca deja pasar un microcambio no-vacío
-  // hacia el Sheet — así el capture-only no depende solo del modelo.
-  const safeDx = { ...dx, microcambio: "" };
-
-  if (!env.SHEET_WEBHOOK_URL) {
-    // Falla explícita en vez de silenciosa: si falta configurar el secret,
-    // el frontend debe mostrar error, no fingir que se guardó.
-    return json({ ok: false, error: "SHEET_WEBHOOK_URL no configurado" }, 500, origin);
-  }
-
-  const sheetRes = await fetch(env.SHEET_WEBHOOK_URL, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      secret: env.SHEET_WEBHOOK_SECRET || "",
-      mode: mode || "",
-      dx: safeDx,
-      ts: ts || new Date().toISOString(),
-      origin: request.headers.get("Origin") || "",
-    }),
-  });
-
-  if (!sheetRes.ok) {
-    return json({ ok: false, error: "No se pudo escribir en el Sheet" }, 502, origin);
-  }
-
-  return json({ ok: true }, 200, origin);
-}
-
 export default {
   async fetch(request, env) {
-    const origin = request.headers.get("Origin") || "";
-    const url = new URL(request.url);
+    const cors = {
+      "Access-Control-Allow-Origin": ALLOWED_ORIGIN,
+      "Access-Control-Allow-Methods": "POST, OPTIONS",
+      "Access-Control-Allow-Headers": "Content-Type",
+      "Access-Control-Max-Age": "86400",
+    };
 
+    // Preflight
     if (request.method === "OPTIONS") {
-      return new Response(null, { status: 204, headers: corsHeaders(origin) });
+      return new Response(null, { headers: cors });
     }
-
-    if (origin !== ALLOWED_ORIGIN) {
-      // Nota (deuda técnica heredada, ver CLAUDE.md §9): esto bloquea el
-      // origen del navegador pero no frena peticiones sin header Origin
-      // (p. ej. curl). Rate limit / verificación más dura sigue pendiente.
-      return json({ error: "Origen no permitido" }, 403, origin);
-    }
-
     if (request.method !== "POST") {
-      return json({ error: "Método no permitido" }, 405, origin);
+      return new Response("Method not allowed", { status: 405, headers: cors });
     }
 
-    if (url.pathname === "/log") {
-      return handleLog(request, env, origin);
+    // Bloquea orígenes que no sean be360.app
+    const origin = request.headers.get("Origin");
+    if (origin && origin !== ALLOWED_ORIGIN) {
+      return new Response(JSON.stringify({ error: "Forbidden origin" }), {
+        status: 403,
+        headers: { ...cors, "Content-Type": "application/json" },
+      });
     }
-    return handleAnthropicProxy(request, env, origin);
+
+    // NUEVO: ruta de logging para HITL capture-only.
+    const url = new URL(request.url);
+    if (url.pathname === "/log") {
+      return handleLog(request, env, cors);
+    }
+
+    try {
+      const body = await request.json();
+
+      const upstream = await fetch("https://api.anthropic.com/v1/messages", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-api-key": env.ANTHROPIC_API_KEY,
+          "anthropic-version": "2023-06-01",
+        },
+        body: JSON.stringify({
+          model: body.model || "claude-sonnet-4-6",
+          max_tokens: body.max_tokens || 1000,
+          system: body.system,
+          messages: body.messages,
+        }),
+      });
+
+      const data = await upstream.text();
+      return new Response(data, {
+        status: upstream.status,
+        headers: { ...cors, "Content-Type": "application/json" },
+      });
+    } catch (e) {
+      return new Response(JSON.stringify({ error: String(e) }), {
+        status: 500,
+        headers: { ...cors, "Content-Type": "application/json" },
+      });
+    }
   },
 };
+
+// HITL capture-only: nunca deja pasar un "microcambio" no vacío hacia el
+// Sheet, aunque el prompt del demo fallara — blindaje server-side.
+async function handleLog(request, env, cors) {
+  const jsonHeaders = { ...cors, "Content-Type": "application/json" };
+  try {
+    const body = await request.json();
+    const { mode, dx, ts } = body || {};
+
+    if (!dx || typeof dx !== "object") {
+      return new Response(JSON.stringify({ ok: false, error: "dx faltante" }), {
+        status: 400,
+        headers: jsonHeaders,
+      });
+    }
+    if (!env.SHEET_WEBHOOK_URL) {
+      return new Response(JSON.stringify({ ok: false, error: "SHEET_WEBHOOK_URL no configurado" }), {
+        status: 500,
+        headers: jsonHeaders,
+      });
+    }
+
+    const safeDx = { ...dx, microcambio: "" };
+
+    const sheetRes = await fetch(env.SHEET_WEBHOOK_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        secret: env.SHEET_WEBHOOK_SECRET || "",
+        mode: mode || "",
+        dx: safeDx,
+        ts: ts || new Date().toISOString(),
+      }),
+    });
+
+    if (!sheetRes.ok) {
+      return new Response(JSON.stringify({ ok: false, error: "No se pudo escribir en el Sheet" }), {
+        status: 502,
+        headers: jsonHeaders,
+      });
+    }
+    return new Response(JSON.stringify({ ok: true }), { status: 200, headers: jsonHeaders });
+  } catch (e) {
+    return new Response(JSON.stringify({ ok: false, error: String(e) }), {
+      status: 500,
+      headers: jsonHeaders,
+    });
+  }
+}
