@@ -3,6 +3,12 @@ main = "vita-proxy.js"
 compatibility_date = "2026-08-01"
 
 account_id = "7518a7101f0bd1493e00c166a256b31b"
+preview_urls = false
+
+# Restaura lo que ya estaba configurado en el dashboard (el primer deploy vía
+# wrangler lo apagó por no estar declarado aquí — ver commit que agregó esto).
+[observability]
+enabled = true
 
 # Secrets (no van en este archivo, se cargan con `wrangler secret put <nombre>`):
 #   wrangler secret put ANTHROPIC_API_KEY      (ya debería existir si se importa el worker actual)
