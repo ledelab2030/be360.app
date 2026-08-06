@@ -61,10 +61,15 @@ function doPost(e) {
       dx.emociones || "",
       "pendiente", "",       // estado, notas_peter
       "", "", "", "",        // id_plan, plan_json, decision, borrador_texto
-      dx.nombre_padre || "", dx.whatsapp_padre || ""
+      dx.nombre_padre || "", ""  // whatsapp_padre se escribe aparte, forzado a texto
     ]);
+    var lastRow = sheet.getLastRow();
+    // OJO: un número con "+" al inicio (ej. "+57 300...") Sheets lo intenta leer
+    // como fórmula si la celda no está forzada a texto plano. Se fuerza formato
+    // "@" (texto) ANTES de poner el valor, para que no se rompa.
+    sheet.getRange(lastRow, COLS.whatsapp_padre + 1).setNumberFormat("@").setValue(dx.whatsapp_padre || "");
     SpreadsheetApp.flush();
-    return respond({ ok: true, lastRow: sheet.getLastRow() });
+    return respond({ ok: true, lastRow: lastRow });
   } catch (err) {
     return respond({ ok: false, error: String(err) }, 500);
   }
@@ -125,4 +130,60 @@ function respond(obj, status) {
   return ContentService
     .createTextOutput(JSON.stringify(obj))
     .setMimeType(ContentService.MimeType.JSON);
+}
+
+// ============================================================
+// TRIGGER DE APROBACIÓN — avisa por correo apenas alguien pone "aprobado"
+// en la columna "decision". OJO: esto NO corre solo con pegar el código —
+// es un trigger INSTALABLE (los simple triggers como onEdit no pueden
+// mandar correo). Instálalo así, una sola vez:
+//   1. En el editor de Apps Script, ícono del reloj (⏰, "Activadores") a
+//      la izquierda.
+//   2. + Agregar activador (esquina inferior derecha).
+//   3. Función: onAprobado · Fuente del evento: Desde la hoja de cálculo ·
+//      Tipo de evento: Al editar · Guardar.
+//   4. Te va a pedir autorizar permisos (para poder mandar el correo) —
+//      autorízalo, es tu propio script.
+// ============================================================
+function onAprobado(e) {
+  try {
+    if (!e || !e.range) return;
+    if (e.range.getColumn() !== COLS.decision + 1) return; // solo nos importa "decision"
+    if (String(e.value || "").trim() !== "aprobado") return;
+
+    var sheet = e.range.getSheet();
+    var row = e.range.getRow();
+    var rowValues = sheet.getRange(row, 1, 1, sheet.getLastColumn()).getValues()[0];
+
+    var nombreNino = rowValues[COLS.nombre_nino] || "";
+    var nombrePadre = rowValues[COLS.nombre_padre] || "";
+    var whatsappPadre = String(rowValues[COLS.whatsapp_padre] || "").replace(/[^\d]/g, "");
+    var idPlan = rowValues[COLS.id_plan] || "";
+
+    if (!idPlan) {
+      MailApp.sendEmail({
+        to: "leonardo@ledelab.group",
+        subject: "⚠️ Aprobaste un plan sin borrador — " + (nombreNino || "sin nombre"),
+        body: "Pusiste 'aprobado' en la fila de " + (nombreNino || "(sin nombre)") + " pero todavía no hay un borrador generado (falta el id_plan). Genera el borrador primero.",
+      });
+      return;
+    }
+
+    var planUrl = "https://be360.app/plan/?id=" + idPlan;
+    var mensajeWa = "Hola" + (nombrePadre ? " " + nombrePadre : "") + ", aquí está el plan de " + (nombreNino || "tu hijo/a") + ": " + planUrl;
+    var waLink = whatsappPadre
+      ? ("https://wa.me/" + whatsappPadre + "?text=" + encodeURIComponent(mensajeWa))
+      : "(falta el WhatsApp del padre en el Sheet — agrégalo en la columna whatsapp_padre)";
+
+    MailApp.sendEmail({
+      to: "leonardo@ledelab.group",
+      subject: "✅ Plan aprobado — " + (nombreNino || "sin nombre"),
+      body:
+        "Se aprobó el plan de " + (nombreNino || "(sin nombre)") + ".\n\n" +
+        "Link del plan: " + planUrl + "\n\n" +
+        "Link listo para enviar por WhatsApp (un clic):\n" + waLink,
+    });
+  } catch (err) {
+    // No relanzar: un error aquí no debe romper la edición del Sheet.
+  }
 }
