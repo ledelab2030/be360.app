@@ -1,0 +1,136 @@
+/**
+ * Apps Script v2 — Sheet "vita-demo-formulario" (o el nombre que le hayas
+ * puesto). Reemplaza el código anterior de ESTE Sheet (el de srb3 no cambia).
+ *
+ * QUÉ AGREGA sobre la v1:
+ *   - doPost ahora entiende dos acciones:
+ *       (sin "action", como antes)     → agrega una fila nueva capturada por Vita.
+ *       action:"guardar_borrador"      → busca la fila por su "ts" y le escribe
+ *                                         el borrador del plan (Parte A/B) +
+ *                                         genera un id_plan aleatorio.
+ *   - doGet(id) — NUEVO: dado un id_plan, si esa fila tiene decision="aprobado",
+ *     devuelve el plan (para que el padre lo vea en su página). Si no está
+ *     aprobado, no devuelve nada del contenido — así ningún borrador sin
+ *     aprobar puede filtrarse por este canal.
+ *
+ * CAMBIO EN LOS ENCABEZADOS — agrega estas 4 columnas al final de la fila 1
+ * de tu Sheet (después de notas_peter):
+ *   id_plan | plan_json | decision | borrador_texto
+ *
+ * (decision empieza vacía; el flujo es:
+ *   pendiente -> [yo genero el borrador] -> borrador_listo -> [Peter revisa
+ *   y cambia esta celda a "aprobado"] -> el link al padre empieza a funcionar)
+ *
+ * Pasos para instalar (reemplaza TODO el contenido de Code.gs):
+ * 1. Pega este archivo completo.
+ * 2. SHARED_SECRET debe ser el MISMO valor que ya tenías (no lo cambies, ya
+ *    está en el Worker como SHEET_WEBHOOK_SECRET_FORMULARIO).
+ * 3. Implementar → Administrar implementaciones → editar (lápiz) → Nueva
+ *    versión → Implementar (esto SÍ requiere una nueva versión porque
+ *    agregamos doGet — las versiones viejas no lo tienen).
+ * 4. La URL /exec no cambia. No hace falta tocar el Worker.
+ */
+
+var SHARED_SECRET = "3-estoesparaquevitarenazcabajolasreglasduras";
+
+var COLS = {
+  timestamp: 0, modo: 1, nombre_nino: 2, edad: 3, que_deseas_lograr: 4,
+  preocupacion_principal: 5, origen: 6, sueno_y_movimiento: 7,
+  senales_observables: 8, diagnosticos_y_atencion_medica: 9,
+  cronologia_del_dia: 10, finde_y_gustos: 11, mente_y_pantallas: 12,
+  emociones: 13, estado: 14, notas_peter: 15,
+  id_plan: 16, plan_json: 17, decision: 18, borrador_texto: 19,
+};
+
+function doPost(e) {
+  try {
+    var body = JSON.parse(e.postData.contents);
+
+    if (!body.secret || body.secret !== SHARED_SECRET) {
+      return respond({ ok: false, error: "secret inválido" }, 401);
+    }
+
+    var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheets()[0];
+
+    if (body.action === "guardar_borrador") {
+      return guardarBorrador(sheet, body);
+    }
+
+    // Comportamiento original: agregar fila nueva capturada por Vita.
+    if (!body.dx) {
+      return respond({ ok: false, error: "dx faltante" }, 400);
+    }
+    var dx = body.dx;
+    sheet.appendRow([
+      body.ts || new Date().toISOString(),
+      body.mode || "",
+      dx.nombre_nino || "", dx.edad || "", dx.que_deseas_lograr || "",
+      dx.preocupacion_principal || "", dx.origen || "", dx.sueno_y_movimiento || "",
+      dx.senales_observables || "", dx.diagnosticos_y_atencion_medica || "",
+      dx.cronologia_del_dia || "", dx.finde_y_gustos || "", dx.mente_y_pantallas || "",
+      dx.emociones || "",
+      "pendiente", "", "", "", "", ""
+    ]);
+    SpreadsheetApp.flush();
+    return respond({ ok: true, lastRow: sheet.getLastRow() });
+  } catch (err) {
+    return respond({ ok: false, error: String(err) }, 500);
+  }
+}
+
+function guardarBorrador(sheet, body) {
+  var ts = body.ts;
+  if (!ts) return respond({ ok: false, error: "ts faltante" }, 400);
+
+  var data = sheet.getDataRange().getValues();
+  for (var r = 1; r < data.length; r++) {
+    if (String(data[r][COLS.timestamp]) === String(ts)) {
+      var rowNum = r + 1;
+      var idPlan = Utilities.getUuid().replace(/-/g, "").slice(0, 16);
+      sheet.getRange(rowNum, COLS.id_plan + 1).setValue(idPlan);
+      sheet.getRange(rowNum, COLS.plan_json + 1).setValue(JSON.stringify(body.plan || {}));
+      sheet.getRange(rowNum, COLS.decision + 1).setValue("pendiente_aprobacion");
+      sheet.getRange(rowNum, COLS.borrador_texto + 1).setValue(body.mensaje || "");
+      sheet.getRange(rowNum, COLS.estado + 1).setValue("borrador_listo");
+      SpreadsheetApp.flush();
+      return respond({ ok: true, idPlan: idPlan, row: rowNum });
+    }
+  }
+  return respond({ ok: false, error: "no se encontró la fila con ese ts" }, 404);
+}
+
+function doGet(e) {
+  try {
+    var id = e.parameter.id;
+    if (!id) return respond({ ok: false, error: "id faltante" }, 400);
+
+    var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheets()[0];
+    var data = sheet.getDataRange().getValues();
+
+    for (var r = 1; r < data.length; r++) {
+      if (String(data[r][COLS.id_plan]) === String(id)) {
+        var decision = data[r][COLS.decision];
+        if (decision !== "aprobado") {
+          return respond({ ok: false, error: "aún no aprobado" }, 403);
+        }
+        var plan = {};
+        try { plan = JSON.parse(data[r][COLS.plan_json] || "{}"); } catch (ex) {}
+        return respond({
+          ok: true,
+          nombreNino: data[r][COLS.nombre_nino],
+          mensaje: data[r][COLS.borrador_texto],
+          plan: plan,
+        });
+      }
+    }
+    return respond({ ok: false, error: "no encontrado" }, 404);
+  } catch (err) {
+    return respond({ ok: false, error: String(err) }, 500);
+  }
+}
+
+function respond(obj, status) {
+  return ContentService
+    .createTextOutput(JSON.stringify(obj))
+    .setMimeType(ContentService.MimeType.JSON);
+}

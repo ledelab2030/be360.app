@@ -17,6 +17,18 @@
 //     producto:"formulario"  (vita-demo-formulario, sprint)
 //                             → env.SHEET_WEBHOOK_URL_FORMULARIO / SHEET_WEBHOOK_SECRET_FORMULARIO
 // Ver worker/apps-script-sheet-writer.gs.txt para instalar cada Sheet.
+//
+// NUEVO (panel de Peter + plan del padre, ago 2026) — solo producto
+// "formulario" (el Sheet de srb3 no tiene estas columnas):
+//   POST /guardar-borrador  — guarda el borrador (Parte A/B del Prompt
+//                              Maestro) en la fila identificada por "ts",
+//                              genera un id_plan aleatorio.
+//   GET  /plan?id=...       — lectura PÚBLICA (sin CORS de origen, la abre
+//                              el padre desde WhatsApp) del plan, SOLO si
+//                              decision="aprobado" en esa fila. Nunca
+//                              expone un borrador sin aprobar.
+// Usan el mismo env.SHEET_WEBHOOK_URL_FORMULARIO / SHEET_WEBHOOK_SECRET_FORMULARIO.
+//
 // Todo lo demás de este archivo es EXACTO al código en producción
 // (verificado vía Cloudflare API el 5 ago 2026) — no se tocó nada
 // del proxy a Anthropic, incluida la deuda técnica conocida (no
@@ -27,6 +39,14 @@ const ALLOWED_ORIGIN = "https://be360.app";
 
 export default {
   async fetch(request, env) {
+    const url = new URL(request.url);
+
+    // /plan es de lectura pública (el padre lo abre desde WhatsApp, no
+    // desde be360.app) — sin restricción de Origin, CORS abierto a todos.
+    if (url.pathname === "/plan") {
+      return handlePlan(url, env);
+    }
+
     const cors = {
       "Access-Control-Allow-Origin": ALLOWED_ORIGIN,
       "Access-Control-Allow-Methods": "POST, OPTIONS",
@@ -52,9 +72,13 @@ export default {
     }
 
     // NUEVO: ruta de logging para HITL capture-only.
-    const url = new URL(request.url);
     if (url.pathname === "/log") {
       return handleLog(request, env, cors);
+    }
+
+    // NUEVO: guardar el borrador generado (Prompt Maestro) en la fila del Sheet.
+    if (url.pathname === "/guardar-borrador") {
+      return handleGuardarBorrador(request, env, cors);
     }
 
     try {
@@ -153,5 +177,93 @@ async function handleLog(request, env, cors) {
       status: 500,
       headers: jsonHeaders,
     });
+  }
+}
+
+// Guarda el borrador (Parte A/B) generado por el Prompt Maestro en la fila
+// del Sheet identificada por su "ts" original. Solo producto formulario —
+// el Sheet de srb3 no tiene columnas id_plan/plan_json/decision/borrador_texto.
+async function handleGuardarBorrador(request, env, cors) {
+  const jsonHeaders = { ...cors, "Content-Type": "application/json" };
+  try {
+    const body = await request.json();
+    const { ts, mensaje, plan } = body || {};
+
+    if (!ts) {
+      return new Response(JSON.stringify({ ok: false, error: "ts faltante" }), {
+        status: 400,
+        headers: jsonHeaders,
+      });
+    }
+    if (!env.SHEET_WEBHOOK_URL_FORMULARIO) {
+      return new Response(JSON.stringify({ ok: false, error: "SHEET_WEBHOOK_URL_FORMULARIO no configurado" }), {
+        status: 500,
+        headers: jsonHeaders,
+      });
+    }
+
+    const sheetRes = await fetch(env.SHEET_WEBHOOK_URL_FORMULARIO, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        secret: env.SHEET_WEBHOOK_SECRET_FORMULARIO || "",
+        action: "guardar_borrador",
+        ts,
+        mensaje: mensaje || "",
+        plan: plan || {},
+      }),
+    });
+
+    const sheetText = await sheetRes.text();
+    let sheetData = null;
+    try { sheetData = JSON.parse(sheetText); } catch (e) {}
+
+    if (!sheetRes.ok || !sheetData || sheetData.ok !== true) {
+      return new Response(JSON.stringify({
+        ok: false,
+        error: "No se pudo guardar el borrador",
+        detalle: sheetData ? sheetData.error : sheetText.slice(0, 300),
+      }), { status: 502, headers: jsonHeaders });
+    }
+    return new Response(JSON.stringify({ ok: true, idPlan: sheetData.idPlan }), { status: 200, headers: jsonHeaders });
+  } catch (e) {
+    return new Response(JSON.stringify({ ok: false, error: String(e) }), {
+      status: 500,
+      headers: jsonHeaders,
+    });
+  }
+}
+
+// Lectura PÚBLICA del plan aprobado — la abre el padre desde un link de
+// WhatsApp, no desde be360.app, así que no restringimos por Origin. Solo
+// devuelve algo si decision="aprobado" en el Sheet — nunca expone un
+// borrador pendiente de revisión.
+async function handlePlan(url, env) {
+  const openCors = {
+    "Access-Control-Allow-Origin": "*",
+    "Access-Control-Allow-Methods": "GET, OPTIONS",
+  };
+  const jsonHeaders = { ...openCors, "Content-Type": "application/json" };
+
+  const id = url.searchParams.get("id");
+  if (!id) {
+    return new Response(JSON.stringify({ ok: false, error: "id faltante" }), { status: 400, headers: jsonHeaders });
+  }
+  if (!env.SHEET_WEBHOOK_URL_FORMULARIO) {
+    return new Response(JSON.stringify({ ok: false, error: "SHEET_WEBHOOK_URL_FORMULARIO no configurado" }), { status: 500, headers: jsonHeaders });
+  }
+
+  try {
+    const sheetRes = await fetch(env.SHEET_WEBHOOK_URL_FORMULARIO + "?id=" + encodeURIComponent(id), { method: "GET" });
+    const sheetText = await sheetRes.text();
+    let sheetData = null;
+    try { sheetData = JSON.parse(sheetText); } catch (e) {}
+
+    if (!sheetRes.ok || !sheetData || sheetData.ok !== true) {
+      return new Response(JSON.stringify({ ok: false, error: "no disponible" }), { status: 404, headers: jsonHeaders });
+    }
+    return new Response(JSON.stringify(sheetData), { status: 200, headers: jsonHeaders });
+  } catch (e) {
+    return new Response(JSON.stringify({ ok: false, error: String(e) }), { status: 500, headers: jsonHeaders });
   }
 }
