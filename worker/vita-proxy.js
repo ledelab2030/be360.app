@@ -9,11 +9,14 @@
 // CORS restringido: solo be360.app puede usar este Worker.
 //
 // NUEVO (HITL capture-only, ago 2026): ruta /log — recibe el
-// diagnóstico capturado por vita-demo-srb-3 y lo reenvía a un
-// Sheet de revisión vía Apps Script. Requiere 2 secrets nuevos:
-//     SHEET_WEBHOOK_URL     — URL /exec del Apps Script Web App
-//     SHEET_WEBHOOK_SECRET  — string compartido que el Apps Script valida
-// Ver worker/apps-script-sheet-writer.gs.txt para instalarlo.
+// diagnóstico capturado y lo reenvía a un Sheet de revisión vía Apps
+// Script. Dos productos, dos schemas, DOS Sheets distintos — se enrutan
+// por el campo "producto" del body ("srb3" | "formulario"):
+//     producto:"srb3"        (o ausente, compat. con lo ya desplegado)
+//                             → env.SHEET_WEBHOOK_URL / SHEET_WEBHOOK_SECRET
+//     producto:"formulario"  (vita-demo-formulario, sprint)
+//                             → env.SHEET_WEBHOOK_URL_FORMULARIO / SHEET_WEBHOOK_SECRET_FORMULARIO
+// Ver worker/apps-script-sheet-writer.gs.txt para instalar cada Sheet.
 // Todo lo demás de este archivo es EXACTO al código en producción
 // (verificado vía Cloudflare API el 5 ago 2026) — no se tocó nada
 // del proxy a Anthropic, incluida la deuda técnica conocida (no
@@ -92,7 +95,7 @@ async function handleLog(request, env, cors) {
   const jsonHeaders = { ...cors, "Content-Type": "application/json" };
   try {
     const body = await request.json();
-    const { mode, dx, ts } = body || {};
+    const { mode, dx, ts, producto } = body || {};
 
     if (!dx || typeof dx !== "object") {
       return new Response(JSON.stringify({ ok: false, error: "dx faltante" }), {
@@ -100,20 +103,27 @@ async function handleLog(request, env, cors) {
         headers: jsonHeaders,
       });
     }
-    if (!env.SHEET_WEBHOOK_URL) {
-      return new Response(JSON.stringify({ ok: false, error: "SHEET_WEBHOOK_URL no configurado" }), {
+
+    const esFormulario = producto === "formulario";
+    const webhookUrl = esFormulario ? env.SHEET_WEBHOOK_URL_FORMULARIO : env.SHEET_WEBHOOK_URL;
+    const webhookSecret = esFormulario ? env.SHEET_WEBHOOK_SECRET_FORMULARIO : env.SHEET_WEBHOOK_SECRET;
+
+    if (!webhookUrl) {
+      return new Response(JSON.stringify({ ok: false, error: (esFormulario ? "SHEET_WEBHOOK_URL_FORMULARIO" : "SHEET_WEBHOOK_URL") + " no configurado" }), {
         status: 500,
         headers: jsonHeaders,
       });
     }
 
-    const safeDx = { ...dx, microcambio: "" };
+    // Blindaje solo tiene sentido para el schema viejo (srb3), que sí tenía
+    // "microcambio". vita-demo-formulario nunca lo tuvo — no hace falta.
+    const safeDx = esFormulario ? dx : { ...dx, microcambio: "" };
 
-    const sheetRes = await fetch(env.SHEET_WEBHOOK_URL, {
+    const sheetRes = await fetch(webhookUrl, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        secret: env.SHEET_WEBHOOK_SECRET || "",
+        secret: webhookSecret || "",
         mode: mode || "",
         dx: safeDx,
         ts: ts || new Date().toISOString(),
