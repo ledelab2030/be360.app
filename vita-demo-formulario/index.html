@@ -1,0 +1,279 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+<meta name="robots" content="noindex" />
+<title>Vita · Bienestar 360 (Formulario de Hábitos)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+<script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<style>
+  html,body{margin:0;height:100%}
+  *{box-sizing:border-box}
+  .rise{animation:rise .28s cubic-bezier(.2,.8,.2,1)}
+  @keyframes rise{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+  .dot{width:7px;height:7px;border-radius:50%;background:#5A7A5C;display:inline-block;animation:blink 1.2s infinite}
+  .dot:nth-child(2){animation-delay:.2s}.dot:nth-child(3){animation-delay:.4s}
+  @keyframes blink{0%,60%,100%{opacity:.25}30%{opacity:1}}
+  .scroll::-webkit-scrollbar{width:8px}.scroll::-webkit-scrollbar-thumb{background:#D8CFBE;border-radius:8px}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const { useState, useRef, useEffect } = React;
+
+// Mismo Worker que vita-demo-srb-3 — el proxy y la ruta /log (HITL) no cambian.
+const WORKER_URL = "https://vita-proxy.leonardo-751.workers.dev";
+const MODEL = "claude-sonnet-4-6";
+
+// ============================================================
+// PROMPT — captura conversacional del FORMULARIO DE HÁBITOS del
+// design-sprint (design-sprint/src/schemas/formulario_habitos.json v4).
+// No es el diagnóstico SRB genérico de vita-demo-srb-3 (ese es otro
+// producto, para otra cosa). Este SOLO captura, en la voz de Vita
+// (design-sprint/docs/tono_identidad_bot.txt) — nunca aconseja, nunca
+// prescribe. El plan lo arma después el Prompt Maestro
+// (design-sprint/src/prompts/srb_draft_generator.txt), revisado por
+// Peter en su panel, fuera de este chat.
+// ============================================================
+const BASE = `Eres Vita, acompañante de bienestar de Bienestar 360.
+
+# QUÉ HACES AQUÍ (y qué NO)
+- SOLO capturas información sobre el hijo o hija de la persona con la que hablas, para el Formulario de Hábitos. NUNCA diagnosticas, NUNCA prescribes, NUNCA das ni sugieres una recomendación — ni una sola, ni de pasada, ni si te la piden directamente.
+- Hablas SIEMPRE con el padre o la madre. El niño o adolescente nunca es tu interlocutor y nunca recibe indicaciones de ti.
+- Rango de edad del hijo/a: 2 a 20 años.
+- Todo lo que captures lo revisa Peter Álvarez (autoridad clínica) antes de que a la familia le llegue cualquier cosa. Tú nunca eres la última palabra.
+
+# TONO (de la guía de voz de Vita — seguirla al pie de la letra)
+- Trato: tuteo, cercano.
+- CERO emojis.
+- 2 a 4 líneas por mensaje. Esto es WhatsApp, no un informe.
+- Una sola pregunta por mensaje.
+- Sin listas ni viñetas dentro del chat.
+- Sin juicio: nunca hagas sentir culpa al padre por nada de lo que cuente.
+- Cierra cada intercambio con calidez, nunca evaluando lo que acaban de contarte.
+- Nunca digas "sin medicamentos", "revertir", "curar" ni "epigenética". Nunca menciones IA, tecnología ni proveedores.
+
+# CÓMO CAPTURAS (metodología del sprint — no aconsejar durante la captura)
+Mientras recorres las áreas, SOLO escuchas y reconoces con calidez ("listo", "gracias, sigamos", "entiendo") — nunca corriges, nunca sugieres, nunca dices cosas como "eso no es lo ideal" o "deberías". Toda esa parte no existe en este chat: la hace el equipo después, aparte.
+
+Recorre las áreas en este orden, 1-2 preguntas por mensaje, en tono de conversación (no interrogatorio):
+
+1. GENERAL: nombre del hijo/a, edad. Qué le gustaría lograr con el programa, y qué es lo que MÁS le preocupa hoy de su hijo/a (esto último es clave, pregúntalo con calma, dale espacio).
+2. ORIGEN: parto natural o cesárea; cuánto tiempo de lactancia materna (o si no tomó).
+3. SUEÑO Y MOVIMIENTO: a qué hora se duerme (cuando se apagan luces y pantallas) y a qué hora se levanta; cómo despierta (descansado / le cuesta / cansado); si se despierta en la noche; qué actividad física hace y cuántas veces por semana; si algo le duele al moverse.
+4. SEÑALES: si nota alguna de estas señales con cierta frecuencia — menciona 4-5 a modo de ejemplo dentro de la pregunta, no la lista completa de golpe: dolor o ardor de estómago, dolores de cabeza frecuentes, inflamación o gases, estreñimiento, ansiedad, fatiga o cansancio, dificultad para concentrarse, sueño inquieto, piel irritada o brotes, infecciones frecuentes. Deja que el padre agregue lo que quiera.
+5. DIAGNÓSTICOS Y ATENCIÓN MÉDICA: si el hijo/a tiene algún diagnóstico ya dado por un médico (asma, alergias, TDAH, etc. — da 2-3 ejemplos, no la lista completa); si toma alguna medicación o está en tratamiento; qué especialistas lo atienden. NO preguntes por citas próximas ni pidas autorización para coordinar con el médico — eso no aplica todavía.
+6. EL DÍA EN ORDEN — es el corazón de la captura. Reconstruye un día típico de forma ESTRICTAMENTE CRONOLÓGICA, con horas: al levantarse (¿come o bebe algo apenas se levanta?), desayuno, media mañana / lonchera, almuerzo, media tarde, cena, antes de dormir. En cada momento pregunta qué come Y qué bebe — así la hidratación aparece sola en el relato, NUNCA preguntes directo "¿toma suficiente agua?". Pregunta también si varía el fin de semana.
+7. FIN DE SEMANA Y GUSTOS: qué suele comer los fines de semana (da 2-3 ejemplos: comida rápida, dulces, gaseosas); si algún alimento le cae mal o le produce gases; qué alimentos le gustan y valdría la pena conservar en su plan.
+8. MENTE Y PANTALLAS: qué tipo de contenido consume (juegos, series, redes) y cuántas horas de pantalla al día; si usa pantallas la hora antes de dormir. Pregunta con suavidad si practica algo de relajación o respiración consciente — si el padre no entiende la pregunta o dice que no aplica, no insistas, anota "no aplica" y sigue.
+9. EMOCIONES: qué emociones observa con alguna frecuencia en su hijo/a (da algunos ejemplos: alegría, ira o rabietas, ansiedad, frustración) — igual, si el padre prefiere describirlo como comportamiento ("se pone de mal genio") en vez de nombrar una emoción, está perfecto, anota eso.
+
+# CIERRE (CAPTURE-ONLY)
+Cuando ya cubriste las áreas, cierra con calidez: agradece, resume en 1-2 frases lo que entendiste del día de su hijo/a (sin evaluar, sin consejos), y explica que esa información queda registrada para que Peter la revise y el equipo prepare el primer paso — que le van a escribir. NUNCA propongas ni insinúes una recomendación o próximo paso, en ningún momento. Invita a tocar el botón «Enviar a revisión» para mandar la información.
+
+# PROTOCOLO DE SEGURIDAD (PRIORITARIO SOBRE TODO LO DEMÁS)
+- Si el padre pregunta algo puntual tipo "¿debería quitarle el pan?" o "¿está bien que tome gaseosa?": responde con calidez que eso lo revisa el equipo junto con el resto de la información, y sigue con la siguiente pregunta del recorrido. NUNCA respondas la pregunta con un consejo, ni aquí ni en el cierre.
+- Ante señales de posible trastorno de conducta alimentaria (bajo peso, restricción, atracones, miedo a engordar), salud mental (tristeza profunda, ansiedad intensa, mención de hacerse daño) o urgencia médica (dolor agudo, fiebre alta, pérdida de peso brusca): no sigas con el recorrido normal en esa área. Valida con calidez ("gracias por contarme, eso es importante") y dile que lo va a poner en manos de Peter con prioridad. Anótalo en la señal correspondiente y sigue con el resto del recorrido donde sí sea seguro.
+- Si preguntan quién está detrás: "Bienestar 360 lo lidera Peter Álvarez, con un equipo de bienestar." Nada de tecnología ni proveedores.
+- Si el peso surge en la conversación, nunca lo trates como un objetivo a bajar ni hables de "dieta" o imagen corporal — solo anótalo como dato si el padre lo menciona espontáneamente.
+
+# FORMATO DE SALIDA (CRÍTICO)
+Responde SIEMPRE en dos partes:
+1. Tu mensaje conversacional normal (según las reglas de tono de arriba).
+2. Al final, en una línea aparte, un bloque oculto con lo capturado hasta ahora, exactamente así:
+<dx>{"nombre_nino":"","edad":"","que_deseas_lograr":"","preocupacion_principal":"","origen":"","sueno_y_movimiento":"","senales_observables":"","diagnosticos_y_atencion_medica":"","cronologia_del_dia":"","finde_y_gustos":"","mente_y_pantallas":"","emociones":""}</dx>
+Rellena solo lo que ya sepas; deja "" lo que falte. "cronologia_del_dia" incluye TODA la cronología con horas + qué come/bebe en cada momento + hidratación, como un relato corrido. Valores breves, frases cortas. El bloque <dx> NUNCA se muestra, es solo para el sistema — no lo menciones ni lo describas.`;
+
+const FIELDS = [
+  { key:"nombre_nino", label:"Nombre del hijo/a" },
+  { key:"edad", label:"Edad" },
+  { key:"que_deseas_lograr", label:"Qué desea lograr el padre" },
+  { key:"preocupacion_principal", label:"Preocupación principal" },
+  { key:"origen", label:"Origen (parto · lactancia)" },
+  { key:"sueno_y_movimiento", label:"Sueño y movimiento" },
+  { key:"senales_observables", label:"Señales observadas" },
+  { key:"diagnosticos_y_atencion_medica", label:"Diagnósticos y atención médica" },
+  { key:"cronologia_del_dia", label:"Cronología del día" },
+  { key:"finde_y_gustos", label:"Fin de semana y gustos" },
+  { key:"mente_y_pantallas", label:"Mente y pantallas" },
+  { key:"emociones", label:"Emociones" },
+];
+const AREA_TOTAL = FIELDS.length;
+const P = { bg:"#ECE5D8", panel:"#FBF8F1", ink:"#2C2A24", sage:"#5A7A5C", sageDeep:"#3E5A40", sageSoft:"#DCE7D6", user:"#C9DDB8", clay:"#B5764A", line:"#D8CFBE", muted:"#8A8473" };
+const emptyDx = FIELDS.reduce((a,f)=>({...a,[f.key]:""}),{});
+const MODE = "child"; // este demo SOLO captura para un hijo/a — no hay modo adulto.
+
+// Renderiza **negrita** como <strong>; conserva saltos de línea via white-space:pre-wrap.
+const renderRich = (text) => (text||"").split(/(\*\*[^*]+\*\*)/g).map((part,i)=>
+  part.startsWith("**")&&part.endsWith("**")
+    ? <strong key={i} style={{fontWeight:800}}>{part.slice(2,-2)}</strong>
+    : <React.Fragment key={i}>{part}</React.Fragment>
+);
+
+// Shell a nivel de módulo: NO redefinir dentro de App (eso remonta el textarea y hace perder el foco al escribir).
+const Shell=(props)=>(
+  <div style={{minHeight:"100vh",background:P.bg,fontFamily:"'Nunito',sans-serif",color:P.ink,display:"flex",justifyContent:"center",padding:"16px 12px 28px"}}>
+    <div style={{width:"100%",maxWidth:440,position:"relative",display:"flex",flexDirection:"column",height:"calc(100vh - 44px)",background:P.panel,borderRadius:26,overflow:"hidden",boxShadow:"0 24px 60px rgba(40,42,36,.18)",border:"1px solid "+P.line}}>{props.children}</div>
+  </div>
+);
+
+function App(){
+  const [stage,setStage]=useState("welcome");
+  const [messages,setMessages]=useState([]);
+  const [input,setInput]=useState("");
+  const [loading,setLoading]=useState(false);
+  const [dx,setDx]=useState(emptyDx);
+  const [showDx,setShowDx]=useState(false);
+  const [error,setError]=useState(null);
+  const [exported,setExported]=useState(false);
+  const [chatCopied,setChatCopied]=useState(false);
+  const [sending,setSending]=useState(false);
+  const [sendError,setSendError]=useState(null);
+  const MIN_ENVIAR=4; // mínimo de áreas capturadas para habilitar "Enviar a revisión"
+  const scrollRef=useRef(null);
+  useEffect(()=>{ if(scrollRef.current) scrollRef.current.scrollTop=scrollRef.current.scrollHeight; },[messages,loading]);
+  const filled=FIELDS.filter(f=>dx[f.key]&&dx[f.key].trim()).length;
+
+  const parseDx=(text)=>{
+    const m=text.match(/<dx>([\s\S]*?)<\/dx>/);
+    const clean=text.replace(/<dx>[\s\S]*?<\/dx>/g,"").replace(/<dx>[\s\S]*$/,"").trim();
+    if(m){ try{ const o=JSON.parse(m[1]); setDx(prev=>{const n={...prev}; for(const k of Object.keys(o)) if(o[k]&&o[k].trim()) n[k]=o[k]; return n;}); }catch(e){} }
+    return clean;
+  };
+
+  const callVita=async(msgs)=>{
+    const ctrl=new AbortController();
+    const timer=setTimeout(()=>ctrl.abort(),45000);
+    try{
+      const res=await fetch(WORKER_URL,{ method:"POST", headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({ model:MODEL, max_tokens:2500, system:BASE, messages:msgs.map(x=>({role:x.role,content:x.content})) }), signal:ctrl.signal });
+      const data=await res.json();
+      return (data.content||[]).filter(b=>b.type==="text").map(b=>b.text).join("\n") || (data.error? "⚠️ "+JSON.stringify(data.error):"…");
+    } finally { clearTimeout(timer); }
+  };
+
+  const start=async()=>{
+    setStage("chat"); setLoading(true); setError(null);
+    const opener = "[Un padre/madre abrió el chat para contarte sobre su hijo/a, para el Formulario de Hábitos. Salúdalo, preséntate breve y haz la primera pregunta del área 1 (nombre y edad del hijo/a).]";
+    try{ const raw=await callVita([{role:"user",content:opener}]); setMessages([{role:"assistant",content:parseDx(raw)}]); }
+    catch(e){ setError("No se pudo conectar. Reintenta."); } finally{ setLoading(false); }
+  };
+
+  const send=async(text)=>{
+    const content=(text??input).trim(); if(!content||loading) return;
+    setError(null); const next=[...messages,{role:"user",content}]; setMessages(next); setInput(""); setLoading(true);
+    try{ const raw=await callVita(next); setMessages(m=>[...m,{role:"assistant",content:parseDx(raw)}]); }
+    catch(e){ setError("No se pudo conectar. Reintenta."); } finally{ setLoading(false); }
+  };
+
+  const retry=()=>{
+    if(loading) return;
+    setError(null);
+    if(messages.length===0){ start(); return; }
+    setLoading(true);
+    callVita(messages)
+      .then(raw=>setMessages(m=>[...m,{role:"assistant",content:parseDx(raw)}]))
+      .catch(()=>setError("No se pudo conectar. Reintenta."))
+      .finally(()=>setLoading(false));
+  };
+
+  // HITL capture-only: nada se le muestra al padre como recomendación. Esto manda
+  // el diagnóstico capturado a revisión (mismo Sheet vía el mismo Worker que
+  // vita-demo-srb-3) — Peter lo aprueba antes de que alguien le escriba al padre.
+  const sendToReview=async()=>{
+    if(sending) return;
+    setSending(true); setSendError(null);
+    try{
+      const res=await fetch(WORKER_URL+"/log",{ method:"POST", headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({ producto:"formulario", mode:MODE, dx, ts:new Date().toISOString() }) });
+      const data=await res.json().catch(()=>({}));
+      if(!res.ok || data.ok===false) throw new Error("log failed");
+      setStage("sent");
+    }catch(e){ setSendError("No se pudo enviar. Reintenta."); }
+    finally{ setSending(false); }
+  };
+
+  const exportDx=async()=>{ const txt="FORMULARIO DE HÁBITOS · Bienestar 360\n\n"+FIELDS.map(f=>f.label+": "+(dx[f.key]||"—")).join("\n"); try{ await navigator.clipboard.writeText(txt); setExported(true); setTimeout(()=>setExported(false),2000);}catch(e){ const w=window.open("","_blank"); if(w){ w.document.body.style.cssText="font-family:system-ui;padding:20px;white-space:pre-wrap;line-height:1.5"; w.document.body.textContent=txt; } } };
+
+  const copyChat=async()=>{ const txt="CONVERSACIÓN CON VITA · Bienestar 360 (Formulario de Hábitos)\nFecha: "+new Date().toLocaleString("es-CO")+"\n\n"+messages.map(m=>(m.role==="assistant"?"Vita":"Tú (mamá/papá)")+":\n"+m.content).join("\n\n"); try{ await navigator.clipboard.writeText(txt); setChatCopied(true); setTimeout(()=>setChatCopied(false),2000);}catch(e){ const w=window.open("","_blank"); if(w){ w.document.body.style.cssText="font-family:system-ui;padding:20px;white-space:pre-wrap;line-height:1.5"; w.document.body.textContent=txt; } } };
+  const btnPrimary={background:P.sage,color:"#fff",border:"none",borderRadius:999,padding:"14px 30px",fontSize:15.5,fontWeight:800,fontFamily:"'Nunito',sans-serif",cursor:"pointer",boxShadow:"0 6px 18px rgba(90,122,92,.35)"};
+
+  if(stage==="welcome") return (
+    <Shell><div style={{flex:1,display:"flex",flexDirection:"column",justifyContent:"center",alignItems:"center",padding:"32px 26px",textAlign:"center"}}>
+      <div style={{fontSize:52,marginBottom:14}}>🌱</div>
+      <div style={{fontFamily:"'Fraunces',serif",fontSize:27,color:P.sageDeep,lineHeight:1.15,marginBottom:14}}>Hola, soy Vita</div>
+      <p style={{fontSize:15,color:P.ink,lineHeight:1.6,maxWidth:360,marginBottom:8}}>Cuéntame del día a día de tu hijo o hija — cómo come, duerme y se mueve. Es una conversación, no un formulario largo.</p>
+      <p style={{fontSize:13.5,color:P.muted,lineHeight:1.6,maxWidth:360,marginBottom:24}}>Al final, tu información queda registrada para que Peter la revise y preparemos el primer paso.</p>
+      <button onClick={()=>setStage("intro")} style={btnPrimary}>Comenzar →</button>
+      <p style={{fontSize:11.5,color:P.muted,marginTop:22,maxWidth:320}}>Esto acompaña y suma con su pediatra — no lo reemplaza.</p>
+    </div></Shell>
+  );
+
+  if(stage==="sent") return (
+    <Shell><div style={{flex:1,display:"flex",flexDirection:"column",justifyContent:"center",alignItems:"center",padding:"32px 26px",textAlign:"center"}}>
+      <div style={{fontSize:52,marginBottom:14}}>🌱</div>
+      <div style={{fontFamily:"'Fraunces',serif",fontSize:25,color:P.sageDeep,lineHeight:1.2,marginBottom:14}}>Listo, ya quedó registrado</div>
+      <p style={{fontSize:15,color:P.ink,lineHeight:1.6,maxWidth:360,marginBottom:10}}>La información de tu hijo/a queda en manos del equipo. Peter la revisa y preparamos el primer paso — te contactamos pronto.</p>
+      <p style={{fontSize:13,color:P.muted,lineHeight:1.6,maxWidth:340}}>Esto acompaña y suma con su pediatra — no lo reemplaza.</p>
+    </div></Shell>
+  );
+
+  if(stage==="intro") return (
+    <Shell><div className="rise scroll" style={{flex:1,overflowY:"auto",display:"flex",flexDirection:"column",justifyContent:"center",padding:"30px 26px"}}>
+      <div style={{fontSize:40,marginBottom:12,textAlign:"center"}}>🌱</div>
+      <div style={{fontFamily:"'Fraunces',serif",fontSize:23,color:P.sageDeep,lineHeight:1.2,marginBottom:16,textAlign:"center"}}>Cómo vamos a hacerlo</div>
+      <p style={{fontSize:14.5,color:P.ink,lineHeight:1.65,marginBottom:14}}>La atención, el ánimo y la energía de un niño se apoyan mucho en los hábitos del hogar: lo que come y bebe, a qué hora, cuánto se mueve y cómo duerme. Tú eres el puente.</p>
+      <div style={{background:P.sageSoft,borderRadius:16,padding:"16px",marginBottom:18}}>
+        <div style={{display:"flex",gap:11,marginBottom:12}}><div style={{fontSize:18,flexShrink:0}}>🕊️</div><div style={{fontSize:13.5,color:P.ink,lineHeight:1.5}}>Reconstruimos un día normal de tu hijo/a, desde que despierta hasta que se duerme. Con calma, sin juzgar.</div></div>
+        <div style={{display:"flex",gap:11,marginBottom:12}}><div style={{fontSize:18,flexShrink:0}}>💬</div><div style={{fontSize:13.5,color:P.ink,lineHeight:1.5}}>Es una conversación, no un formulario. Toma unos 5-10 minutos.</div></div>
+        <div style={{display:"flex",gap:11}}><div style={{fontSize:18,flexShrink:0}}>🌿</div><div style={{fontSize:13.5,color:P.ink,lineHeight:1.5}}>Al final, tu información queda registrada — Peter la revisa y el equipo te contacta con el primer paso.</div></div>
+      </div>
+      <button onClick={start} style={{...btnPrimary,alignSelf:"center"}}>Empezar la conversación →</button>
+      <p style={{fontSize:11.5,color:P.muted,marginTop:18,textAlign:"center",lineHeight:1.5}}>Esto acompaña y suma con su pediatra — no lo reemplaza.</p>
+    </div></Shell>
+  );
+
+  return (
+    <Shell>
+      <div style={{background:"linear-gradient(135deg,"+P.sageDeep+","+P.sage+")",padding:"14px 16px",display:"flex",alignItems:"center",gap:11}}>
+        <div style={{width:40,height:40,borderRadius:"50%",background:P.panel,display:"grid",placeItems:"center",fontSize:20}}>🌱</div>
+        <div style={{flex:1}}><div style={{fontFamily:"'Fraunces',serif",fontWeight:600,fontSize:19,color:"#fff",lineHeight:1}}>Vita</div><div style={{fontSize:11.5,color:P.sageSoft,marginTop:3}}>{loading?"escribiendo…":"Formulario de Hábitos"}</div></div>
+        <button onClick={copyChat} title="Copiar conversación" style={{background:"rgba(255,255,255,.18)",border:"none",color:"#fff",borderRadius:999,width:34,height:34,fontSize:15,cursor:"pointer",flexShrink:0}}>{chatCopied?"✓":"📋"}</button><button onClick={()=>setShowDx(true)} style={{background:"rgba(255,255,255,.18)",border:"none",color:"#fff",borderRadius:999,padding:"7px 13px",fontSize:12.5,fontWeight:700,cursor:"pointer",fontFamily:"'Nunito',sans-serif"}}>Formulario {filled}/{AREA_TOTAL}</button>
+      </div>
+      {filled>=MIN_ENVIAR && (
+        <div style={{padding:"9px 14px",background:P.sageSoft,borderBottom:"1px solid "+P.line,display:"flex",alignItems:"center",justifyContent:"space-between",gap:10}}>
+          <div style={{fontSize:12,color:P.sageDeep,lineHeight:1.4}}>Cuando termines de contarme, envía tu información para que el equipo la revise.</div>
+          <button onClick={sendToReview} disabled={sending} style={{background:P.sage,color:"#fff",border:"none",borderRadius:999,padding:"8px 14px",fontSize:12.5,fontWeight:800,cursor:sending?"default":"pointer",fontFamily:"'Nunito',sans-serif",flexShrink:0,opacity:sending?.7:1}}>{sending?"Enviando…":"Enviar a revisión →"}</button>
+        </div>
+      )}
+      <div ref={scrollRef} className="scroll" style={{flex:1,overflowY:"auto",padding:"16px 13px",display:"flex",flexDirection:"column",gap:10,background:"radial-gradient("+P.sageSoft+"55 1px,transparent 1px)",backgroundSize:"22px 22px"}}>
+        {messages.map((m,i)=>(<div key={i} className="rise" style={{alignSelf:m.role==="user"?"flex-end":"flex-start",maxWidth:"84%"}}><div style={{background:m.role==="user"?P.user:"#fff",color:P.ink,padding:"10px 13px",borderRadius:m.role==="user"?"16px 16px 4px 16px":"16px 16px 16px 4px",fontSize:14.5,lineHeight:1.5,boxShadow:"0 1px 2px rgba(40,42,36,.10)",whiteSpace:"pre-wrap",border:m.role==="user"?"none":"1px solid "+P.line}}>{renderRich(m.content)}</div></div>))}
+        {loading&&(<div style={{alignSelf:"flex-start",background:"#fff",padding:"12px 15px",borderRadius:"16px 16px 16px 4px",border:"1px solid "+P.line}}><span className="dot"/> <span className="dot"/> <span className="dot"/></div>)}
+        {error&&!loading&&(<div style={{alignSelf:"center",textAlign:"center",color:P.clay,fontSize:12.5,background:"#fff",padding:"10px 14px",borderRadius:12,border:"1px solid "+P.line,maxWidth:"92%"}}>{error}<div style={{marginTop:8}}><button onClick={retry} style={{background:P.sage,border:"none",color:"#fff",borderRadius:999,padding:"7px 18px",fontSize:12.5,fontWeight:700,cursor:"pointer",fontFamily:"'Nunito',sans-serif"}}>Reintentar</button></div><div style={{marginTop:7,fontSize:11,color:P.muted,lineHeight:1.4}}>Si sigue fallando, abre el enlace en tu navegador (Chrome o Safari), no dentro de otra app.</div></div>)}
+        {sendError&&(<div style={{alignSelf:"center",textAlign:"center",color:P.clay,fontSize:12.5,background:"#fff",padding:"10px 14px",borderRadius:12,border:"1px solid "+P.line,maxWidth:"92%"}}>{sendError}<div style={{marginTop:8}}><button onClick={sendToReview} style={{background:P.sage,border:"none",color:"#fff",borderRadius:999,padding:"7px 18px",fontSize:12.5,fontWeight:700,cursor:"pointer",fontFamily:"'Nunito',sans-serif"}}>Reintentar envío</button></div></div>)}
+      </div>
+      <div style={{padding:"10px 12px",background:P.panel,borderTop:"1px solid "+P.line,display:"flex",gap:8,alignItems:"flex-end"}}>
+        <textarea value={input} onChange={e=>setInput(e.target.value)} onKeyDown={e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();send();}}} placeholder="Escribe como un papá/mamá…" rows={1} style={{flex:1,resize:"none",border:"1px solid "+P.line,borderRadius:20,padding:"11px 15px",fontSize:14.5,fontFamily:"'Nunito',sans-serif",maxHeight:110,background:"#fff",color:P.ink,outline:"none"}}/>
+        <button onClick={()=>send()} disabled={loading||!input.trim()} style={{width:46,height:46,borderRadius:"50%",border:"none",background:input.trim()?P.sage:P.line,color:"#fff",fontSize:19,cursor:input.trim()?"pointer":"default",flexShrink:0}}>➤</button>
+      </div>
+      {showDx&&(<div onClick={()=>setShowDx(false)} style={{position:"absolute",inset:0,background:"rgba(40,42,36,.45)",display:"flex",justifyContent:"flex-end",zIndex:10}}>
+        <div onClick={e=>e.stopPropagation()} style={{width:"86%",maxWidth:360,background:P.panel,height:"100%",display:"flex",flexDirection:"column",boxShadow:"-10px 0 40px rgba(0,0,0,.25)"}}>
+          <div style={{background:P.sageDeep,padding:"16px 18px",display:"flex",justifyContent:"space-between",alignItems:"center"}}><div><div style={{fontFamily:"'Fraunces',serif",fontSize:18,color:"#fff"}}>Formulario</div><div style={{fontSize:12,color:P.sageSoft,marginTop:2}}>{filled} de {AREA_TOTAL} áreas capturadas</div></div><button onClick={()=>setShowDx(false)} style={{background:"rgba(255,255,255,.16)",border:"none",color:"#fff",width:32,height:32,borderRadius:"50%",fontSize:16,cursor:"pointer"}}>✕</button></div>
+          <div className="scroll" style={{flex:1,overflowY:"auto",padding:14}}>
+            {FIELDS.map(f=>{const val=dx[f.key];const has=val&&val.trim();return(<div key={f.key} style={{marginBottom:10,background:"#fff",border:"1px solid "+(has?P.sage:P.line),borderRadius:12,padding:"10px 12px"}}><div style={{fontSize:11.5,fontWeight:800,color:has?P.sageDeep:P.muted,textTransform:"uppercase",letterSpacing:.4,marginBottom:has?4:0}}>{f.label}</div>{has&&<div style={{fontSize:13.5,color:P.ink,lineHeight:1.45}}>{val}</div>}</div>);})}
+          </div>
+          <div style={{padding:12,borderTop:"1px solid "+P.line,display:"flex",gap:8}}><button onClick={exportDx} style={{flex:1,background:exported?P.sage:P.clay,color:"#fff",border:"none",borderRadius:12,padding:"11px",fontSize:13.5,fontWeight:800,cursor:"pointer",fontFamily:"'Nunito',sans-serif"}}>{exported?"✓ Copiado":"Copiar mi resumen"}</button></div>
+        </div>
+      </div>)}
+    </Shell>
+  );
+}
+ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
+</script>
+</body>
+</html>
