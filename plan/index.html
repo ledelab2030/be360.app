@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+<meta name="robots" content="noindex" />
+<title>Tu plan · Bienestar 360</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+<script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<style>
+  html,body{margin:0;height:100%}
+  *{box-sizing:border-box}
+  .rise{animation:rise .28s cubic-bezier(.2,.8,.2,1)}
+  @keyframes rise{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const { useState, useEffect } = React;
+
+// Este es el mismo Worker que los demos de Vita — el endpoint /plan es de
+// lectura pública (el padre lo abre desde un link de WhatsApp, no desde
+// be360.app), y solo devuelve algo si Peter ya aprobó ese plan.
+const WORKER_URL = "https://vita-proxy.leonardo-751.workers.dev";
+
+const P = { bg:"#ECE5D8", panel:"#FBF8F1", panelRaised:"#FFFFFF", ink:"#2C2A24", sage:"#5A7A5C", sageDeep:"#3E5A40", sageSoft:"#DCE7D6", clay:"#B5764A", claySoft:"#F0DFCB", line:"#D8CFBE", muted:"#8A8473" };
+
+const Shell = (props) => (
+  <div style={{minHeight:"100vh", background:P.bg, fontFamily:"'Nunito',sans-serif", color:P.ink, display:"flex", justifyContent:"center", padding:"32px 14px 56px"}}>
+    <div style={{width:"100%", maxWidth:440, display:"flex", flexDirection:"column", gap:22}}>{props.children}</div>
+  </div>
+);
+
+function getIdFromUrl() {
+  const params = new URLSearchParams(window.location.search);
+  return params.get("id");
+}
+
+function App() {
+  const [stage, setStage] = useState("cargando"); // cargando | ok | no_disponible
+  const [data, setData] = useState(null);
+  const [checked, setChecked] = useState({});
+  const id = getIdFromUrl();
+
+  useEffect(() => {
+    if (!id) { setStage("no_disponible"); return; }
+    fetch(WORKER_URL + "/plan?id=" + encodeURIComponent(id))
+      .then(r => r.json())
+      .then(json => {
+        if (!json || json.ok !== true) { setStage("no_disponible"); return; }
+        setData(json);
+        try {
+          const saved = JSON.parse(localStorage.getItem("plan_check_" + id) || "{}");
+          setChecked(saved);
+        } catch (e) {}
+        setStage("ok");
+      })
+      .catch(() => setStage("no_disponible"));
+  }, [id]);
+
+  const toggle = (i) => {
+    setChecked(prev => {
+      const next = { ...prev, [i]: !prev[i] };
+      try { localStorage.setItem("plan_check_" + id, JSON.stringify(next)); } catch (e) {}
+      return next;
+    });
+  };
+
+  if (stage === "cargando") {
+    return (
+      <Shell>
+        <div style={{textAlign:"center", padding:"60px 10px", color:P.muted}}>Cargando tu plan…</div>
+      </Shell>
+    );
+  }
+
+  if (stage === "no_disponible") {
+    return (
+      <Shell>
+        <div style={{textAlign:"center", padding:"40px 20px"}}>
+          <div style={{fontSize:44, marginBottom:14}}>🌱</div>
+          <div style={{fontFamily:"'Fraunces',serif", fontSize:22, color:P.sageDeep, marginBottom:10}}>Todavía no está listo</div>
+          <p style={{fontSize:14, color:P.muted, lineHeight:1.6}}>Este plan aún está en revisión, o el link no es válido. Si crees que es un error, escríbenos por WhatsApp.</p>
+        </div>
+      </Shell>
+    );
+  }
+
+  const habitos = (data.plan && data.plan.habitos) || [];
+  const total = habitos.length;
+  const done = Object.values(checked).filter(Boolean).length;
+  const pct = total ? Math.round((done / total) * 100) : 0;
+
+  return (
+    <Shell>
+      <div style={{display:"flex", flexDirection:"column", gap:6}}>
+        <div style={{fontSize:11.5, fontWeight:800, letterSpacing:".09em", textTransform:"uppercase", color:P.sageDeep}}>Plan de bienestar</div>
+        <h1 style={{fontFamily:"'Fraunces',serif", fontWeight:600, fontSize:"clamp(26px,7vw,32px)", lineHeight:1.1, margin:0, color:P.sageDeep}}>
+          El plan de {data.nombreNino || "tu hijo/a"}
+        </h1>
+        <div style={{fontSize:13, color:P.muted}}>Revisado y aprobado por <b style={{color:P.ink}}>Peter Álvarez</b></div>
+      </div>
+
+      {data.mensaje && (
+        <div style={{fontSize:14.5, lineHeight:1.6, background:P.panel, border:"1px solid "+P.line, borderRadius:18, padding:"16px 18px"}}>
+          {data.mensaje}
+        </div>
+      )}
+
+      {total > 0 && (
+        <div style={{display:"flex", flexDirection:"column", gap:8, background:P.sageSoft, borderRadius:16, padding:"14px 16px"}}>
+          <div style={{display:"flex", justifyContent:"space-between", fontSize:12.5, fontWeight:800, color:P.sageDeep}}>
+            <span>ESTA SEMANA</span><span>{done} de {total} en marcha</span>
+          </div>
+          <div style={{height:8, borderRadius:99, background:P.panelRaised, border:"1px solid "+P.line, overflow:"hidden"}}>
+            <div style={{height:"100%", width:pct+"%", background:P.sage, borderRadius:99, transition:"width .35s"}} />
+          </div>
+        </div>
+      )}
+
+      <div style={{display:"flex", flexDirection:"column", gap:12}}>
+        {habitos.map((h, i) => (
+          <div key={i} className="rise" style={{display:"flex", gap:13, alignItems:"flex-start", background: checked[i] ? P.sageSoft : P.panel, border:"1px solid "+(checked[i]?P.sage:P.line), borderRadius:16, padding:"14px 15px"}}>
+            <div style={{flex:1, minWidth:0}}>
+              <p style={{fontSize:14.5, fontWeight:800, margin:"0 0 3px", color:P.ink}}>{h.titulo}</p>
+              <p style={{fontSize:13.5, lineHeight:1.5, color:P.muted, margin:0}}>{h.texto}</p>
+            </div>
+            <button onClick={() => toggle(i)} aria-checked={!!checked[i]} style={{flexShrink:0, width:26, height:26, borderRadius:8, border:"1.5px solid "+(checked[i]?P.sage:P.line), background: checked[i]?P.sage:P.panelRaised, color: checked[i]?"#fff":"transparent", cursor:"pointer", display:"grid", placeItems:"center"}}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" width="15" height="15"><path d="M4 12l5 5L20 6"/></svg>
+            </button>
+          </div>
+        ))}
+      </div>
+
+      <p style={{fontSize:13, lineHeight:1.6, color:P.muted, padding:"2px 4px"}}>
+        Marca los que ya estén intentando — y escríbele a Vita cuando quieras contarle cómo les fue.
+      </p>
+      <p style={{fontSize:11.5, textAlign:"center", color:P.muted, lineHeight:1.6}}>
+        Esto acompaña y suma con su pediatra — no lo reemplaza.
+      </p>
+    </Shell>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
+</script>
+</body>
+</html>
