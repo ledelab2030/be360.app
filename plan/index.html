@@ -137,8 +137,17 @@ function App() {
       </div>
 
       <p style={{fontSize:13, lineHeight:1.6, color:P.muted, padding:"2px 4px"}}>
-        Marca los que ya estén intentando — y escríbele a Vita cuando quieras contarle cómo les fue.
+        Marca los que ya estén intentando.
       </p>
+
+      <a
+        href={"https://wa.me/37281282920?text=" + encodeURIComponent("Hola Vita, te escribo sobre el plan de " + (data.nombreNino || "mi hijo/a") + ".")}
+        target="_blank" rel="noopener noreferrer"
+        style={{display:"flex", alignItems:"center", justifyContent:"center", gap:8, background:P.sage, color:"#fff", fontWeight:800, fontSize:14.5, border:"none", borderRadius:999, padding:"14px 20px", textDecoration:"none", boxShadow:"0 10px 24px rgba(90,122,92,.30)"}}
+      >
+        Escribirle a Vita
+      </a>
+
       <p style={{fontSize:11.5, textAlign:"center", color:P.muted, lineHeight:1.6}}>
         Esto acompaña y suma con su pediatra — no lo reemplaza.
       </p>
