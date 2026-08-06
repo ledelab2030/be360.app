@@ -130,13 +130,24 @@ async function handleLog(request, env, cors) {
       }),
     });
 
-    if (!sheetRes.ok) {
-      return new Response(JSON.stringify({ ok: false, error: "No se pudo escribir en el Sheet" }), {
+    // OJO: Apps Script (ContentService) SIEMPRE responde HTTP 200, así el
+    // secret esté mal o falte el dx — sheetRes.ok por sí solo NO detecta
+    // esos casos. Hay que parsear el cuerpo y revisar su "ok" real.
+    const sheetText = await sheetRes.text();
+    let sheetData = null;
+    try { sheetData = JSON.parse(sheetText); } catch (e) { /* respuesta no-JSON (ej. HTML de error de Google) */ }
+
+    if (!sheetRes.ok || !sheetData || sheetData.ok !== true) {
+      return new Response(JSON.stringify({
+        ok: false,
+        error: "No se pudo escribir en el Sheet",
+        detalle: sheetData ? sheetData.error : sheetText.slice(0, 300),
+      }), {
         status: 502,
         headers: jsonHeaders,
       });
     }
-    return new Response(JSON.stringify({ ok: true }), { status: 200, headers: jsonHeaders });
+    return new Response(JSON.stringify({ ok: true, lastRow: sheetData.lastRow }), { status: 200, headers: jsonHeaders });
   } catch (e) {
     return new Response(JSON.stringify({ ok: false, error: String(e) }), {
       status: 500,
