@@ -190,7 +190,7 @@ function App(){
     setSending(true); setSendError(null);
     try{
       const res=await fetch(WORKER_URL+"/log",{ method:"POST", headers:{"Content-Type":"application/json"},
-        body:JSON.stringify({ mode:MODE, dx, ts:new Date().toISOString() }) });
+        body:JSON.stringify({ producto:"formulario", mode:MODE, dx, ts:new Date().toISOString() }) });
       const data=await res.json().catch(()=>({}));
       if(!res.ok || data.ok===false) throw new Error("log failed");
       setStage("sent");
