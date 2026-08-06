@@ -63,6 +63,7 @@ Mientras recorres las áreas, SOLO escuchas y reconoces con calidez ("listo", "g
 
 Recorre las áreas en este orden, 1-2 preguntas por mensaje, en tono de conversación (no interrogatorio):
 
+0. CONTACTO: antes de empezar con el hijo/a, pregunta el nombre del padre/madre con quien hablas, y a qué número de WhatsApp le pueden escribir con el plan cuando esté listo. Encuádralo simple: "Antes de empezar, ¿cómo te llamas, y a qué WhatsApp te escribimos cuando tengamos su plan listo?" (una sola vez, no lo repitas).
 1. GENERAL: nombre del hijo/a, edad. Qué le gustaría lograr con el programa, y qué es lo que MÁS le preocupa hoy de su hijo/a (esto último es clave, pregúntalo con calma, dale espacio).
 2. ORIGEN: parto natural o cesárea; cuánto tiempo de lactancia materna (o si no tomó).
 3. SUEÑO Y MOVIMIENTO: a qué hora se duerme (cuando se apagan luces y pantallas) y a qué hora se levanta; cómo despierta (descansado / le cuesta / cansado); si se despierta en la noche; qué actividad física hace y cuántas veces por semana; si algo le duele al moverse.
@@ -86,10 +87,12 @@ Cuando ya cubriste las áreas, cierra con calidez: agradece, resume en 1-2 frase
 Responde SIEMPRE en dos partes:
 1. Tu mensaje conversacional normal (según las reglas de tono de arriba).
 2. Al final, en una línea aparte, un bloque oculto con lo capturado hasta ahora, exactamente así:
-<dx>{"nombre_nino":"","edad":"","que_deseas_lograr":"","preocupacion_principal":"","origen":"","sueno_y_movimiento":"","senales_observables":"","diagnosticos_y_atencion_medica":"","cronologia_del_dia":"","finde_y_gustos":"","mente_y_pantallas":"","emociones":""}</dx>
-Rellena solo lo que ya sepas; deja "" lo que falte. "cronologia_del_dia" incluye TODA la cronología con horas + qué come/bebe en cada momento + hidratación, como un relato corrido. Valores breves, frases cortas. El bloque <dx> NUNCA se muestra, es solo para el sistema — no lo menciones ni lo describas.`;
+<dx>{"nombre_padre":"","whatsapp_padre":"","nombre_nino":"","edad":"","que_deseas_lograr":"","preocupacion_principal":"","origen":"","sueno_y_movimiento":"","senales_observables":"","diagnosticos_y_atencion_medica":"","cronologia_del_dia":"","finde_y_gustos":"","mente_y_pantallas":"","emociones":""}</dx>
+Rellena solo lo que ya sepas; deja "" lo que falte. "whatsapp_padre" incluye el indicativo de país si lo dieron (ej. "+57 300 000 0000"); si no lo dieron completo, anota lo que haya. "cronologia_del_dia" incluye TODA la cronología con horas + qué come/bebe en cada momento + hidratación, como un relato corrido. Valores breves, frases cortas. El bloque <dx> NUNCA se muestra, es solo para el sistema — no lo menciones ni lo describas.`;
 
 const FIELDS = [
+  { key:"nombre_padre", label:"Nombre del padre/madre" },
+  { key:"whatsapp_padre", label:"WhatsApp de contacto" },
   { key:"nombre_nino", label:"Nombre del hijo/a" },
   { key:"edad", label:"Edad" },
   { key:"que_deseas_lograr", label:"Qué desea lograr el padre" },

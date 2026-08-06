@@ -1,33 +1,22 @@
 /**
- * Apps Script v2 — Sheet "vita-demo-formulario" (o el nombre que le hayas
- * puesto). Reemplaza el código anterior de ESTE Sheet (el de srb3 no cambia).
+ * Apps Script v3 — Sheet "vita-demo-formulario". Reemplaza el código anterior
+ * de ESTE Sheet (el de srb3 no cambia).
  *
- * QUÉ AGREGA sobre la v1:
- *   - doPost ahora entiende dos acciones:
- *       (sin "action", como antes)     → agrega una fila nueva capturada por Vita.
- *       action:"guardar_borrador"      → busca la fila por su "ts" y le escribe
- *                                         el borrador del plan (Parte A/B) +
- *                                         genera un id_plan aleatorio.
- *   - doGet(id) — NUEVO: dado un id_plan, si esa fila tiene decision="aprobado",
- *     devuelve el plan (para que el padre lo vea en su página). Si no está
- *     aprobado, no devuelve nada del contenido — así ningún borrador sin
- *     aprobar puede filtrarse por este canal.
+ * QUÉ AGREGA sobre la v2:
+ *   - 2 columnas nuevas AL FINAL: nombre_padre | whatsapp_padre — para poder
+ *     armar el link de entrega del plan por WhatsApp. Se agregan al final a
+ *     propósito, para no correr las columnas ya usadas por filas existentes
+ *     (id_plan, plan_json, decision, borrador_texto).
  *
- * CAMBIO EN LOS ENCABEZADOS — agrega estas 4 columnas al final de la fila 1
- * de tu Sheet (después de notas_peter):
- *   id_plan | plan_json | decision | borrador_texto
- *
- * (decision empieza vacía; el flujo es:
- *   pendiente -> [yo genero el borrador] -> borrador_listo -> [Peter revisa
- *   y cambia esta celda a "aprobado"] -> el link al padre empieza a funcionar)
+ * CAMBIO EN LOS ENCABEZADOS — agrega estas 2 columnas al final de la fila 1
+ * de tu Sheet (después de borrador_texto):
+ *   nombre_padre | whatsapp_padre
  *
  * Pasos para instalar (reemplaza TODO el contenido de Code.gs):
  * 1. Pega este archivo completo.
- * 2. SHARED_SECRET debe ser el MISMO valor que ya tenías (no lo cambies, ya
- *    está en el Worker como SHEET_WEBHOOK_SECRET_FORMULARIO).
+ * 2. SHARED_SECRET debe ser el MISMO valor que ya tenías.
  * 3. Implementar → Administrar implementaciones → editar (lápiz) → Nueva
- *    versión → Implementar (esto SÍ requiere una nueva versión porque
- *    agregamos doGet — las versiones viejas no lo tienen).
+ *    versión → Implementar.
  * 4. La URL /exec no cambia. No hace falta tocar el Worker.
  */
 
@@ -40,6 +29,7 @@ var COLS = {
   cronologia_del_dia: 10, finde_y_gustos: 11, mente_y_pantallas: 12,
   emociones: 13, estado: 14, notas_peter: 15,
   id_plan: 16, plan_json: 17, decision: 18, borrador_texto: 19,
+  nombre_padre: 20, whatsapp_padre: 21,
 };
 
 function doPost(e) {
@@ -69,7 +59,9 @@ function doPost(e) {
       dx.senales_observables || "", dx.diagnosticos_y_atencion_medica || "",
       dx.cronologia_del_dia || "", dx.finde_y_gustos || "", dx.mente_y_pantallas || "",
       dx.emociones || "",
-      "pendiente", "", "", "", "", ""
+      "pendiente", "",       // estado, notas_peter
+      "", "", "", "",        // id_plan, plan_json, decision, borrador_texto
+      dx.nombre_padre || "", dx.whatsapp_padre || ""
     ]);
     SpreadsheetApp.flush();
     return respond({ ok: true, lastRow: sheet.getLastRow() });
