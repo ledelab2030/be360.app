@@ -137,29 +137,17 @@ async function handleLog(request, env, cors) {
     let sheetData = null;
     try { sheetData = JSON.parse(sheetText); } catch (e) { /* respuesta no-JSON (ej. HTML de error de Google) */ }
 
-    // DEBUG TEMPORAL — quitar después de resolver el misterio del Sheet que
-    // no recibía filas. Muestra a qué URL/secret le pegó, sin exponer el
-    // secret completo, y el body crudo que devolvió Google.
-    const _debug = {
-      esFormulario,
-      urlUsada_ultimos25: (webhookUrl || "").slice(-25),
-      secretLen: (webhookSecret || "").length,
-      httpStatus: sheetRes.status,
-      rawBody: sheetText.slice(0, 300),
-    };
-
     if (!sheetRes.ok || !sheetData || sheetData.ok !== true) {
       return new Response(JSON.stringify({
         ok: false,
         error: "No se pudo escribir en el Sheet",
         detalle: sheetData ? sheetData.error : sheetText.slice(0, 300),
-        _debug,
       }), {
         status: 502,
         headers: jsonHeaders,
       });
     }
-    return new Response(JSON.stringify({ ok: true, lastRow: sheetData.lastRow, _debug }), { status: 200, headers: jsonHeaders });
+    return new Response(JSON.stringify({ ok: true, lastRow: sheetData.lastRow }), { status: 200, headers: jsonHeaders });
   } catch (e) {
     return new Response(JSON.stringify({ ok: false, error: String(e) }), {
       status: 500,
