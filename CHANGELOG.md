@@ -18,7 +18,7 @@ Vita es el asistente de bienestar de Bienestar 360, con dos líneas de producto 
 
 **La regla que gobierna todo el sistema:** ningún padre recibe una recomendación generada por IA sin que Peter Álvarez (la autoridad clínica) la revise y apruebe primero. Esto se llama *Human-in-the-Loop* (HITL) y está implementado en el código, no solo en el proceso — el sistema está diseñado para que sea imposible saltárselo, no solo para que no se salte por buena voluntad.
 
-**Estado actual (6 ago 2026):** el ciclo completo — padre llena el formulario conversando con Vita → se genera un borrador de plan → queda en un panel de revisión (hoja de cálculo) → Peter aprueba o edita → se genera un link único con el plan aprobado, en un diseño visual con checklist de hábitos → ese link se le envía al padre — está construido y probado de punta a punta con un caso ficticio. Lo que falta para ser 100% real con familias reales está documentado en "Pendientes conocidos" al final.
+**Estado actual (6 ago 2026):** el ciclo completo está construido y **probado de punta a punta con un caso ficticio, con notificación automática incluida**: padre llena el formulario conversando con Vita (incluye su nombre y WhatsApp) → se genera un borrador de plan → queda en un panel de revisión (hoja de cálculo) → Peter aprueba o edita → **un correo automático le avisa al equipo con el link del plan y un link de WhatsApp ya armado para enviárselo al padre en un clic** → el padre abre su plan (diseño visual con checklist de hábitos) y puede escribirle a Vita desde ahí. Lo que falta para ser 100% real con familias reales está documentado en "Pendientes conocidos" al final — ya es mucho menos de lo que era.
 
 **Costo/infraestructura:** cero servidores propios. Todo corre sobre GitHub Pages (frontend), un Cloudflare Worker (proxy seguro a la API de Anthropic + lógica de negocio) y Google Sheets/Apps Script (persistencia y panel de revisión). Esto es deliberado: mantiene el costo marginal cercano a cero mientras se valida el modelo con las primeras familias, antes de invertir en infraestructura de producción.
 
@@ -92,6 +92,14 @@ No hay base de datos propia ni backend con estado — el Sheet **es** la base de
 - **Página nueva `plan/index.html`:** el padre ve su plan aprobado con el mismo diseño visual (tarjetas con checklist por hábito + barra de progreso) que se validó directamente con Peter Álvarez en sesión de trabajo. El estado de los checkboxes se guarda localmente en el navegador del padre (no en el servidor, en esta fase).
 - **Prueba end-to-end confirmada:** caso ficticio de Samuel — formulario → borrador generado (Prompt Maestro) → guardado en Sheet → bloqueado hasta aprobación (verificado con petición directa, respondió 404) → aprobado manualmente en el Sheet (simulando a Peter) → link del plan funcionando con los datos reales.
 
+### 6 ago 2026 — Captura de contacto + entrega automática por correo/WhatsApp
+
+- **`vita-demo-formulario`:** nueva área de captura al inicio (nombre del padre/madre + WhatsApp de contacto), antes de empezar con el hijo/a. Sin esto no se podía armar el link de entrega.
+- **Bug encontrado y corregido:** Google Sheets interpreta un valor que empieza con `+` (como un número de teléfono `+57 300...`) como el inicio de una fórmula, y la celda queda en `#ERROR!`. Corregido forzando formato de texto plano (`setNumberFormat("@")`) en esa columna antes de escribir el valor — tanto para lo que escribe el Worker como recomendación para cualquier edición manual.
+- **Trigger de aprobación (`onAprobado`):** instalado como trigger *instalable* (no simple trigger — los simple triggers de Apps Script no tienen permiso para mandar correo) sobre el evento "Al editar" del Sheet. Apenas alguien escribe `aprobado` en la columna `decision`, se dispara automáticamente un correo al equipo con: el link del plan y un link `wa.me` ya armado con el mensaje de entrega precargado para el WhatsApp del padre — un clic para enviar.
+- El botón "Escribirle a Vita" en `plan/index.html` pasó de ser texto suelto a un link real (`wa.me`) al número de contacto del equipo.
+- **Prueba end-to-end confirmada con notificación real:** aprobar el caso de Samuel en el Sheet disparó el correo automático; el link de WhatsApp generado abrió correctamente con el mensaje precargado; el padre (de prueba) recibió el link y pudo ver su plan.
+
 ---
 
 ## Medidas de seguridad y privacidad (para compliance/auditoría)
@@ -108,13 +116,14 @@ No hay base de datos propia ni backend con estado — el Sheet **es** la base de
 
 ## Pendientes conocidos (honestidad ante inversionistas/grants — esto NO está listo para producción real)
 
-1. **No hay captura de contacto del padre** (nombre, WhatsApp) en `vita-demo-formulario` todavía — sin esto no se puede armar el link de entrega automáticamente.
-2. **No existe un número de WhatsApp dedicado para Vita.** La entrega del link del plan, y cualquier conversación de seguimiento, es hoy 100% manual (una persona del equipo, no un bot).
-3. **La generación del borrador (Prompt Maestro) no está automatizada** — hoy la corre un desarrollador a mano por cada caso, no hay un pipeline que lo dispare solo cuando llega un formulario nuevo.
-4. **Google Sheets/Apps Script es una capa de persistencia de prototipo**, no una base de datos de producción — no tiene política formal de retención ni borrado de datos todavía.
-5. **Deuda técnica heredada:** el Worker no bloquea peticiones sin header `Origin` (ej. `curl` directo) — solo bloquea orígenes de navegador incorrectos. No es una vulnerabilidad crítica hoy (no hay datos sensibles expuestos por esta vía), pero falta rate limiting real antes de tráfico masivo.
-6. **Alineación clínica incompleta:** quedan puntos abiertos con Peter sobre nivel de detalle del plan y fraseo de algunas preguntas (relajación/emociones) — ver `CONTEXT.md` del sprint para el detalle vivo.
-7. **Sin pruebas de carga ni análisis de costo a escala** — validado con casos ficticios, no con volumen real. El costo por interacción (API de Anthropic + eventual WhatsApp Business API) está pendiente de verificar contra el modelo de negocio (compromiso pendiente de Leonardo con Peter, sesión 5 ago).
+1. ~~No hay captura de contacto del padre~~ **Resuelto 6 ago:** `vita-demo-formulario` captura nombre y WhatsApp del padre/madre al inicio de la conversación.
+2. ~~No existe un número de WhatsApp dedicado para Vita~~ **Resuelto 6 ago (provisional):** se usa `+372 81282920`, monitoreado a mano por el equipo (no es un bot todavía — ver punto 3). La entrega del plan al padre sigue siendo manual (un clic en un link pre-armado, no automática).
+3. **El "chatear con Vita" sigue siendo una persona, no un bot.** Cuando el padre escribe al número de Vita, alguien del equipo responde en su tono manualmente. Esto es intencional en esta fase (Mago de Oz), no un bug — automatizarlo es trabajo futuro, no antes del piloto.
+4. **La generación del borrador (Prompt Maestro) no está automatizada** — hoy la corre un desarrollador a mano por cada caso, no hay un pipeline que lo dispare solo cuando llega un formulario nuevo.
+5. **Google Sheets/Apps Script es una capa de persistencia de prototipo**, no una base de datos de producción — no tiene política formal de retención ni borrado de datos todavía.
+6. **Deuda técnica heredada:** el Worker no bloquea peticiones sin header `Origin` (ej. `curl` directo) — solo bloquea orígenes de navegador incorrectos. No es una vulnerabilidad crítica hoy (no hay datos sensibles expuestos por esta vía), pero falta rate limiting real antes de tráfico masivo.
+7. **Alineación clínica incompleta:** quedan puntos abiertos con Peter sobre nivel de detalle del plan y fraseo de algunas preguntas (relajación/emociones) — ver `CONTEXT.md` del sprint para el detalle vivo.
+8. **Sin pruebas de carga ni análisis de costo a escala** — validado con casos ficticios, no con volumen real. El costo por interacción (API de Anthropic + eventual WhatsApp Business API) está pendiente de verificar contra el modelo de negocio (compromiso pendiente de Leonardo con Peter, sesión 5 ago).
 
 ---
 
