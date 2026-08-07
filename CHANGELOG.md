@@ -100,6 +100,13 @@ No hay base de datos propia ni backend con estado — el Sheet **es** la base de
 - El botón "Escribirle a Vita" en `plan/index.html` pasó de ser texto suelto a un link real (`wa.me`) al número de contacto del equipo.
 - **Prueba end-to-end confirmada con notificación real:** aprobar el caso de Samuel en el Sheet disparó el correo automático; el link de WhatsApp generado abrió correctamente con el mensaje precargado; el padre (de prueba) recibió el link y pudo ver su plan.
 
+### 7 ago 2026 — Generación automática del borrador (cierra el último pendiente del ciclo)
+
+- El Worker ahora genera el borrador **solo**, en segundo plano (`ctx.waitUntil`, el padre no espera), justo después de guardar el formulario capturado — ya no requiere que un desarrollador corra el Prompt Maestro a mano por cada caso.
+- Se embebió una versión condensada del Prompt Maestro (`design-sprint/src/prompts/srb_draft_generator.txt` del repo del sprint) directo en el Worker, adaptada para responder JSON estricto (parseable) en vez del formato "Parte A/B" en texto libre — necesario para que el sistema pueda guardarse el borrador solo, sin un humano interpretando el resultado.
+- **Diseño a prueba de fallos:** si Claude no devuelve JSON válido, o la llamada falla, la fila simplemente se queda en `pendiente` — el sistema no se rompe, y sigue siendo posible generar el borrador a mano como respaldo (`POST /guardar-borrador`, sin cambios).
+- Con esto, **los 3 pasos que antes requerían intervención humana en el camino crítico del ciclo quedan en 1**: la única acción humana obligatoria que queda es la aprobación de Peter (por diseño — es la regla dura que no se automatiza) y el clic para enviar el WhatsApp final (por decisión, mientras no haya WhatsApp Business API).
+
 ---
 
 ## Medidas de seguridad y privacidad (para compliance/auditoría)
@@ -119,7 +126,7 @@ No hay base de datos propia ni backend con estado — el Sheet **es** la base de
 1. ~~No hay captura de contacto del padre~~ **Resuelto 6 ago:** `vita-demo-formulario` captura nombre y WhatsApp del padre/madre al inicio de la conversación.
 2. ~~No existe un número de WhatsApp dedicado para Vita~~ **Resuelto 6 ago (provisional):** se usa `+372 81282920`, monitoreado a mano por el equipo (no es un bot todavía — ver punto 3). La entrega del plan al padre sigue siendo manual (un clic en un link pre-armado, no automática).
 3. **El "chatear con Vita" sigue siendo una persona, no un bot.** Cuando el padre escribe al número de Vita, alguien del equipo responde en su tono manualmente. Esto es intencional en esta fase (Mago de Oz), no un bug — automatizarlo es trabajo futuro, no antes del piloto.
-4. **La generación del borrador (Prompt Maestro) no está automatizada** — hoy la corre un desarrollador a mano por cada caso, no hay un pipeline que lo dispare solo cuando llega un formulario nuevo.
+4. ~~La generación del borrador no está automatizada~~ **Resuelto 7 ago:** el Worker genera el borrador solo (Claude + Prompt Maestro embebido) apenas se guarda el formulario, en segundo plano — el padre no espera, y un desarrollador ya no tiene que correrlo a mano.
 5. **Google Sheets/Apps Script es una capa de persistencia de prototipo**, no una base de datos de producción — no tiene política formal de retención ni borrado de datos todavía.
 6. **Deuda técnica heredada:** el Worker no bloquea peticiones sin header `Origin` (ej. `curl` directo) — solo bloquea orígenes de navegador incorrectos. No es una vulnerabilidad crítica hoy (no hay datos sensibles expuestos por esta vía), pero falta rate limiting real antes de tráfico masivo.
 7. **Alineación clínica incompleta:** quedan puntos abiertos con Peter sobre nivel de detalle del plan y fraseo de algunas preguntas (relajación/emociones) — ver `CONTEXT.md` del sprint para el detalle vivo.

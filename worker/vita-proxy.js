@@ -29,6 +29,16 @@
 //                              expone un borrador sin aprobar.
 // Usan el mismo env.SHEET_WEBHOOK_URL_FORMULARIO / SHEET_WEBHOOK_SECRET_FORMULARIO.
 //
+// NUEVO (generación automática del borrador, 7 ago 2026) — solo producto
+// "formulario". Apenas /log guarda la fila capturada, se dispara EN
+// SEGUNDO PLANO (ctx.waitUntil, el padre no espera) una llamada a Claude
+// con el Prompt Maestro embebido (SRB_DRAFT_PROMPT) para generar el
+// borrador, y se guarda solo automáticamente vía la misma acción
+// "guardar_borrador" del Apps Script — ya no hace falta que un
+// desarrollador lo corra a mano. Si algo falla (JSON mal formado, etc.),
+// la fila se queda en "pendiente" tal cual antes — no rompe nada, solo no
+// se adelanta el trabajo.
+//
 // Todo lo demás de este archivo es EXACTO al código en producción
 // (verificado vía Cloudflare API el 5 ago 2026) — no se tocó nada
 // del proxy a Anthropic, incluida la deuda técnica conocida (no
@@ -38,7 +48,7 @@
 const ALLOWED_ORIGIN = "https://be360.app";
 
 export default {
-  async fetch(request, env) {
+  async fetch(request, env, ctx) {
     const url = new URL(request.url);
 
     // /plan es de lectura pública (el padre lo abre desde WhatsApp, no
@@ -73,7 +83,7 @@ export default {
 
     // NUEVO: ruta de logging para HITL capture-only.
     if (url.pathname === "/log") {
-      return handleLog(request, env, cors);
+      return handleLog(request, env, cors, ctx);
     }
 
     // NUEVO: guardar el borrador generado (Prompt Maestro) en la fila del Sheet.
@@ -115,11 +125,12 @@ export default {
 
 // HITL capture-only: nunca deja pasar un "microcambio" no vacío hacia el
 // Sheet, aunque el prompt del demo fallara — blindaje server-side.
-async function handleLog(request, env, cors) {
+async function handleLog(request, env, cors, ctx) {
   const jsonHeaders = { ...cors, "Content-Type": "application/json" };
   try {
     const body = await request.json();
     const { mode, dx, ts, producto } = body || {};
+    const tsFinal = ts || new Date().toISOString();
 
     if (!dx || typeof dx !== "object") {
       return new Response(JSON.stringify({ ok: false, error: "dx faltante" }), {
@@ -150,7 +161,7 @@ async function handleLog(request, env, cors) {
         secret: webhookSecret || "",
         mode: mode || "",
         dx: safeDx,
-        ts: ts || new Date().toISOString(),
+        ts: tsFinal,
       }),
     });
 
@@ -171,12 +182,115 @@ async function handleLog(request, env, cors) {
         headers: jsonHeaders,
       });
     }
+    // Dispara la generación automática del borrador EN SEGUNDO PLANO — el
+    // padre ya recibió su "ok:true" y sigue con lo suyo, no espera a Claude.
+    if (esFormulario && ctx && typeof ctx.waitUntil === "function") {
+      ctx.waitUntil(generarBorradorAutomatico(dx, tsFinal, env));
+    }
+
     return new Response(JSON.stringify({ ok: true, lastRow: sheetData.lastRow }), { status: 200, headers: jsonHeaders });
   } catch (e) {
     return new Response(JSON.stringify({ ok: false, error: String(e) }), {
       status: 500,
       headers: jsonHeaders,
     });
+  }
+}
+
+// ============================================================
+// PROMPT MAESTRO embebido — versión condensada de
+// design-sprint/src/prompts/srb_draft_generator.txt (repo del sprint),
+// adaptada para responder JSON estricto (no texto libre con "Parte A/B"),
+// para poder guardarse sola sin intervención humana. Si algún día se edita
+// el Prompt Maestro del sprint, replicar el cambio aquí también.
+// ============================================================
+const SRB_DRAFT_PROMPT = `Eres el generador de borradores de plan de hábitos de be360, a partir del
+Formulario de Hábitos que llenó un padre/madre sobre su hijo/a (2 a 20 años). Tu borrador NO
+llega directo a la familia — lo revisa Peter Álvarez (autoridad clínica) antes de aprobarlo.
+
+FUENTE ÚNICA — reglas duras, nunca las cruces:
+- PROHIBIDO SIEMPRE: ayuno intermitente o ventanas de ingesta restrictivas, restricción agresiva
+  de carbohidratos, dietas cetogénicas/carnívoras, déficit calórico agresivo. "No comer de noche"
+  se enmarca como higiene de sueño/hígado — NUNCA como ayuno, nunca uses esa palabra.
+- PESO: nunca es un objetivo salvo que el padre lo plantee explícitamente o venga de un
+  diagnóstico médico ya recibido. Nunca hables de "dieta" ni imagen corporal.
+- ALIMENTACIÓN: carbohidratos complejos SIN TRIGO (yuca, papa, ahuyama, ñame, plátano) — arroz
+  permitido (excepción cultural). Trigo y lácteo de herbívoro (leche/queso/yogur de vaca o
+  cabra — NUNCA las bebidas vegetales tipo "leche" de almendra/avena/soya, esas NO son lácteo):
+  se REDUCEN, nunca se eliminan de golpe salvo que el formulario reporte una intolerancia o
+  indicación puntual.
+- HIDRATACIÓN: si hace falta sugerirlo, suero casero SIEMPRE empezando en 2 g/L — nunca sugieras
+  una concentración mayor directamente.
+- SUEÑO, PANTALLAS Y MOVIMIENTO: siempre seguros de recomendar si el formulario muestra la señal.
+- Si el formulario muestra señales de posible trastorno de conducta alimentaria, salud mental
+  grave o algo médico agudo: NO des un paso concreto en esa área — en su lugar, ese hábito debe
+  decir que el equipo lo va a conversar directamente, sin detalle clínico.
+- Nunca inventes nada fuera de esto. Elige 2 a 4 hábitos, los de mayor impacto — no una lista
+  exhaustiva de todo lo capturado.
+
+TONO del mensaje (voz de Vita, estilo WhatsApp): tuteo, cero emojis, cálido, sin culpa, dirigido
+SIEMPRE al padre/madre (nunca al niño/a). Abre reconociendo algo que ya hacen bien. Cierra
+invitando a elegir por dónde empezar — nunca lo presentes como orden fija. Nunca menciones IA,
+tecnología, "ayuno", "dieta" ni imagen corporal.
+
+Recibirás el formulario capturado en JSON. RESPONDE ÚNICAMENTE con este JSON — sin texto antes ni
+después, sin bloque de código markdown, sin explicación:
+{"mensaje":"<el mensaje completo dirigido al padre: intro cálida + 2-3 frases de contexto + 'TE
+DEJO EL MAPA' + los mismos hábitos enumerados dentro del texto + cierre invitando a elegir>",
+"habitos":[{"titulo":"<3 a 5 palabras>","texto":"<1 a 2 frases, accionable, en el mismo tono>"}]}
+Entre 2 y 4 objetos en "habitos". El campo "mensaje" y la lista "habitos" deben ser consistentes
+entre sí — son la misma información en dos formatos (uno para el texto corrido, otro para mostrar
+como checklist en una página aparte).`;
+
+// Genera el borrador automáticamente (Claude + Prompt Maestro embebido) y lo
+// guarda solo, vía la misma acción "guardar_borrador" del Apps Script. Corre
+// en segundo plano (ctx.waitUntil) — si falla por lo que sea, no revienta
+// nada: la fila simplemente se queda en "pendiente" para revisión manual,
+// igual que se comportaba el sistema antes de esta automatización.
+async function generarBorradorAutomatico(dx, ts, env) {
+  try {
+    if (!env.SHEET_WEBHOOK_URL_FORMULARIO) return;
+
+    const upstream = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-api-key": env.ANTHROPIC_API_KEY,
+        "anthropic-version": "2023-06-01",
+      },
+      body: JSON.stringify({
+        model: "claude-sonnet-4-6",
+        max_tokens: 2000,
+        system: SRB_DRAFT_PROMPT,
+        messages: [{ role: "user", content: "Formulario capturado (JSON):\n" + JSON.stringify(dx) }],
+      }),
+    });
+
+    const data = await upstream.json();
+    const text = (data.content || []).filter(b => b.type === "text").map(b => b.text).join("\n");
+
+    let parsed = null;
+    try { parsed = JSON.parse(text); }
+    catch (e) {
+      const m = text.match(/\{[\s\S]*\}/); // por si el modelo mete texto extra alrededor
+      if (m) { try { parsed = JSON.parse(m[0]); } catch (e2) {} }
+    }
+    if (!parsed || !parsed.mensaje) return; // no se pudo generar limpio — se queda "pendiente"
+
+    await fetch(env.SHEET_WEBHOOK_URL_FORMULARIO, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        secret: env.SHEET_WEBHOOK_SECRET_FORMULARIO || "",
+        action: "guardar_borrador",
+        ts,
+        mensaje: parsed.mensaje,
+        plan: { habitos: Array.isArray(parsed.habitos) ? parsed.habitos : [] },
+      }),
+    });
+  } catch (e) {
+    // Silencioso a propósito: un fallo aquí no debe afectar al padre (ya
+    // recibió su confirmación) ni tumbar el Worker. Queda "pendiente".
   }
 }
 
