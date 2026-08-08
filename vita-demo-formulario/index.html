@@ -221,7 +221,7 @@ function App(){
     <Shell><div style={{flex:1,display:"flex",flexDirection:"column",justifyContent:"center",alignItems:"center",padding:"32px 26px",textAlign:"center"}}>
       <div style={{fontSize:52,marginBottom:14}}>🌱</div>
       <div style={{fontFamily:"'Fraunces',serif",fontSize:25,color:P.sageDeep,lineHeight:1.2,marginBottom:14}}>Listo, ya quedó registrado</div>
-      <p style={{fontSize:15,color:P.ink,lineHeight:1.6,maxWidth:360,marginBottom:10}}>La información de tu hijo/a queda en manos del equipo. La revisamos y preparamos el primer paso — te contactamos pronto.</p>
+      <p style={{fontSize:15,color:P.ink,lineHeight:1.6,maxWidth:360,marginBottom:10}}>La información de {dx.nombre_nino?dx.nombre_nino:"tu hijo/a"} queda en manos del equipo. La revisamos y preparamos el primer paso — te contactamos pronto.</p>
       <p style={{fontSize:13,color:P.muted,lineHeight:1.6,maxWidth:340}}>Esto acompaña y suma con su pediatra — no lo reemplaza.</p>
     </div></Shell>
   );
