@@ -220,12 +220,15 @@ function App() {
   }
 
   if (stage === "no_disponible") {
+    const waNum = "37281282920";
+    const waMsg = encodeURIComponent("Hola, quería preguntar por el plan de mi hijo/a.");
     return (
       <Shell>
         <div style={{textAlign:"center", padding:"40px 20px"}}>
           <div style={{fontSize:44, marginBottom:14}}>🌱</div>
           <div style={{fontFamily:"'Fraunces',serif", fontSize:22, color:P.sageDeep, marginBottom:10}}>Todavía no está listo</div>
-          <p style={{fontSize:14, color:P.muted, lineHeight:1.6}}>Este plan aún está en revisión, o el link no es válido. Si crees que es un error, escríbenos por WhatsApp.</p>
+          <p style={{fontSize:14, color:P.muted, lineHeight:1.6, marginBottom:22}}>Este plan aún está en revisión, o el link no es válido. Si crees que es un error, escríbenos.</p>
+          <a href={"https://wa.me/"+waNum+"?text="+waMsg} target="_blank" rel="noopener noreferrer" style={{display:"inline-flex", alignItems:"center", justifyContent:"center", gap:8, background:P.sage, color:"#fff", fontWeight:800, fontSize:14.5, borderRadius:999, padding:"13px 24px", textDecoration:"none", boxShadow:"0 10px 24px rgba(90,122,92,.30)"}}>Escribirnos por WhatsApp</a>
         </div>
       </Shell>
     );
