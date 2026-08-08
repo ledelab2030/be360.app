@@ -46,7 +46,7 @@ const BASE = `Eres Vita, acompañante de bienestar de Bienestar 360.
 - SOLO capturas información sobre el hijo o hija de la persona con la que hablas, para el Formulario de Hábitos. NUNCA diagnosticas, NUNCA prescribes, NUNCA das ni sugieres una recomendación — ni una sola, ni de pasada, ni si te la piden directamente.
 - Hablas SIEMPRE con el padre o la madre. El niño o adolescente nunca es tu interlocutor y nunca recibe indicaciones de ti.
 - Rango de edad del hijo/a: 2 a 20 años.
-- Todo lo que captures lo revisa Peter Álvarez (autoridad clínica) antes de que a la familia le llegue cualquier cosa. Tú nunca eres la última palabra.
+- Todo lo que captures lo revisa el equipo clínico antes de que a la familia le llegue cualquier cosa. Tú nunca eres la última palabra. Cuando le cuentes esto al padre/madre di siempre "el equipo" — nunca el nombre de Peter, salvo que te pregunten directamente quién está detrás (ver protocolo de seguridad).
 
 # TONO (de la guía de voz de Vita — seguirla al pie de la letra)
 - Trato: tuteo, cercano.
@@ -75,11 +75,11 @@ Recorre las áreas en este orden, 1-2 preguntas por mensaje, en tono de conversa
 9. EMOCIONES: qué emociones observa con alguna frecuencia en su hijo/a (da algunos ejemplos: alegría, ira o rabietas, ansiedad, frustración) — igual, si el padre prefiere describirlo como comportamiento ("se pone de mal genio") en vez de nombrar una emoción, está perfecto, anota eso.
 
 # CIERRE (CAPTURE-ONLY)
-Cuando ya cubriste las áreas, cierra con calidez: agradece, resume en 1-2 frases lo que entendiste del día de su hijo/a (sin evaluar, sin consejos), y explica que esa información queda registrada para que Peter la revise y el equipo prepare el primer paso — que le van a escribir. NUNCA propongas ni insinúes una recomendación o próximo paso, en ningún momento. Invita a tocar el botón «Enviar a revisión» para mandar la información.
+Cuando ya cubriste las áreas, cierra con calidez: agradece, resume en 1-2 frases lo que entendiste del día de su hijo/a (sin evaluar, sin consejos), y explica que esa información queda registrada para que el equipo la revise y prepare el primer paso — que le van a escribir. NUNCA propongas ni insinúes una recomendación o próximo paso, en ningún momento. Invita a tocar el botón «Enviar a revisión» para mandar la información.
 
 # PROTOCOLO DE SEGURIDAD (PRIORITARIO SOBRE TODO LO DEMÁS)
 - Si el padre pregunta algo puntual tipo "¿debería quitarle el pan?" o "¿está bien que tome gaseosa?": responde con calidez que eso lo revisa el equipo junto con el resto de la información, y sigue con la siguiente pregunta del recorrido. NUNCA respondas la pregunta con un consejo, ni aquí ni en el cierre.
-- Ante señales de posible trastorno de conducta alimentaria (bajo peso, restricción, atracones, miedo a engordar), salud mental (tristeza profunda, ansiedad intensa, mención de hacerse daño) o urgencia médica (dolor agudo, fiebre alta, pérdida de peso brusca): no sigas con el recorrido normal en esa área. Valida con calidez ("gracias por contarme, eso es importante") y dile que lo va a poner en manos de Peter con prioridad. Anótalo en la señal correspondiente y sigue con el resto del recorrido donde sí sea seguro.
+- Ante señales de posible trastorno de conducta alimentaria (bajo peso, restricción, atracones, miedo a engordar), salud mental (tristeza profunda, ansiedad intensa, mención de hacerse daño) o urgencia médica (dolor agudo, fiebre alta, pérdida de peso brusca): no sigas con el recorrido normal en esa área. Valida con calidez ("gracias por contarme, eso es importante") y dile que lo va a poner en manos del equipo con prioridad. Anótalo en la señal correspondiente y sigue con el resto del recorrido donde sí sea seguro.
 - Si preguntan quién está detrás: "Bienestar 360 lo lidera Peter Álvarez, con un equipo de bienestar." Nada de tecnología ni proveedores.
 - Si el peso surge en la conversación, nunca lo trates como un objetivo a bajar ni hables de "dieta" o imagen corporal — solo anótalo como dato si el padre lo menciona espontáneamente.
 
@@ -210,8 +210,8 @@ function App(){
     <Shell><div style={{flex:1,display:"flex",flexDirection:"column",justifyContent:"center",alignItems:"center",padding:"32px 26px",textAlign:"center"}}>
       <div style={{fontSize:52,marginBottom:14}}>🌱</div>
       <div style={{fontFamily:"'Fraunces',serif",fontSize:27,color:P.sageDeep,lineHeight:1.15,marginBottom:14}}>Hola, soy Vita</div>
-      <p style={{fontSize:15,color:P.ink,lineHeight:1.6,maxWidth:360,marginBottom:8}}>Cuéntame del día a día de tu hijo o hija — cómo come, duerme y se mueve. Es una conversación, no un formulario largo.</p>
-      <p style={{fontSize:13.5,color:P.muted,lineHeight:1.6,maxWidth:360,marginBottom:24}}>Al final, tu información queda registrada para que Peter la revise y preparemos el primer paso.</p>
+      <p style={{fontSize:15,color:P.ink,lineHeight:1.6,maxWidth:360,marginBottom:8}}>Cuéntame del día a día de tu hijo o hija — cómo come, duerme y se mueve.</p>
+      <p style={{fontSize:13.5,color:P.muted,lineHeight:1.6,maxWidth:360,marginBottom:24}}>Al final, tu información queda registrada para que la revisemos y preparemos el primer paso.</p>
       <button onClick={()=>setStage("intro")} style={btnPrimary}>Comenzar →</button>
       <p style={{fontSize:11.5,color:P.muted,marginTop:22,maxWidth:320}}>Esto acompaña y suma con su pediatra — no lo reemplaza.</p>
     </div></Shell>
@@ -221,7 +221,7 @@ function App(){
     <Shell><div style={{flex:1,display:"flex",flexDirection:"column",justifyContent:"center",alignItems:"center",padding:"32px 26px",textAlign:"center"}}>
       <div style={{fontSize:52,marginBottom:14}}>🌱</div>
       <div style={{fontFamily:"'Fraunces',serif",fontSize:25,color:P.sageDeep,lineHeight:1.2,marginBottom:14}}>Listo, ya quedó registrado</div>
-      <p style={{fontSize:15,color:P.ink,lineHeight:1.6,maxWidth:360,marginBottom:10}}>La información de tu hijo/a queda en manos del equipo. Peter la revisa y preparamos el primer paso — te contactamos pronto.</p>
+      <p style={{fontSize:15,color:P.ink,lineHeight:1.6,maxWidth:360,marginBottom:10}}>La información de tu hijo/a queda en manos del equipo. La revisamos y preparamos el primer paso — te contactamos pronto.</p>
       <p style={{fontSize:13,color:P.muted,lineHeight:1.6,maxWidth:340}}>Esto acompaña y suma con su pediatra — no lo reemplaza.</p>
     </div></Shell>
   );
@@ -233,8 +233,8 @@ function App(){
       <p style={{fontSize:14.5,color:P.ink,lineHeight:1.65,marginBottom:14}}>La atención, el ánimo y la energía de un niño se apoyan mucho en los hábitos del hogar: lo que come y bebe, a qué hora, cuánto se mueve y cómo duerme. Tú eres el puente.</p>
       <div style={{background:P.sageSoft,borderRadius:16,padding:"16px",marginBottom:18}}>
         <div style={{display:"flex",gap:11,marginBottom:12}}><div style={{fontSize:18,flexShrink:0}}>🕊️</div><div style={{fontSize:13.5,color:P.ink,lineHeight:1.5}}>Reconstruimos un día normal de tu hijo/a, desde que despierta hasta que se duerme. Con calma, sin juzgar.</div></div>
-        <div style={{display:"flex",gap:11,marginBottom:12}}><div style={{fontSize:18,flexShrink:0}}>💬</div><div style={{fontSize:13.5,color:P.ink,lineHeight:1.5}}>Es una conversación, no un formulario. Toma unos 5-10 minutos.</div></div>
-        <div style={{display:"flex",gap:11}}><div style={{fontSize:18,flexShrink:0}}>🌿</div><div style={{fontSize:13.5,color:P.ink,lineHeight:1.5}}>Al final, tu información queda registrada — Peter la revisa y el equipo te contacta con el primer paso.</div></div>
+        <div style={{display:"flex",gap:11,marginBottom:12}}><div style={{fontSize:18,flexShrink:0}}>💬</div><div style={{fontSize:13.5,color:P.ink,lineHeight:1.5}}>Es una conversación tranquila, sin afán — puede tomar entre 20 y 30 minutos.</div></div>
+        <div style={{display:"flex",gap:11}}><div style={{fontSize:18,flexShrink:0}}>🌿</div><div style={{fontSize:13.5,color:P.ink,lineHeight:1.5}}>Al final, tu información queda registrada — la revisamos y te contactamos con el primer paso.</div></div>
       </div>
       <button onClick={start} style={{...btnPrimary,alignSelf:"center"}}>Empezar la conversación →</button>
     </div></Shell>
