@@ -49,6 +49,20 @@ const MODEL = "claude-sonnet-4-6";
 // /escalar; esta captura no. Se cierra esa brecha reusando el mismo
 // mecanismo — ver PROTOCOLO DE SEGURIDAD en el prompt y processReply() más
 // abajo. Encontrado simulando un caso de riesgo con un padre de prueba.
+// Verificado en vivo que el modelo NO ponía el marcador de forma confiable
+// (respondía bien EN EL TEXTO pero se le olvidaba el <escalar>) — por eso
+// además hay una red de respaldo determinística (detectarRiesgoTextual) que
+// no depende de que el modelo lo recuerde.
+//
+// NUEVO (8 ago 2026): modo formulario directo (stage "form"). Alternativa NO
+// conversacional a este mismo chat, para el padre que prefiera llenar los
+// mismos campos de una — o porque a Peter le preocupa que cambiar de método
+// de captura cambie la calidad/fidelidad clínica de los datos frente a su
+// experiencia. Mismos campos (FIELDS), mismo <dx>, mismo /log — el único
+// cambio es CÓMO se recorren, no QUÉ se pregunta. Como este camino no pasa
+// por el modelo, no tiene el chequeo de seguridad por turno del chat: por
+// eso sendToReview() corre detectarRiesgoTextual() sobre TODO dx antes de
+// enviar, cubriendo ambos caminos por igual.
 // ============================================================
 const BASE = `Eres Vita, acompañante de bienestar de Bienestar 360.
 
@@ -127,21 +141,27 @@ const detectarRiesgoTextual=(text)=>{
   return null;
 };
 
+// El "hint" es la guía corta que en el chat hace Vita con preguntas — aquí
+// va como ayuda debajo de cada campo, para que el modo formulario capture
+// EXACTAMENTE la misma sustancia clínica que el modo conversacional (mismos
+// campos, mismas señales a cubrir), solo que en un formato distinto. Esto es
+// a propósito: la metodología de Peter no debe cambiar según el camino que
+// elija el padre, solo la manera de recorrerla.
 const FIELDS = [
   { key:"nombre_padre", label:"Nombre del padre/madre" },
-  { key:"email_padre", label:"Correo de contacto" },
+  { key:"email_padre", label:"Correo de contacto", hint:"Para enviarte el plan cuando esté listo." },
   { key:"nombre_nino", label:"Nombre del hijo/a" },
-  { key:"edad", label:"Edad" },
-  { key:"que_deseas_lograr", label:"Qué desea lograr el padre" },
-  { key:"preocupacion_principal", label:"Preocupación principal" },
-  { key:"origen", label:"Origen (parto · lactancia)" },
-  { key:"sueno_y_movimiento", label:"Sueño y movimiento" },
-  { key:"senales_observables", label:"Señales observadas" },
-  { key:"diagnosticos_y_atencion_medica", label:"Diagnósticos y atención médica" },
-  { key:"cronologia_del_dia", label:"Cronología del día" },
-  { key:"finde_y_gustos", label:"Fin de semana y gustos" },
-  { key:"mente_y_pantallas", label:"Mente y pantallas" },
-  { key:"emociones", label:"Emociones" },
+  { key:"edad", label:"Edad", hint:"Entre 2 y 20 años." },
+  { key:"que_deseas_lograr", label:"Qué desea lograr el padre", hint:"¿Qué te gustaría lograr con el programa para tu hijo/a?" },
+  { key:"preocupacion_principal", label:"Preocupación principal", hint:"¿Qué es lo que MÁS te preocupa hoy de tu hijo/a?" },
+  { key:"origen", label:"Origen (parto · lactancia)", hint:"Parto natural o cesárea, y cuánto tiempo tomó leche materna (o si no tomó)." },
+  { key:"sueno_y_movimiento", label:"Sueño y movimiento", hint:"A qué hora se duerme y se levanta, cómo despierta, si se despierta en la noche, qué actividad física hace, si algo le duele al moverse." },
+  { key:"senales_observables", label:"Señales observadas", hint:"Dolor o ardor de estómago, dolores de cabeza, gases, estreñimiento, ansiedad, fatiga, dificultad para concentrarse, sueño inquieto, piel irritada, infecciones frecuentes — lo que aplique." },
+  { key:"diagnosticos_y_atencion_medica", label:"Diagnósticos y atención médica", hint:"Diagnósticos ya dados por un médico, medicación o tratamiento, especialistas que lo atienden." },
+  { key:"cronologia_del_dia", label:"Cronología del día", hint:"Un día típico con horas: qué come y bebe al levantarse, desayuno, media mañana, almuerzo, media tarde, cena, antes de dormir. Si varía el fin de semana." },
+  { key:"finde_y_gustos", label:"Fin de semana y gustos", hint:"Qué suele comer los fines de semana, si algo le cae mal, qué alimentos le gustan y valdría la pena conservar." },
+  { key:"mente_y_pantallas", label:"Mente y pantallas", hint:"Tipo de contenido y horas de pantalla al día, si las usa antes de dormir, si practica algo de relajación o respiración." },
+  { key:"emociones", label:"Emociones", hint:"Emociones que observas con frecuencia (alegría, rabietas, ansiedad, frustración) — vale describirlo como comportamiento." },
 ];
 const AREA_TOTAL = FIELDS.length;
 const P = { bg:"#ECE5D8", panel:"#FBF8F1", ink:"#2C2A24", sage:"#5A7A5C", sageDeep:"#3E5A40", sageSoft:"#DCE7D6", user:"#C9DDB8", clay:"#B5764A", line:"#D8CFBE", muted:"#8A8473" };
@@ -262,6 +282,13 @@ function App(){
   const sendToReview=async()=>{
     if(sending) return;
     setSending(true); setSendError(null);
+    // Última red de respaldo antes de enviar: escanea TODO lo capturado —
+    // por chat o por el modo formulario directo, que no pasa por el modelo
+    // en absoluto y por eso no tiene ningún otro chequeo de riesgo. Dedupe
+    // por motivo para no mandar varios correos iguales.
+    const motivosEncontrados=new Set();
+    for(const k of Object.keys(dx)){ const m=detectarRiesgoTextual(dx[k]); if(m) motivosEncontrados.add(m); }
+    motivosEncontrados.forEach(m=>notificarEscalar(m, dx.preocupacion_principal||dx.senales_observables||""));
     try{
       const res=await fetch(WORKER_URL+"/log",{ method:"POST", headers:{"Content-Type":"application/json"},
         body:JSON.stringify({ producto:"formulario", mode:MODE, dx, ts:new Date().toISOString() }) });
@@ -284,7 +311,29 @@ function App(){
       <p style={{fontSize:15,color:P.ink,lineHeight:1.6,maxWidth:360,marginBottom:8}}>Cuéntame del día a día de tu hijo o hija — cómo come, duerme y se mueve.</p>
       <p style={{fontSize:13.5,color:P.muted,lineHeight:1.6,maxWidth:360,marginBottom:24}}>Al final, tu información queda registrada para que la revisemos y preparemos el primer paso.</p>
       <button onClick={()=>setStage("intro")} style={btnPrimary}>Comenzar →</button>
-      <p style={{fontSize:11.5,color:P.muted,marginTop:22,maxWidth:320}}>Esto acompaña y suma con su pediatra — no lo reemplaza.</p>
+      <button onClick={()=>setStage("form")} style={{background:"none",border:"none",color:P.sageDeep,fontSize:12.5,fontWeight:700,marginTop:16,cursor:"pointer",textDecoration:"underline",fontFamily:"'Nunito',sans-serif"}}>Prefiero llenar el formulario directo →</button>
+      <p style={{fontSize:11.5,color:P.muted,marginTop:18,maxWidth:320}}>Esto acompaña y suma con su pediatra — no lo reemplaza.</p>
+    </div></Shell>
+  );
+
+  if(stage==="form") return (
+    <Shell><div className="rise scroll" style={{flex:1,overflowY:"auto",padding:"26px 22px 18px",display:"flex",flexDirection:"column",gap:16}}>
+      <div style={{textAlign:"center",marginBottom:2}}>
+        <div style={{fontSize:36,marginBottom:8}}>🌱</div>
+        <div style={{fontFamily:"'Fraunces',serif",fontSize:21,color:P.sageDeep,marginBottom:6}}>Formulario de Hábitos</div>
+        <p style={{fontSize:12.5,color:P.muted,lineHeight:1.5,maxWidth:340,margin:"0 auto"}}>Llena lo que sepas — no hace falta que sea perfecto ni completo, el equipo lo revisa igual. Si prefieres, también puedes <span onClick={()=>setStage("intro")} style={{color:P.sageDeep,fontWeight:700,textDecoration:"underline",cursor:"pointer"}}>conversar con Vita</span> en vez de esto.</p>
+      </div>
+      {FIELDS.map(f=>(
+        <div key={f.key} style={{display:"flex",flexDirection:"column",gap:5}}>
+          <label style={{fontSize:13,fontWeight:800,color:P.sageDeep}}>{f.label}</label>
+          {f.hint && <div style={{fontSize:11.5,color:P.muted,lineHeight:1.4}}>{f.hint}</div>}
+          <textarea value={dx[f.key]} onChange={e=>setDx(prev=>({...prev,[f.key]:e.target.value}))} rows={f.key==="cronologia_del_dia"?4:(f.key==="nombre_padre"||f.key==="email_padre"||f.key==="nombre_nino"||f.key==="edad"?1:2)} style={{border:"1px solid "+P.line,borderRadius:12,padding:"9px 11px",fontSize:13.5,fontFamily:"'Nunito',sans-serif",background:"#fff",color:P.ink,outline:"none",resize:"vertical"}}/>
+        </div>
+      ))}
+      <button onClick={sendToReview} disabled={filled<MIN_ENVIAR||sending} style={{...btnPrimary,alignSelf:"center",marginTop:6,opacity:(filled<MIN_ENVIAR||sending)?.55:1,cursor:(filled<MIN_ENVIAR||sending)?"default":"pointer"}}>{sending?"Enviando…":"Enviar a revisión →"}</button>
+      {filled<MIN_ENVIAR && <p style={{fontSize:11.5,color:P.muted,textAlign:"center"}}>Llena al menos {MIN_ENVIAR} campos para poder enviar.</p>}
+      {sendError && <p style={{fontSize:12.5,color:P.clay,textAlign:"center"}}>{sendError}</p>}
+      <p style={{fontSize:11,color:P.muted,textAlign:"center",lineHeight:1.5,marginTop:2}}>Esto acompaña y suma con su pediatra — no lo reemplaza.</p>
     </div></Shell>
   );
 
