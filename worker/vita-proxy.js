@@ -39,6 +39,18 @@
 // la fila se queda en "pendiente" tal cual antes — no rompe nada, solo no
 // se adelanta el trabajo.
 //
+// NUEVO (chat de seguimiento, 7 ago 2026) — el botón "Escribirle a Vita" en
+// plan/index.html ya no abre WhatsApp a un número monitoreado a mano: abre un
+// chat real (mismo patrón que vita-demo-formulario) con la voz de
+// acompañamiento de Vita. Usa el endpoint raíz "/" de siempre para el chat.
+// Cuando el padre dice algo que requiere escalar a Peter (urgencia clínica,
+// duda sobre el plan, pide hablar con una persona), el modelo lo marca y el
+// frontend llama a:
+//   POST /escalar — reenvía un correo al equipo con el mensaje del padre y
+//                    el motivo. Reusa el mismo Sheet/Apps Script (acción
+//                    "notificar_escalamiento") — sin esto, una señal de
+//                    riesgo real quedaría flotando sin que nadie la vea.
+//
 // Todo lo demás de este archivo es EXACTO al código en producción
 // (verificado vía Cloudflare API el 5 ago 2026) — no se tocó nada
 // del proxy a Anthropic, incluida la deuda técnica conocida (no
@@ -89,6 +101,11 @@ export default {
     // NUEVO: guardar el borrador generado (Prompt Maestro) en la fila del Sheet.
     if (url.pathname === "/guardar-borrador") {
       return handleGuardarBorrador(request, env, cors);
+    }
+
+    // NUEVO: escalar una señal del chat de seguimiento a un humano por correo.
+    if (url.pathname === "/escalar") {
+      return handleEscalar(request, env, cors);
     }
 
     try {
@@ -377,6 +394,46 @@ async function handlePlan(url, env) {
       return new Response(JSON.stringify({ ok: false, error: "no disponible" }), { status: 404, headers: jsonHeaders });
     }
     return new Response(JSON.stringify(sheetData), { status: 200, headers: jsonHeaders });
+  } catch (e) {
+    return new Response(JSON.stringify({ ok: false, error: String(e) }), { status: 500, headers: jsonHeaders });
+  }
+}
+
+// Reenvía una señal del chat de seguimiento (urgencia, duda sobre el plan,
+// pide hablar con una persona) a un correo real del equipo, vía el mismo
+// Apps Script (acción "notificar_escalamiento"). Sin esto, el chat podría
+// "decir" que lo va a escalar sin que nadie del equipo se entere de verdad.
+async function handleEscalar(request, env, cors) {
+  const jsonHeaders = { ...cors, "Content-Type": "application/json" };
+  try {
+    const body = await request.json();
+    const { idPlan, nombreNino, motivo, mensajePadre } = body || {};
+
+    if (!env.SHEET_WEBHOOK_URL_FORMULARIO) {
+      return new Response(JSON.stringify({ ok: false, error: "SHEET_WEBHOOK_URL_FORMULARIO no configurado" }), { status: 500, headers: jsonHeaders });
+    }
+
+    const sheetRes = await fetch(env.SHEET_WEBHOOK_URL_FORMULARIO, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        secret: env.SHEET_WEBHOOK_SECRET_FORMULARIO || "",
+        action: "notificar_escalamiento",
+        idPlan: idPlan || "",
+        nombreNino: nombreNino || "",
+        motivo: motivo || "sin especificar",
+        mensajePadre: mensajePadre || "",
+      }),
+    });
+
+    const sheetText = await sheetRes.text();
+    let sheetData = null;
+    try { sheetData = JSON.parse(sheetText); } catch (e) {}
+
+    if (!sheetRes.ok || !sheetData || sheetData.ok !== true) {
+      return new Response(JSON.stringify({ ok: false, error: "no se pudo notificar" }), { status: 502, headers: jsonHeaders });
+    }
+    return new Response(JSON.stringify({ ok: true }), { status: 200, headers: jsonHeaders });
   } catch (e) {
     return new Response(JSON.stringify({ ok: false, error: String(e) }), { status: 500, headers: jsonHeaders });
   }
