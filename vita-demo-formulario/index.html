@@ -39,6 +39,16 @@ const MODEL = "claude-sonnet-4-6";
 // prescribe. El plan lo arma después el Prompt Maestro
 // (design-sprint/src/prompts/srb_draft_generator.txt), revisado por
 // Peter en su panel, fuera de este chat.
+//
+// NUEVO (8 ago 2026): escalamiento en vivo. Antes, una señal de riesgo real
+// (posible trastorno alimentario, salud mental grave, urgencia médica) que
+// aparecía durante ESTA captura —el primer contacto, antes de que exista
+// cualquier plan— solo quedaba como texto en el Sheet: nadie se enteraba
+// hasta que Peter abriera esa fila por su cuenta. plan/index.html (el chat
+// de seguimiento, post-aprobación) ya tenía un aviso real por correo vía
+// /escalar; esta captura no. Se cierra esa brecha reusando el mismo
+// mecanismo — ver PROTOCOLO DE SEGURIDAD en el prompt y processReply() más
+// abajo. Encontrado simulando un caso de riesgo con un padre de prueba.
 // ============================================================
 const BASE = `Eres Vita, acompañante de bienestar de Bienestar 360.
 
@@ -78,17 +88,25 @@ Recorre las áreas en este orden, 1-2 preguntas por mensaje, en tono de conversa
 Cuando ya cubriste las áreas, cierra con calidez: agradece, resume en 1-2 frases lo que entendiste del día de su hijo/a (sin evaluar, sin consejos), y explica que esa información queda registrada para que el equipo la revise y prepare el primer paso — que le van a escribir. NUNCA propongas ni insinúes una recomendación o próximo paso, en ningún momento. Invita a tocar el botón «Enviar a revisión» para mandar la información.
 
 # PROTOCOLO DE SEGURIDAD (PRIORITARIO SOBRE TODO LO DEMÁS)
-- Si el padre pregunta algo puntual tipo "¿debería quitarle el pan?" o "¿está bien que tome gaseosa?": responde con calidez que eso lo revisa el equipo junto con el resto de la información, y sigue con la siguiente pregunta del recorrido. NUNCA respondas la pregunta con un consejo, ni aquí ni en el cierre.
-- Ante señales de posible trastorno de conducta alimentaria (bajo peso, restricción, atracones, miedo a engordar), salud mental (tristeza profunda, ansiedad intensa, mención de hacerse daño) o urgencia médica (dolor agudo, fiebre alta, pérdida de peso brusca): no sigas con el recorrido normal en esa área. Valida con calidez ("gracias por contarme, eso es importante") y dile que lo va a poner en manos del equipo con prioridad. Anótalo en la señal correspondiente y sigue con el resto del recorrido donde sí sea seguro.
-- Si preguntan quién está detrás: "Bienestar 360 lo lidera Peter Álvarez, con un equipo de bienestar." Nada de tecnología ni proveedores.
+- Si el padre pregunta algo puntual tipo "¿debería quitarle el pan?" o "¿está bien que tome gaseosa?": responde con calidez que eso lo revisa el equipo junto con el resto de la información, y sigue con la siguiente pregunta del recorrido. NUNCA respondas la pregunta con un consejo, ni aquí ni en el cierre — tampoco si insisten pidiendo "algo general" en vez de algo específico: eso también es un consejo, no cede.
+- Ante señales de posible trastorno de conducta alimentaria (bajo peso, restricción, atracones, miedo a engordar), salud mental (tristeza profunda, ansiedad intensa, mención de hacerse daño) o urgencia médica (dolor agudo, fiebre alta, pérdida de peso brusca): no sigas con el recorrido normal en esa área. Valida con calidez ("gracias por contarme, eso es importante"), dile que lo va a poner en manos del equipo con prioridad, y si suena a algo que no puede esperar dile con claridad que busque un médico o especialista de confianza hoy mismo. Anótalo en la señal correspondiente, agrega el marcador de escalamiento (ver abajo), y sigue con el resto del recorrido donde sí sea seguro.
+- Si preguntan quién está detrás: "Bienestar 360 lo lidera Peter Álvarez, con un equipo de bienestar." Nada de tecnología ni proveedores. Si preguntan directo si eres una persona real, una IA o un robot: sé honesta, nunca lo niegues ni lo evadas — dile que eres una acompañante virtual, no una persona, sin usar las palabras "inteligencia artificial" ni "tecnología".
 - Si el peso surge en la conversación, nunca lo trates como un objetivo a bajar ni hables de "dieta" o imagen corporal — solo anótalo como dato si el padre lo menciona espontáneamente.
 
+# MARCADOR DE ESCALAMIENTO (aparte del bloque <dx> de abajo)
+Cuando actives el protocolo de seguridad de arriba por un riesgo real (no por una simple pregunta de "¿le doy X?"), agrega TAMBIÉN, en su propia línea, uno de estos marcadores invisibles — nunca lo menciones ni lo expliques al padre, es solo para el sistema:
+<escalar>riesgo_alimentario</escalar> — posible trastorno de conducta alimentaria
+<escalar>riesgo_salud_mental</escalar> — señales de salud mental grave
+<escalar>urgencia_medica</escalar> — urgencia médica aguda
+Para todo lo demás (incluida una pregunta puntual sobre qué darle de comer), NO agregues ningún marcador de escalamiento — eso no es una señal de riesgo, es solo un padre preguntando.
+
 # FORMATO DE SALIDA (CRÍTICO)
-Responde SIEMPRE en dos partes:
+Responde SIEMPRE en dos o tres partes:
 1. Tu mensaje conversacional normal (según las reglas de tono de arriba).
 2. Al final, en una línea aparte, un bloque oculto con lo capturado hasta ahora, exactamente así:
 <dx>{"nombre_padre":"","email_padre":"","nombre_nino":"","edad":"","que_deseas_lograr":"","preocupacion_principal":"","origen":"","sueno_y_movimiento":"","senales_observables":"","diagnosticos_y_atencion_medica":"","cronologia_del_dia":"","finde_y_gustos":"","mente_y_pantallas":"","emociones":""}</dx>
-Rellena solo lo que ya sepas; deja "" lo que falte. "email_padre" es el correo tal cual lo dieron — no lo inventes ni lo completes, anota lo que haya aunque parezca incompleto. "cronologia_del_dia" incluye TODA la cronología con horas + qué come/bebe en cada momento + hidratación, como un relato corrido. Valores breves, frases cortas. El bloque <dx> NUNCA se muestra, es solo para el sistema — no lo menciones ni lo describas.`;
+Rellena solo lo que ya sepas; deja "" lo que falte. "email_padre" es el correo tal cual lo dieron — no lo inventes ni lo completes, anota lo que haya aunque parezca incompleto. "cronologia_del_dia" incluye TODA la cronología con horas + qué come/bebe en cada momento + hidratación, como un relato corrido. Valores breves, frases cortas. El bloque <dx> NUNCA se muestra, es solo para el sistema — no lo menciones ni lo describas.
+3. SOLO si activaste el protocolo de seguridad, el marcador <escalar>...</escalar> de arriba, en su propia línea, después del bloque <dx>.`;
 
 const FIELDS = [
   { key:"nombre_padre", label:"Nombre del padre/madre" },
@@ -149,6 +167,32 @@ function App(){
     return clean;
   };
 
+  // Detecta el marcador <escalar>motivo</escalar> (ver PROTOCOLO DE SEGURIDAD
+  // del prompt) y lo oculta del texto que ve el padre — mismo patrón que
+  // plan/index.html. Antes de esto, una señal de riesgo real durante la
+  // CAPTURA (a diferencia del chat de seguimiento post-aprobación) quedaba
+  // solo como texto en el Sheet, sin avisarle a nadie en el momento.
+  const parseEscalar=(text)=>{
+    const m=text.match(/<escalar>([\s\S]*?)<\/escalar>/);
+    const clean=text.replace(/<escalar>[\s\S]*?<\/escalar>/g,"").trim();
+    return { clean, motivo: m ? m[1].trim() : null };
+  };
+
+  // Notifica una señal real al equipo — sin bloquear el chat si falla.
+  const notificarEscalar=(motivo, mensajePadre)=>{
+    fetch(WORKER_URL+"/escalar",{ method:"POST", headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({ nombreNino:dx.nombre_nino||"", motivo, mensajePadre:mensajePadre||"" }) }).catch(()=>{});
+  };
+
+  // Une el parseo del <dx> con el del <escalar>: primero saca el marcador de
+  // escalamiento (y dispara el aviso real si aplica), luego el <dx>.
+  const processReply=(raw, mensajePadre)=>{
+    const { clean:sinEscalar, motivo } = parseEscalar(raw);
+    const clean = parseDx(sinEscalar);
+    if(motivo) notificarEscalar(motivo, mensajePadre);
+    return clean;
+  };
+
   const callVita=async(msgs)=>{
     const ctrl=new AbortController();
     const timer=setTimeout(()=>ctrl.abort(),45000);
@@ -163,14 +207,14 @@ function App(){
   const start=async()=>{
     setStage("chat"); setLoading(true); setError(null);
     const opener = "[Un padre/madre abrió el chat para contarte sobre su hijo/a, para el Formulario de Hábitos. Salúdalo, preséntate breve y haz la primera pregunta del área 1 (nombre y edad del hijo/a).]";
-    try{ const raw=await callVita([{role:"user",content:opener}]); setMessages([{role:"assistant",content:parseDx(raw)}]); }
+    try{ const raw=await callVita([{role:"user",content:opener}]); setMessages([{role:"assistant",content:processReply(raw,"(inicio de conversación)")}]); }
     catch(e){ setError("No se pudo conectar. Reintenta."); } finally{ setLoading(false); }
   };
 
   const send=async(text)=>{
     const content=(text??input).trim(); if(!content||loading) return;
     setError(null); const next=[...messages,{role:"user",content}]; setMessages(next); setInput(""); setLoading(true);
-    try{ const raw=await callVita(next); setMessages(m=>[...m,{role:"assistant",content:parseDx(raw)}]); }
+    try{ const raw=await callVita(next); setMessages(m=>[...m,{role:"assistant",content:processReply(raw,content)}]); }
     catch(e){ setError("No se pudo conectar. Reintenta."); } finally{ setLoading(false); }
   };
 
@@ -179,8 +223,10 @@ function App(){
     setError(null);
     if(messages.length===0){ start(); return; }
     setLoading(true);
+    const last=messages[messages.length-1];
+    const lastUser=last&&last.role==="user"?last.content:"";
     callVita(messages)
-      .then(raw=>setMessages(m=>[...m,{role:"assistant",content:parseDx(raw)}]))
+      .then(raw=>setMessages(m=>[...m,{role:"assistant",content:processReply(raw,lastUser)}]))
       .catch(()=>setError("No se pudo conectar. Reintenta."))
       .finally(()=>setLoading(false));
   };
