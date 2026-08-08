@@ -51,10 +51,10 @@
 //                    "notificar_escalamiento") — sin esto, una señal de
 //                    riesgo real quedaría flotando sin que nadie la vea.
 //
-// Todo lo demás de este archivo es EXACTO al código en producción
-// (verificado vía Cloudflare API el 5 ago 2026) — no se tocó nada
-// del proxy a Anthropic, incluida la deuda técnica conocida (no
-// bloquea peticiones sin header Origin).
+// NUEVO (8 ago 2026): la deuda técnica de "no bloquea peticiones sin header
+// Origin" quedó cerrada — ver el chequeo de origen más abajo. Sigue faltando
+// rate limiting real (límite de peticiones por IP/tiempo), eso sí requiere
+// estado (Cloudflare KV o similar) y no está construido todavía.
 // ============================================================
 
 const ALLOWED_ORIGIN = "https://be360.app";
@@ -84,9 +84,16 @@ export default {
       return new Response("Method not allowed", { status: 405, headers: cors });
     }
 
-    // Bloquea orígenes que no sean be360.app
+    // Bloquea orígenes que no sean be360.app. FIX 8 ago 2026 (cerraba la
+    // deuda técnica heredada): antes solo bloqueaba si el header Origin
+    // estaba presente y era distinto — un curl sin ese header pasaba
+    // derecho. Ahora exige el header exacto, así que curl/scripts directos
+    // ya no pueden gastar créditos de Claude ni spamear /escalar. Un
+    // navegador real SIEMPRE manda Origin en estas peticiones cross-origin
+    // (be360.app -> vita-proxy.workers.dev), así que esto no afecta uso
+    // legítimo.
     const origin = request.headers.get("Origin");
-    if (origin && origin !== ALLOWED_ORIGIN) {
+    if (origin !== ALLOWED_ORIGIN) {
       return new Response(JSON.stringify({ error: "Forbidden origin" }), {
         status: 403,
         headers: { ...cors, "Content-Type": "application/json" },
