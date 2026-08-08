@@ -1,23 +1,30 @@
 /**
- * Apps Script v3 — Sheet "vita-demo-formulario". Reemplaza el código anterior
+ * Apps Script v4 — Sheet "vita-demo-formulario". Reemplaza el código anterior
  * de ESTE Sheet (el de srb3 no cambia).
  *
- * QUÉ AGREGA sobre la v2:
- *   - 2 columnas nuevas AL FINAL: nombre_padre | whatsapp_padre — para poder
- *     armar el link de entrega del plan por WhatsApp. Se agregan al final a
- *     propósito, para no correr las columnas ya usadas por filas existentes
- *     (id_plan, plan_json, decision, borrador_texto).
+ * QUÉ CAMBIA sobre la v3 (decisión de Leonardo, 8 ago 2026):
+ *   - La columna "whatsapp_padre" pasa a ser "email_padre" — ya no se pide
+ *     el WhatsApp del padre/madre al capturar. Motivo: pedirlo obliga a
+ *     tratar WhatsApp como canal (controles, restricciones y costos de la
+ *     API de Meta) que hoy no hace falta — con correo alcanza para
+ *     entregar el plan.
+ *   - onAprobado ya NO arma un link de WhatsApp para que alguien del equipo
+ *     lo mande a mano: manda el correo con el link del plan DIRECTO al
+ *     padre/madre, automáticamente, apenas Peter pone "aprobado". Era el
+ *     último paso manual que quedaba en el ciclo — con esto se cierra.
  *
- * CAMBIO EN LOS ENCABEZADOS — agrega estas 2 columnas al final de la fila 1
- * de tu Sheet (después de borrador_texto):
- *   nombre_padre | whatsapp_padre
+ * CAMBIO EN LOS ENCABEZADOS DE TU SHEET — renombra la última columna, de
+ * "whatsapp_padre" a "email_padre" (misma columna, cambia lo que guarda:
+ * antes un número, ahora un correo).
  *
  * Pasos para instalar (reemplaza TODO el contenido de Code.gs):
  * 1. Pega este archivo completo.
  * 2. SHARED_SECRET debe ser el MISMO valor que ya tenías.
- * 3. Implementar → Administrar implementaciones → editar (lápiz) → Nueva
+ * 3. Renombra el encabezado de la columna "whatsapp_padre" a "email_padre"
+ *    en la fila 1 del Sheet.
+ * 4. Implementar → Administrar implementaciones → editar (lápiz) → Nueva
  *    versión → Implementar.
- * 4. La URL /exec no cambia. No hace falta tocar el Worker.
+ * 5. La URL /exec no cambia. No hace falta tocar el Worker.
  */
 
 var SHARED_SECRET = "3-estoesparaquevitarenazcabajolasreglasduras";
@@ -29,7 +36,7 @@ var COLS = {
   cronologia_del_dia: 10, finde_y_gustos: 11, mente_y_pantallas: 12,
   emociones: 13, estado: 14, notas_peter: 15,
   id_plan: 16, plan_json: 17, decision: 18, borrador_texto: 19,
-  nombre_padre: 20, whatsapp_padre: 21,
+  nombre_padre: 20, email_padre: 21,
 };
 
 function doPost(e) {
@@ -65,13 +72,9 @@ function doPost(e) {
       dx.emociones || "",
       "pendiente", "",       // estado, notas_peter
       "", "", "", "",        // id_plan, plan_json, decision, borrador_texto
-      dx.nombre_padre || "", ""  // whatsapp_padre se escribe aparte, forzado a texto
+      dx.nombre_padre || "", dx.email_padre || ""
     ]);
     var lastRow = sheet.getLastRow();
-    // OJO: un número con "+" al inicio (ej. "+57 300...") Sheets lo intenta leer
-    // como fórmula si la celda no está forzada a texto plano. Se fuerza formato
-    // "@" (texto) ANTES de poner el valor, para que no se rompa.
-    sheet.getRange(lastRow, COLS.whatsapp_padre + 1).setNumberFormat("@").setValue(dx.whatsapp_padre || "");
     SpreadsheetApp.flush();
     return respond({ ok: true, lastRow: lastRow });
   } catch (err) {
@@ -182,7 +185,7 @@ function onAprobado(e) {
 
     var nombreNino = rowValues[COLS.nombre_nino] || "";
     var nombrePadre = rowValues[COLS.nombre_padre] || "";
-    var whatsappPadre = String(rowValues[COLS.whatsapp_padre] || "").replace(/[^\d]/g, "");
+    var emailPadre = String(rowValues[COLS.email_padre] || "").trim();
     var idPlan = rowValues[COLS.id_plan] || "";
 
     if (!idPlan) {
@@ -195,18 +198,37 @@ function onAprobado(e) {
     }
 
     var planUrl = "https://be360.app/plan/?id=" + idPlan;
-    var mensajeWa = "Hola" + (nombrePadre ? " " + nombrePadre : "") + ", aquí está el plan de " + (nombreNino || "tu hijo/a") + ": " + planUrl;
-    var waLink = whatsappPadre
-      ? ("https://wa.me/" + whatsappPadre + "?text=" + encodeURIComponent(mensajeWa))
-      : "(falta el WhatsApp del padre en el Sheet — agrégalo en la columna whatsapp_padre)";
 
+    if (!emailPadre) {
+      // Sin correo no hay a quién enviarle — avisa al equipo para que lo
+      // resuelva a mano en vez de fallar en silencio.
+      MailApp.sendEmail({
+        to: "leonardo@ledelab.group",
+        subject: "⚠️ Falta el correo del padre — " + (nombreNino || "sin nombre"),
+        body: "Se aprobó el plan de " + (nombreNino || "(sin nombre)") + " pero la columna email_padre está vacía, así que no se pudo enviar automáticamente.\n\nLink del plan (envíalo tú manualmente): " + planUrl,
+      });
+      return;
+    }
+
+    // Envío automático y directo al padre/madre — ya no requiere que alguien
+    // del equipo haga clic para mandarlo. Último paso manual del ciclo que
+    // quedaba (antes era "un clic para WhatsApp"); con esto se cierra.
+    MailApp.sendEmail({
+      to: emailPadre,
+      name: "Bienestar 360",
+      subject: "El plan de " + (nombreNino || "tu hijo/a") + " ya está listo",
+      body:
+        "Hola" + (nombrePadre ? " " + nombrePadre : "") + ",\n\n" +
+        "Ya está listo el plan de " + (nombreNino || "tu hijo/a") + ". Puedes verlo aquí:\n" +
+        planUrl + "\n\n" +
+        "— El equipo de Bienestar 360",
+    });
+
+    // Copia de cortesía al equipo — solo para tener registro de que salió.
     MailApp.sendEmail({
       to: "leonardo@ledelab.group",
-      subject: "✅ Plan aprobado — " + (nombreNino || "sin nombre"),
-      body:
-        "Se aprobó el plan de " + (nombreNino || "(sin nombre)") + ".\n\n" +
-        "Link del plan: " + planUrl + "\n\n" +
-        "Link listo para enviar por WhatsApp (un clic):\n" + waLink,
+      subject: "✅ Plan enviado automáticamente — " + (nombreNino || "sin nombre"),
+      body: "Se envió el plan de " + (nombreNino || "(sin nombre)") + " directo a " + emailPadre + ".\n\nLink: " + planUrl,
     });
   } catch (err) {
     // No relanzar: un error aquí no debe romper la edición del Sheet.
