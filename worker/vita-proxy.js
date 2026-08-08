@@ -24,7 +24,8 @@
 //                              Maestro) en la fila identificada por "ts",
 //                              genera un id_plan aleatorio.
 //   GET  /plan?id=...       — lectura PÚBLICA (sin CORS de origen, la abre
-//                              el padre desde WhatsApp) del plan, SOLO si
+//                              el padre desde el link que le llega por
+//                              correo) del plan, SOLO si
 //                              decision="aprobado" en esa fila. Nunca
 //                              expone un borrador sin aprobar.
 // Usan el mismo env.SHEET_WEBHOOK_URL_FORMULARIO / SHEET_WEBHOOK_SECRET_FORMULARIO.
@@ -55,6 +56,16 @@
 // Origin" quedó cerrada — ver el chequeo de origen más abajo. Sigue faltando
 // rate limiting real (límite de peticiones por IP/tiempo), eso sí requiere
 // estado (Cloudflare KV o similar) y no está construido todavía.
+//
+// NUEVO (8 ago 2026, decisión de Leonardo): se deja de pedir WhatsApp al
+// padre/madre en la captura — evita depender de WhatsApp como canal
+// (controles, restricciones y costos de la API de Meta) mientras no haga
+// falta. En su lugar se pide correo, y la entrega del plan aprobado
+// (onAprobado en el Apps Script) pasa de "armar un link de WhatsApp para
+// que alguien del equipo lo mande a mano" a mandar el correo con el link
+// del plan DIRECTO al padre/madre, automáticamente. Este Worker no cambia
+// nada aquí (el campo va opaco dentro de "dx") — el cambio real está en
+// vita-demo-formulario/index.html y worker/apps-script-formulario-v2.gs.txt.
 // ============================================================
 
 const ALLOWED_ORIGIN = "https://be360.app";
@@ -63,8 +74,9 @@ export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
 
-    // /plan es de lectura pública (el padre lo abre desde WhatsApp, no
-    // desde be360.app) — sin restricción de Origin, CORS abierto a todos.
+    // /plan es de lectura pública (el padre lo abre desde el link que le
+    // llega por correo, no desde be360.app) — sin restricción de Origin,
+    // CORS abierto a todos.
     if (url.pathname === "/plan") {
       return handlePlan(url, env);
     }
@@ -372,10 +384,10 @@ async function handleGuardarBorrador(request, env, cors) {
   }
 }
 
-// Lectura PÚBLICA del plan aprobado — la abre el padre desde un link de
-// WhatsApp, no desde be360.app, así que no restringimos por Origin. Solo
-// devuelve algo si decision="aprobado" en el Sheet — nunca expone un
-// borrador pendiente de revisión.
+// Lectura PÚBLICA del plan aprobado — la abre el padre desde un link que
+// le llega por correo, no desde be360.app, así que no restringimos por
+// Origin. Solo devuelve algo si decision="aprobado" en el Sheet — nunca
+// expone un borrador pendiente de revisión.
 async function handlePlan(url, env) {
   const openCors = {
     "Access-Control-Allow-Origin": "*",

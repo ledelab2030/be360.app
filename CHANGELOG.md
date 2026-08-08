@@ -18,7 +18,7 @@ Vita es el asistente de bienestar de Bienestar 360, con dos líneas de producto 
 
 **La regla que gobierna todo el sistema:** ningún padre recibe una recomendación generada por IA sin que Peter Álvarez (la autoridad clínica) la revise y apruebe primero. Esto se llama *Human-in-the-Loop* (HITL) y está implementado en el código, no solo en el proceso — el sistema está diseñado para que sea imposible saltárselo, no solo para que no se salte por buena voluntad.
 
-**Estado actual (6 ago 2026):** el ciclo completo está construido y **probado de punta a punta con un caso ficticio, con notificación automática incluida**: padre llena el formulario conversando con Vita (incluye su nombre y WhatsApp) → se genera un borrador de plan → queda en un panel de revisión (hoja de cálculo) → Peter aprueba o edita → **un correo automático le avisa al equipo con el link del plan y un link de WhatsApp ya armado para enviárselo al padre en un clic** → el padre abre su plan (diseño visual con checklist de hábitos) y puede escribirle a Vita desde ahí. Lo que falta para ser 100% real con familias reales está documentado en "Pendientes conocidos" al final — ya es mucho menos de lo que era.
+**Estado actual (8 ago 2026):** el ciclo completo está construido y **probado de punta a punta con un caso ficticio, 100% automático de principio a fin**: padre llena el formulario conversando con Vita (incluye su nombre y correo) → se genera un borrador de plan → queda en un panel de revisión (hoja de cálculo) → Peter aprueba o edita → **un correo automático le llega DIRECTO al padre/madre con el link de su plan, sin que nadie del equipo tenga que enviarlo a mano** → el padre abre su plan (diseño visual con checklist de hábitos) y puede escribirle a Vita desde ahí. Se decidió no pedir WhatsApp del padre por ahora (evita depender de WhatsApp como canal — controles, restricciones y costos de la API de Meta — mientras no haga falta). Lo que falta para ser 100% real con familias reales está documentado en "Pendientes conocidos" al final — ya es mucho menos de lo que era.
 
 **Costo/infraestructura:** cero servidores propios. Todo corre sobre GitHub Pages (frontend), un Cloudflare Worker (proxy seguro a la API de Anthropic + lógica de negocio) y Google Sheets/Apps Script (persistencia y panel de revisión). Esto es deliberado: mantiene el costo marginal cercano a cero mientras se valida el modelo con las primeras familias, antes de invertir en infraestructura de producción.
 
@@ -46,7 +46,7 @@ Worker genera un link único (/plan?id=...)
 plan/index.html (GitHub Pages)
     │  el padre ve su plan: checklist de hábitos + progreso
     ▼
-[pendiente] entrega del link por WhatsApp — hoy es manual
+Correo automático directo al padre/madre con el link — sin clic humano
 ```
 
 No hay base de datos propia ni backend con estado — el Sheet **es** la base de datos y el panel de revisión, a propósito, para no invertir en infraestructura antes de validar el producto.
@@ -114,6 +114,13 @@ No hay base de datos propia ni backend con estado — el Sheet **es** la base de
 - **Escalamiento real, no solo "el bot lo dice":** cuando el modelo detecta una urgencia clínica, una duda sobre el plan que no debe resolver, o que el padre pide hablar con una persona, marca un identificador invisible en su respuesta; el frontend lo detecta y llama a un nuevo endpoint `POST /escalar`, que reenvía un correo real al equipo (acción `notificar_escalamiento` en el Apps Script). Sin este paso, una señal de riesgo real podría quedar flotando en un chat sin que nadie del equipo se enterara — se decidió construirlo antes de considerar el ciclo completo.
 - **Probado end-to-end:** conversación de seguimiento con el caso de Valeria reconoció correctamente los hábitos específicos de su plan (no genéricos) y mantuvo el tono correcto; prueba directa de `/escalar` confirmó que el correo de escalamiento llega de verdad.
 
+### 8 ago 2026 — Se deja de pedir WhatsApp; entrega del plan 100% automática por correo (decisión de Leonardo)
+
+- **Decisión:** no pedirle el WhatsApp al padre/madre por ahora. Tratar WhatsApp como canal de entrega implica controles, restricciones y costos de la API de Meta que no hacen falta todavía — con correo alcanza para lo que el sprint necesita, y `plan/index.html` ya tiene su propio chat de seguimiento (no depende de WhatsApp para nada desde el 7 ago).
+- **`vita-demo-formulario`:** la captura de contacto pide correo en vez de WhatsApp (`email_padre` reemplaza a `whatsapp_padre` en el schema, el prompt y el Sheet).
+- **`onAprobado` (Apps Script) ya no arma un link de WhatsApp para que alguien del equipo lo mande a mano:** manda el correo con el link del plan DIRECTO al padre/madre, automáticamente, apenas Peter pone `aprobado`. Esto cierra el último paso manual que quedaba en el camino crítico del ciclo (antes: "un clic humano para WhatsApp"; ahora: nada).
+- El número de WhatsApp de Vita (`+372 81282920`) se mantiene solo como canal de contacto de respaldo (ej. si alguien abre un link de plan que todavía no está aprobado) — no como parte del flujo de entrega.
+
 ---
 
 ## Medidas de seguridad y privacidad (para compliance/auditoría)
@@ -130,14 +137,14 @@ No hay base de datos propia ni backend con estado — el Sheet **es** la base de
 
 ## Pendientes conocidos (honestidad ante inversionistas/grants — esto NO está listo para producción real)
 
-1. ~~No hay captura de contacto del padre~~ **Resuelto 6 ago:** `vita-demo-formulario` captura nombre y WhatsApp del padre/madre al inicio de la conversación.
-2. ~~No existe un número de WhatsApp dedicado para Vita~~ **Resuelto 6 ago (provisional):** se usa `+372 81282920`, monitoreado a mano por el equipo (no es un bot todavía — ver punto 3). La entrega del plan al padre sigue siendo manual (un clic en un link pre-armado, no automática).
-3. ~~El "chatear con Vita" sigue siendo una persona~~ **Resuelto 7 ago:** "Escribirle a Vita" ahora abre un chat de seguimiento real (bot, no persona), con el contexto del plan aprobado de cada niño/a y escalamiento real a correo cuando hace falta un humano. Lo que sigue siendo manual (por decisión, no por límite técnico) es que la entrega inicial del plan pasa por WhatsApp con un clic humano — el WhatsApp Business API para automatizar eso de punta a punta sigue sin construirse.
+1. ~~No hay captura de contacto del padre~~ **Resuelto 6 ago, actualizado 8 ago:** `vita-demo-formulario` captura nombre y correo del padre/madre al inicio de la conversación (antes era WhatsApp — ver punto 2).
+2. ~~No existe un número de WhatsApp dedicado para Vita~~ **Resuelto 6 ago, superado 8 ago:** se decidió no pedir WhatsApp al padre por ahora (evita depender de esa API de Meta mientras no haga falta). El número `+372 81282920` se mantiene solo como contacto de respaldo, no como parte del flujo. La entrega del plan ahora es por correo, automática (ver punto 3).
+3. ~~El "chatear con Vita" sigue siendo una persona~~ **Resuelto 7 ago, entrega automatizada 8 ago:** "Escribirle a Vita" abre un chat de seguimiento real (bot, no persona). La entrega inicial del plan, que hasta el 7 ago requería un clic humano para WhatsApp, ahora es **automática por correo** — `onAprobado` le escribe directo al padre/madre apenas Peter aprueba. Ya no queda ningún paso manual en el camino crítico del ciclo, salvo la aprobación misma de Peter (por diseño).
 4. ~~La generación del borrador no está automatizada~~ **Resuelto 7 ago:** el Worker genera el borrador solo (Claude + Prompt Maestro embebido) apenas se guarda el formulario, en segundo plano — el padre no espera, y un desarrollador ya no tiene que correrlo a mano.
 5. **Google Sheets/Apps Script es una capa de persistencia de prototipo**, no una base de datos de producción — no tiene política formal de retención ni borrado de datos todavía.
 6. ~~El Worker no bloquea peticiones sin header Origin~~ **Resuelto 8 ago:** ahora exige el header `Origin` exacto (`be360.app`) en vez de solo rechazar los incorrectos — un `curl` directo ya no puede gastar créditos de Claude ni spamear `/escalar`. Sigue faltando **rate limiting real** (límite de peticiones por IP/tiempo) — eso necesita estado (Cloudflare KV o similar), no está construido.
 7. **Alineación clínica incompleta:** quedan puntos abiertos con Peter sobre nivel de detalle del plan y fraseo de algunas preguntas (relajación/emociones) — ver `CONTEXT.md` del sprint para el detalle vivo.
-8. **Sin pruebas de carga ni análisis de costo a escala** — validado con casos ficticios, no con volumen real. El costo por interacción (API de Anthropic + eventual WhatsApp Business API) está pendiente de verificar contra el modelo de negocio (compromiso pendiente de Leonardo con Peter, sesión 5 ago).
+8. **Sin pruebas de carga ni análisis de costo a escala** — validado con casos ficticios, no con volumen real. El costo por interacción (API de Anthropic + envío de correo, que no tiene costo marginal vía Apps Script) está pendiente de verificar contra el modelo de negocio (compromiso pendiente de Leonardo con Peter, sesión 5 ago).
 
 ---
 
