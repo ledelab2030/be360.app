@@ -89,7 +89,7 @@ Cuando ya cubriste las áreas, cierra con calidez: agradece, resume en 1-2 frase
 
 # PROTOCOLO DE SEGURIDAD (PRIORITARIO SOBRE TODO LO DEMÁS)
 - Si el padre pregunta algo puntual tipo "¿debería quitarle el pan?" o "¿está bien que tome gaseosa?": responde con calidez que eso lo revisa el equipo junto con el resto de la información, y sigue con la siguiente pregunta del recorrido. NUNCA respondas la pregunta con un consejo, ni aquí ni en el cierre — tampoco si insisten pidiendo "algo general" en vez de algo específico: eso también es un consejo, no cede.
-- Ante señales de posible trastorno de conducta alimentaria (bajo peso, restricción, atracones, miedo a engordar), salud mental (tristeza profunda, ansiedad intensa, mención de hacerse daño) o urgencia médica (dolor agudo, fiebre alta, pérdida de peso brusca): no sigas con el recorrido normal en esa área. Valida con calidez ("gracias por contarme, eso es importante"), dile que lo va a poner en manos del equipo con prioridad, y si suena a algo que no puede esperar dile con claridad que busque un médico o especialista de confianza hoy mismo. Anótalo en la señal correspondiente, agrega el marcador de escalamiento (ver abajo), y sigue con el resto del recorrido donde sí sea seguro.
+- Ante señales de posible trastorno de conducta alimentaria (bajo peso, restricción, atracones, miedo a engordar), salud mental (tristeza profunda, ansiedad intensa, mención de hacerse daño) o urgencia médica (dolor agudo, fiebre alta, pérdida de peso brusca): no sigas con el recorrido normal en esa área. Valida con calidez ("gracias por contarme, eso es importante"), dile que lo va a poner en manos del equipo con prioridad, y si suena a algo que no puede esperar dile con claridad que busque un médico o especialista de confianza hoy mismo. Anótalo en la señal correspondiente, y sigue con el resto del recorrido donde sí sea seguro. **NO OLVIDES el paso siguiente: esto SIEMPRE requiere el marcador de escalamiento — es tan obligatorio como el bloque `<dx>`, nunca lo omitas por estar concentrada en responder con calidez.** Ver el formato exacto en "MARCADOR DE ESCALAMIENTO" más abajo.
 - Si preguntan quién está detrás: "Bienestar 360 lo lidera Peter Álvarez, con un equipo de bienestar." Nada de tecnología ni proveedores. Si preguntan directo si eres una persona real, una IA o un robot: sé honesta, nunca lo niegues ni lo evadas — dile que eres una acompañante virtual, no una persona, sin usar las palabras "inteligencia artificial" ni "tecnología".
 - Si el peso surge en la conversación, nunca lo trates como un objetivo a bajar ni hables de "dieta" o imagen corporal — solo anótalo como dato si el padre lo menciona espontáneamente.
 
@@ -107,6 +107,25 @@ Responde SIEMPRE en dos o tres partes:
 <dx>{"nombre_padre":"","email_padre":"","nombre_nino":"","edad":"","que_deseas_lograr":"","preocupacion_principal":"","origen":"","sueno_y_movimiento":"","senales_observables":"","diagnosticos_y_atencion_medica":"","cronologia_del_dia":"","finde_y_gustos":"","mente_y_pantallas":"","emociones":""}</dx>
 Rellena solo lo que ya sepas; deja "" lo que falte. "email_padre" es el correo tal cual lo dieron — no lo inventes ni lo completes, anota lo que haya aunque parezca incompleto. "cronologia_del_dia" incluye TODA la cronología con horas + qué come/bebe en cada momento + hidratación, como un relato corrido. Valores breves, frases cortas. El bloque <dx> NUNCA se muestra, es solo para el sistema — no lo menciones ni lo describas.
 3. SOLO si activaste el protocolo de seguridad, el marcador <escalar>...</escalar> de arriba, en su propia línea, después del bloque <dx>.`;
+
+// Red de respaldo del escalamiento: en pruebas, el modelo a veces responde
+// bien EN EL TEXTO (valida, dice que avisa al equipo con prioridad) pero se
+// le olvida agregar el marcador <escalar> — un problema conocido de pedirle
+// a un LLM que recuerde un formato técnico condicional en medio de una
+// respuesta cargada emocionalmente. Esto escanea lo que escribe el padre
+// directamente, SIN depender de que el modelo lo marque, para las señales
+// más claras e inequívocas (no cubre todo — las señales más sutiles siguen
+// dependiendo del criterio del modelo, ver PROTOCOLO DE SEGURIDAD arriba).
+const RIESGO_PATTERNS = [
+  { motivo:"riesgo_salud_mental", re:/suicid|quitarse la vida|matarse|no quiere vivir|autolesi[oó]n|hacerse da[ñn]o|cortarse/i },
+  { motivo:"urgencia_medica", re:/convuls|no respira|inconsciente|desmay|sangrado (abundante|mucho)|fiebre muy alta|dolor (muy fuerte|insoportable)/i },
+  { motivo:"riesgo_alimentario", re:/miedo a engordar|se (provoca|induce) (el )?v[oó]mito|se purga|esconde (la )?comida|comida escondida|dej[oó] de comer (casi )?(por completo|del todo)/i },
+];
+const detectarRiesgoTextual=(text)=>{
+  if(!text) return null;
+  for(const p of RIESGO_PATTERNS){ if(p.re.test(text)) return p.motivo; }
+  return null;
+};
 
 const FIELDS = [
   { key:"nombre_padre", label:"Nombre del padre/madre" },
@@ -185,11 +204,15 @@ function App(){
   };
 
   // Une el parseo del <dx> con el del <escalar>: primero saca el marcador de
-  // escalamiento (y dispara el aviso real si aplica), luego el <dx>.
-  const processReply=(raw, mensajePadre)=>{
+  // escalamiento (y dispara el aviso real si aplica), luego el <dx>. Si el
+  // modelo no puso el marcador pero la red de respaldo (detectarRiesgoTextual,
+  // sobre lo que escribió el padre) sí detectó algo, se usa esa como
+  // respaldo — nunca al revés (el criterio del modelo, cuando está, manda).
+  const processReply=(raw, mensajePadre, motivoRespaldo)=>{
     const { clean:sinEscalar, motivo } = parseEscalar(raw);
     const clean = parseDx(sinEscalar);
-    if(motivo) notificarEscalar(motivo, mensajePadre);
+    const motivoFinal = motivo || motivoRespaldo || null;
+    if(motivoFinal) notificarEscalar(motivoFinal, mensajePadre);
     return clean;
   };
 
@@ -214,7 +237,8 @@ function App(){
   const send=async(text)=>{
     const content=(text??input).trim(); if(!content||loading) return;
     setError(null); const next=[...messages,{role:"user",content}]; setMessages(next); setInput(""); setLoading(true);
-    try{ const raw=await callVita(next); setMessages(m=>[...m,{role:"assistant",content:processReply(raw,content)}]); }
+    const motivoRespaldo=detectarRiesgoTextual(content);
+    try{ const raw=await callVita(next); setMessages(m=>[...m,{role:"assistant",content:processReply(raw,content,motivoRespaldo)}]); }
     catch(e){ setError("No se pudo conectar. Reintenta."); } finally{ setLoading(false); }
   };
 
@@ -225,8 +249,9 @@ function App(){
     setLoading(true);
     const last=messages[messages.length-1];
     const lastUser=last&&last.role==="user"?last.content:"";
+    const motivoRespaldo=detectarRiesgoTextual(lastUser);
     callVita(messages)
-      .then(raw=>setMessages(m=>[...m,{role:"assistant",content:processReply(raw,lastUser)}]))
+      .then(raw=>setMessages(m=>[...m,{role:"assistant",content:processReply(raw,lastUser,motivoRespaldo)}]))
       .catch(()=>setError("No se pudo conectar. Reintenta."))
       .finally(()=>setLoading(false));
   };
