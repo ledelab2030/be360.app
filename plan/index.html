@@ -15,6 +15,10 @@
   *{box-sizing:border-box}
   .rise{animation:rise .28s cubic-bezier(.2,.8,.2,1)}
   @keyframes rise{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+  .dot{width:7px;height:7px;border-radius:50%;background:#5A7A5C;display:inline-block;animation:blink 1.2s infinite}
+  .dot:nth-child(2){animation-delay:.2s}.dot:nth-child(3){animation-delay:.4s}
+  @keyframes blink{0%,60%,100%{opacity:.25}30%{opacity:1}}
+  .scroll::-webkit-scrollbar{width:8px}.scroll::-webkit-scrollbar-thumb{background:#D8CFBE;border-radius:8px}
 </style>
 </head>
 <body>
@@ -27,11 +31,20 @@ const { useState, useEffect } = React;
 // be360.app), y solo devuelve algo si Peter ya aprobó ese plan.
 const WORKER_URL = "https://vita-proxy.leonardo-751.workers.dev";
 
-const P = { bg:"#ECE5D8", panel:"#FBF8F1", panelRaised:"#FFFFFF", ink:"#2C2A24", sage:"#5A7A5C", sageDeep:"#3E5A40", sageSoft:"#DCE7D6", clay:"#B5764A", claySoft:"#F0DFCB", line:"#D8CFBE", muted:"#8A8473" };
+const P = { bg:"#ECE5D8", panel:"#FBF8F1", panelRaised:"#FFFFFF", ink:"#2C2A24", sage:"#5A7A5C", sageDeep:"#3E5A40", sageSoft:"#DCE7D6", clay:"#B5764A", claySoft:"#F0DFCB", line:"#D8CFBE", muted:"#8A8473", user:"#C9DDB8" };
 
 const Shell = (props) => (
   <div style={{minHeight:"100vh", background:P.bg, fontFamily:"'Nunito',sans-serif", color:P.ink, display:"flex", justifyContent:"center", padding:"32px 14px 56px"}}>
     <div style={{width:"100%", maxWidth:440, display:"flex", flexDirection:"column", gap:22}}>{props.children}</div>
+  </div>
+);
+
+// Shell del chat: a diferencia del Shell de arriba (que crece con el
+// contenido), este ocupa una altura fija de "app de chat" — mismo patrón
+// que vita-demo-formulario.
+const ChatShell = (props) => (
+  <div style={{minHeight:"100vh", background:P.bg, fontFamily:"'Nunito',sans-serif", color:P.ink, display:"flex", justifyContent:"center", padding:"16px 12px 28px"}}>
+    <div style={{width:"100%", maxWidth:440, position:"relative", display:"flex", flexDirection:"column", height:"calc(100vh - 32px)", background:P.panel, borderRadius:26, overflow:"hidden", boxShadow:"0 24px 60px rgba(40,42,36,.18)", border:"1px solid "+P.line}}>{props.children}</div>
   </div>
 );
 
@@ -40,11 +53,63 @@ function getIdFromUrl() {
   return params.get("id");
 }
 
+// ============================================================
+// PROMPT del chat de seguimiento — Vita acompaña un plan YA APROBADO por
+// Peter. No propone hábitos nuevos, no cambia el plan, no diagnostica.
+// Sigue la voz/reglas de design-sprint/docs/tono_identidad_bot.txt (loop de
+// sostenimiento + escalamiento). Cuando hace falta escalar a Peter, el
+// modelo agrega <escalar>motivo</escalar> al final — el frontend lo detecta,
+// lo oculta del chat, y avisa por correo real (ver /escalar en el Worker).
+// ============================================================
+const buildSeguimientoPrompt = (data) => {
+  const nombreNino = data.nombreNino || "tu hijo/a";
+  const habitos = (data.plan && data.plan.habitos) || [];
+  const habitosTexto = habitos.map((h, i) => (i + 1) + ". " + h.titulo + ": " + h.texto).join("\n") || "(sin hábitos registrados)";
+  return `Eres Vita, el acompañante de bienestar de Bienestar 360. Hablas con el padre/madre de ${nombreNino} para acompañar el plan de hábitos YA APROBADO por Peter Álvarez.
+
+# EL PLAN APROBADO DE ${nombreNino.toUpperCase()} (tu única fuente — no inventes nada fuera de esto, no propongas hábitos nuevos, no cambies el plan)
+${habitosTexto}
+
+# QUÉ HACES
+Acompañas el sostenimiento de ESTOS hábitos ya aprobados. NO diagnosticas, NO prescribes, NO das ninguna recomendación nueva. Hablas SIEMPRE con el padre/madre, nunca con ${nombreNino}.
+
+# TONO
+Tuteo, cercano. CERO emojis. 2 a 4 líneas por mensaje. Una pregunta a la vez. Sin listas ni viñetas. Sin juicio, nunca culpar. No evalúas ("¿cumpliste?"), preguntas abierto ("¿cómo les fue con...?"). Si cuentan que no lograron nada esta semana: NUNCA señales la falla — ofrece una versión más pequeña del hábito ("¿y si esta semana solo martes y jueves?"). Celebra lo pequeño. Cierra con algo concreto. Nunca menciones IA, tecnología, "sin medicamentos", "revertir", "curar" ni "epigenética".
+
+# ESCALAMIENTO (agrega el marcador AL FINAL de tu respuesta, en su propia línea — nunca lo menciones ni lo expliques al padre, es invisible para el sistema)
+- Señal de riesgo real (algo médico agudo, salud mental grave, mención de hacerse daño): responde con calidez, dile con claridad que contacte a su médico o a urgencias YA, y agrega: <escalar>urgencia</escalar>
+- Pregunta puntual sobre el plan que no debas resolver tú (ej. contenido clínico nuevo, "¿le puedo dar X en vez de Y?"): responde "Eso lo reviso con Peter y te respondo" y agrega: <escalar>duda</escalar>
+- Pide hablar con una persona directamente: responde con honestidad que le avisas al equipo, y agrega: <escalar>solicitud_humano</escalar>
+- Pregunta sobre medicación: "Eso es de tu equipo médico. Lo anoto para que Peter lo tenga presente." y agrega: <escalar>duda</escalar>
+- Si preguntan quién está detrás: "Bienestar 360 lo lidera Peter Álvarez, con un equipo de bienestar."
+- Para todo lo demás (check-ins normales, contar cómo les fue, dudas que sí puedes responder con el plan de arriba): NO agregues ningún marcador.`;
+};
+
+const parseEscalar = (text) => {
+  const m = text.match(/<escalar>([\s\S]*?)<\/escalar>/);
+  const clean = text.replace(/<escalar>[\s\S]*?<\/escalar>/g, "").trim();
+  return { clean, motivo: m ? m[1].trim() : null };
+};
+
+// Renderiza **negrita** como <strong>.
+const renderRich = (text) => (text||"").split(/(\*\*[^*]+\*\*)/g).map((part,i)=>
+  part.startsWith("**")&&part.endsWith("**")
+    ? <strong key={i} style={{fontWeight:800}}>{part.slice(2,-2)}</strong>
+    : <React.Fragment key={i}>{part}</React.Fragment>
+);
+
 function App() {
-  const [stage, setStage] = useState("cargando"); // cargando | ok | no_disponible
+  const [stage, setStage] = useState("cargando"); // cargando | ok | no_disponible | chat
   const [data, setData] = useState(null);
   const [checked, setChecked] = useState({});
+  const [messages, setMessages] = useState([]);
+  const [input, setInput] = useState("");
+  const [chatLoading, setChatLoading] = useState(false);
+  const [chatError, setChatError] = useState(null);
+  const scrollRef = React.useRef(null);
   const id = getIdFromUrl();
+
+  useEffect(() => { if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight; }, [messages, chatLoading]);
 
   useEffect(() => {
     if (!id) { setStage("no_disponible"); return; }
@@ -69,6 +134,82 @@ function App() {
       return next;
     });
   };
+
+  // Notifica una señal real al equipo — sin bloquear el chat si falla.
+  const notificarEscalar = (motivo, mensajePadre) => {
+    fetch(WORKER_URL + "/escalar", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ idPlan: id, nombreNino: data && data.nombreNino, motivo, mensajePadre }),
+    }).catch(() => {});
+  };
+
+  const callVitaSeguimiento = async (msgs) => {
+    const res = await fetch(WORKER_URL, {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 800, system: buildSeguimientoPrompt(data), messages: msgs.map(m => ({ role: m.role, content: m.content })) }),
+    });
+    const json = await res.json();
+    return (json.content || []).filter(b => b.type === "text").map(b => b.text).join("\n") || "…";
+  };
+
+  const startChat = async () => {
+    setStage("chat"); setChatLoading(true); setChatError(null);
+    try {
+      const opener = "[Empieza la conversación de seguimiento. Saluda breve, recuerda que su plan ya está aprobado, y pregunta con calidez cómo les ha ido con alguno de los hábitos.]";
+      const raw = await callVitaSeguimiento([{ role: "user", content: opener }]);
+      const { clean, motivo } = parseEscalar(raw);
+      setMessages([{ role: "assistant", content: clean }]);
+      if (motivo) notificarEscalar(motivo, "(inicio de conversación)");
+    } catch (e) { setChatError("No se pudo conectar. Reintenta."); }
+    finally { setChatLoading(false); }
+  };
+
+  const sendChat = async (text) => {
+    const content = (text ?? input).trim();
+    if (!content || chatLoading) return;
+    setChatError(null);
+    const next = [...messages, { role: "user", content }];
+    setMessages(next); setInput(""); setChatLoading(true);
+    try {
+      const raw = await callVitaSeguimiento(next);
+      const { clean, motivo } = parseEscalar(raw);
+      setMessages(m => [...m, { role: "assistant", content: clean }]);
+      if (motivo) notificarEscalar(motivo, content);
+    } catch (e) { setChatError("No se pudo conectar. Reintenta."); }
+    finally { setChatLoading(false); }
+  };
+
+  if (stage === "chat") {
+    return (
+      <ChatShell>
+        <div style={{background:"linear-gradient(135deg,"+P.sageDeep+","+P.sage+")", padding:"14px 16px", display:"flex", alignItems:"center", gap:11}}>
+          <div style={{width:40, height:40, borderRadius:"50%", background:P.panel, display:"grid", placeItems:"center", fontSize:20}}>🌱</div>
+          <div style={{flex:1}}>
+            <div style={{fontFamily:"'Fraunces',serif", fontWeight:600, fontSize:19, color:"#fff", lineHeight:1}}>Vita</div>
+            <div style={{fontSize:11.5, color:P.sageSoft, marginTop:3}}>{chatLoading ? "escribiendo…" : "Acompañamiento · " + (data.nombreNino || "")}</div>
+          </div>
+        </div>
+        <div ref={scrollRef} className="scroll" style={{flex:1, overflowY:"auto", padding:"16px 13px", display:"flex", flexDirection:"column", gap:10, background:"radial-gradient("+P.sageSoft+"55 1px,transparent 1px)", backgroundSize:"22px 22px"}}>
+          {messages.map((m,i) => (
+            <div key={i} className="rise" style={{alignSelf: m.role==="user"?"flex-end":"flex-start", maxWidth:"84%"}}>
+              <div style={{background: m.role==="user"?P.user:"#fff", color:P.ink, padding:"10px 13px", borderRadius: m.role==="user"?"16px 16px 4px 16px":"16px 16px 16px 4px", fontSize:14.5, lineHeight:1.5, boxShadow:"0 1px 2px rgba(40,42,36,.10)", whiteSpace:"pre-wrap", border: m.role==="user"?"none":"1px solid "+P.line}}>{renderRich(m.content)}</div>
+            </div>
+          ))}
+          {chatLoading && (<div style={{alignSelf:"flex-start", background:"#fff", padding:"12px 15px", borderRadius:"16px 16px 16px 4px", border:"1px solid "+P.line}}><span className="dot"/> <span className="dot"/> <span className="dot"/></div>)}
+          {chatError && !chatLoading && (
+            <div style={{alignSelf:"center", textAlign:"center", color:P.clay, fontSize:12.5, background:"#fff", padding:"10px 14px", borderRadius:12, border:"1px solid "+P.line, maxWidth:"92%"}}>
+              {chatError}
+              <div style={{marginTop:8}}><button onClick={() => messages.length===0 ? startChat() : sendChat(messages[messages.length-1].role==="user"?messages[messages.length-1].content:"")} style={{background:P.sage, border:"none", color:"#fff", borderRadius:999, padding:"7px 18px", fontSize:12.5, fontWeight:700, cursor:"pointer", fontFamily:"'Nunito',sans-serif"}}>Reintentar</button></div>
+            </div>
+          )}
+        </div>
+        <div style={{padding:"10px 12px", background:P.panel, borderTop:"1px solid "+P.line, display:"flex", gap:8, alignItems:"flex-end"}}>
+          <textarea value={input} onChange={e=>setInput(e.target.value)} onKeyDown={e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();sendChat();}}} placeholder="Escribe aquí…" rows={1} style={{flex:1, resize:"none", border:"1px solid "+P.line, borderRadius:20, padding:"11px 15px", fontSize:14.5, fontFamily:"'Nunito',sans-serif", maxHeight:110, background:"#fff", color:P.ink, outline:"none"}}/>
+          <button onClick={()=>sendChat()} disabled={chatLoading||!input.trim()} style={{width:46, height:46, borderRadius:"50%", border:"none", background: input.trim()?P.sage:P.line, color:"#fff", fontSize:19, cursor: input.trim()?"pointer":"default", flexShrink:0}}>➤</button>
+        </div>
+      </ChatShell>
+    );
+  }
 
   if (stage === "cargando") {
     return (
@@ -140,13 +281,12 @@ function App() {
         Marca los que ya estén intentando.
       </p>
 
-      <a
-        href={"https://wa.me/37281282920?text=" + encodeURIComponent("Hola Vita, te escribo sobre el plan de " + (data.nombreNino || "mi hijo/a") + ".")}
-        target="_blank" rel="noopener noreferrer"
-        style={{display:"flex", alignItems:"center", justifyContent:"center", gap:8, background:P.sage, color:"#fff", fontWeight:800, fontSize:14.5, border:"none", borderRadius:999, padding:"14px 20px", textDecoration:"none", boxShadow:"0 10px 24px rgba(90,122,92,.30)"}}
+      <button
+        onClick={startChat}
+        style={{display:"flex", alignItems:"center", justifyContent:"center", gap:8, background:P.sage, color:"#fff", fontWeight:800, fontSize:14.5, border:"none", borderRadius:999, padding:"14px 20px", cursor:"pointer", boxShadow:"0 10px 24px rgba(90,122,92,.30)"}}
       >
         Escribirle a Vita
-      </a>
+      </button>
 
       <p style={{fontSize:11.5, textAlign:"center", color:P.muted, lineHeight:1.6}}>
         Esto acompaña y suma con su pediatra — no lo reemplaza.

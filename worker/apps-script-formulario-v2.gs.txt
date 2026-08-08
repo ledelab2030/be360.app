@@ -46,6 +46,10 @@ function doPost(e) {
       return guardarBorrador(sheet, body);
     }
 
+    if (body.action === "notificar_escalamiento") {
+      return notificarEscalamiento(body);
+    }
+
     // Comportamiento original: agregar fila nueva capturada por Vita.
     if (!body.dx) {
       return respond({ ok: false, error: "dx faltante" }, 400);
@@ -94,6 +98,27 @@ function guardarBorrador(sheet, body) {
     }
   }
   return respond({ ok: false, error: "no se encontró la fila con ese ts" }, 404);
+}
+
+// Chat de seguimiento (plan/index.html) — cuando el bot detecta algo que hay
+// que escalar (urgencia, duda sobre el plan, pide hablar con una persona),
+// esto manda el aviso real por correo. Sin esto, el chat podría "decir" que
+// lo va a escalar sin que nadie del equipo lo vea de verdad.
+function notificarEscalamiento(body) {
+  try {
+    MailApp.sendEmail({
+      to: "leonardo@ledelab.group",
+      subject: "🚨 Vita escaló algo — " + (body.motivo || "sin especificar") + (body.nombreNino ? " — " + body.nombreNino : ""),
+      body:
+        "Motivo: " + (body.motivo || "sin especificar") + "\n" +
+        "Niño/a: " + (body.nombreNino || "(sin dato)") + "\n" +
+        "id_plan: " + (body.idPlan || "(sin dato)") + "\n\n" +
+        "Mensaje del padre/madre:\n" + (body.mensajePadre || "(sin mensaje)"),
+    });
+    return respond({ ok: true });
+  } catch (err) {
+    return respond({ ok: false, error: String(err) }, 500);
+  }
 }
 
 function doGet(e) {
