@@ -237,7 +237,6 @@ function App(){
         <div style={{display:"flex",gap:11}}><div style={{fontSize:18,flexShrink:0}}>🌿</div><div style={{fontSize:13.5,color:P.ink,lineHeight:1.5}}>Al final, tu información queda registrada — Peter la revisa y el equipo te contacta con el primer paso.</div></div>
       </div>
       <button onClick={start} style={{...btnPrimary,alignSelf:"center"}}>Empezar la conversación →</button>
-      <p style={{fontSize:11.5,color:P.muted,marginTop:18,textAlign:"center",lineHeight:1.5}}>Esto acompaña y suma con su pediatra — no lo reemplaza.</p>
     </div></Shell>
   );
 
@@ -245,8 +244,8 @@ function App(){
     <Shell>
       <div style={{background:"linear-gradient(135deg,"+P.sageDeep+","+P.sage+")",padding:"14px 16px",display:"flex",alignItems:"center",gap:11}}>
         <div style={{width:40,height:40,borderRadius:"50%",background:P.panel,display:"grid",placeItems:"center",fontSize:20}}>🌱</div>
-        <div style={{flex:1}}><div style={{fontFamily:"'Fraunces',serif",fontWeight:600,fontSize:19,color:"#fff",lineHeight:1}}>Vita</div><div style={{fontSize:11.5,color:P.sageSoft,marginTop:3}}>{loading?"escribiendo…":"Formulario de Hábitos"}</div></div>
-        <button onClick={copyChat} title="Copiar conversación" style={{background:"rgba(255,255,255,.18)",border:"none",color:"#fff",borderRadius:999,width:34,height:34,fontSize:15,cursor:"pointer",flexShrink:0}}>{chatCopied?"✓":"📋"}</button><button onClick={()=>setShowDx(true)} style={{background:"rgba(255,255,255,.18)",border:"none",color:"#fff",borderRadius:999,padding:"7px 13px",fontSize:12.5,fontWeight:700,cursor:"pointer",fontFamily:"'Nunito',sans-serif"}}>Formulario {filled}/{AREA_TOTAL}</button>
+        <div style={{flex:1}}><div style={{fontFamily:"'Fraunces',serif",fontWeight:600,fontSize:19,color:"#fff",lineHeight:1}}>Vita</div><div style={{fontSize:11.5,color:P.sageSoft,marginTop:3}}>{loading?"escribiendo…":(dx.nombre_nino?("Sobre "+dx.nombre_nino):"Conociéndolos")}</div></div>
+        <button onClick={copyChat} title="Copiar conversación" style={{background:"rgba(255,255,255,.18)",border:"none",color:"#fff",borderRadius:999,width:34,height:34,fontSize:15,cursor:"pointer",flexShrink:0}}>{chatCopied?"✓":"📋"}</button><button onClick={()=>setShowDx(true)} style={{background:"rgba(255,255,255,.18)",border:"none",color:"#fff",borderRadius:999,padding:"7px 13px",fontSize:12.5,fontWeight:700,cursor:"pointer",fontFamily:"'Nunito',sans-serif"}}>Lo que llevamos · {filled}/{AREA_TOTAL}</button>
       </div>
       {filled>=MIN_ENVIAR && (
         <div style={{padding:"9px 14px",background:P.sageSoft,borderBottom:"1px solid "+P.line,display:"flex",alignItems:"center",justifyContent:"space-between",gap:10}}>
@@ -261,12 +260,12 @@ function App(){
         {sendError&&(<div style={{alignSelf:"center",textAlign:"center",color:P.clay,fontSize:12.5,background:"#fff",padding:"10px 14px",borderRadius:12,border:"1px solid "+P.line,maxWidth:"92%"}}>{sendError}<div style={{marginTop:8}}><button onClick={sendToReview} style={{background:P.sage,border:"none",color:"#fff",borderRadius:999,padding:"7px 18px",fontSize:12.5,fontWeight:700,cursor:"pointer",fontFamily:"'Nunito',sans-serif"}}>Reintentar envío</button></div></div>)}
       </div>
       <div style={{padding:"10px 12px",background:P.panel,borderTop:"1px solid "+P.line,display:"flex",gap:8,alignItems:"flex-end"}}>
-        <textarea value={input} onChange={e=>setInput(e.target.value)} onKeyDown={e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();send();}}} placeholder="Escribe como un papá/mamá…" rows={1} style={{flex:1,resize:"none",border:"1px solid "+P.line,borderRadius:20,padding:"11px 15px",fontSize:14.5,fontFamily:"'Nunito',sans-serif",maxHeight:110,background:"#fff",color:P.ink,outline:"none"}}/>
+        <textarea value={input} onChange={e=>setInput(e.target.value)} onKeyDown={e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();send();}}} placeholder="Escribe aquí…" rows={1} style={{flex:1,resize:"none",border:"1px solid "+P.line,borderRadius:20,padding:"11px 15px",fontSize:14.5,fontFamily:"'Nunito',sans-serif",maxHeight:110,background:"#fff",color:P.ink,outline:"none"}}/>
         <button onClick={()=>send()} disabled={loading||!input.trim()} style={{width:46,height:46,borderRadius:"50%",border:"none",background:input.trim()?P.sage:P.line,color:"#fff",fontSize:19,cursor:input.trim()?"pointer":"default",flexShrink:0}}>➤</button>
       </div>
       {showDx&&(<div onClick={()=>setShowDx(false)} style={{position:"absolute",inset:0,background:"rgba(40,42,36,.45)",display:"flex",justifyContent:"flex-end",zIndex:10}}>
         <div onClick={e=>e.stopPropagation()} style={{width:"86%",maxWidth:360,background:P.panel,height:"100%",display:"flex",flexDirection:"column",boxShadow:"-10px 0 40px rgba(0,0,0,.25)"}}>
-          <div style={{background:P.sageDeep,padding:"16px 18px",display:"flex",justifyContent:"space-between",alignItems:"center"}}><div><div style={{fontFamily:"'Fraunces',serif",fontSize:18,color:"#fff"}}>Formulario</div><div style={{fontSize:12,color:P.sageSoft,marginTop:2}}>{filled} de {AREA_TOTAL} áreas capturadas</div></div><button onClick={()=>setShowDx(false)} style={{background:"rgba(255,255,255,.16)",border:"none",color:"#fff",width:32,height:32,borderRadius:"50%",fontSize:16,cursor:"pointer"}}>✕</button></div>
+          <div style={{background:P.sageDeep,padding:"16px 18px",display:"flex",justifyContent:"space-between",alignItems:"center"}}><div><div style={{fontFamily:"'Fraunces',serif",fontSize:18,color:"#fff"}}>Lo que hemos hablado</div><div style={{fontSize:12,color:P.sageSoft,marginTop:2}}>{filled} de {AREA_TOTAL} temas registrados</div></div><button onClick={()=>setShowDx(false)} style={{background:"rgba(255,255,255,.16)",border:"none",color:"#fff",width:32,height:32,borderRadius:"50%",fontSize:16,cursor:"pointer"}}>✕</button></div>
           <div className="scroll" style={{flex:1,overflowY:"auto",padding:14}}>
             {FIELDS.map(f=>{const val=dx[f.key];const has=val&&val.trim();return(<div key={f.key} style={{marginBottom:10,background:"#fff",border:"1px solid "+(has?P.sage:P.line),borderRadius:12,padding:"10px 12px"}}><div style={{fontSize:11.5,fontWeight:800,color:has?P.sageDeep:P.muted,textTransform:"uppercase",letterSpacing:.4,marginBottom:has?4:0}}>{f.label}</div>{has&&<div style={{fontSize:13.5,color:P.ink,lineHeight:1.45}}>{val}</div>}</div>);})}
           </div>
