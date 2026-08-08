@@ -107,6 +107,13 @@ No hay base de datos propia ni backend con estado — el Sheet **es** la base de
 - **Diseño a prueba de fallos:** si Claude no devuelve JSON válido, o la llamada falla, la fila simplemente se queda en `pendiente` — el sistema no se rompe, y sigue siendo posible generar el borrador a mano como respaldo (`POST /guardar-borrador`, sin cambios).
 - Con esto, **los 3 pasos que antes requerían intervención humana en el camino crítico del ciclo quedan en 1**: la única acción humana obligatoria que queda es la aprobación de Peter (por diseño — es la regla dura que no se automatiza) y el clic para enviar el WhatsApp final (por decisión, mientras no haya WhatsApp Business API).
 
+### 7 ago 2026 — Chat de seguimiento real (reemplaza el WhatsApp monitoreado a mano)
+
+- **"Escribirle a Vita"** en `plan/index.html` pasó de abrir WhatsApp a un número que una persona del equipo tenía que contestar manualmente, a abrir un **chat real dentro de la app** — mismo patrón técnico que `vita-demo-formulario` (bot de verdad, no una persona fingiendo).
+- El prompt del chat (`buildSeguimientoPrompt`) se arma dinámicamente por caso: los hábitos del plan **ya aprobado** de ese niño/a específico son su única fuente — no propone hábitos nuevos, no cambia el plan, solo acompaña el sostenimiento (loop de `tono_identidad_bot.txt`: preguntas abiertas, nunca señala fallas, ofrece versión más pequeña del hábito si hace falta).
+- **Escalamiento real, no solo "el bot lo dice":** cuando el modelo detecta una urgencia clínica, una duda sobre el plan que no debe resolver, o que el padre pide hablar con una persona, marca un identificador invisible en su respuesta; el frontend lo detecta y llama a un nuevo endpoint `POST /escalar`, que reenvía un correo real al equipo (acción `notificar_escalamiento` en el Apps Script). Sin este paso, una señal de riesgo real podría quedar flotando en un chat sin que nadie del equipo se enterara — se decidió construirlo antes de considerar el ciclo completo.
+- **Probado end-to-end:** conversación de seguimiento con el caso de Valeria reconoció correctamente los hábitos específicos de su plan (no genéricos) y mantuvo el tono correcto; prueba directa de `/escalar` confirmó que el correo de escalamiento llega de verdad.
+
 ---
 
 ## Medidas de seguridad y privacidad (para compliance/auditoría)
@@ -125,7 +132,7 @@ No hay base de datos propia ni backend con estado — el Sheet **es** la base de
 
 1. ~~No hay captura de contacto del padre~~ **Resuelto 6 ago:** `vita-demo-formulario` captura nombre y WhatsApp del padre/madre al inicio de la conversación.
 2. ~~No existe un número de WhatsApp dedicado para Vita~~ **Resuelto 6 ago (provisional):** se usa `+372 81282920`, monitoreado a mano por el equipo (no es un bot todavía — ver punto 3). La entrega del plan al padre sigue siendo manual (un clic en un link pre-armado, no automática).
-3. **El "chatear con Vita" sigue siendo una persona, no un bot.** Cuando el padre escribe al número de Vita, alguien del equipo responde en su tono manualmente. Esto es intencional en esta fase (Mago de Oz), no un bug — automatizarlo es trabajo futuro, no antes del piloto.
+3. ~~El "chatear con Vita" sigue siendo una persona~~ **Resuelto 7 ago:** "Escribirle a Vita" ahora abre un chat de seguimiento real (bot, no persona), con el contexto del plan aprobado de cada niño/a y escalamiento real a correo cuando hace falta un humano. Lo que sigue siendo manual (por decisión, no por límite técnico) es que la entrega inicial del plan pasa por WhatsApp con un clic humano — el WhatsApp Business API para automatizar eso de punta a punta sigue sin construirse.
 4. ~~La generación del borrador no está automatizada~~ **Resuelto 7 ago:** el Worker genera el borrador solo (Claude + Prompt Maestro embebido) apenas se guarda el formulario, en segundo plano — el padre no espera, y un desarrollador ya no tiene que correrlo a mano.
 5. **Google Sheets/Apps Script es una capa de persistencia de prototipo**, no una base de datos de producción — no tiene política formal de retención ni borrado de datos todavía.
 6. **Deuda técnica heredada:** el Worker no bloquea peticiones sin header `Origin` (ej. `curl` directo) — solo bloquea orígenes de navegador incorrectos. No es una vulnerabilidad crítica hoy (no hay datos sensibles expuestos por esta vía), pero falta rate limiting real antes de tráfico masivo.
