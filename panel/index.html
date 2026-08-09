@@ -80,6 +80,7 @@ function relativeDate(iso) {
 function App() {
   const [pin, setPin] = useState(() => { try { return localStorage.getItem(PIN_KEY) || ""; } catch (e) { return ""; } });
   const [pinInput, setPinInput] = useState("");
+  const [verPin, setVerPin] = useState(false);
   const [pinError, setPinError] = useState(null);
   const [checkingPin, setCheckingPin] = useState(false);
 
@@ -190,6 +191,22 @@ function App() {
     finally { setAprobando(false); }
   };
 
+  const [descartando, setDescartando] = useState(false);
+  const [confirmandoDescarte, setConfirmandoDescarte] = useState(false);
+  // Borra la fila — bloqueado en el propio Apps Script si el caso ya está
+  // aprobado, para no poder borrar por accidente un plan ya enviado a una
+  // familia real. Para casos de prueba, duplicados, o algo que no aplica.
+  const descartar = async () => {
+    if (descartando) return;
+    setDescartando(true); setAccionError(null);
+    try {
+      const data = await llamarPanel("descartar", { idPlan: detalle.idPlan });
+      if (!data.ok) throw new Error(data.error || "error");
+      volverALista();
+    } catch (e) { setAccionError(e.message === "PIN incorrecto" ? null : "No se pudo descartar. Reintenta."); setConfirmandoDescarte(false); }
+    finally { setDescartando(false); }
+  };
+
   // ---------- PIN ----------
   if (!pin) return (
     <Shell>
@@ -197,8 +214,14 @@ function App() {
         <div style={{fontSize:36, marginBottom:10}}>🌱</div>
         <div style={{fontFamily:"'Fraunces',serif", fontSize:22, color:P.sageDeep, marginBottom:6}}>Panel de revisión</div>
         <p style={{fontSize:13, color:P.muted, marginBottom:20}}>Solo para Peter. Ingresa el PIN para continuar.</p>
-        <input type="password" value={pinInput} onChange={e=>setPinInput(e.target.value)} onKeyDown={e=>{if(e.key==="Enter") entrarConPin();}} placeholder="PIN"
-          style={{width:"100%", maxWidth:220, textAlign:"center", fontSize:16, padding:"11px 14px", border:"1px solid "+P.line, borderRadius:12, marginBottom:14, fontFamily:"'Nunito',sans-serif", outline:"none"}} autoFocus/>
+        <div style={{position:"relative", width:"100%", maxWidth:220, margin:"0 auto 14px"}}>
+          <input type={verPin?"text":"password"} value={pinInput} onChange={e=>setPinInput(e.target.value)} onKeyDown={e=>{if(e.key==="Enter") entrarConPin();}} placeholder="PIN"
+            style={{width:"100%", textAlign:"center", fontSize:16, padding:"11px 40px 11px 14px", border:"1px solid "+P.line, borderRadius:12, fontFamily:"'Nunito',sans-serif", outline:"none"}} autoFocus/>
+          <button type="button" onClick={()=>setVerPin(v=>!v)} title={verPin?"Ocultar PIN":"Ver PIN"}
+            style={{position:"absolute", right:6, top:"50%", transform:"translateY(-50%)", background:"none", border:"none", color:P.muted, cursor:"pointer", fontSize:16, padding:6, lineHeight:1}}>
+            {verPin ? "🙈" : "👁"}
+          </button>
+        </div>
         <div>
           <button onClick={entrarConPin} disabled={checkingPin} style={{...btnPrimary, opacity:checkingPin?.7:1}}>{checkingPin?"Entrando…":"Entrar →"}</button>
         </div>
@@ -321,6 +344,20 @@ function App() {
               <div style={{display:"flex", gap:8}}>
                 <button onClick={aprobar} disabled={aprobando} style={{...btnPrimary, opacity:aprobando?.7:1}}>{aprobando?"Enviando…":"Sí, aprobar y enviar"}</button>
                 <button onClick={()=>setConfirmando(false)} style={btnGhost}>Cancelar</button>
+              </div>
+            </div>
+          )}
+        </div>
+
+        <div style={{borderTop:"1px solid "+P.line, paddingTop:14, marginTop:4}}>
+          {!confirmandoDescarte ? (
+            <span onClick={()=>setConfirmandoDescarte(true)} style={{fontSize:12.5, color:P.muted, textDecoration:"underline", cursor:"pointer"}}>Descartar este caso (prueba, duplicado, no aplica)</span>
+          ) : (
+            <div style={{background:P.claySoft, border:"1px solid "+P.clay, borderRadius:14, padding:"12px 16px"}}>
+              <div style={{fontSize:13, color:P.ink, marginBottom:10, lineHeight:1.5}}>¿Descartar el caso de {detalle.nombreNino || "este niño/a"}? Borra la fila del Sheet — no se puede deshacer. No afecta casos ya aprobados.</div>
+              <div style={{display:"flex", gap:8}}>
+                <button onClick={descartar} disabled={descartando} style={{background:P.clay, color:"#fff", border:"none", borderRadius:999, padding:"9px 18px", fontSize:13.5, fontWeight:700, cursor:"pointer", fontFamily:"'Nunito',sans-serif", opacity:descartando?.7:1}}>{descartando?"Descartando…":"Sí, descartar"}</button>
+                <button onClick={()=>setConfirmandoDescarte(false)} style={btnGhost}>Cancelar</button>
               </div>
             </div>
           )}
