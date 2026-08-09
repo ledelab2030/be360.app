@@ -391,6 +391,7 @@ function App() {
         <div>
           <h1 style={{fontFamily:"'Fraunces',serif", fontWeight:600, fontSize:24, margin:0, color:P.sageDeep}}>{detalle.nombreNino || "(sin nombre)"}{formatEdad(detalle.edad)}</h1>
           <div style={{fontSize:13, color:P.muted, marginTop:4}}>Padre/madre: {detalle.nombrePadre || "—"} · {detalle.emailPadre || "sin correo"}</div>
+          <div style={{fontSize:11.5, color:detalle.consentimientoTs?P.sageDeep:P.clay, marginTop:4}}>{detalle.consentimientoTs ? ("✓ Consentimiento aceptado "+relativeDate(detalle.consentimientoTs)) : "⚠ Sin registro de consentimiento (caso previo al 9 ago, o pendiente actualizar Apps Script)"}</div>
           {soloLectura && <div style={{display:"inline-block", marginTop:8, background:P.sageSoft, color:P.sageDeep, fontSize:11.5, fontWeight:800, padding:"4px 10px", borderRadius:999}}>✓ Aprobado</div>}
         </div>
 

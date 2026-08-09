@@ -77,6 +77,23 @@ const MODEL = "claude-sonnet-4-6";
 // llenar parte del formulario, startOrResumeChat() le dice a Vita qué ya se
 // sabe para que no lo vuelva a preguntar.
 //
+// NUEVO (9 ago 2026): pantalla de consentimiento antes de capturar nada. Antes
+// no existía NINGUNA pantalla dentro del producto que explicara qué se
+// captura, quién lo revisa y cómo pedir que se borre — solo un guion VERBAL
+// para el Día 5 del sprint (reclutamiento_y_consentimiento.txt), que no cubre
+// a nadie que use el producto fuera de esa sesión. Gap encontrado en el
+// assessment de RAI (Privacy → Consent management, score 0/4) — el más serio
+// de los 9 dimensiones evaluadas. Ambos caminos de entrada (chat directo o
+// formulario directo) pasan ahora por stage "consentimiento" una sola vez;
+// ver irCon()/aceptarConsentimiento() más abajo. Guarda la aceptación como
+// dx.consentimiento_ts (timestamp ISO), que viaja con el resto de dx hacia
+// /log sin que el Worker necesite ningún cambio (dx pasa completo tal cual).
+// Pendiente de un humano: agregar la columna correspondiente en
+// apps-script-formulario-v2.gs.txt (ya preparada en el código, comentada)
+// para que quede registrado también en el Sheet, no solo viajando en el
+// payload — requiere que alguien despliegue una nueva versión del Apps
+// Script a mano, cosa que este agente no puede hacer por su cuenta.
+//
 // NUEVO (8 ago 2026): "Enviar a revisión" ahora exige sustancia real, no solo
 // una cuenta de campos. Antes bastaba con 4 campos llenos, los que fueran —
 // dejaba pasar casos como nombre+correo+edad+una palabra suelta, sin nada
@@ -229,6 +246,8 @@ function App(){
   const [loading,setLoading]=useState(false);
   const [dx,setDx]=useState(emptyDx);
   const [dxAlPausar,setDxAlPausar]=useState(null); // snapshot de dx al salir del chat, para detectar si el formulario cambió algo mientras tanto
+  const [consentChecked,setConsentChecked]=useState(false); // checkbox de la pantalla de consentimiento
+  const [pendingStage,setPendingStage]=useState("intro"); // a dónde ir después de aceptar (intro→chat, o form)
   const [showDx,setShowDx]=useState(false);
   const [error,setError]=useState(null);
   const [exported,setExported]=useState(false);
@@ -255,6 +274,26 @@ function App(){
     return { camposFaltantes, opcFaltan };
   };
   const puedeEnviar=()=>{ const {camposFaltantes,opcFaltan}=faltantes(); return camposFaltantes.length===0 && opcFaltan===0; };
+
+  // Consentimiento (9 ago 2026): antes no había NINGUNA pantalla dentro del
+  // producto que explicara qué se captura, quién lo revisa y cómo pedir que
+  // se borre — era el gap más serio del assessment de RAI (Privacy → Consent
+  // management, score 0/4). Ahora ambos caminos de entrada (chat o
+  // formulario directo) pasan por acá primero, una sola vez por sesión —
+  // dx.consentimiento_ts sirve como bandera de "ya lo aceptó" (no hace falta
+  // un estado aparte) y viaja con el resto de dx hacia /log sin que el Worker
+  // ni el Apps Script necesiten tocarse para que quede guardado en el futuro
+  // (dx pasa completo tal cual a la hoja) — pendiente: agregar la columna
+  // correspondiente en apps-script-formulario-v2.gs.txt para que quede
+  // registrado también ahí, no solo viajando en el payload.
+  const irCon=(destino)=>{
+    if(dx.consentimiento_ts){ setStage(destino); return; }
+    setPendingStage(destino); setStage("consentimiento");
+  };
+  const aceptarConsentimiento=()=>{
+    setDx(prev=>({...prev, consentimiento_ts:new Date().toISOString()}));
+    setStage(pendingStage);
+  };
   const mensajeFaltante=()=>{
     const {camposFaltantes,opcFaltan}=faltantes();
     const partes=[];
@@ -443,9 +482,28 @@ function App(){
       <div style={{fontFamily:"'Fraunces',serif",fontSize:27,color:P.sageDeep,lineHeight:1.15,marginBottom:14}}>Hola, soy Vita</div>
       <p style={{fontSize:15,color:P.ink,lineHeight:1.6,maxWidth:360,marginBottom:8}}>Cuéntame del día a día de tu hijo o hija — cómo come, duerme y se mueve.</p>
       <p style={{fontSize:13.5,color:P.muted,lineHeight:1.6,maxWidth:360,marginBottom:24}}>Al final, tu información queda registrada para que la revisemos y preparemos el primer paso.</p>
-      <button onClick={()=>setStage("intro")} style={btnPrimary}>Comenzar →</button>
-      <button onClick={()=>setStage("form")} style={{background:"none",border:"none",color:P.sageDeep,fontSize:12.5,fontWeight:700,marginTop:16,cursor:"pointer",textDecoration:"underline",fontFamily:"'Nunito',sans-serif"}}>Prefiero llenar el formulario directo →</button>
+      <button onClick={()=>irCon("intro")} style={btnPrimary}>Comenzar →</button>
+      <button onClick={()=>irCon("form")} style={{background:"none",border:"none",color:P.sageDeep,fontSize:12.5,fontWeight:700,marginTop:16,cursor:"pointer",textDecoration:"underline",fontFamily:"'Nunito',sans-serif"}}>Prefiero llenar el formulario directo →</button>
       <p style={{fontSize:11.5,color:P.muted,marginTop:18,maxWidth:320}}>Esto acompaña y suma con su pediatra — no lo reemplaza.</p>
+    </div></Shell>
+  );
+
+  if(stage==="consentimiento") return (
+    <Shell><div className="rise scroll" style={{flex:1,overflowY:"auto",display:"flex",flexDirection:"column",justifyContent:"center",padding:"30px 26px"}}>
+      <div style={{fontSize:40,marginBottom:12,textAlign:"center"}}>🌱</div>
+      <div style={{fontFamily:"'Fraunces',serif",fontSize:23,color:P.sageDeep,lineHeight:1.2,marginBottom:16,textAlign:"center"}}>Antes de empezar</div>
+      <p style={{fontSize:14.5,color:P.ink,lineHeight:1.65,marginBottom:14}}>Vamos a pedirte que nos cuentes sobre el día a día de tu hijo/a — cómo come, duerme, se mueve y qué te preocupa. Esto es lo que hacemos con esa información:</p>
+      <div style={{background:P.sageSoft,borderRadius:16,padding:"16px",marginBottom:18}}>
+        <div style={{display:"flex",gap:11,marginBottom:12}}><div style={{fontSize:18,flexShrink:0}}>🩺</div><div style={{fontSize:13.5,color:P.ink,lineHeight:1.5}}>La revisa el equipo clínico antes de que te llegue cualquier cosa — nunca te escribimos un plan sin que un humano lo haya visto primero.</div></div>
+        <div style={{display:"flex",gap:11,marginBottom:12}}><div style={{fontSize:18,flexShrink:0}}>🔒</div><div style={{fontSize:13.5,color:P.ink,lineHeight:1.5}}>La usamos solo para preparar el plan de tu hijo/a — no la compartimos con nadie más.</div></div>
+        <div style={{display:"flex",gap:11}}><div style={{fontSize:18,flexShrink:0}}>✉️</div><div style={{fontSize:13.5,color:P.ink,lineHeight:1.5}}>Puedes pedirnos que la borremos cuando quieras, escribiendo a peter@bienestar360.co.</div></div>
+      </div>
+      <label style={{display:"flex",gap:10,alignItems:"flex-start",marginBottom:20,cursor:"pointer"}}>
+        <input type="checkbox" checked={consentChecked} onChange={e=>setConsentChecked(e.target.checked)} style={{marginTop:3,width:17,height:17,flexShrink:0,accentColor:P.sage}}/>
+        <span style={{fontSize:13,color:P.ink,lineHeight:1.5}}>He leído esto y acepto que se use para preparar el plan de mi hijo/a.</span>
+      </label>
+      <button onClick={aceptarConsentimiento} disabled={!consentChecked} style={{...btnPrimary,alignSelf:"center",opacity:consentChecked?1:.5,cursor:consentChecked?"pointer":"default"}}>Acepto y continúo →</button>
+      <button onClick={()=>setStage("welcome")} style={{background:"none",border:"none",color:P.muted,fontSize:12.5,fontWeight:700,marginTop:14,cursor:"pointer",alignSelf:"center",fontFamily:"'Nunito',sans-serif"}}>← Volver</button>
     </div></Shell>
   );
 
