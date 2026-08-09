@@ -206,6 +206,7 @@ function App(){
   const [input,setInput]=useState("");
   const [loading,setLoading]=useState(false);
   const [dx,setDx]=useState(emptyDx);
+  const [dxAlPausar,setDxAlPausar]=useState(null); // snapshot de dx al salir del chat, para detectar si el formulario cambió algo mientras tanto
   const [showDx,setShowDx]=useState(false);
   const [error,setError]=useState(null);
   const [exported,setExported]=useState(false);
@@ -297,14 +298,40 @@ function App(){
     catch(e){ setError("No se pudo conectar. Reintenta."); } finally{ setLoading(false); }
   };
 
+  // Si el padre edita el formulario mientras el chat está pausado a mitad de
+  // camino, Vita no se entera sola (esos campos nunca pasaron por la
+  // conversación) — sin esto, al volver podría repreguntar algo que ya está
+  // en el formulario. Manda un turno invisible (no se agrega a los mensajes
+  // visibles, mismo patrón que el opener de arriba) con lo que cambió.
+  const sincronizarCambiosFormulario=async()=>{
+    setLoading(true);
+    const known=FIELDS.filter(f=>dx[f.key]&&dx[f.key].trim());
+    const opener="[El padre/madre editó el formulario directo mientras la conversación estaba pausada. Esto es lo que hay AHORA — actualiza tu entendimiento, no repitas preguntas ya resueltas, y sigue con la siguiente pregunta natural de lo que falte: "+known.map(f=>f.label+': "'+dx[f.key]+'"').join(" | ")+".]";
+    try{
+      const raw=await callVita([...messages,{role:"user",content:opener}]);
+      const {clean}=processReply(raw,"(retoma tras editar el formulario)");
+      setMessages(m=>[...m,{role:"assistant",content:clean}]);
+    }
+    catch(e){ setError("No se pudo conectar. Reintenta."); } finally{ setLoading(false); }
+  };
+
   // Botón/link "cambiar a chat": si ya había una conversación en curso, solo
-  // cambia de vista (nada que perder ni volver a preguntar). Si no, arranca
-  // una nueva sabiendo lo que ya haya en dx (ej. llenado parcial del
-  // formulario directo).
-  const goToChat=()=>{ if(messages.length>0){ setStage("chat"); } else { startOrResumeChat(); } };
+  // cambia de vista — y si el formulario cambió algo mientras tanto, le
+  // avisa a Vita antes de seguir. Si no había conversación, arranca una
+  // nueva sabiendo lo que ya haya en dx (ej. llenado parcial del formulario).
+  const goToChat=()=>{
+    if(messages.length>0){
+      setStage("chat");
+      if(dxAlPausar!==null && dxAlPausar!==JSON.stringify(dx)) sincronizarCambiosFormulario();
+    } else {
+      startOrResumeChat();
+    }
+  };
   // "cambiar a formulario": dx ya es el mismo estado en ambos modos, así que
   // cambiar de vista alcanza — el formulario aparece con lo ya capturado.
-  const goToForm=()=>{ setStage("form"); };
+  // Se guarda un snapshot de dx para poder detectar, al volver, si el padre
+  // cambió algo mientras el chat estaba pausado.
+  const goToForm=()=>{ setDxAlPausar(JSON.stringify(dx)); setStage("form"); };
 
   const send=async(text)=>{
     const content=(text??input).trim(); if(!content||loading) return;
@@ -314,7 +341,7 @@ function App(){
       const raw=await callVita(next);
       const {clean,modo}=processReply(raw,content,motivoRespaldo);
       setMessages(m=>[...m,{role:"assistant",content:clean}]);
-      if(modo==="formulario") setTimeout(()=>setStage("form"),700);
+      if(modo==="formulario") setTimeout(goToForm,700);
     }
     catch(e){ setError("No se pudo conectar. Reintenta."); } finally{ setLoading(false); }
   };
@@ -331,7 +358,7 @@ function App(){
       .then(raw=>{
         const {clean,modo}=processReply(raw,lastUser,motivoRespaldo);
         setMessages(m=>[...m,{role:"assistant",content:clean}]);
-        if(modo==="formulario") setTimeout(()=>setStage("form"),700);
+        if(modo==="formulario") setTimeout(goToForm,700);
       })
       .catch(()=>setError("No se pudo conectar. Reintenta."))
       .finally(()=>setLoading(false));
