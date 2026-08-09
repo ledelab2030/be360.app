@@ -10,6 +10,15 @@ preview_urls = false
 [observability]
 enabled = true
 
+# Rate limiting (9 ago 2026) — binding creado desde el dashboard de
+# Cloudflare (namespace "vita_rate_limit"). Declarado aquí por la MISMA
+# razón que [observability] arriba: wrangler.toml es la fuente de verdad en
+# cada deploy — si esto no estuviera declarado, el próximo `wrangler deploy`
+# borraría el binding sin avisar. Ver checkRateLimit() en vita-proxy.js.
+[[kv_namespaces]]
+binding = "RATE_LIMIT_KV"
+id = "1f6ffb40f0d8437faca2c57c5981323e"
+
 # Secrets (no van en este archivo, se cargan con `wrangler secret put <nombre>`):
 #   wrangler secret put ANTHROPIC_API_KEY      (ya debería existir si se importa el worker actual)
 #   wrangler secret put SHEET_WEBHOOK_URL
