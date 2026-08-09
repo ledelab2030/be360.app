@@ -63,6 +63,19 @@ const MODEL = "claude-sonnet-4-6";
 // por el modelo, no tiene el chequeo de seguridad por turno del chat: por
 // eso sendToReview() corre detectarRiesgoTextual() sobre TODO dx antes de
 // enviar, cubriendo ambos caminos por igual.
+//
+// NUEVO (8 ago 2026): cambiar de chat a formulario y viceversa SIN perder ni
+// duplicar nada. Antes solo se podía elegir un camino al inicio (pantalla de
+// bienvenida) y quedaba fijo. Como dx es el mismo estado de React en ambos
+// modos, cambiar de vista nunca pierde datos — lo que faltaba era la forma de
+// cambiar de vista. Ahora hay botones en los dos sentidos (header del chat,
+// drawer "Lo que hemos hablado", link en el formulario), y además Vita
+// reacciona si el padre lo pide por texto en el chat (marcador
+// <cambiar_modo>, ver CAMBIO DE MODO en el prompt) — encontrado probando en
+// vivo: pedirle "prefiero el formulario" por chat no hacía nada, Vita seguía
+// preguntando como si no hubiera entendido. Al volver al chat después de
+// llenar parte del formulario, startOrResumeChat() le dice a Vita qué ya se
+// sabe para que no lo vuelva a preguntar.
 // ============================================================
 const BASE = `Eres Vita, acompañante de bienestar de Bienestar 360.
 
@@ -114,13 +127,18 @@ Cuando actives el protocolo de seguridad de arriba por un riesgo real (no por un
 <escalar>urgencia_medica</escalar> — urgencia médica aguda
 Para todo lo demás (incluida una pregunta puntual sobre qué darle de comer), NO agregues ningún marcador de escalamiento — eso no es una señal de riesgo, es solo un padre preguntando.
 
+# CAMBIO DE MODO (formulario directo)
+Además de este chat, existe un formulario directo (no conversacional) con los mismos campos, para el padre que prefiera llenarlo él mismo en vez de conversar. Si el padre te pide explícitamente cambiar a eso — frases como "prefiero el formulario", "mejor lo lleno directo", "pásamelo directo", "quiero terminarlo yo", "esto es muy largo, dame el formulario" — NUNCA sigas preguntando como si no hubieras entendido. Responde en 1 línea confirmando cálidamente el cambio (algo como "Claro, ahí tienes lo que ya sabemos, completa el resto cuando quieras") y agrega, en su propia línea, el marcador invisible: <cambiar_modo>formulario</cambiar_modo>
+No agregues este marcador en ningún otro caso — solo cuando el padre pida el cambio explícitamente.
+
 # FORMATO DE SALIDA (CRÍTICO)
-Responde SIEMPRE en dos o tres partes:
+Responde SIEMPRE en dos, tres o cuatro partes:
 1. Tu mensaje conversacional normal (según las reglas de tono de arriba).
 2. Al final, en una línea aparte, un bloque oculto con lo capturado hasta ahora, exactamente así:
 <dx>{"nombre_padre":"","email_padre":"","nombre_nino":"","edad":"","que_deseas_lograr":"","preocupacion_principal":"","origen":"","sueno_y_movimiento":"","senales_observables":"","diagnosticos_y_atencion_medica":"","cronologia_del_dia":"","finde_y_gustos":"","mente_y_pantallas":"","emociones":""}</dx>
 Rellena solo lo que ya sepas; deja "" lo que falte. "email_padre" es el correo tal cual lo dieron — no lo inventes ni lo completes, anota lo que haya aunque parezca incompleto. "cronologia_del_dia" incluye TODA la cronología con horas + qué come/bebe en cada momento + hidratación, como un relato corrido. Valores breves, frases cortas. El bloque <dx> NUNCA se muestra, es solo para el sistema — no lo menciones ni lo describas.
-3. SOLO si activaste el protocolo de seguridad, el marcador <escalar>...</escalar> de arriba, en su propia línea, después del bloque <dx>.`;
+3. SOLO si activaste el protocolo de seguridad, el marcador <escalar>...</escalar> de arriba, en su propia línea, después del bloque <dx>.
+4. SOLO si el padre pidió cambiar al formulario directo, el marcador <cambiar_modo>formulario</cambiar_modo> de arriba, en su propia línea.`;
 
 // Red de respaldo del escalamiento: en pruebas, el modelo a veces responde
 // bien EN EL TEXTO (valida, dice que avisa al equipo con prioridad) pero se
@@ -223,17 +241,30 @@ function App(){
       body:JSON.stringify({ nombreNino:dx.nombre_nino||"", motivo, mensajePadre:mensajePadre||"" }) }).catch(()=>{});
   };
 
-  // Une el parseo del <dx> con el del <escalar>: primero saca el marcador de
-  // escalamiento (y dispara el aviso real si aplica), luego el <dx>. Si el
-  // modelo no puso el marcador pero la red de respaldo (detectarRiesgoTextual,
-  // sobre lo que escribió el padre) sí detectó algo, se usa esa como
-  // respaldo — nunca al revés (el criterio del modelo, cuando está, manda).
+  // Detecta el marcador <cambiar_modo>formulario</cambiar_modo> — cuando el
+  // padre pide por texto pasarse al formulario directo en vez de un botón.
+  // Antes de esto, Vita simplemente seguía preguntando como si no hubiera
+  // entendido (encontrado probando en vivo: "prefiero seguir con el
+  // formulario" → Vita respondía "claro, seguimos" y hacía la siguiente
+  // pregunta del chat, sin cambiar nada).
+  const parseCambiarModo=(text)=>{
+    const m=text.match(/<cambiar_modo>([\s\S]*?)<\/cambiar_modo>/);
+    const clean=text.replace(/<cambiar_modo>[\s\S]*?<\/cambiar_modo>/g,"").trim();
+    return { clean, modo: m ? m[1].trim() : null };
+  };
+
+  // Une el parseo de los tres marcadores (<escalar>, <cambiar_modo>, <dx>) en
+  // un solo paso. Devuelve el texto limpio para mostrar y, si aplica, el modo
+  // al que hay que cambiar — dx SIEMPRE queda compartido entre chat y
+  // formulario (mismo estado de React), así que cambiar de modo nunca pierde
+  // ni duplica lo ya capturado.
   const processReply=(raw, mensajePadre, motivoRespaldo)=>{
     const { clean:sinEscalar, motivo } = parseEscalar(raw);
-    const clean = parseDx(sinEscalar);
+    const { clean:sinModo, modo } = parseCambiarModo(sinEscalar);
+    const clean = parseDx(sinModo);
     const motivoFinal = motivo || motivoRespaldo || null;
     if(motivoFinal) notificarEscalar(motivoFinal, mensajePadre);
-    return clean;
+    return { clean, modo };
   };
 
   const callVita=async(msgs)=>{
@@ -247,31 +278,61 @@ function App(){
     } finally { clearTimeout(timer); }
   };
 
-  const start=async()=>{
+  // Arranca el chat de cero O lo retoma sabiendo lo que ya se capturó (por
+  // ejemplo, si el padre vino del formulario directo con algunos campos ya
+  // llenos, o de una sesión anterior). dx es el mismo estado compartido con
+  // el modo formulario, así que nunca hay que "reconstruir" nada — solo
+  // decirle a Vita qué ya sabe para que no lo vuelva a preguntar.
+  const startOrResumeChat=async()=>{
     setStage("chat"); setLoading(true); setError(null);
-    const opener = "[Un padre/madre abrió el chat para contarte sobre su hijo/a, para el Formulario de Hábitos. Salúdalo, preséntate breve y haz la primera pregunta del área 1 (nombre y edad del hijo/a).]";
-    try{ const raw=await callVita([{role:"user",content:opener}]); setMessages([{role:"assistant",content:processReply(raw,"(inicio de conversación)")}]); }
+    const known=FIELDS.filter(f=>dx[f.key]&&dx[f.key].trim());
+    const opener = known.length===0
+      ? "[Un padre/madre abrió el chat para contarte sobre su hijo/a, para el Formulario de Hábitos. Salúdalo, preséntate breve y haz la primera pregunta del área 1 (nombre y edad del hijo/a).]"
+      : "[El padre/madre viene del formulario directo (o de una conversación previa) y ahora quiere conversar contigo. YA SABES esto — NO lo vuelvas a preguntar: "+known.map(f=>f.label+': "'+dx[f.key]+'"').join(" | ")+". Salúdalo con calidez reconociendo brevemente que ya tienes esa información (sin listarla toda de corrido), y continúa con la siguiente pregunta natural de lo que aún falte.]";
+    try{
+      const raw=await callVita([{role:"user",content:opener}]);
+      const {clean}=processReply(raw,"(inicio o retoma de conversación)");
+      setMessages([{role:"assistant",content:clean}]);
+    }
     catch(e){ setError("No se pudo conectar. Reintenta."); } finally{ setLoading(false); }
   };
+
+  // Botón/link "cambiar a chat": si ya había una conversación en curso, solo
+  // cambia de vista (nada que perder ni volver a preguntar). Si no, arranca
+  // una nueva sabiendo lo que ya haya en dx (ej. llenado parcial del
+  // formulario directo).
+  const goToChat=()=>{ if(messages.length>0){ setStage("chat"); } else { startOrResumeChat(); } };
+  // "cambiar a formulario": dx ya es el mismo estado en ambos modos, así que
+  // cambiar de vista alcanza — el formulario aparece con lo ya capturado.
+  const goToForm=()=>{ setStage("form"); };
 
   const send=async(text)=>{
     const content=(text??input).trim(); if(!content||loading) return;
     setError(null); const next=[...messages,{role:"user",content}]; setMessages(next); setInput(""); setLoading(true);
     const motivoRespaldo=detectarRiesgoTextual(content);
-    try{ const raw=await callVita(next); setMessages(m=>[...m,{role:"assistant",content:processReply(raw,content,motivoRespaldo)}]); }
+    try{
+      const raw=await callVita(next);
+      const {clean,modo}=processReply(raw,content,motivoRespaldo);
+      setMessages(m=>[...m,{role:"assistant",content:clean}]);
+      if(modo==="formulario") setTimeout(()=>setStage("form"),700);
+    }
     catch(e){ setError("No se pudo conectar. Reintenta."); } finally{ setLoading(false); }
   };
 
   const retry=()=>{
     if(loading) return;
     setError(null);
-    if(messages.length===0){ start(); return; }
+    if(messages.length===0){ startOrResumeChat(); return; }
     setLoading(true);
     const last=messages[messages.length-1];
     const lastUser=last&&last.role==="user"?last.content:"";
     const motivoRespaldo=detectarRiesgoTextual(lastUser);
     callVita(messages)
-      .then(raw=>setMessages(m=>[...m,{role:"assistant",content:processReply(raw,lastUser,motivoRespaldo)}]))
+      .then(raw=>{
+        const {clean,modo}=processReply(raw,lastUser,motivoRespaldo);
+        setMessages(m=>[...m,{role:"assistant",content:clean}]);
+        if(modo==="formulario") setTimeout(()=>setStage("form"),700);
+      })
       .catch(()=>setError("No se pudo conectar. Reintenta."))
       .finally(()=>setLoading(false));
   };
@@ -321,7 +382,7 @@ function App(){
       <div style={{textAlign:"center",marginBottom:2}}>
         <div style={{fontSize:36,marginBottom:8}}>🌱</div>
         <div style={{fontFamily:"'Fraunces',serif",fontSize:21,color:P.sageDeep,marginBottom:6}}>Formulario de Hábitos</div>
-        <p style={{fontSize:12.5,color:P.muted,lineHeight:1.5,maxWidth:340,margin:"0 auto"}}>Llena lo que sepas — no hace falta que sea perfecto ni completo, el equipo lo revisa igual. Si prefieres, también puedes <span onClick={()=>setStage("intro")} style={{color:P.sageDeep,fontWeight:700,textDecoration:"underline",cursor:"pointer"}}>conversar con Vita</span> en vez de esto.</p>
+        <p style={{fontSize:12.5,color:P.muted,lineHeight:1.5,maxWidth:340,margin:"0 auto"}}>Llena lo que sepas — no hace falta que sea perfecto ni completo, el equipo lo revisa igual. Si prefieres, también puedes <span onClick={goToChat} style={{color:P.sageDeep,fontWeight:700,textDecoration:"underline",cursor:"pointer"}}>conversar con Vita</span> — lo que ya llenaste aquí no se pierde.</p>
       </div>
       {FIELDS.map(f=>(
         <div key={f.key} style={{display:"flex",flexDirection:"column",gap:5}}>
@@ -356,7 +417,7 @@ function App(){
         <div style={{display:"flex",gap:11,marginBottom:12}}><div style={{fontSize:18,flexShrink:0}}>💬</div><div style={{fontSize:13.5,color:P.ink,lineHeight:1.5}}>Es una conversación tranquila, sin afán — puede tomar entre 20 y 30 minutos.</div></div>
         <div style={{display:"flex",gap:11}}><div style={{fontSize:18,flexShrink:0}}>🌿</div><div style={{fontSize:13.5,color:P.ink,lineHeight:1.5}}>Al final, tu información queda registrada — la revisamos y te contactamos con el primer paso.</div></div>
       </div>
-      <button onClick={start} style={{...btnPrimary,alignSelf:"center"}}>Empezar la conversación →</button>
+      <button onClick={startOrResumeChat} style={{...btnPrimary,alignSelf:"center"}}>Empezar la conversación →</button>
     </div></Shell>
   );
 
@@ -365,7 +426,7 @@ function App(){
       <div style={{background:"linear-gradient(135deg,"+P.sageDeep+","+P.sage+")",padding:"14px 16px",display:"flex",alignItems:"center",gap:11}}>
         <div style={{width:40,height:40,borderRadius:"50%",background:P.panel,display:"grid",placeItems:"center",fontSize:20}}>🌱</div>
         <div style={{flex:1}}><div style={{fontFamily:"'Fraunces',serif",fontWeight:600,fontSize:19,color:"#fff",lineHeight:1}}>Vita</div><div style={{fontSize:11.5,color:P.sageSoft,marginTop:3}}>{loading?"escribiendo…":(dx.nombre_nino?("Sobre "+dx.nombre_nino):"Conociéndolos")}</div></div>
-        <button onClick={copyChat} title="Copiar conversación" style={{background:"rgba(255,255,255,.18)",border:"none",color:"#fff",borderRadius:999,width:34,height:34,fontSize:15,cursor:"pointer",flexShrink:0}}>{chatCopied?"✓":"📋"}</button><button onClick={()=>setShowDx(true)} style={{background:"rgba(255,255,255,.18)",border:"none",color:"#fff",borderRadius:999,padding:"7px 13px",fontSize:12.5,fontWeight:700,cursor:"pointer",fontFamily:"'Nunito',sans-serif"}}>Lo que llevamos · {filled}/{AREA_TOTAL}</button>
+        <button onClick={copyChat} title="Copiar conversación" style={{background:"rgba(255,255,255,.18)",border:"none",color:"#fff",borderRadius:999,width:34,height:34,fontSize:15,cursor:"pointer",flexShrink:0}}>{chatCopied?"✓":"📋"}</button><button onClick={goToForm} title="Cambiar al formulario directo" style={{background:"rgba(255,255,255,.18)",border:"none",color:"#fff",borderRadius:999,width:34,height:34,fontSize:15,cursor:"pointer",flexShrink:0}}>📝</button><button onClick={()=>setShowDx(true)} style={{background:"rgba(255,255,255,.18)",border:"none",color:"#fff",borderRadius:999,padding:"7px 13px",fontSize:12.5,fontWeight:700,cursor:"pointer",fontFamily:"'Nunito',sans-serif"}}>Lo que llevamos · {filled}/{AREA_TOTAL}</button>
       </div>
       {filled>=MIN_ENVIAR && (
         <div style={{padding:"9px 14px",background:P.sageSoft,borderBottom:"1px solid "+P.line,display:"flex",alignItems:"center",justifyContent:"space-between",gap:10}}>
@@ -389,7 +450,10 @@ function App(){
           <div className="scroll" style={{flex:1,overflowY:"auto",padding:14}}>
             {FIELDS.map(f=>{const val=dx[f.key];const has=val&&val.trim();return(<div key={f.key} style={{marginBottom:10,background:"#fff",border:"1px solid "+(has?P.sage:P.line),borderRadius:12,padding:"10px 12px"}}><div style={{fontSize:11.5,fontWeight:800,color:has?P.sageDeep:P.muted,textTransform:"uppercase",letterSpacing:.4,marginBottom:has?4:0}}>{f.label}</div>{has&&<div style={{fontSize:13.5,color:P.ink,lineHeight:1.45}}>{val}</div>}</div>);})}
           </div>
-          <div style={{padding:12,borderTop:"1px solid "+P.line,display:"flex",gap:8}}><button onClick={exportDx} style={{flex:1,background:exported?P.sage:P.clay,color:"#fff",border:"none",borderRadius:12,padding:"11px",fontSize:13.5,fontWeight:800,cursor:"pointer",fontFamily:"'Nunito',sans-serif"}}>{exported?"✓ Copiado":"Copiar mi resumen"}</button></div>
+          <div style={{padding:12,borderTop:"1px solid "+P.line,display:"flex",flexDirection:"column",gap:8}}>
+            <button onClick={()=>{setShowDx(false);goToForm();}} style={{background:P.sageDeep,color:"#fff",border:"none",borderRadius:12,padding:"11px",fontSize:13.5,fontWeight:800,cursor:"pointer",fontFamily:"'Nunito',sans-serif"}}>Terminarlo en el formulario directo →</button>
+            <button onClick={exportDx} style={{background:exported?P.sage:P.clay,color:"#fff",border:"none",borderRadius:12,padding:"11px",fontSize:13.5,fontWeight:800,cursor:"pointer",fontFamily:"'Nunito',sans-serif"}}>{exported?"✓ Copiado":"Copiar mi resumen"}</button>
+          </div>
         </div>
       </div>)}
     </Shell>
