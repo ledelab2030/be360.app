@@ -8,6 +8,15 @@
 //
 // CORS restringido: solo be360.app puede usar este Worker.
 //
+// NUEVO (8 ago 2026): panel/index.html (panel de revisión de Peter). Las
+// rutas /panel/* de este Worker NO necesitan ningún secret nuevo de
+// Cloudflare — solo reenvían el cuerpo de la petición (incluido
+// "panelSecret") tal cual a Apps Script, que es quien de verdad valida el
+// PIN contra su propia variable PANEL_SECRET (ver
+// worker/apps-script-formulario-v2.gs.txt). Lo único que importa: el PIN
+// que Peter escribe la primera vez que entra al panel debe ser IGUAL al
+// PANEL_SECRET que pusiste en el Apps Script.
+//
 // NUEVO (HITL capture-only, ago 2026): ruta /log — recibe el
 // diagnóstico capturado y lo reenvía a un Sheet de revisión vía Apps
 // Script. Dos productos, dos schemas, DOS Sheets distintos — se enrutan
@@ -126,6 +135,19 @@ export default {
     if (url.pathname === "/escalar") {
       return handleEscalar(request, env, cors);
     }
+
+    // NUEVO (8 ago 2026): panel de revisión de Peter (panel/index.html) —
+    // reemplaza editar la hoja de cálculo directo, que cualquiera con acceso
+    // puede dañar sin querer (borrar una fila, mover una columna, escribir
+    // "aprobado" donde no era). Estas 4 rutas usan PANEL_SECRET, un secreto
+    // DISTINTO de SHEET_WEBHOOK_SECRET_FORMULARIO — el panel nunca ve el
+    // secreto real que este Worker usa para escribir en el Sheet, solo el
+    // PIN de Peter, que igual nunca sale del cuerpo de la petición (no se
+    // expone en la URL ni en logs).
+    if (url.pathname === "/panel/pendientes") return handlePanelAction(request, env, cors, "listar_pendientes");
+    if (url.pathname === "/panel/detalle") return handlePanelAction(request, env, cors, "detalle_plan");
+    if (url.pathname === "/panel/guardar") return handlePanelAction(request, env, cors, "guardar_edicion_plan");
+    if (url.pathname === "/panel/aprobar") return handlePanelAction(request, env, cors, "aprobar_plan");
 
     try {
       const body = await request.json();
@@ -453,6 +475,38 @@ async function handleEscalar(request, env, cors) {
       return new Response(JSON.stringify({ ok: false, error: "no se pudo notificar" }), { status: 502, headers: jsonHeaders });
     }
     return new Response(JSON.stringify({ ok: true }), { status: 200, headers: jsonHeaders });
+  } catch (e) {
+    return new Response(JSON.stringify({ ok: false, error: String(e) }), { status: 500, headers: jsonHeaders });
+  }
+}
+
+// Reenvía cualquier acción del panel de Peter al Apps Script, agregando el
+// nombre de la acción — el cuerpo (panelSecret, idPlan, plan, mensaje, etc.)
+// ya viene armado desde panel/index.html, este Worker solo lo pasa. El
+// secreto real del Sheet (SHEET_WEBHOOK_SECRET_FORMULARIO) nunca sale de
+// aquí — Apps Script valida el panelSecret por su cuenta, con su propia
+// variable PANEL_SECRET, separada de la que usa el resto del sistema.
+async function handlePanelAction(request, env, cors, accion) {
+  const jsonHeaders = { ...cors, "Content-Type": "application/json" };
+  try {
+    const body = await request.json();
+
+    if (!env.SHEET_WEBHOOK_URL_FORMULARIO) {
+      return new Response(JSON.stringify({ ok: false, error: "SHEET_WEBHOOK_URL_FORMULARIO no configurado" }), { status: 500, headers: jsonHeaders });
+    }
+
+    const sheetRes = await fetch(env.SHEET_WEBHOOK_URL_FORMULARIO, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ...body, action: accion }),
+    });
+
+    const sheetText = await sheetRes.text();
+    let sheetData;
+    try { sheetData = JSON.parse(sheetText); } catch (e) { sheetData = { ok: false, error: "respuesta inválida de Apps Script" }; }
+
+    const status = sheetData.ok === false ? (sheetData.error === "panelSecret inválido" ? 401 : 400) : 200;
+    return new Response(JSON.stringify(sheetData), { status, headers: jsonHeaders });
   } catch (e) {
     return new Response(JSON.stringify({ ok: false, error: String(e) }), { status: 500, headers: jsonHeaders });
   }

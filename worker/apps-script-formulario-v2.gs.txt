@@ -1,33 +1,53 @@
 /**
- * Apps Script v4 — Sheet "vita-demo-formulario". Reemplaza el código anterior
+ * Apps Script v5 — Sheet "vita-demo-formulario". Reemplaza el código anterior
  * de ESTE Sheet (el de srb3 no cambia).
  *
- * QUÉ CAMBIA sobre la v3 (decisión de Leonardo, 8 ago 2026):
- *   - La columna "whatsapp_padre" pasa a ser "email_padre" — ya no se pide
- *     el WhatsApp del padre/madre al capturar. Motivo: pedirlo obliga a
- *     tratar WhatsApp como canal (controles, restricciones y costos de la
- *     API de Meta) que hoy no hace falta — con correo alcanza para
- *     entregar el plan.
- *   - onAprobado ya NO arma un link de WhatsApp para que alguien del equipo
- *     lo mande a mano: manda el correo con el link del plan DIRECTO al
- *     padre/madre, automáticamente, apenas Peter pone "aprobado". Era el
- *     último paso manual que quedaba en el ciclo — con esto se cierra.
+ * QUÉ AGREGA sobre la v4 (decisión de Leonardo, 8 ago 2026):
+ *   - Panel de revisión para Peter (panel/index.html en be360.app). Antes
+ *     Peter aprobaba/editaba escribiendo directo en la hoja de cálculo —
+ *     cualquiera con acceso puede dañarla sin querer (borrar una fila, mover
+ *     una columna, escribir "aprobado" en la fila equivocada, romper el
+ *     encabezado). El panel solo expone las acciones seguras: ver
+ *     pendientes, incluir/excluir hábitos uno por uno, editar el mensaje,
+ *     aprobar — nada más.
+ *   - 4 acciones nuevas en doPost: listar_pendientes, detalle_plan,
+ *     guardar_edicion_plan, aprobar_plan. Usan un secreto DISTINTO
+ *     (PANEL_SECRET) del que usa el Worker (SHARED_SECRET) — el panel de
+ *     Peter nunca ve el secreto real que el Worker usa para escribir en la
+ *     hoja, solo conoce su propio PIN.
+ *   - onAprobado (el trigger de "Al editar", por si Peter sigue editando la
+ *     hoja directo alguna vez) se refactorizó: ahora es un wrapper delgado
+ *     sobre enviarPlanAprobado(sheet, row) — la MISMA función que usa el
+ *     panel al aprobar. Aprobar desde la hoja o desde el panel hacen
+ *     exactamente lo mismo, sin lógica duplicada.
+ *   - Nueva columna al final: correo_enviado_ts — evita mandarle el correo
+ *     de entrega dos veces a una familia si por algún motivo se disparan
+ *     tanto el trigger de edición como la acción del panel para la misma
+ *     fila.
+ *   - Excluir un hábito en el panel NO lo borra — se guarda igual, con
+ *     incluido:false, para que Peter pueda reconsiderarlo antes de aprobar
+ *     (su método permite "incluir/excluir/dejar para después"). doGet (lo
+ *     que ve el padre) filtra los excluidos ahí, no antes.
  *
- * CAMBIO EN LOS ENCABEZADOS DE TU SHEET — renombra la última columna, de
- * "whatsapp_padre" a "email_padre" (misma columna, cambia lo que guarda:
- * antes un número, ahora un correo).
+ * CAMBIO EN LOS ENCABEZADOS DE TU SHEET — agrega esta columna al final de la
+ * fila 1 (después de email_padre):
+ *   correo_enviado_ts
  *
  * Pasos para instalar (reemplaza TODO el contenido de Code.gs):
  * 1. Pega este archivo completo.
  * 2. SHARED_SECRET debe ser el MISMO valor que ya tenías.
- * 3. Renombra el encabezado de la columna "whatsapp_padre" a "email_padre"
- *    en la fila 1 del Sheet.
- * 4. Implementar → Administrar implementaciones → editar (lápiz) → Nueva
+ * 3. PANEL_SECRET: pon un PIN nuevo, solo para Peter — no lo repitas en
+ *    ningún otro lado, ni en el Sheet ni en código público.
+ * 4. Agrega la columna "correo_enviado_ts" al final de la fila 1 del Sheet.
+ * 5. Implementar → Administrar implementaciones → editar (lápiz) → Nueva
  *    versión → Implementar.
- * 5. La URL /exec no cambia. No hace falta tocar el Worker.
+ * 6. La URL /exec no cambia. En el Worker hace falta agregar el secret
+ *    PANEL_SECRET (mismo valor que pusiste aquí) y las 4 rutas nuevas —
+ *    ver worker/vita-proxy.js.
  */
 
 var SHARED_SECRET = "3-estoesparaquevitarenazcabajolasreglasduras";
+var PANEL_SECRET = "CAMBIA-ESTO-por-un-pin-que-solo-sepan-tu-y-peter";
 
 var COLS = {
   timestamp: 0, modo: 1, nombre_nino: 2, edad: 3, que_deseas_lograr: 4,
@@ -36,26 +56,27 @@ var COLS = {
   cronologia_del_dia: 10, finde_y_gustos: 11, mente_y_pantallas: 12,
   emociones: 13, estado: 14, notas_peter: 15,
   id_plan: 16, plan_json: 17, decision: 18, borrador_texto: 19,
-  nombre_padre: 20, email_padre: 21,
+  nombre_padre: 20, email_padre: 21, correo_enviado_ts: 22,
 };
 
 function doPost(e) {
   try {
     var body = JSON.parse(e.postData.contents);
+    var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheets()[0];
 
+    // Acciones del panel de Peter — su propio secreto, nunca el del Worker.
+    if (body.action === "listar_pendientes") return conPanelSecret(body, function () { return listarPendientes(sheet); });
+    if (body.action === "detalle_plan") return conPanelSecret(body, function () { return detallePlan(sheet, body); });
+    if (body.action === "guardar_edicion_plan") return conPanelSecret(body, function () { return guardarEdicionPlan(sheet, body); });
+    if (body.action === "aprobar_plan") return conPanelSecret(body, function () { return aprobarPlan(sheet, body); });
+
+    // Resto de acciones — vienen del Worker, usan SHARED_SECRET.
     if (!body.secret || body.secret !== SHARED_SECRET) {
       return respond({ ok: false, error: "secret inválido" }, 401);
     }
 
-    var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheets()[0];
-
-    if (body.action === "guardar_borrador") {
-      return guardarBorrador(sheet, body);
-    }
-
-    if (body.action === "notificar_escalamiento") {
-      return notificarEscalamiento(body);
-    }
+    if (body.action === "guardar_borrador") return guardarBorrador(sheet, body);
+    if (body.action === "notificar_escalamiento") return notificarEscalamiento(body);
 
     // Comportamiento original: agregar fila nueva capturada por Vita.
     if (!body.dx) {
@@ -72,7 +93,7 @@ function doPost(e) {
       dx.emociones || "",
       "pendiente", "",       // estado, notas_peter
       "", "", "", "",        // id_plan, plan_json, decision, borrador_texto
-      dx.nombre_padre || "", dx.email_padre || ""
+      dx.nombre_padre || "", dx.email_padre || "", ""   // correo_enviado_ts vacío
     ]);
     var lastRow = sheet.getLastRow();
     SpreadsheetApp.flush();
@@ -80,6 +101,107 @@ function doPost(e) {
   } catch (err) {
     return respond({ ok: false, error: String(err) }, 500);
   }
+}
+
+// Envuelve las acciones del panel con el chequeo de PANEL_SECRET, para no
+// repetirlo en cada función.
+function conPanelSecret(body, fn) {
+  if (!body.panelSecret || body.panelSecret !== PANEL_SECRET) {
+    return respond({ ok: false, error: "panelSecret inválido" }, 401);
+  }
+  return fn();
+}
+
+// ============================================================
+// PANEL DE PETER — solo estas 4 funciones puede tocar el panel. No puede
+// borrar filas, no puede tocar columnas, no puede aprobar el caso
+// equivocado (todo se busca por id_plan, no por número de fila).
+// ============================================================
+
+// Lista los casos con borrador listo, esperando revisión — solo lo mínimo
+// para elegir cuál abrir, no expone la fila completa.
+function listarPendientes(sheet) {
+  var data = sheet.getDataRange().getValues();
+  var out = [];
+  for (var r = 1; r < data.length; r++) {
+    if (data[r][COLS.decision] === "pendiente_aprobacion") {
+      out.push({
+        idPlan: data[r][COLS.id_plan],
+        nombreNino: data[r][COLS.nombre_nino],
+        edad: data[r][COLS.edad],
+        nombrePadre: data[r][COLS.nombre_padre],
+        preocupacionPrincipal: data[r][COLS.preocupacion_principal],
+        timestamp: data[r][COLS.timestamp],
+      });
+    }
+  }
+  out.sort(function (a, b) { return new Date(b.timestamp) - new Date(a.timestamp); }); // más recientes primero
+  return respond({ ok: true, pendientes: out });
+}
+
+function encontrarFilaPorIdPlan(sheet, idPlan) {
+  var data = sheet.getDataRange().getValues();
+  for (var r = 1; r < data.length; r++) {
+    if (String(data[r][COLS.id_plan]) === String(idPlan)) return { row: r + 1, values: data[r] };
+  }
+  return null;
+}
+
+// Todo lo que Peter necesita para revisar un caso: el formulario capturado
+// (contexto clínico) + el borrador generado por el Prompt Maestro.
+function detallePlan(sheet, body) {
+  var idPlan = body.idPlan;
+  if (!idPlan) return respond({ ok: false, error: "idPlan faltante" }, 400);
+  var found = encontrarFilaPorIdPlan(sheet, idPlan);
+  if (!found) return respond({ ok: false, error: "no encontrado" }, 404);
+  var v = found.values;
+  var plan = {};
+  try { plan = JSON.parse(v[COLS.plan_json] || "{}"); } catch (ex) {}
+  return respond({
+    ok: true,
+    idPlan: idPlan,
+    decision: v[COLS.decision],
+    nombreNino: v[COLS.nombre_nino], edad: v[COLS.edad],
+    nombrePadre: v[COLS.nombre_padre], emailPadre: v[COLS.email_padre],
+    queDeseaLograr: v[COLS.que_deseas_lograr], preocupacionPrincipal: v[COLS.preocupacion_principal],
+    origen: v[COLS.origen], suenoYMovimiento: v[COLS.sueno_y_movimiento],
+    senalesObservables: v[COLS.senales_observables], diagnosticosYAtencionMedica: v[COLS.diagnosticos_y_atencion_medica],
+    cronologiaDelDia: v[COLS.cronologia_del_dia], findeYGustos: v[COLS.finde_y_gustos],
+    menteYPantallas: v[COLS.mente_y_pantallas], emociones: v[COLS.emociones],
+    mensaje: v[COLS.borrador_texto],
+    plan: plan,
+  });
+}
+
+// Guarda ediciones (hábitos incluidos/excluidos, texto del mensaje) SIN
+// aprobar — para que Peter pueda ajustar y volver más tarde sin apurarse.
+function guardarEdicionPlan(sheet, body) {
+  var idPlan = body.idPlan;
+  if (!idPlan) return respond({ ok: false, error: "idPlan faltante" }, 400);
+  var found = encontrarFilaPorIdPlan(sheet, idPlan);
+  if (!found) return respond({ ok: false, error: "no encontrado" }, 404);
+  var row = found.row;
+  if (body.plan) sheet.getRange(row, COLS.plan_json + 1).setValue(JSON.stringify(body.plan));
+  if (typeof body.mensaje === "string") sheet.getRange(row, COLS.borrador_texto + 1).setValue(body.mensaje);
+  SpreadsheetApp.flush();
+  return respond({ ok: true });
+}
+
+// Aprueba: guarda los cambios finales (si vienen) + decision=aprobado +
+// dispara el correo real — mismo camino que el trigger de edición manual,
+// para que ambas formas de aprobar den exactamente el mismo resultado.
+function aprobarPlan(sheet, body) {
+  var idPlan = body.idPlan;
+  if (!idPlan) return respond({ ok: false, error: "idPlan faltante" }, 400);
+  var found = encontrarFilaPorIdPlan(sheet, idPlan);
+  if (!found) return respond({ ok: false, error: "no encontrado" }, 404);
+  var row = found.row;
+  if (body.plan) sheet.getRange(row, COLS.plan_json + 1).setValue(JSON.stringify(body.plan));
+  if (typeof body.mensaje === "string") sheet.getRange(row, COLS.borrador_texto + 1).setValue(body.mensaje);
+  sheet.getRange(row, COLS.decision + 1).setValue("aprobado");
+  SpreadsheetApp.flush();
+  var resultado = enviarPlanAprobado(sheet, row);
+  return respond({ ok: true, envio: resultado });
 }
 
 function guardarBorrador(sheet, body) {
@@ -140,6 +262,13 @@ function doGet(e) {
         }
         var plan = {};
         try { plan = JSON.parse(data[r][COLS.plan_json] || "{}"); } catch (ex) {}
+        // El padre NUNCA ve los hábitos que Peter excluyó en el panel — se
+        // guardan todos (para que Peter pueda reconsiderar antes de
+        // aprobar), pero acá se filtran. Sin "incluido" (casos viejos, antes
+        // de que existiera el panel) se trata como incluido.
+        if (plan.habitos) {
+          plan.habitos = plan.habitos.filter(function (h) { return h.incluido !== false; });
+        }
         return respond({
           ok: true,
           nombreNino: data[r][COLS.nombre_nino],
@@ -160,11 +289,67 @@ function respond(obj, status) {
     .setMimeType(ContentService.MimeType.JSON);
 }
 
+// Envía el plan aprobado directo al padre/madre por correo — la usan tanto
+// el trigger onAprobado (edición manual de la hoja) como aprobarPlan (desde
+// el panel). Idempotente: si correo_enviado_ts ya tiene valor, no reenvía.
+function enviarPlanAprobado(sheet, row) {
+  var rowValues = sheet.getRange(row, 1, 1, sheet.getLastColumn()).getValues()[0];
+
+  if (rowValues[COLS.correo_enviado_ts]) return { yaEnviado: true };
+
+  var nombreNino = rowValues[COLS.nombre_nino] || "";
+  var nombrePadre = rowValues[COLS.nombre_padre] || "";
+  var emailPadre = String(rowValues[COLS.email_padre] || "").trim();
+  var idPlan = rowValues[COLS.id_plan] || "";
+
+  if (!idPlan) {
+    MailApp.sendEmail({
+      to: "leonardo@ledelab.group",
+      subject: "⚠️ Aprobaste un plan sin borrador — " + (nombreNino || "sin nombre"),
+      body: "Pusiste 'aprobado' en la fila de " + (nombreNino || "(sin nombre)") + " pero todavía no hay un borrador generado (falta el id_plan). Genera el borrador primero.",
+    });
+    return { error: "sin idPlan" };
+  }
+
+  var planUrl = "https://be360.app/plan/?id=" + idPlan;
+
+  if (!emailPadre) {
+    MailApp.sendEmail({
+      to: "leonardo@ledelab.group",
+      subject: "⚠️ Falta el correo del padre — " + (nombreNino || "sin nombre"),
+      body: "Se aprobó el plan de " + (nombreNino || "(sin nombre)") + " pero la columna email_padre está vacía, así que no se pudo enviar automáticamente.\n\nLink del plan (envíalo tú manualmente): " + planUrl,
+    });
+    return { error: "sin emailPadre" };
+  }
+
+  MailApp.sendEmail({
+    to: emailPadre,
+    name: "Bienestar 360",
+    subject: "El plan de " + (nombreNino || "tu hijo/a") + " ya está listo",
+    body:
+      "Hola" + (nombrePadre ? " " + nombrePadre : "") + ",\n\n" +
+      "Ya está listo el plan de " + (nombreNino || "tu hijo/a") + ". Puedes verlo aquí:\n" +
+      planUrl + "\n\n" +
+      "— El equipo de Bienestar 360",
+  });
+
+  MailApp.sendEmail({
+    to: "leonardo@ledelab.group",
+    subject: "✅ Plan enviado automáticamente — " + (nombreNino || "sin nombre"),
+    body: "Se envió el plan de " + (nombreNino || "(sin nombre)") + " directo a " + emailPadre + ".\n\nLink: " + planUrl,
+  });
+
+  sheet.getRange(row, COLS.correo_enviado_ts + 1).setValue(new Date().toISOString());
+  SpreadsheetApp.flush();
+  return { enviado: true };
+}
+
 // ============================================================
-// TRIGGER DE APROBACIÓN — avisa por correo apenas alguien pone "aprobado"
-// en la columna "decision". OJO: esto NO corre solo con pegar el código —
-// es un trigger INSTALABLE (los simple triggers como onEdit no pueden
-// mandar correo). Instálalo así, una sola vez:
+// TRIGGER DE APROBACIÓN — por si Peter sigue editando la hoja directo
+// alguna vez (respaldo, no es el camino principal ahora que existe el
+// panel). Wrapper delgado sobre enviarPlanAprobado. OJO: esto NO corre solo
+// con pegar el código — es un trigger INSTALABLE (los simple triggers como
+// onEdit no pueden mandar correo). Instálalo así, una sola vez:
 //   1. En el editor de Apps Script, ícono del reloj (⏰, "Activadores") a
 //      la izquierda.
 //   2. + Agregar activador (esquina inferior derecha).
@@ -178,58 +363,7 @@ function onAprobado(e) {
     if (!e || !e.range) return;
     if (e.range.getColumn() !== COLS.decision + 1) return; // solo nos importa "decision"
     if (String(e.value || "").trim() !== "aprobado") return;
-
-    var sheet = e.range.getSheet();
-    var row = e.range.getRow();
-    var rowValues = sheet.getRange(row, 1, 1, sheet.getLastColumn()).getValues()[0];
-
-    var nombreNino = rowValues[COLS.nombre_nino] || "";
-    var nombrePadre = rowValues[COLS.nombre_padre] || "";
-    var emailPadre = String(rowValues[COLS.email_padre] || "").trim();
-    var idPlan = rowValues[COLS.id_plan] || "";
-
-    if (!idPlan) {
-      MailApp.sendEmail({
-        to: "leonardo@ledelab.group",
-        subject: "⚠️ Aprobaste un plan sin borrador — " + (nombreNino || "sin nombre"),
-        body: "Pusiste 'aprobado' en la fila de " + (nombreNino || "(sin nombre)") + " pero todavía no hay un borrador generado (falta el id_plan). Genera el borrador primero.",
-      });
-      return;
-    }
-
-    var planUrl = "https://be360.app/plan/?id=" + idPlan;
-
-    if (!emailPadre) {
-      // Sin correo no hay a quién enviarle — avisa al equipo para que lo
-      // resuelva a mano en vez de fallar en silencio.
-      MailApp.sendEmail({
-        to: "leonardo@ledelab.group",
-        subject: "⚠️ Falta el correo del padre — " + (nombreNino || "sin nombre"),
-        body: "Se aprobó el plan de " + (nombreNino || "(sin nombre)") + " pero la columna email_padre está vacía, así que no se pudo enviar automáticamente.\n\nLink del plan (envíalo tú manualmente): " + planUrl,
-      });
-      return;
-    }
-
-    // Envío automático y directo al padre/madre — ya no requiere que alguien
-    // del equipo haga clic para mandarlo. Último paso manual del ciclo que
-    // quedaba (antes era "un clic para WhatsApp"); con esto se cierra.
-    MailApp.sendEmail({
-      to: emailPadre,
-      name: "Bienestar 360",
-      subject: "El plan de " + (nombreNino || "tu hijo/a") + " ya está listo",
-      body:
-        "Hola" + (nombrePadre ? " " + nombrePadre : "") + ",\n\n" +
-        "Ya está listo el plan de " + (nombreNino || "tu hijo/a") + ". Puedes verlo aquí:\n" +
-        planUrl + "\n\n" +
-        "— El equipo de Bienestar 360",
-    });
-
-    // Copia de cortesía al equipo — solo para tener registro de que salió.
-    MailApp.sendEmail({
-      to: "leonardo@ledelab.group",
-      subject: "✅ Plan enviado automáticamente — " + (nombreNino || "sin nombre"),
-      body: "Se envió el plan de " + (nombreNino || "(sin nombre)") + " directo a " + emailPadre + ".\n\nLink: " + planUrl,
-    });
+    enviarPlanAprobado(e.range.getSheet(), e.range.getRow());
   } catch (err) {
     // No relanzar: un error aquí no debe romper la edición del Sheet.
   }
