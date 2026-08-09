@@ -76,6 +76,17 @@ const MODEL = "claude-sonnet-4-6";
 // preguntando como si no hubiera entendido. Al volver al chat después de
 // llenar parte del formulario, startOrResumeChat() le dice a Vita qué ya se
 // sabe para que no lo vuelva a preguntar.
+//
+// NUEVO (8 ago 2026): "Enviar a revisión" ahora exige sustancia real, no solo
+// una cuenta de campos. Antes bastaba con 4 campos llenos, los que fueran —
+// dejaba pasar casos como nombre+correo+edad+una palabra suelta, sin nada
+// útil para que Peter arme un plan. Ahora exige: identificación completa del
+// hijo/a (nombre, edad) + contacto (nombre y correo del padre) + la
+// cronología del día CON sustancia real (el propio prompt la llama "el
+// corazón de la captura", no es un campo más) + un mínimo de otras áreas del
+// panorama. Ver REQUIRED_SIEMPRE/OPCIONALES/faltantes()/puedeEnviar() más
+// abajo. El mensaje al padre ahora dice qué falta en concreto, no solo un
+// contador ("Aún falta: X, Y").
 // ============================================================
 const BASE = `Eres Vita, acompañante de bienestar de Bienestar 360.
 
@@ -182,6 +193,17 @@ const FIELDS = [
   { key:"emociones", label:"Emociones", hint:"Emociones que observas con frecuencia (alegría, rabietas, ansiedad, frustración) — vale describirlo como comportamiento." },
 ];
 const AREA_TOTAL = FIELDS.length;
+
+// Qué hace falta para que "Enviar a revisión" tenga sentido — antes esto era
+// solo "al menos 4 campos llenos, los que sean", lo cual dejaba pasar casos
+// como nombre+correo+edad+una palabra suelta. Ahora exige lo que Peter
+// realmente necesita para armar algo: identificación completa del hijo/a +
+// la cronología del día (que el propio prompt llama "el corazón de la
+// captura", no es opcional) + una base mínima del resto del panorama.
+const REQUIRED_SIEMPRE = ["nombre_padre","email_padre","nombre_nino","edad","cronologia_del_dia"];
+const MIN_LEN_CRONOLOGIA = 40; // filtra respuestas de una palabra ("normal", "no sé") sin bloquear un relato corto real
+const OPCIONALES = ["que_deseas_lograr","preocupacion_principal","origen","sueno_y_movimiento","senales_observables","diagnosticos_y_atencion_medica","finde_y_gustos","mente_y_pantallas","emociones"];
+const MIN_OPCIONALES = 4; // de los 9 restantes, para que el panorama no sea solo la cronología sola
 const P = { bg:"#ECE5D8", panel:"#FBF8F1", ink:"#2C2A24", sage:"#5A7A5C", sageDeep:"#3E5A40", sageSoft:"#DCE7D6", user:"#C9DDB8", clay:"#B5764A", line:"#D8CFBE", muted:"#8A8473" };
 const emptyDx = FIELDS.reduce((a,f)=>({...a,[f.key]:""}),{});
 const MODE = "child"; // este demo SOLO captura para un hijo/a — no hay modo adulto.
@@ -213,10 +235,33 @@ function App(){
   const [chatCopied,setChatCopied]=useState(false);
   const [sending,setSending]=useState(false);
   const [sendError,setSendError]=useState(null);
-  const MIN_ENVIAR=4; // mínimo de áreas capturadas para habilitar "Enviar a revisión"
   const scrollRef=useRef(null);
   useEffect(()=>{ if(scrollRef.current) scrollRef.current.scrollTop=scrollRef.current.scrollHeight; },[messages,loading]);
   const filled=FIELDS.filter(f=>dx[f.key]&&dx[f.key].trim()).length;
+
+  // Qué falta, en palabras — para mostrarle al padre algo más útil que un
+  // contador. Devuelve los campos SIEMPRE requeridos que faltan (o que están
+  // pero sin sustancia, en el caso de la cronología) y cuántos opcionales
+  // más hacen falta para tener un panorama real.
+  const faltantes=()=>{
+    const camposFaltantes=[];
+    for(const k of REQUIRED_SIEMPRE){
+      const val=(dx[k]||"").trim();
+      const okLargo = k==="cronologia_del_dia" ? val.length>=MIN_LEN_CRONOLOGIA : val.length>0;
+      if(!okLargo) camposFaltantes.push(FIELDS.find(f=>f.key===k).label);
+    }
+    const opcionalesLlenos=OPCIONALES.filter(k=>dx[k]&&dx[k].trim()).length;
+    const opcFaltan=Math.max(0, MIN_OPCIONALES-opcionalesLlenos);
+    return { camposFaltantes, opcFaltan };
+  };
+  const puedeEnviar=()=>{ const {camposFaltantes,opcFaltan}=faltantes(); return camposFaltantes.length===0 && opcFaltan===0; };
+  const mensajeFaltante=()=>{
+    const {camposFaltantes,opcFaltan}=faltantes();
+    const partes=[];
+    if(camposFaltantes.length) partes.push(camposFaltantes.join(", "));
+    if(opcFaltan>0) partes.push(opcFaltan+" tema"+(opcFaltan>1?"s":"")+" más de su día a día");
+    return partes.join(" y ");
+  };
 
   const parseDx=(text)=>{
     const m=text.match(/<dx>([\s\S]*?)<\/dx>/);
@@ -368,7 +413,7 @@ function App(){
   // el diagnóstico capturado a revisión (mismo Sheet vía el mismo Worker que
   // vita-demo-srb-3) — Peter lo aprueba antes de que alguien le escriba al padre.
   const sendToReview=async()=>{
-    if(sending) return;
+    if(sending||!puedeEnviar()) return; // el botón ya se deshabilita solo, esto es el respaldo por si acaso
     setSending(true); setSendError(null);
     // Última red de respaldo antes de enviar: escanea TODO lo capturado —
     // por chat o por el modo formulario directo, que no pasa por el modelo
@@ -418,8 +463,8 @@ function App(){
           <textarea value={dx[f.key]} onChange={e=>setDx(prev=>({...prev,[f.key]:e.target.value}))} rows={f.key==="cronologia_del_dia"?4:(f.key==="nombre_padre"||f.key==="email_padre"||f.key==="nombre_nino"||f.key==="edad"?1:2)} style={{border:"1px solid "+P.line,borderRadius:12,padding:"9px 11px",fontSize:13.5,fontFamily:"'Nunito',sans-serif",background:"#fff",color:P.ink,outline:"none",resize:"vertical"}}/>
         </div>
       ))}
-      <button onClick={sendToReview} disabled={filled<MIN_ENVIAR||sending} style={{...btnPrimary,alignSelf:"center",marginTop:6,opacity:(filled<MIN_ENVIAR||sending)?.55:1,cursor:(filled<MIN_ENVIAR||sending)?"default":"pointer"}}>{sending?"Enviando…":"Enviar a revisión →"}</button>
-      {filled<MIN_ENVIAR && <p style={{fontSize:11.5,color:P.muted,textAlign:"center"}}>Llena al menos {MIN_ENVIAR} campos para poder enviar.</p>}
+      <button onClick={sendToReview} disabled={!puedeEnviar()||sending} style={{...btnPrimary,alignSelf:"center",marginTop:6,opacity:(!puedeEnviar()||sending)?.55:1,cursor:(!puedeEnviar()||sending)?"default":"pointer"}}>{sending?"Enviando…":"Enviar a revisión →"}</button>
+      {!puedeEnviar() && <p style={{fontSize:11.5,color:P.muted,textAlign:"center"}}>Aún falta: {mensajeFaltante()}.</p>}
       {sendError && <p style={{fontSize:12.5,color:P.clay,textAlign:"center"}}>{sendError}</p>}
       <p style={{fontSize:11,color:P.muted,textAlign:"center",lineHeight:1.5,marginTop:2}}>Esto acompaña y suma con su pediatra — no lo reemplaza.</p>
     </div></Shell>
@@ -455,10 +500,10 @@ function App(){
         <div style={{flex:1}}><div style={{fontFamily:"'Fraunces',serif",fontWeight:600,fontSize:19,color:"#fff",lineHeight:1}}>Vita</div><div style={{fontSize:11.5,color:P.sageSoft,marginTop:3}}>{loading?"escribiendo…":(dx.nombre_nino?("Sobre "+dx.nombre_nino):"Conociéndolos")}</div></div>
         <button onClick={copyChat} title="Copiar conversación" style={{background:"rgba(255,255,255,.18)",border:"none",color:"#fff",borderRadius:999,width:34,height:34,fontSize:15,cursor:"pointer",flexShrink:0}}>{chatCopied?"✓":"📋"}</button><button onClick={goToForm} title="Cambiar al formulario directo" style={{background:"rgba(255,255,255,.18)",border:"none",color:"#fff",borderRadius:999,width:34,height:34,fontSize:15,cursor:"pointer",flexShrink:0}}>📝</button><button onClick={()=>setShowDx(true)} style={{background:"rgba(255,255,255,.18)",border:"none",color:"#fff",borderRadius:999,padding:"7px 13px",fontSize:12.5,fontWeight:700,cursor:"pointer",fontFamily:"'Nunito',sans-serif"}}>Lo que llevamos · {filled}/{AREA_TOTAL}</button>
       </div>
-      {filled>=MIN_ENVIAR && (
+      {filled>=3 && (
         <div style={{padding:"9px 14px",background:P.sageSoft,borderBottom:"1px solid "+P.line,display:"flex",alignItems:"center",justifyContent:"space-between",gap:10}}>
-          <div style={{fontSize:12,color:P.sageDeep,lineHeight:1.4}}>Cuando termines de contarme, envía tu información para que el equipo la revise.</div>
-          <button onClick={sendToReview} disabled={sending} style={{background:P.sage,color:"#fff",border:"none",borderRadius:999,padding:"8px 14px",fontSize:12.5,fontWeight:800,cursor:sending?"default":"pointer",fontFamily:"'Nunito',sans-serif",flexShrink:0,opacity:sending?.7:1}}>{sending?"Enviando…":"Enviar a revisión →"}</button>
+          <div style={{fontSize:12,color:P.sageDeep,lineHeight:1.4}}>{puedeEnviar()?"Cuando termines de contarme, envía tu información para que el equipo la revise.":"Aún falta: "+mensajeFaltante()+"."}</div>
+          <button onClick={sendToReview} disabled={sending||!puedeEnviar()} style={{background:P.sage,color:"#fff",border:"none",borderRadius:999,padding:"8px 14px",fontSize:12.5,fontWeight:800,cursor:(sending||!puedeEnviar())?"default":"pointer",fontFamily:"'Nunito',sans-serif",flexShrink:0,opacity:(sending||!puedeEnviar())?.55:1}}>{sending?"Enviando…":"Enviar a revisión →"}</button>
         </div>
       )}
       <div ref={scrollRef} className="scroll" style={{flex:1,overflowY:"auto",padding:"16px 13px",display:"flex",flexDirection:"column",gap:10,background:"radial-gradient("+P.sageSoft+"55 1px,transparent 1px)",backgroundSize:"22px 22px"}}>
