@@ -41,6 +41,16 @@
  *    versión → Implementar.
  * 3. La URL /exec no cambia. El Worker no necesita ningún secret nuevo para
  *    esto — ver la nota en worker/vita-proxy.js.
+ *
+ * Columna consentimiento_ts (9 ago 2026, agregada tras el assessment de RAI —
+ * Privacy → Consent management era el gap más serio, score 0/4): el frontend
+ * (vita-demo-formulario/index.html) ya manda dx.consentimiento_ts en cada
+ * captura desde que existe la pantalla de consentimiento — esta columna es lo
+ * que falta para que quede REGISTRADO en el Sheet, no solo viajando en el
+ * payload. No hace falta ninguna columna nueva en la hoja de cálculo en sí
+ * (appendRow escribe igual aunque no haya encabezado); si quieres un
+ * encabezado prolijo, agrega "consentimiento_ts" en la celda de la próxima
+ * columna libre a la derecha de correo_enviado_ts.
  */
 
 var SHARED_SECRET = "3-estoesparaquevitarenazcabajolasreglasduras";
@@ -54,6 +64,7 @@ var COLS = {
   emociones: 13, estado: 14, notas_peter: 15,
   id_plan: 16, plan_json: 17, decision: 18, borrador_texto: 19,
   nombre_padre: 20, email_padre: 21, correo_enviado_ts: 22,
+  consentimiento_ts: 23,
 };
 
 function doPost(e) {
@@ -92,7 +103,8 @@ function doPost(e) {
       dx.emociones || "",
       "pendiente", "",       // estado, notas_peter
       "", "", "", "",        // id_plan, plan_json, decision, borrador_texto
-      dx.nombre_padre || "", dx.email_padre || "", ""   // correo_enviado_ts vacío
+      dx.nombre_padre || "", dx.email_padre || "", "",   // correo_enviado_ts vacío
+      dx.consentimiento_ts || ""   // cuándo aceptó la pantalla de consentimiento (9 ago 2026)
     ]);
     var lastRow = sheet.getLastRow();
     SpreadsheetApp.flush();
@@ -192,6 +204,7 @@ function detallePlan(sheet, body) {
     mensaje: v[COLS.borrador_texto],
     plan: plan,
     correoEnviadoTs: v[COLS.correo_enviado_ts],
+    consentimientoTs: v[COLS.consentimiento_ts],
   });
 }
 
