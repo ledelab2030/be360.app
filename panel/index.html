@@ -1,0 +1,338 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+<meta name="robots" content="noindex" />
+<title>Panel de revisión · Bienestar 360</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+<script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<style>
+  html,body{margin:0;height:100%}
+  *{box-sizing:border-box}
+  .rise{animation:rise .22s cubic-bezier(.2,.8,.2,1)}
+  @keyframes rise{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const { useState, useEffect } = React;
+
+// ============================================================
+// Panel de revisión de Peter — reemplaza editar directo la hoja de cálculo,
+// que cualquiera con acceso puede dañar sin querer (borrar una fila, mover
+// una columna, escribir "aprobado" en la fila equivocada). Este panel SOLO
+// expone las acciones seguras: ver pendientes, incluir/excluir hábitos uno
+// por uno, editar el mensaje al padre, guardar cambios, aprobar. Nada de
+// borrar filas ni tocar columnas.
+//
+// Autenticación: un PIN (PANEL_SECRET, ver worker/apps-script-formulario-v2.gs.txt)
+// distinto del secreto que usa el Worker para escribir en el Sheet — este
+// panel nunca ve ese secreto real. El PIN se guarda en localStorage tras la
+// primera vez, y se revalida contra el servidor en cada carga de la lista;
+// si el servidor lo rechaza, se limpia y vuelve a pedir.
+//
+// Mismo Worker que el resto de Vita — las rutas nuevas son /panel/pendientes,
+// /panel/detalle, /panel/guardar, /panel/aprobar.
+// ============================================================
+const WORKER_URL = "https://vita-proxy.leonardo-751.workers.dev";
+const PIN_KEY = "be360_panel_pin";
+
+const P = { bg:"#ECE5D8", panel:"#FBF8F1", panelRaised:"#FFFFFF", ink:"#2C2A24", sage:"#5A7A5C", sageDeep:"#3E5A40", sageSoft:"#DCE7D6", clay:"#B5764A", claySoft:"#F0DFCB", line:"#D8CFBE", muted:"#8A8473" };
+
+const DX_FIELDS = [
+  { key:"queDeseaLograr", label:"Qué desea lograr el padre" },
+  { key:"preocupacionPrincipal", label:"Preocupación principal" },
+  { key:"origen", label:"Origen (parto · lactancia)" },
+  { key:"suenoYMovimiento", label:"Sueño y movimiento" },
+  { key:"senalesObservables", label:"Señales observadas" },
+  { key:"diagnosticosYAtencionMedica", label:"Diagnósticos y atención médica" },
+  { key:"cronologiaDelDia", label:"Cronología del día" },
+  { key:"findeYGustos", label:"Fin de semana y gustos" },
+  { key:"menteYPantallas", label:"Mente y pantallas" },
+  { key:"emociones", label:"Emociones" },
+];
+
+const Shell = (props) => (
+  <div style={{minHeight:"100vh", background:P.bg, fontFamily:"'Nunito',sans-serif", color:P.ink, display:"flex", justifyContent:"center", padding:"28px 14px 56px"}}>
+    <div style={{width:"100%", maxWidth:560, display:"flex", flexDirection:"column", gap:18}}>{props.children}</div>
+  </div>
+);
+
+const btnPrimary = {background:P.sage,color:"#fff",border:"none",borderRadius:999,padding:"12px 24px",fontSize:14.5,fontWeight:800,fontFamily:"'Nunito',sans-serif",cursor:"pointer",boxShadow:"0 6px 18px rgba(90,122,92,.30)"};
+const btnGhost = {background:"none",border:"1px solid "+P.line,color:P.ink,borderRadius:999,padding:"9px 18px",fontSize:13.5,fontWeight:700,fontFamily:"'Nunito',sans-serif",cursor:"pointer"};
+
+function relativeDate(iso) {
+  if (!iso) return "";
+  const d = new Date(iso);
+  if (isNaN(d)) return "";
+  const diffH = Math.round((Date.now() - d.getTime()) / 3600000);
+  if (diffH < 1) return "hace menos de una hora";
+  if (diffH < 24) return "hace " + diffH + "h";
+  const diffD = Math.round(diffH / 24);
+  return "hace " + diffD + (diffD === 1 ? " día" : " días");
+}
+
+function App() {
+  const [pin, setPin] = useState(() => { try { return localStorage.getItem(PIN_KEY) || ""; } catch (e) { return ""; } });
+  const [pinInput, setPinInput] = useState("");
+  const [pinError, setPinError] = useState(null);
+  const [checkingPin, setCheckingPin] = useState(false);
+
+  const [stage, setStage] = useState("cargando"); // cargando | lista | detalle
+  const [pendientes, setPendientes] = useState([]);
+  const [listaError, setListaError] = useState(null);
+
+  const [detalle, setDetalle] = useState(null);
+  const [habitos, setHabitos] = useState([]); // [{titulo, texto, incluido}]
+  const [mensaje, setMensaje] = useState("");
+  const [showFormulario, setShowFormulario] = useState(false);
+  const [guardando, setGuardando] = useState(false);
+  const [guardadoOk, setGuardadoOk] = useState(false);
+  const [confirmando, setConfirmando] = useState(false);
+  const [aprobando, setAprobando] = useState(false);
+  const [accionError, setAccionError] = useState(null);
+
+  const llamarPanel = async (ruta, extra) => {
+    const res = await fetch(WORKER_URL + "/panel/" + ruta, {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ panelSecret: pin, ...extra }),
+    });
+    const data = await res.json().catch(() => ({ ok:false, error:"respuesta inválida" }));
+    if (res.status === 401 || (data && data.error === "panelSecret inválido")) {
+      try { localStorage.removeItem(PIN_KEY); } catch (e) {}
+      setPin("");
+      throw new Error("PIN incorrecto");
+    }
+    return data;
+  };
+
+  const cargarPendientes = async () => {
+    setStage("cargando"); setListaError(null);
+    try {
+      const data = await llamarPanel("pendientes", {});
+      if (!data.ok) throw new Error(data.error || "error");
+      setPendientes(data.pendientes || []);
+      setStage("lista");
+    } catch (e) {
+      setListaError(e.message === "PIN incorrecto" ? null : "No se pudo cargar. Reintenta.");
+      setStage(e.message === "PIN incorrecto" ? "cargando" : "lista");
+    }
+  };
+
+  useEffect(() => { if (pin) cargarPendientes(); }, [pin]);
+
+  const entrarConPin = async () => {
+    if (!pinInput.trim() || checkingPin) return;
+    setCheckingPin(true); setPinError(null);
+    try {
+      const res = await fetch(WORKER_URL + "/panel/pendientes", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ panelSecret: pinInput.trim() }),
+      });
+      const data = await res.json().catch(() => ({ ok:false }));
+      if (!data.ok) { setPinError("PIN incorrecto."); return; }
+      try { localStorage.setItem(PIN_KEY, pinInput.trim()); } catch (e) {}
+      setPin(pinInput.trim());
+    } catch (e) { setPinError("No se pudo conectar. Reintenta."); }
+    finally { setCheckingPin(false); }
+  };
+
+  const abrirDetalle = async (idPlan) => {
+    setStage("detalle"); setDetalle(null); setAccionError(null); setConfirmando(false); setGuardadoOk(false); setShowFormulario(false);
+    try {
+      const data = await llamarPanel("detalle", { idPlan });
+      if (!data.ok) throw new Error(data.error || "error");
+      setDetalle(data);
+      const hs = (data.plan && data.plan.habitos) || [];
+      setHabitos(hs.map(h => ({ titulo: h.titulo || "", texto: h.texto || "", incluido: h.incluido !== false })));
+      setMensaje(data.mensaje || "");
+    } catch (e) {
+      setAccionError("No se pudo cargar este caso. Reintenta.");
+    }
+  };
+
+  const volverALista = () => { setStage("lista"); cargarPendientes(); };
+
+  const actualizarHabito = (i, campo, valor) => {
+    setHabitos(hs => hs.map((h, idx) => idx === i ? { ...h, [campo]: valor } : h));
+  };
+
+  // Guarda TODOS los hábitos, incluidos los excluidos — así Peter puede
+  // reconsiderar un "excluir" antes de aprobar, sin perderlo para siempre.
+  // El padre nunca ve los excluidos: eso lo filtra el propio Apps Script
+  // (doGet) al servir el plan aprobado, no este panel.
+  const planParaGuardar = () => ({ habitos: habitos.map(h => ({ titulo: h.titulo, texto: h.texto, incluido: h.incluido })) });
+
+  const guardarCambios = async () => {
+    if (guardando) return;
+    setGuardando(true); setAccionError(null); setGuardadoOk(false);
+    try {
+      const data = await llamarPanel("guardar", { idPlan: detalle.idPlan, plan: planParaGuardar(), mensaje });
+      if (!data.ok) throw new Error(data.error || "error");
+      setGuardadoOk(true); setTimeout(() => setGuardadoOk(false), 2500);
+    } catch (e) { setAccionError(e.message === "PIN incorrecto" ? null : "No se pudo guardar. Reintenta."); }
+    finally { setGuardando(false); }
+  };
+
+  const aprobar = async () => {
+    if (aprobando) return;
+    setAprobando(true); setAccionError(null);
+    try {
+      const data = await llamarPanel("aprobar", { idPlan: detalle.idPlan, plan: planParaGuardar(), mensaje });
+      if (!data.ok) throw new Error(data.error || "error");
+      volverALista();
+    } catch (e) { setAccionError(e.message === "PIN incorrecto" ? null : "No se pudo aprobar. Reintenta."); setConfirmando(false); }
+    finally { setAprobando(false); }
+  };
+
+  // ---------- PIN ----------
+  if (!pin) return (
+    <Shell>
+      <div style={{background:P.panel, border:"1px solid "+P.line, borderRadius:20, padding:"32px 26px", textAlign:"center"}}>
+        <div style={{fontSize:36, marginBottom:10}}>🌱</div>
+        <div style={{fontFamily:"'Fraunces',serif", fontSize:22, color:P.sageDeep, marginBottom:6}}>Panel de revisión</div>
+        <p style={{fontSize:13, color:P.muted, marginBottom:20}}>Solo para Peter. Ingresa el PIN para continuar.</p>
+        <input type="password" value={pinInput} onChange={e=>setPinInput(e.target.value)} onKeyDown={e=>{if(e.key==="Enter") entrarConPin();}} placeholder="PIN"
+          style={{width:"100%", maxWidth:220, textAlign:"center", fontSize:16, padding:"11px 14px", border:"1px solid "+P.line, borderRadius:12, marginBottom:14, fontFamily:"'Nunito',sans-serif", outline:"none"}} autoFocus/>
+        <div>
+          <button onClick={entrarConPin} disabled={checkingPin} style={{...btnPrimary, opacity:checkingPin?.7:1}}>{checkingPin?"Entrando…":"Entrar →"}</button>
+        </div>
+        {pinError && <p style={{fontSize:12.5, color:P.clay, marginTop:14}}>{pinError}</p>}
+      </div>
+    </Shell>
+  );
+
+  // ---------- CARGANDO ----------
+  if (stage === "cargando") return (
+    <Shell><div style={{textAlign:"center", padding:"60px 10px", color:P.muted}}>Cargando…</div></Shell>
+  );
+
+  // ---------- LISTA ----------
+  if (stage === "lista") return (
+    <Shell>
+      <div>
+        <div style={{fontSize:11.5, fontWeight:800, letterSpacing:".08em", textTransform:"uppercase", color:P.sageDeep, marginBottom:4}}>Panel de revisión</div>
+        <h1 style={{fontFamily:"'Fraunces',serif", fontWeight:600, fontSize:26, margin:0, color:P.sageDeep}}>Pendientes {pendientes.length ? "("+pendientes.length+")" : ""}</h1>
+      </div>
+      {listaError && (
+        <div style={{background:P.claySoft, border:"1px solid "+P.clay, borderRadius:14, padding:"12px 16px", fontSize:13, color:P.ink}}>
+          {listaError} <span onClick={cargarPendientes} style={{color:P.sageDeep, fontWeight:700, textDecoration:"underline", cursor:"pointer"}}>Reintentar</span>
+        </div>
+      )}
+      {!listaError && pendientes.length === 0 && (
+        <div style={{textAlign:"center", padding:"50px 10px", color:P.muted}}>
+          <div style={{fontSize:34, marginBottom:10}}>🌿</div>
+          No hay casos pendientes de revisión.
+        </div>
+      )}
+      <div style={{display:"flex", flexDirection:"column", gap:10}}>
+        {pendientes.map(p => (
+          <div key={p.idPlan} className="rise" onClick={()=>abrirDetalle(p.idPlan)} style={{background:P.panel, border:"1px solid "+P.line, borderRadius:16, padding:"14px 16px", cursor:"pointer", display:"flex", justifyContent:"space-between", alignItems:"center", gap:12}}>
+            <div style={{minWidth:0}}>
+              <div style={{fontSize:15, fontWeight:800, color:P.ink}}>{p.nombreNino || "(sin nombre)"}{p.edad?" · "+p.edad+" años":""}</div>
+              <div style={{fontSize:12.5, color:P.muted, marginTop:2}}>Padre/madre: {p.nombrePadre || "—"} · {relativeDate(p.timestamp)}</div>
+              {p.preocupacionPrincipal && <div style={{fontSize:12.5, color:P.ink, marginTop:5, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap"}}>{p.preocupacionPrincipal}</div>}
+            </div>
+            <div style={{color:P.sageDeep, fontSize:20, flexShrink:0}}>→</div>
+          </div>
+        ))}
+      </div>
+      <button onClick={()=>{ try{localStorage.removeItem(PIN_KEY);}catch(e){} setPin(""); }} style={{...btnGhost, alignSelf:"center", marginTop:10}}>Salir</button>
+    </Shell>
+  );
+
+  // ---------- DETALLE ----------
+  if (stage === "detalle") {
+    if (!detalle) return (
+      <Shell>
+        <button onClick={volverALista} style={{...btnGhost, alignSelf:"flex-start"}}>← Volver</button>
+        {accionError ? <div style={{textAlign:"center", padding:"40px 10px", color:P.clay}}>{accionError}</div> : <div style={{textAlign:"center", padding:"40px 10px", color:P.muted}}>Cargando…</div>}
+      </Shell>
+    );
+    const inclCount = habitos.filter(h=>h.incluido).length;
+    return (
+      <Shell>
+        <button onClick={volverALista} style={{...btnGhost, alignSelf:"flex-start"}}>← Pendientes</button>
+
+        <div>
+          <h1 style={{fontFamily:"'Fraunces',serif", fontWeight:600, fontSize:24, margin:0, color:P.sageDeep}}>{detalle.nombreNino || "(sin nombre)"}{detalle.edad?" · "+detalle.edad+" años":""}</h1>
+          <div style={{fontSize:13, color:P.muted, marginTop:4}}>Padre/madre: {detalle.nombrePadre || "—"} · {detalle.emailPadre || "sin correo"}</div>
+        </div>
+
+        <div style={{background:P.panel, border:"1px solid "+P.line, borderRadius:16, padding:"4px 16px"}}>
+          <div onClick={()=>setShowFormulario(s=>!s)} style={{padding:"12px 0", cursor:"pointer", display:"flex", justifyContent:"space-between", alignItems:"center", fontSize:13.5, fontWeight:800, color:P.sageDeep}}>
+            <span>Ver formulario completo (contexto clínico)</span><span>{showFormulario?"▲":"▼"}</span>
+          </div>
+          {showFormulario && (
+            <div style={{paddingBottom:14, display:"flex", flexDirection:"column", gap:10}}>
+              {DX_FIELDS.map(f => detalle[f.key] ? (
+                <div key={f.key}>
+                  <div style={{fontSize:11, fontWeight:800, color:P.muted, textTransform:"uppercase", letterSpacing:.3}}>{f.label}</div>
+                  <div style={{fontSize:13.5, color:P.ink, lineHeight:1.5, whiteSpace:"pre-wrap"}}>{detalle[f.key]}</div>
+                </div>
+              ) : null)}
+            </div>
+          )}
+        </div>
+
+        <div>
+          <div style={{fontSize:13, fontWeight:800, color:P.sageDeep, marginBottom:6}}>Mensaje al padre/madre</div>
+          <textarea value={mensaje} onChange={e=>setMensaje(e.target.value)} rows={6}
+            style={{width:"100%", border:"1px solid "+P.line, borderRadius:14, padding:"12px 14px", fontSize:14, fontFamily:"'Nunito',sans-serif", background:P.panelRaised, color:P.ink, outline:"none", resize:"vertical", lineHeight:1.5}}/>
+        </div>
+
+        <div>
+          <div style={{fontSize:13, fontWeight:800, color:P.sageDeep, marginBottom:8}}>Hábitos recomendados ({inclCount} de {habitos.length} incluidos)</div>
+          <div style={{display:"flex", flexDirection:"column", gap:10}}>
+            {habitos.map((h, i) => (
+              <div key={i} style={{background: h.incluido ? P.panelRaised : P.bg, border:"1px solid "+(h.incluido?P.line:P.line), borderRadius:14, padding:"12px 14px", opacity:h.incluido?1:.55}}>
+                <div style={{display:"flex", alignItems:"flex-start", gap:10}}>
+                  <button onClick={()=>actualizarHabito(i,"incluido",!h.incluido)} title={h.incluido?"Excluir":"Incluir"}
+                    style={{flexShrink:0, marginTop:2, width:24, height:24, borderRadius:7, border:"1.5px solid "+(h.incluido?P.sage:P.line), background:h.incluido?P.sage:P.panelRaised, color:"#fff", cursor:"pointer", display:"grid", placeItems:"center"}}>
+                    {h.incluido && <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" width="13" height="13"><path d="M4 12l5 5L20 6"/></svg>}
+                  </button>
+                  <div style={{flex:1, minWidth:0, display:"flex", flexDirection:"column", gap:6}}>
+                    <input value={h.titulo} onChange={e=>actualizarHabito(i,"titulo",e.target.value)} placeholder="Título del hábito"
+                      style={{border:"1px solid "+P.line, borderRadius:9, padding:"7px 10px", fontSize:13.5, fontWeight:800, fontFamily:"'Nunito',sans-serif", color:P.ink, outline:"none"}}/>
+                    <textarea value={h.texto} onChange={e=>actualizarHabito(i,"texto",e.target.value)} rows={2} placeholder="Explicación para el padre/madre"
+                      style={{border:"1px solid "+P.line, borderRadius:9, padding:"7px 10px", fontSize:13, fontFamily:"'Nunito',sans-serif", color:P.ink, outline:"none", resize:"vertical", lineHeight:1.4}}/>
+                  </div>
+                </div>
+              </div>
+            ))}
+            {habitos.length === 0 && <p style={{fontSize:13, color:P.muted}}>No hay hábitos en el borrador — revisa el formulario completo arriba.</p>}
+          </div>
+        </div>
+
+        {accionError && <div style={{background:P.claySoft, border:"1px solid "+P.clay, borderRadius:12, padding:"10px 14px", fontSize:13, color:P.ink}}>{accionError}</div>}
+
+        <div style={{display:"flex", gap:10, flexWrap:"wrap"}}>
+          <button onClick={guardarCambios} disabled={guardando} style={{...btnGhost, opacity:guardando?.6:1}}>{guardando?"Guardando…":(guardadoOk?"✓ Guardado":"Guardar cambios")}</button>
+          {!confirmando ? (
+            <button onClick={()=>setConfirmando(true)} style={btnPrimary}>Aprobar y enviar →</button>
+          ) : (
+            <div style={{background:P.sageSoft, border:"1px solid "+P.sage, borderRadius:14, padding:"12px 16px", flex:1, minWidth:260}}>
+              <div style={{fontSize:13, color:P.sageDeep, marginBottom:10, lineHeight:1.5}}>¿Confirmas? Esto le manda un correo real a {detalle.nombrePadre || "el padre/madre"}{detalle.emailPadre?" ("+detalle.emailPadre+")":""} con el link del plan.</div>
+              <div style={{display:"flex", gap:8}}>
+                <button onClick={aprobar} disabled={aprobando} style={{...btnPrimary, opacity:aprobando?.7:1}}>{aprobando?"Enviando…":"Sí, aprobar y enviar"}</button>
+                <button onClick={()=>setConfirmando(false)} style={btnGhost}>Cancelar</button>
+              </div>
+            </div>
+          )}
+        </div>
+      </Shell>
+    );
+  }
+
+  return null;
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
+</script>
+</body>
+</html>
