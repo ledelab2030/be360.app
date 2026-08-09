@@ -18,7 +18,7 @@ Vita es el asistente de bienestar de Bienestar 360, con dos líneas de producto 
 
 **La regla que gobierna todo el sistema:** ningún padre recibe una recomendación generada por IA sin que Peter Álvarez (la autoridad clínica) la revise y apruebe primero. Esto se llama *Human-in-the-Loop* (HITL) y está implementado en el código, no solo en el proceso — el sistema está diseñado para que sea imposible saltárselo, no solo para que no se salte por buena voluntad.
 
-**Estado actual (8 ago 2026):** el ciclo completo está construido y **probado de punta a punta con un caso ficticio, 100% automático de principio a fin**: padre llena el formulario conversando con Vita (incluye su nombre y correo) → se genera un borrador de plan → queda en un panel de revisión (hoja de cálculo) → Peter aprueba o edita → **un correo automático le llega DIRECTO al padre/madre con el link de su plan, sin que nadie del equipo tenga que enviarlo a mano** → el padre abre su plan (diseño visual con checklist de hábitos) y puede escribirle a Vita desde ahí. Se decidió no pedir WhatsApp del padre por ahora (evita depender de WhatsApp como canal — controles, restricciones y costos de la API de Meta — mientras no haga falta). Lo que falta para ser 100% real con familias reales está documentado en "Pendientes conocidos" al final — ya es mucho menos de lo que era.
+**Estado actual (9 ago 2026):** el ciclo completo está construido y **probado de punta a punta, 100% automático de principio a fin, con doble camino de captura y una herramienta de revisión real para Peter** — no ya una hoja de cálculo cruda. Padre conversa con Vita o llena el formulario directo (puede cambiar de uno a otro sin perder nada) → se genera un borrador de plan solo → Peter lo revisa, edita o excluye hábitos uno por uno en **panel/index.html**, un panel dedicado (no la hoja de cálculo) → al aprobar, **un correo automático le llega DIRECTO al padre/madre con el link de su plan, sin que nadie del equipo tenga que enviarlo a mano** → el padre abre su plan (checklist de hábitos) y puede escribirle a Vita desde ahí, con escalamiento real a correo si hace falta un humano — y ese mismo escalamiento ahora también existe desde la captura inicial, con una red de respaldo que no depende de que el modelo se acuerde de marcarlo. Verificado con un panel sintético de 9 personas con perfiles críticos (desconfianza, apuro, exigencia de consejo, riesgo real, crítica del tono), que encontró y ayudó a corregir fallas reales antes de exponer el sistema a familias. TRL actual: 4, cruzando a 5 — ver `be360_TRL_assessment` en Drive. Lo que falta para producción real está en "Pendientes conocidos" al final.
 
 **Costo/infraestructura:** cero servidores propios. Todo corre sobre GitHub Pages (frontend), un Cloudflare Worker (proxy seguro a la API de Anthropic + lógica de negocio) y Google Sheets/Apps Script (persistencia y panel de revisión). Esto es deliberado: mantiene el costo marginal cercano a cero mientras se valida el modelo con las primeras familias, antes de invertir en infraestructura de producción.
 
@@ -38,8 +38,8 @@ Cloudflare Worker "vita-proxy"               │
     │  en el navegador) + lógica de negocio  │
     ▼                                        │
 Google Sheet "vita-demo-formulario"  ◄───────┘  Peter revisa/edita/aprueba
-    │  vía Apps Script (Web App)                 directo en el Sheet
-    ▼
+    │  vía Apps Script (Web App)                 en panel/index.html
+    ▼                                             (PIN, no toca el Sheet)
 Worker genera un link único (/plan?id=...)
     │  — SOLO funciona si Peter aprobó
     ▼
@@ -49,7 +49,7 @@ plan/index.html (GitHub Pages)
 Correo automático directo al padre/madre con el link — sin clic humano
 ```
 
-No hay base de datos propia ni backend con estado — el Sheet **es** la base de datos y el panel de revisión, a propósito, para no invertir en infraestructura antes de validar el producto.
+No hay base de datos propia ni backend con estado — el Sheet **es** la base de datos. Desde el 9 ago, Peter ya no la toca directamente: `panel/index.html` (protegido por PIN) es la única vía normal de revisión/edición/aprobación, hablando con el Sheet a través de acciones dedicadas del Apps Script (`/panel/*` en el Worker) que nunca exponen el secreto de escritura real del Sheet al navegador.
 
 ---
 
@@ -123,6 +123,41 @@ No hay base de datos propia ni backend con estado — el Sheet **es** la base de
 - **Pulido de experiencia** (ver PRs #15, #16, #18): se corrigieron detalles de copy que sonaban mecánicos en vez de cuidados — el header del chat y el panel lateral ya no exponen la palabra "Formulario" ni la tratan como un contador de progreso; se quitó el disclaimer duplicado y el tiempo estimado incorrecto ("5-10 min" → "20-30 min", más realista); "Peter la revisa" pasó a "la revisamos"/"el equipo" en toda la copy visible y las instrucciones del bot, para que be360 se vea como equipo y no como una sola persona; la pantalla de confirmación ahora dice el nombre del hijo/a en vez de "tu hijo/a"; y se arregló un link de WhatsApp roto en `plan/index.html` (decía "escríbenos" sin dar ningún link).
 - **Prueba end-to-end confirmada con datos reales, en vivo, con Leonardo como padre de prueba (caso "Tomás", 8 ago):** conversación completa con Vita (14/14 áreas, correo en vez de WhatsApp) → borrador generado solo, respetando las reglas duras (nunca dice "eliminar" la leche, dice "reducir sin golpe", conforme a la regla A.2) → aprobado en el Sheet → **llegaron los dos correos automáticos esperados**: uno al padre ("El plan de Tomás ya está listo", primera persona, firmado "El equipo de Bienestar 360") y la copia interna de auditoría al equipo ("✅ Plan enviado automáticamente — Tomás") → el plan se vio correctamente en `plan/index.html` con el checklist funcionando → el chat de seguimiento arrancó (con el botón, no solo) y respondió con detalles reales de la conversación. Primera vez que el ciclo completo corre sin ningún paso manual salvo la aprobación de Peter.
 
+### 8-9 ago 2026 — Escalamiento desde la captura + red de respaldo determinística (PRs #20, #21)
+
+- **Hallazgo:** el escalamiento real (correo al equipo) solo existía en el chat de seguimiento post-aprobación (`plan/index.html`), no en la captura inicial (`vita-demo-formulario`) — una señal de riesgo real (trastorno alimentario, salud mental, urgencia médica) contada durante el formulario no disparaba nada hasta que, quizás, alguien lo notara al revisar el borrador.
+- Se agregó el mismo mecanismo de marcador (`<escalar>`) y motivo (`riesgo_alimentario` / `riesgo_salud_mental` / `urgencia_medica`) también en `vita-demo-formulario`, con `notificarEscalar()` llamando a `/escalar`.
+- **Falla real encontrada probando esto en vivo:** se verificó, inspeccionando directamente las peticiones de red del navegador (no solo mirando la respuesta del chat), que tras una conversación con una señal de riesgo real el modelo respondía de forma apropiada en el texto pero **no emitía el marcador `<escalar>`** — cero llamadas a `/escalar` en el registro de red. El marcador del modelo, por sí solo, no era confiable.
+- **Fix — red de respaldo determinística:** `detectarRiesgoTextual()`, un conjunto de patrones de texto (no depende del modelo) que corre en dos puntos: en cada turno del chat, y de nuevo escaneando todos los campos capturados justo antes de permitir el envío a revisión (`sendToReview`) — defensa en profundidad, no un solo punto de falla.
+
+### 8-9 ago 2026 — Modo formulario directo + cambio de modo bidireccional sin pérdida de datos (PRs #22-#25)
+
+- **Hallazgo (reportado con capturas de pantalla):** un padre que le pedía a Vita en el chat "prefiero seguir con el formulario" no lograba nada — Vita respondía "Claro, seguimos" y continuaba haciendo preguntas de chat. No existía ningún mecanismo, ni de UI ni de texto, para cambiar de modo.
+- Se construyó un modo formulario directo (mismos campos y ayudas que el chat, sin conversación) que comparte el mismo estado (`dx`) que el chat — llenar uno actualiza el otro.
+- Cambio de modo en ambas direcciones: botón 📝 en el header del chat → formulario; link "conversar con Vita" en el formulario → chat. Además, un marcador `<cambiar_modo>` que el propio Vita puede emitir si detecta la intención en el texto del padre (ej. la frase real de arriba), no solo por botón.
+- **Caso borde cubierto:** si el padre edita el formulario mientras el chat está en pausa, `sincronizarCambiosFormulario()` manda un turno invisible de contexto a Vita al volver al chat, para que no le repita preguntas ya respondidas ni ignore lo nuevo.
+- **Hotfix en el camino (PR #23):** una comilla invertida de estilo markdown dentro de un template literal del prompt rompió el parseo de JS y dejó la página en blanco en producción por un rato — reafirmó la práctica (ya en curso desde antes) de correr `node --check` sobre cualquier archivo `.js`/`.gs.txt` y una transformación Babel sobre cualquier JSX antes de publicar, no solo revisión visual.
+
+### 9 ago 2026 — Validación real de suficiencia antes de enviar a revisión (PR #26)
+
+- **Hallazgo (pedido explícito):** el envío a revisión solo contaba cuántos campos tenían algo escrito (mínimo 4 de cualquiera) — un padre podía enviar con respuestas de una palabra y pasar el corte, o quedarse sin poder enviar por elegir 4 campos poco informativos mientras dejaba vacía la cronología del día, el campo más importante para el borrador.
+- Nueva regla: identificación completa (nombre y correo del padre, nombre y edad del niño/a) **siempre** obligatoria, más una cronología del día con sustancia real (mínimo de caracteres, no solo "no vacío"), más un mínimo de 4 de las 9 áreas opcionales restantes con contenido real.
+- El botón de enviar queda deshabilitado con un mensaje específico de qué falta (`mensajeFaltante()`), no un rechazo genérico.
+
+### 9 ago 2026 — Panel de revisión de Peter: reemplaza la edición directa del Sheet (PRs #27-#32)
+
+- **Motivo (pedido explícito de Leonardo):** "la hoja de sheets la daña cualquiera que tenga acceso sin querer" — Peter aprobando/editando directo en Google Sheets es fácil de romper por accidente (borrar una fila, editar la columna equivocada, romper una fórmula) y no tiene ningún control de qué se puede y no se puede hacer.
+- **`panel/index.html` (nuevo):** app de una sola página, con el mismo estilo visual del resto del producto, protegida por PIN (guardado localmente tras el primer ingreso, con botón de mostrar/ocultar el PIN al escribirlo). Desde ahí Peter puede, sin tocar el Sheet:
+  - Ver la lista de **pendientes de aprobación**, con nombre, edad y preocupación principal de un vistazo.
+  - Abrir el detalle de un caso: ver todo el formulario capturado, el mensaje generado para el padre (editable), y la lista de hábitos propuestos con un check para **incluir/excluir cada uno individualmente** sin borrarlo (queda guardado como excluido, no se pierde, por si Peter reconsidera antes de aprobar).
+  - **Guardar sin aprobar** (deja el caso en pendientes con los cambios) o **aprobar** (dispara el correo real al padre — con un diálogo de confirmación explícito que cita el correo real antes de mandar).
+  - **Descartar** un caso pendiente (para limpiar pruebas), bloqueado deliberadamente si ese caso **ya le envió correo a una familia real** — el chequeo es sobre el hecho concreto de si se mandó el correo (`correo_enviado_ts`), no sobre si el estado dice "aprobado", porque un caso puede quedar marcado aprobado en pruebas sin que haya un correo real de por medio.
+  - **Historial de aprobados**, de solo lectura, con acceso directo al link del plan tal como lo ve el padre — separado de pendientes en una barra lateral, para que Peter no tenga que buscar entre las dos listas mezcladas.
+- **Apps Script extendido** con seis acciones nuevas protegidas por un secreto de panel propio (`PANEL_SECRET`, **distinto** del secreto de escritura del Sheet — el Worker jamás ve ni necesita este último para las rutas de panel): `listar_pendientes`, `listar_historial`, `detalle_plan`, `guardar_edicion_plan`, `aprobar_plan`, `descartar_pendiente`.
+- **Worker extendido** con seis rutas (`/panel/pendientes`, `/panel/historial`, `/panel/detalle`, `/panel/guardar`, `/panel/aprobar`, `/panel/descartar`), cada una un passthrough genérico hacia la acción correspondiente del Apps Script — no requirió ningún secreto nuevo de Cloudflare.
+- **Bug de configuración encontrado y corregido:** la plantilla original tenía un valor de `PANEL_SECRET` de relleno (tipo "CAMBIA-ESTO-por-un-pin...") pensado como instrucción, no como valor real — pero cada vez que se volvía a pegar el archivo completo para desplegar una versión nueva, ese relleno pisaba el PIN real ya configurado por Peter, rompiendo el acceso en silencio. **Decisión permanente:** el código generado desde ahora usa `"1990-I"` como valor por defecto real de `PANEL_SECRET`, documentado en el propio archivo para que nadie vuelva a poner un placeholder ahí.
+- **Verificación con un panel sintético de 9 personas críticas** (generadas para representar perfiles adversos: desconfianza, apuro, exigencia de un consejo directo saltándose al bot, una señal de riesgo real de trastorno alimentario/autolesión, y una crítica directa del tono) — encontró en la práctica la falla del marcador de escalamiento no confiable (arriba) y sirvió para poblar y probar el panel con casos variados antes de dárselo a Peter. Se limpiaron 3 duplicados generados por un timeout del lado de las pruebas (no del producto) usando la función de descarte recién construida.
+
 ---
 
 ## Medidas de seguridad y privacidad (para compliance/auditoría)
@@ -147,6 +182,9 @@ No hay base de datos propia ni backend con estado — el Sheet **es** la base de
 6. ~~El Worker no bloquea peticiones sin header Origin~~ **Resuelto 8 ago:** ahora exige el header `Origin` exacto (`be360.app`) en vez de solo rechazar los incorrectos — un `curl` directo ya no puede gastar créditos de Claude ni spamear `/escalar`. Sigue faltando **rate limiting real** (límite de peticiones por IP/tiempo) — eso necesita estado (Cloudflare KV o similar), no está construido.
 7. **Alineación clínica incompleta:** quedan puntos abiertos con Peter sobre nivel de detalle del plan y fraseo de algunas preguntas (relajación/emociones) — ver `CONTEXT.md` del sprint para el detalle vivo.
 8. **Sin pruebas de carga ni análisis de costo a escala** — validado con casos ficticios, no con volumen real. El costo por interacción (API de Anthropic + envío de correo, que no tiene costo marginal vía Apps Script) está pendiente de verificar contra el modelo de negocio (compromiso pendiente de Leonardo con Peter, sesión 5 ago).
+9. ~~Peter aprueba/edita directo en la hoja de Sheets, con riesgo de daño accidental por cualquiera con acceso~~ **Resuelto 9 ago:** `panel/index.html`, protegido por PIN, es ahora la única vía normal de revisión — ver PRs #27-#32 arriba. El Sheet sigue siendo la base de datos de fondo, pero ya no se edita a mano en el camino normal de trabajo.
+10. **Falta validación con familias reales — es el gap principal hacia TRL 5, no uno técnico.** Todo lo de arriba está probado con datos ficticios/simulados (incluido un panel sintético de 9 personas adversas diseñado para encontrar fallas). El Día 5 del sprint (`guion_sesion_dia5.txt`, ya actualizado al sistema real) es el paso que falta ejecutar — ver `be360_TRL_assessment` (Drive) para el detalle completo del camino a TRL 5.
+11. **No hay un flujo formal de consentimiento informado dentro del producto** (sí existe el guion de consentimiento verbal para el Día 5, en `reclutamiento_y_consentimiento.txt`) — necesario antes de operar con familias reales fuera de un piloto controlado, no antes de TRL 5.
 
 ---
 
@@ -156,3 +194,5 @@ No hay base de datos propia ni backend con estado — el Sheet **es** la base de
 - **Desplegar el Worker exige estar parado en `main`** (`git checkout main && git pull`) antes de `wrangler deploy` — la causa de casi todos los bugs "fantasma" de este changelog fue desplegar desde una rama vieja.
 - Cambios al Apps Script que agreguen funciones nuevas (como `doGet`) requieren desplegar una **nueva versión** de la implementación, no solo guardar el código — las versiones viejas no ven código agregado después de su despliegue.
 - No compartir la cuenta de Cloudflare completa con un agente de IA — usar tokens de alcance mínimo (Workers Scripts: Edit) y rotarlos después de cada sesión de trabajo si quedaron expuestos en una conversación.
+- **Antes de publicar cualquier archivo con JS embebido, verificar la sintaxis con una herramienta real, no solo revisión visual** — `node --check` para JS plano/Apps Script, transformación con `@babel/standalone` para JSX. Nace de un apagón real de producción (un backtick de estilo markdown dentro de un template literal del prompt rompió el parseo y dejó la página en blanco); desde entonces es un paso obligatorio antes de cada despliegue.
+- **`PANEL_SECRET` en `apps-script-formulario-v2.gs.txt` debe generarse siempre como `"1990-I"`** (el PIN real de Peter), nunca como un placeholder de relleno — un placeholder ahí rompe el acceso al panel en silencio cada vez que se vuelve a pegar el archivo completo para una versión nueva.
