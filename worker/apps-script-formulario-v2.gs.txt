@@ -7,8 +7,9 @@
  * con acceso puede dañarla sin querer (borrar una fila, mover una columna,
  * escribir "aprobado" en la fila equivocada). El panel solo expone las
  * acciones seguras: ver pendientes, incluir/excluir hábitos uno por uno,
- * editar el mensaje, guardar, aprobar, descartar. 5 acciones en doPost:
- * listar_pendientes, detalle_plan, guardar_edicion_plan, aprobar_plan,
+ * editar el mensaje, guardar, aprobar, descartar, y ver el historial de
+ * aprobados (de solo lectura). 6 acciones en doPost: listar_pendientes,
+ * listar_historial, detalle_plan, guardar_edicion_plan, aprobar_plan,
  * descartar_pendiente. Usan PANEL_SECRET (abajo), un secreto DISTINTO del
  * que usa el Worker (SHARED_SECRET) — el panel nunca ve el secreto real que
  * escribe en la hoja.
@@ -62,6 +63,7 @@ function doPost(e) {
 
     // Acciones del panel de Peter — su propio secreto, nunca el del Worker.
     if (body.action === "listar_pendientes") return conPanelSecret(body, function () { return listarPendientes(sheet); });
+    if (body.action === "listar_historial") return conPanelSecret(body, function () { return listarHistorial(sheet); });
     if (body.action === "detalle_plan") return conPanelSecret(body, function () { return detallePlan(sheet, body); });
     if (body.action === "guardar_edicion_plan") return conPanelSecret(body, function () { return guardarEdicionPlan(sheet, body); });
     if (body.action === "aprobar_plan") return conPanelSecret(body, function () { return aprobarPlan(sheet, body); });
@@ -134,6 +136,28 @@ function listarPendientes(sheet) {
   }
   out.sort(function (a, b) { return new Date(b.timestamp) - new Date(a.timestamp); }); // más recientes primero
   return respond({ ok: true, pendientes: out });
+}
+
+// Historial de casos ya aprobados — de solo lectura en el panel (no tiene
+// sentido re-editar algo que la familia ya puede estar viendo).
+function listarHistorial(sheet) {
+  var data = sheet.getDataRange().getValues();
+  var out = [];
+  for (var r = 1; r < data.length; r++) {
+    if (data[r][COLS.decision] === "aprobado") {
+      out.push({
+        idPlan: data[r][COLS.id_plan],
+        nombreNino: data[r][COLS.nombre_nino],
+        edad: data[r][COLS.edad],
+        nombrePadre: data[r][COLS.nombre_padre],
+        emailPadre: data[r][COLS.email_padre],
+        timestamp: data[r][COLS.timestamp],
+        correoEnviadoTs: data[r][COLS.correo_enviado_ts],
+      });
+    }
+  }
+  out.sort(function (a, b) { return new Date(b.correoEnviadoTs || b.timestamp) - new Date(a.correoEnviadoTs || a.timestamp); });
+  return respond({ ok: true, historial: out });
 }
 
 function encontrarFilaPorIdPlan(sheet, idPlan) {
