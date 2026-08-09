@@ -62,9 +62,17 @@
 //                    riesgo real quedaría flotando sin que nadie la vea.
 //
 // NUEVO (8 ago 2026): la deuda técnica de "no bloquea peticiones sin header
-// Origin" quedó cerrada — ver el chequeo de origen más abajo. Sigue faltando
-// rate limiting real (límite de peticiones por IP/tiempo), eso sí requiere
-// estado (Cloudflare KV o similar) y no está construido todavía.
+// Origin" quedó cerrada — ver el chequeo de origen más abajo.
+//
+// NUEVO (9 ago 2026): rate limiting real, por IP, usando el binding de KV
+// "RATE_LIMIT_KV" (namespace "vita_rate_limit", conectado a este Worker
+// desde el dashboard de Cloudflare — no necesitó ningún cambio de
+// wrangler.toml ni token nuevo). Ventana fija de 60s, límite generoso (30
+// peticiones/IP/min) — el objetivo no es ser preciso, es frenar un loop o
+// un curl directo golpeando el Worker sin afectar uso real. Ver
+// checkRateLimit() más abajo. DISEÑO A PRUEBA DE FALLOS: si el binding no
+// existe todavía, o KV falla por lo que sea, el chequeo se salta en vez de
+// romper el Worker — nunca bloquea uso real por un problema de infra.
 //
 // NUEVO (8 ago 2026, decisión de Leonardo): se deja de pedir WhatsApp al
 // padre/madre en la captura — evita depender de WhatsApp como canal
@@ -78,6 +86,29 @@
 // ============================================================
 
 const ALLOWED_ORIGIN = "https://be360.app";
+
+// Rate limiting simple por IP (9 ago 2026) — ver nota arriba. Devuelve la key
+// que se pasó del límite (para loguear/depurar si hace falta) o null si la
+// petición puede seguir. Ventana fija de 60s: no es perfectamente preciso
+// (dos peticiones justo en el borde de dos minutos distintos cuentan aparte),
+// pero es simple, barato en KV, y suficiente para frenar abuso obvio — no
+// busca ser un rate limiter de producción a gran escala.
+async function checkRateLimit(request, env) {
+  if (!env.RATE_LIMIT_KV) return null; // binding no configurado todavía — no bloquea, solo no protege
+  const ip = request.headers.get("CF-Connecting-IP") || "sin-ip";
+  const ventana = Math.floor(Date.now() / 60000); // minuto actual (cambia cada 60s)
+  const key = `rl:${ip}:${ventana}`;
+  const LIMITE_POR_MINUTO = 30; // generoso para una familia usando el chat de verdad; corta un loop/curl
+  try {
+    const actual = parseInt((await env.RATE_LIMIT_KV.get(key)) || "0", 10);
+    if (actual >= LIMITE_POR_MINUTO) return key;
+    // expirationTtl limpia la key sola — no hace falta ningún borrado manual.
+    await env.RATE_LIMIT_KV.put(key, String(actual + 1), { expirationTtl: 120 });
+    return null;
+  } catch (e) {
+    return null; // si KV falla por lo que sea, no bloqueamos uso real por un problema de infraestructura
+  }
+}
 
 export default {
   async fetch(request, env, ctx) {
@@ -117,6 +148,18 @@ export default {
     if (origin !== ALLOWED_ORIGIN) {
       return new Response(JSON.stringify({ error: "Forbidden origin" }), {
         status: 403,
+        headers: { ...cors, "Content-Type": "application/json" },
+      });
+    }
+
+    // Rate limiting (9 ago 2026) — después del chequeo de Origin (no tiene
+    // sentido gastar una lectura/escritura de KV en algo que ya íbamos a
+    // rechazar) y antes de CUALQUIER ruta que cueste algo real (Claude,
+    // Sheets, correos). Aplica parejo a todas — /plan queda afuera a
+    // propósito, es lectura pública de un plan ya aprobado, no cuesta nada.
+    if (await checkRateLimit(request, env)) {
+      return new Response(JSON.stringify({ error: "Demasiadas peticiones seguidas — intenta de nuevo en un minuto" }), {
+        status: 429,
         headers: { ...cors, "Content-Type": "application/json" },
       });
     }
