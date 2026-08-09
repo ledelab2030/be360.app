@@ -145,6 +145,7 @@ export default {
     // PIN de Peter, que igual nunca sale del cuerpo de la petición (no se
     // expone en la URL ni en logs).
     if (url.pathname === "/panel/pendientes") return handlePanelAction(request, env, cors, "listar_pendientes");
+    if (url.pathname === "/panel/historial") return handlePanelAction(request, env, cors, "listar_historial");
     if (url.pathname === "/panel/detalle") return handlePanelAction(request, env, cors, "detalle_plan");
     if (url.pathname === "/panel/guardar") return handlePanelAction(request, env, cors, "guardar_edicion_plan");
     if (url.pathname === "/panel/aprobar") return handlePanelAction(request, env, cors, "aprobar_plan");

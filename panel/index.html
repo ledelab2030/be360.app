@@ -27,17 +27,24 @@ const { useState, useEffect } = React;
 // que cualquiera con acceso puede dañar sin querer (borrar una fila, mover
 // una columna, escribir "aprobado" en la fila equivocada). Este panel SOLO
 // expone las acciones seguras: ver pendientes, incluir/excluir hábitos uno
-// por uno, editar el mensaje al padre, guardar cambios, aprobar. Nada de
-// borrar filas ni tocar columnas.
+// por uno, editar el mensaje al padre, guardar cambios, aprobar, descartar,
+// y ver el historial de aprobados (de solo lectura). Nada de borrar filas
+// ni tocar columnas fuera de esas acciones puntuales.
 //
 // Autenticación: un PIN (PANEL_SECRET, ver worker/apps-script-formulario-v2.gs.txt)
 // distinto del secreto que usa el Worker para escribir en el Sheet — este
 // panel nunca ve ese secreto real. El PIN se guarda en localStorage tras la
-// primera vez, y se revalida contra el servidor en cada carga de la lista;
-// si el servidor lo rechaza, se limpia y vuelve a pedir.
+// primera vez, y se revalida contra el servidor en cada carga; si el
+// servidor lo rechaza, se limpia y vuelve a pedir.
 //
-// Mismo Worker que el resto de Vita — las rutas nuevas son /panel/pendientes,
-// /panel/detalle, /panel/guardar, /panel/aprobar.
+// NUEVO (8 ago 2026): barra lateral que separa Pendientes de Aprobados
+// (historial). El historial es de SOLO LECTURA — no tiene sentido re-editar
+// algo que la familia ya puede estar viendo, así que ahí no hay
+// guardar/aprobar/descartar, solo un link directo al plan que ve el padre.
+//
+// Mismo Worker que el resto de Vita — rutas: /panel/pendientes,
+// /panel/historial, /panel/detalle, /panel/guardar, /panel/aprobar,
+// /panel/descartar.
 // ============================================================
 const WORKER_URL = "https://vita-proxy.leonardo-751.workers.dev";
 const PIN_KEY = "be360_panel_pin";
@@ -63,6 +70,37 @@ const Shell = (props) => (
   </div>
 );
 
+// Layout con barra lateral — solo para las pantallas de listado (Pendientes
+// / Aprobados). El detalle de un caso (sea pendiente o de solo lectura)
+// usa el Shell normal, angosto, para no competir por atención con la barra.
+const ShellConBarra = (props) => (
+  <div style={{minHeight:"100vh", background:P.bg, fontFamily:"'Nunito',sans-serif", color:P.ink, display:"flex", justifyContent:"center", padding:"28px 14px 56px"}}>
+    <div style={{width:"100%", maxWidth:760, display:"flex", gap:26, alignItems:"flex-start"}}>
+      {props.sidebar}
+      <div style={{flex:1, minWidth:0, display:"flex", flexDirection:"column", gap:18}}>{props.children}</div>
+    </div>
+  </div>
+);
+
+const navBtnStyle = (activo) => ({
+  textAlign:"left", background: activo?P.sageSoft:"transparent", border:"none", borderRadius:12,
+  padding:"10px 14px", fontSize:14, fontWeight: activo?800:700, color: activo?P.sageDeep:P.ink,
+  cursor:"pointer", fontFamily:"'Nunito',sans-serif", width:"100%",
+});
+
+const Sidebar = ({ seccion, onSeccion, pendientesCount, historialCount, onSalir }) => (
+  <div style={{width:172, flexShrink:0, display:"flex", flexDirection:"column", gap:4, position:"sticky", top:28}}>
+    <div style={{display:"flex", alignItems:"center", gap:8, padding:"4px 4px 14px"}}>
+      <div style={{fontSize:22}}>🌱</div>
+      <div style={{fontFamily:"'Fraunces',serif", fontSize:15, color:P.sageDeep, lineHeight:1.1}}>Panel de<br/>revisión</div>
+    </div>
+    <button onClick={()=>onSeccion("pendientes")} style={navBtnStyle(seccion==="pendientes")}>Pendientes{pendientesCount!=null?" ("+pendientesCount+")":""}</button>
+    <button onClick={()=>onSeccion("historial")} style={navBtnStyle(seccion==="historial")}>Aprobados{historialCount!=null?" ("+historialCount+")":""}</button>
+    <div style={{height:1, background:P.line, margin:"14px 4px"}}/>
+    <button onClick={onSalir} style={{...navBtnStyle(false), color:P.muted, fontSize:12.5}}>Salir</button>
+  </div>
+);
+
 const btnPrimary = {background:P.sage,color:"#fff",border:"none",borderRadius:999,padding:"12px 24px",fontSize:14.5,fontWeight:800,fontFamily:"'Nunito',sans-serif",cursor:"pointer",boxShadow:"0 6px 18px rgba(90,122,92,.30)"};
 const btnGhost = {background:"none",border:"1px solid "+P.line,color:P.ink,borderRadius:999,padding:"9px 18px",fontSize:13.5,fontWeight:700,fontFamily:"'Nunito',sans-serif",cursor:"pointer"};
 
@@ -84,11 +122,15 @@ function App() {
   const [pinError, setPinError] = useState(null);
   const [checkingPin, setCheckingPin] = useState(false);
 
-  const [stage, setStage] = useState("cargando"); // cargando | lista | detalle
-  const [pendientes, setPendientes] = useState([]);
+  const [stage, setStage] = useState("cargando"); // cargando | lista | historial | detalle
+  const [seccion, setSeccion] = useState("pendientes"); // pendientes | historial — qué sección está activa en la barra
+  const [pendientes, setPendientes] = useState(null); // null = aún no cargado
   const [listaError, setListaError] = useState(null);
+  const [historial, setHistorial] = useState(null);
+  const [historialError, setHistorialError] = useState(null);
 
   const [detalle, setDetalle] = useState(null);
+  const [soloLectura, setSoloLectura] = useState(false); // true = viene del historial, sin edición
   const [habitos, setHabitos] = useState([]); // [{titulo, texto, incluido}]
   const [mensaje, setMensaje] = useState("");
   const [showFormulario, setShowFormulario] = useState(false);
@@ -97,6 +139,8 @@ function App() {
   const [confirmando, setConfirmando] = useState(false);
   const [aprobando, setAprobando] = useState(false);
   const [accionError, setAccionError] = useState(null);
+  const [descartando, setDescartando] = useState(false);
+  const [confirmandoDescarte, setConfirmandoDescarte] = useState(false);
 
   const llamarPanel = async (ruta, extra) => {
     const res = await fetch(WORKER_URL + "/panel/" + ruta, {
@@ -118,12 +162,27 @@ function App() {
       const data = await llamarPanel("pendientes", {});
       if (!data.ok) throw new Error(data.error || "error");
       setPendientes(data.pendientes || []);
-      setStage("lista");
+      setSeccion("pendientes"); setStage("lista");
     } catch (e) {
       setListaError(e.message === "PIN incorrecto" ? null : "No se pudo cargar. Reintenta.");
       setStage(e.message === "PIN incorrecto" ? "cargando" : "lista");
     }
   };
+
+  const cargarHistorial = async () => {
+    setStage("cargando"); setHistorialError(null);
+    try {
+      const data = await llamarPanel("historial", {});
+      if (!data.ok) throw new Error(data.error || "error");
+      setHistorial(data.historial || []);
+      setSeccion("historial"); setStage("historial");
+    } catch (e) {
+      setHistorialError(e.message === "PIN incorrecto" ? null : "No se pudo cargar. Reintenta.");
+      setStage(e.message === "PIN incorrecto" ? "cargando" : "historial");
+    }
+  };
+
+  const irASeccion = (s) => { s === "historial" ? cargarHistorial() : cargarPendientes(); };
 
   useEffect(() => { if (pin) cargarPendientes(); }, [pin]);
 
@@ -143,8 +202,9 @@ function App() {
     finally { setCheckingPin(false); }
   };
 
-  const abrirDetalle = async (idPlan) => {
-    setStage("detalle"); setDetalle(null); setAccionError(null); setConfirmando(false); setGuardadoOk(false); setShowFormulario(false);
+  const abrirDetalle = async (idPlan, desde) => {
+    setStage("detalle"); setDetalle(null); setAccionError(null); setConfirmando(false); setGuardadoOk(false); setShowFormulario(false); setConfirmandoDescarte(false);
+    setSoloLectura(desde === "historial");
     try {
       const data = await llamarPanel("detalle", { idPlan });
       if (!data.ok) throw new Error(data.error || "error");
@@ -157,7 +217,7 @@ function App() {
     }
   };
 
-  const volverALista = () => { setStage("lista"); cargarPendientes(); };
+  const volverALista = () => { seccion === "historial" ? cargarHistorial() : cargarPendientes(); };
 
   const actualizarHabito = (i, campo, valor) => {
     setHabitos(hs => hs.map((h, idx) => idx === i ? { ...h, [campo]: valor } : h));
@@ -191,8 +251,6 @@ function App() {
     finally { setAprobando(false); }
   };
 
-  const [descartando, setDescartando] = useState(false);
-  const [confirmandoDescarte, setConfirmandoDescarte] = useState(false);
   // Borra la fila — bloqueado en el propio Apps Script si el caso ya está
   // aprobado, para no poder borrar por accidente un plan ya enviado a una
   // familia real. Para casos de prueba, duplicados, o algo que no aplica.
@@ -207,13 +265,22 @@ function App() {
     finally { setDescartando(false); }
   };
 
+  const salir = () => { try{localStorage.removeItem(PIN_KEY);}catch(e){} setPin(""); };
+
   // ---------- PIN ----------
   if (!pin) return (
     <Shell>
       <div style={{background:P.panel, border:"1px solid "+P.line, borderRadius:20, padding:"32px 26px", textAlign:"center"}}>
         <div style={{fontSize:36, marginBottom:10}}>🌱</div>
-        <div style={{fontFamily:"'Fraunces',serif", fontSize:22, color:P.sageDeep, marginBottom:6}}>Panel de revisión</div>
-        <p style={{fontSize:13, color:P.muted, marginBottom:20}}>Solo para Peter. Ingresa el PIN para continuar.</p>
+        <div style={{fontFamily:"'Fraunces',serif", fontSize:22, color:P.sageDeep, marginBottom:10}}>Panel de revisión</div>
+        <p style={{fontSize:13.5, color:P.ink, lineHeight:1.6, textAlign:"left", marginBottom:8}}>Acá revisas los casos que Vita ya capturó con cada familia. Por cada uno puedes:</p>
+        <ul style={{fontSize:13, color:P.ink, lineHeight:1.7, textAlign:"left", margin:"0 0 12px", paddingLeft:20}}>
+          <li>Leer el formulario completo que llenó el padre/madre.</li>
+          <li>Ajustar el mensaje y los hábitos recomendados — incluir, excluir o editar cada uno.</li>
+          <li>Guardar los cambios sin apurarte, o aprobar.</li>
+        </ul>
+        <p style={{fontSize:12.5, color:P.muted, lineHeight:1.6, textAlign:"left", marginBottom:8}}>Al aprobar, se le manda un correo real a la familia con el link de su plan — solo aprueba cuando ya estés conforme. Una vez aprobado, el caso pasa a "Aprobados" en la barra lateral, de solo lectura.</p>
+        <p style={{fontSize:12.5, color:P.muted, lineHeight:1.6, textAlign:"left", marginBottom:20}}>El PIN es solo para ti (o quien más tenga acceso autorizado).</p>
         <div style={{position:"relative", width:"100%", maxWidth:220, margin:"0 auto 14px"}}>
           <input type={verPin?"text":"password"} value={pinInput} onChange={e=>setPinInput(e.target.value)} onKeyDown={e=>{if(e.key==="Enter") entrarConPin();}} placeholder="PIN"
             style={{width:"100%", textAlign:"center", fontSize:16, padding:"11px 40px 11px 14px", border:"1px solid "+P.line, borderRadius:12, fontFamily:"'Nunito',sans-serif", outline:"none"}} autoFocus/>
@@ -235,27 +302,26 @@ function App() {
     <Shell><div style={{textAlign:"center", padding:"60px 10px", color:P.muted}}>Cargando…</div></Shell>
   );
 
-  // ---------- LISTA ----------
+  // ---------- LISTA (pendientes) ----------
   if (stage === "lista") return (
-    <Shell>
+    <ShellConBarra sidebar={<Sidebar seccion="pendientes" onSeccion={irASeccion} pendientesCount={pendientes?pendientes.length:null} historialCount={historial?historial.length:null} onSalir={salir}/>}>
       <div>
-        <div style={{fontSize:11.5, fontWeight:800, letterSpacing:".08em", textTransform:"uppercase", color:P.sageDeep, marginBottom:4}}>Panel de revisión</div>
-        <h1 style={{fontFamily:"'Fraunces',serif", fontWeight:600, fontSize:26, margin:0, color:P.sageDeep}}>Pendientes {pendientes.length ? "("+pendientes.length+")" : ""}</h1>
+        <h1 style={{fontFamily:"'Fraunces',serif", fontWeight:600, fontSize:26, margin:0, color:P.sageDeep}}>Pendientes {pendientes && pendientes.length ? "("+pendientes.length+")" : ""}</h1>
       </div>
       {listaError && (
         <div style={{background:P.claySoft, border:"1px solid "+P.clay, borderRadius:14, padding:"12px 16px", fontSize:13, color:P.ink}}>
           {listaError} <span onClick={cargarPendientes} style={{color:P.sageDeep, fontWeight:700, textDecoration:"underline", cursor:"pointer"}}>Reintentar</span>
         </div>
       )}
-      {!listaError && pendientes.length === 0 && (
+      {!listaError && pendientes && pendientes.length === 0 && (
         <div style={{textAlign:"center", padding:"50px 10px", color:P.muted}}>
           <div style={{fontSize:34, marginBottom:10}}>🌿</div>
           No hay casos pendientes de revisión.
         </div>
       )}
       <div style={{display:"flex", flexDirection:"column", gap:10}}>
-        {pendientes.map(p => (
-          <div key={p.idPlan} className="rise" onClick={()=>abrirDetalle(p.idPlan)} style={{background:P.panel, border:"1px solid "+P.line, borderRadius:16, padding:"14px 16px", cursor:"pointer", display:"flex", justifyContent:"space-between", alignItems:"center", gap:12}}>
+        {(pendientes||[]).map(p => (
+          <div key={p.idPlan} className="rise" onClick={()=>abrirDetalle(p.idPlan,"pendientes")} style={{background:P.panel, border:"1px solid "+P.line, borderRadius:16, padding:"14px 16px", cursor:"pointer", display:"flex", justifyContent:"space-between", alignItems:"center", gap:12}}>
             <div style={{minWidth:0}}>
               <div style={{fontSize:15, fontWeight:800, color:P.ink}}>{p.nombreNino || "(sin nombre)"}{p.edad?" · "+p.edad+" años":""}</div>
               <div style={{fontSize:12.5, color:P.muted, marginTop:2}}>Padre/madre: {p.nombrePadre || "—"} · {relativeDate(p.timestamp)}</div>
@@ -265,26 +331,58 @@ function App() {
           </div>
         ))}
       </div>
-      <button onClick={()=>{ try{localStorage.removeItem(PIN_KEY);}catch(e){} setPin(""); }} style={{...btnGhost, alignSelf:"center", marginTop:10}}>Salir</button>
-    </Shell>
+    </ShellConBarra>
   );
 
-  // ---------- DETALLE ----------
+  // ---------- HISTORIAL (aprobados, solo lectura) ----------
+  if (stage === "historial") return (
+    <ShellConBarra sidebar={<Sidebar seccion="historial" onSeccion={irASeccion} pendientesCount={pendientes?pendientes.length:null} historialCount={historial?historial.length:null} onSalir={salir}/>}>
+      <div>
+        <h1 style={{fontFamily:"'Fraunces',serif", fontWeight:600, fontSize:26, margin:0, color:P.sageDeep}}>Aprobados {historial && historial.length ? "("+historial.length+")" : ""}</h1>
+      </div>
+      {historialError && (
+        <div style={{background:P.claySoft, border:"1px solid "+P.clay, borderRadius:14, padding:"12px 16px", fontSize:13, color:P.ink}}>
+          {historialError} <span onClick={cargarHistorial} style={{color:P.sageDeep, fontWeight:700, textDecoration:"underline", cursor:"pointer"}}>Reintentar</span>
+        </div>
+      )}
+      {!historialError && historial && historial.length === 0 && (
+        <div style={{textAlign:"center", padding:"50px 10px", color:P.muted}}>
+          <div style={{fontSize:34, marginBottom:10}}>📋</div>
+          Todavía no hay casos aprobados.
+        </div>
+      )}
+      <div style={{display:"flex", flexDirection:"column", gap:10}}>
+        {(historial||[]).map(p => (
+          <div key={p.idPlan} className="rise" onClick={()=>abrirDetalle(p.idPlan,"historial")} style={{background:P.panel, border:"1px solid "+P.line, borderRadius:16, padding:"14px 16px", cursor:"pointer", display:"flex", justifyContent:"space-between", alignItems:"center", gap:12}}>
+            <div style={{minWidth:0}}>
+              <div style={{fontSize:15, fontWeight:800, color:P.ink}}>{p.nombreNino || "(sin nombre)"}{p.edad?" · "+p.edad+" años":""}</div>
+              <div style={{fontSize:12.5, color:P.muted, marginTop:2}}>Padre/madre: {p.nombrePadre || "—"} · aprobado {relativeDate(p.correoEnviadoTs || p.timestamp)}</div>
+            </div>
+            <div style={{color:P.sageDeep, fontSize:20, flexShrink:0}}>→</div>
+          </div>
+        ))}
+      </div>
+    </ShellConBarra>
+  );
+
+  // ---------- DETALLE (pendiente = editable, historial = solo lectura) ----------
   if (stage === "detalle") {
     if (!detalle) return (
       <Shell>
-        <button onClick={volverALista} style={{...btnGhost, alignSelf:"flex-start"}}>← Volver</button>
+        <button onClick={volverALista} style={{...btnGhost, alignSelf:"flex-start"}}>← {soloLectura?"Aprobados":"Pendientes"}</button>
         {accionError ? <div style={{textAlign:"center", padding:"40px 10px", color:P.clay}}>{accionError}</div> : <div style={{textAlign:"center", padding:"40px 10px", color:P.muted}}>Cargando…</div>}
       </Shell>
     );
-    const inclCount = habitos.filter(h=>h.incluido).length;
+    const habitosIncluidos = habitos.filter(h=>h.incluido);
+    const inclCount = habitosIncluidos.length;
     return (
       <Shell>
-        <button onClick={volverALista} style={{...btnGhost, alignSelf:"flex-start"}}>← Pendientes</button>
+        <button onClick={volverALista} style={{...btnGhost, alignSelf:"flex-start"}}>← {soloLectura?"Aprobados":"Pendientes"}</button>
 
         <div>
           <h1 style={{fontFamily:"'Fraunces',serif", fontWeight:600, fontSize:24, margin:0, color:P.sageDeep}}>{detalle.nombreNino || "(sin nombre)"}{detalle.edad?" · "+detalle.edad+" años":""}</h1>
           <div style={{fontSize:13, color:P.muted, marginTop:4}}>Padre/madre: {detalle.nombrePadre || "—"} · {detalle.emailPadre || "sin correo"}</div>
+          {soloLectura && <div style={{display:"inline-block", marginTop:8, background:P.sageSoft, color:P.sageDeep, fontSize:11.5, fontWeight:800, padding:"4px 10px", borderRadius:999}}>✓ Aprobado</div>}
         </div>
 
         <div style={{background:P.panel, border:"1px solid "+P.line, borderRadius:16, padding:"4px 16px"}}>
@@ -305,15 +403,24 @@ function App() {
 
         <div>
           <div style={{fontSize:13, fontWeight:800, color:P.sageDeep, marginBottom:6}}>Mensaje al padre/madre</div>
-          <textarea value={mensaje} onChange={e=>setMensaje(e.target.value)} rows={6}
-            style={{width:"100%", border:"1px solid "+P.line, borderRadius:14, padding:"12px 14px", fontSize:14, fontFamily:"'Nunito',sans-serif", background:P.panelRaised, color:P.ink, outline:"none", resize:"vertical", lineHeight:1.5}}/>
+          {soloLectura ? (
+            <div style={{background:P.panelRaised, border:"1px solid "+P.line, borderRadius:14, padding:"12px 14px", fontSize:14, color:P.ink, lineHeight:1.5, whiteSpace:"pre-wrap"}}>{mensaje || "—"}</div>
+          ) : (
+            <textarea value={mensaje} onChange={e=>setMensaje(e.target.value)} rows={6}
+              style={{width:"100%", border:"1px solid "+P.line, borderRadius:14, padding:"12px 14px", fontSize:14, fontFamily:"'Nunito',sans-serif", background:P.panelRaised, color:P.ink, outline:"none", resize:"vertical", lineHeight:1.5}}/>
+          )}
         </div>
 
         <div>
           <div style={{fontSize:13, fontWeight:800, color:P.sageDeep, marginBottom:8}}>Hábitos recomendados ({inclCount} de {habitos.length} incluidos)</div>
           <div style={{display:"flex", flexDirection:"column", gap:10}}>
-            {habitos.map((h, i) => (
-              <div key={i} style={{background: h.incluido ? P.panelRaised : P.bg, border:"1px solid "+(h.incluido?P.line:P.line), borderRadius:14, padding:"12px 14px", opacity:h.incluido?1:.55}}>
+            {soloLectura ? habitosIncluidos.map((h, i) => (
+              <div key={i} style={{background:P.panelRaised, border:"1px solid "+P.line, borderRadius:14, padding:"12px 14px"}}>
+                <div style={{fontSize:13.5, fontWeight:800, color:P.ink, marginBottom:4}}>{h.titulo}</div>
+                <div style={{fontSize:13, color:P.muted, lineHeight:1.45}}>{h.texto}</div>
+              </div>
+            )) : habitos.map((h, i) => (
+              <div key={i} style={{background: h.incluido ? P.panelRaised : P.bg, border:"1px solid "+P.line, borderRadius:14, padding:"12px 14px", opacity:h.incluido?1:.55}}>
                 <div style={{display:"flex", alignItems:"flex-start", gap:10}}>
                   <button onClick={()=>actualizarHabito(i,"incluido",!h.incluido)} title={h.incluido?"Excluir":"Incluir"}
                     style={{flexShrink:0, marginTop:2, width:24, height:24, borderRadius:7, border:"1.5px solid "+(h.incluido?P.sage:P.line), background:h.incluido?P.sage:P.panelRaised, color:"#fff", cursor:"pointer", display:"grid", placeItems:"center"}}>
@@ -334,34 +441,41 @@ function App() {
 
         {accionError && <div style={{background:P.claySoft, border:"1px solid "+P.clay, borderRadius:12, padding:"10px 14px", fontSize:13, color:P.ink}}>{accionError}</div>}
 
-        <div style={{display:"flex", gap:10, flexWrap:"wrap"}}>
-          <button onClick={guardarCambios} disabled={guardando} style={{...btnGhost, opacity:guardando?.6:1}}>{guardando?"Guardando…":(guardadoOk?"✓ Guardado":"Guardar cambios")}</button>
-          {!confirmando ? (
-            <button onClick={()=>setConfirmando(true)} style={btnPrimary}>Aprobar y enviar →</button>
-          ) : (
-            <div style={{background:P.sageSoft, border:"1px solid "+P.sage, borderRadius:14, padding:"12px 16px", flex:1, minWidth:260}}>
-              <div style={{fontSize:13, color:P.sageDeep, marginBottom:10, lineHeight:1.5}}>¿Confirmas? Esto le manda un correo real a {detalle.nombrePadre || "el padre/madre"}{detalle.emailPadre?" ("+detalle.emailPadre+")":""} con el link del plan.</div>
-              <div style={{display:"flex", gap:8}}>
-                <button onClick={aprobar} disabled={aprobando} style={{...btnPrimary, opacity:aprobando?.7:1}}>{aprobando?"Enviando…":"Sí, aprobar y enviar"}</button>
-                <button onClick={()=>setConfirmando(false)} style={btnGhost}>Cancelar</button>
-              </div>
+        {soloLectura ? (
+          <a href={"https://be360.app/plan/?id="+detalle.idPlan} target="_blank" rel="noopener noreferrer"
+            style={{...btnPrimary, alignSelf:"flex-start", textDecoration:"none", display:"inline-block"}}>Ver el plan del padre/madre →</a>
+        ) : (
+          <React.Fragment>
+            <div style={{display:"flex", gap:10, flexWrap:"wrap"}}>
+              <button onClick={guardarCambios} disabled={guardando} style={{...btnGhost, opacity:guardando?.6:1}}>{guardando?"Guardando…":(guardadoOk?"✓ Guardado":"Guardar cambios")}</button>
+              {!confirmando ? (
+                <button onClick={()=>setConfirmando(true)} style={btnPrimary}>Aprobar y enviar →</button>
+              ) : (
+                <div style={{background:P.sageSoft, border:"1px solid "+P.sage, borderRadius:14, padding:"12px 16px", flex:1, minWidth:260}}>
+                  <div style={{fontSize:13, color:P.sageDeep, marginBottom:10, lineHeight:1.5}}>¿Confirmas? Esto le manda un correo real a {detalle.nombrePadre || "el padre/madre"}{detalle.emailPadre?" ("+detalle.emailPadre+")":""} con el link del plan.</div>
+                  <div style={{display:"flex", gap:8}}>
+                    <button onClick={aprobar} disabled={aprobando} style={{...btnPrimary, opacity:aprobando?.7:1}}>{aprobando?"Enviando…":"Sí, aprobar y enviar"}</button>
+                    <button onClick={()=>setConfirmando(false)} style={btnGhost}>Cancelar</button>
+                  </div>
+                </div>
+              )}
             </div>
-          )}
-        </div>
 
-        <div style={{borderTop:"1px solid "+P.line, paddingTop:14, marginTop:4}}>
-          {!confirmandoDescarte ? (
-            <span onClick={()=>setConfirmandoDescarte(true)} style={{fontSize:12.5, color:P.muted, textDecoration:"underline", cursor:"pointer"}}>Descartar este caso (prueba, duplicado, no aplica)</span>
-          ) : (
-            <div style={{background:P.claySoft, border:"1px solid "+P.clay, borderRadius:14, padding:"12px 16px"}}>
-              <div style={{fontSize:13, color:P.ink, marginBottom:10, lineHeight:1.5}}>¿Descartar el caso de {detalle.nombreNino || "este niño/a"}? Borra la fila del Sheet — no se puede deshacer. No afecta casos ya aprobados.</div>
-              <div style={{display:"flex", gap:8}}>
-                <button onClick={descartar} disabled={descartando} style={{background:P.clay, color:"#fff", border:"none", borderRadius:999, padding:"9px 18px", fontSize:13.5, fontWeight:700, cursor:"pointer", fontFamily:"'Nunito',sans-serif", opacity:descartando?.7:1}}>{descartando?"Descartando…":"Sí, descartar"}</button>
-                <button onClick={()=>setConfirmandoDescarte(false)} style={btnGhost}>Cancelar</button>
-              </div>
+            <div style={{borderTop:"1px solid "+P.line, paddingTop:14, marginTop:4}}>
+              {!confirmandoDescarte ? (
+                <span onClick={()=>setConfirmandoDescarte(true)} style={{fontSize:12.5, color:P.muted, textDecoration:"underline", cursor:"pointer"}}>Descartar este caso (prueba, duplicado, no aplica)</span>
+              ) : (
+                <div style={{background:P.claySoft, border:"1px solid "+P.clay, borderRadius:14, padding:"12px 16px"}}>
+                  <div style={{fontSize:13, color:P.ink, marginBottom:10, lineHeight:1.5}}>¿Descartar el caso de {detalle.nombreNino || "este niño/a"}? Borra la fila del Sheet — no se puede deshacer. No afecta casos ya aprobados.</div>
+                  <div style={{display:"flex", gap:8}}>
+                    <button onClick={descartar} disabled={descartando} style={{background:P.clay, color:"#fff", border:"none", borderRadius:999, padding:"9px 18px", fontSize:13.5, fontWeight:700, cursor:"pointer", fontFamily:"'Nunito',sans-serif", opacity:descartando?.7:1}}>{descartando?"Descartando…":"Sí, descartar"}</button>
+                    <button onClick={()=>setConfirmandoDescarte(false)} style={btnGhost}>Cancelar</button>
+                  </div>
+                </div>
+              )}
             </div>
-          )}
-        </div>
+          </React.Fragment>
+        )}
       </Shell>
     );
   }
