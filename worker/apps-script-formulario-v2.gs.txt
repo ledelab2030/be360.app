@@ -69,6 +69,7 @@ function doPost(e) {
     if (body.action === "detalle_plan") return conPanelSecret(body, function () { return detallePlan(sheet, body); });
     if (body.action === "guardar_edicion_plan") return conPanelSecret(body, function () { return guardarEdicionPlan(sheet, body); });
     if (body.action === "aprobar_plan") return conPanelSecret(body, function () { return aprobarPlan(sheet, body); });
+    if (body.action === "descartar_pendiente") return conPanelSecret(body, function () { return descartarPendiente(sheet, body); });
 
     // Resto de acciones — vienen del Worker, usan SHARED_SECRET.
     if (!body.secret || body.secret !== SHARED_SECRET) {
@@ -202,6 +203,22 @@ function aprobarPlan(sheet, body) {
   SpreadsheetApp.flush();
   var resultado = enviarPlanAprobado(sheet, row);
   return respond({ ok: true, envio: resultado });
+}
+
+// Descarta un caso pendiente (borra la fila) — para casos de prueba,
+// duplicados, o algo que claramente no aplica. Bloqueado a propósito si el
+// caso YA fue aprobado: no se puede borrar un plan que ya se le envió a una
+// familia real, ni por accidente ni por confusión de idPlan.
+function descartarPendiente(sheet, body) {
+  var idPlan = body.idPlan;
+  if (!idPlan) return respond({ ok: false, error: "idPlan faltante" }, 400);
+  var found = encontrarFilaPorIdPlan(sheet, idPlan);
+  if (!found) return respond({ ok: false, error: "no encontrado" }, 404);
+  if (found.values[COLS.decision] === "aprobado") {
+    return respond({ ok: false, error: "no se puede descartar un caso ya aprobado" }, 400);
+  }
+  sheet.deleteRow(found.row);
+  return respond({ ok: true });
 }
 
 function guardarBorrador(sheet, body) {

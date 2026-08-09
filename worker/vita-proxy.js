@@ -148,6 +148,7 @@ export default {
     if (url.pathname === "/panel/detalle") return handlePanelAction(request, env, cors, "detalle_plan");
     if (url.pathname === "/panel/guardar") return handlePanelAction(request, env, cors, "guardar_edicion_plan");
     if (url.pathname === "/panel/aprobar") return handlePanelAction(request, env, cors, "aprobar_plan");
+    if (url.pathname === "/panel/descartar") return handlePanelAction(request, env, cors, "descartar_pendiente");
 
     try {
       const body = await request.json();
