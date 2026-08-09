@@ -1,53 +1,49 @@
 /**
- * Apps Script v5 — Sheet "vita-demo-formulario". Reemplaza el código anterior
+ * Apps Script — Sheet "vita-demo-formulario". Reemplaza el código anterior
  * de ESTE Sheet (el de srb3 no cambia).
  *
- * QUÉ AGREGA sobre la v4 (decisión de Leonardo, 8 ago 2026):
- *   - Panel de revisión para Peter (panel/index.html en be360.app). Antes
- *     Peter aprobaba/editaba escribiendo directo en la hoja de cálculo —
- *     cualquiera con acceso puede dañarla sin querer (borrar una fila, mover
- *     una columna, escribir "aprobado" en la fila equivocada, romper el
- *     encabezado). El panel solo expone las acciones seguras: ver
- *     pendientes, incluir/excluir hábitos uno por uno, editar el mensaje,
- *     aprobar — nada más.
- *   - 4 acciones nuevas en doPost: listar_pendientes, detalle_plan,
- *     guardar_edicion_plan, aprobar_plan. Usan un secreto DISTINTO
- *     (PANEL_SECRET) del que usa el Worker (SHARED_SECRET) — el panel de
- *     Peter nunca ve el secreto real que el Worker usa para escribir en la
- *     hoja, solo conoce su propio PIN.
- *   - onAprobado (el trigger de "Al editar", por si Peter sigue editando la
- *     hoja directo alguna vez) se refactorizó: ahora es un wrapper delgado
- *     sobre enviarPlanAprobado(sheet, row) — la MISMA función que usa el
- *     panel al aprobar. Aprobar desde la hoja o desde el panel hacen
- *     exactamente lo mismo, sin lógica duplicada.
- *   - Nueva columna al final: correo_enviado_ts — evita mandarle el correo
- *     de entrega dos veces a una familia si por algún motivo se disparan
- *     tanto el trigger de edición como la acción del panel para la misma
- *     fila.
- *   - Excluir un hábito en el panel NO lo borra — se guarda igual, con
- *     incluido:false, para que Peter pueda reconsiderarlo antes de aprobar
- *     (su método permite "incluir/excluir/dejar para después"). doGet (lo
- *     que ve el padre) filtra los excluidos ahí, no antes.
+ * PANEL DE REVISIÓN PARA PETER (panel/index.html en be360.app): antes Peter
+ * aprobaba/editaba escribiendo directo en la hoja de cálculo — cualquiera
+ * con acceso puede dañarla sin querer (borrar una fila, mover una columna,
+ * escribir "aprobado" en la fila equivocada). El panel solo expone las
+ * acciones seguras: ver pendientes, incluir/excluir hábitos uno por uno,
+ * editar el mensaje, guardar, aprobar, descartar. 5 acciones en doPost:
+ * listar_pendientes, detalle_plan, guardar_edicion_plan, aprobar_plan,
+ * descartar_pendiente. Usan PANEL_SECRET (abajo), un secreto DISTINTO del
+ * que usa el Worker (SHARED_SECRET) — el panel nunca ve el secreto real que
+ * escribe en la hoja.
  *
- * CAMBIO EN LOS ENCABEZADOS DE TU SHEET — agrega esta columna al final de la
- * fila 1 (después de email_padre):
- *   correo_enviado_ts
+ * OJO — PANEL_SECRET (8 ago 2026): esta variable YA trae el PIN real
+ * ("1990-I", acordado con Leonardo) como valor por defecto, a propósito —
+ * antes tenía un placeholder genérico, y cada vez que alguien pegaba este
+ * archivo completo para una nueva versión, el placeholder pisaba el PIN real
+ * y rompía el acceso al panel sin avisar. Si el PIN cambia alguna vez,
+ * actualiza el valor AQUÍ (en este archivo, para que quede como el default
+ * real de aquí en adelante), no solo en el editor de Apps Script.
  *
- * Pasos para instalar (reemplaza TODO el contenido de Code.gs):
+ * onAprobado (el trigger de "Al editar", por si Peter edita la hoja directo
+ * alguna vez) es un wrapper delgado sobre enviarPlanAprobado(sheet, row) —
+ * la MISMA función que usa el panel al aprobar, sin lógica duplicada.
+ *
+ * Columna correo_enviado_ts (al final, después de email_padre): evita
+ * mandar el correo de entrega dos veces si se disparan tanto el trigger
+ * como la acción del panel para la misma fila.
+ *
+ * Excluir un hábito en el panel NO lo borra — se guarda igual, con
+ * incluido:false, para que Peter pueda reconsiderarlo antes de aprobar (su
+ * método permite "incluir/excluir/dejar para después"). doGet (lo que ve el
+ * padre) filtra los excluidos ahí, no antes.
+ *
+ * Para instalar una actualización (reemplaza TODO el contenido de Code.gs):
  * 1. Pega este archivo completo.
- * 2. SHARED_SECRET debe ser el MISMO valor que ya tenías.
- * 3. PANEL_SECRET: pon un PIN nuevo, solo para Peter — no lo repitas en
- *    ningún otro lado, ni en el Sheet ni en código público.
- * 4. Agrega la columna "correo_enviado_ts" al final de la fila 1 del Sheet.
- * 5. Implementar → Administrar implementaciones → editar (lápiz) → Nueva
+ * 2. Implementar → Administrar implementaciones → editar (lápiz) → Nueva
  *    versión → Implementar.
- * 6. La URL /exec no cambia. En el Worker hace falta agregar el secret
- *    PANEL_SECRET (mismo valor que pusiste aquí) y las 4 rutas nuevas —
- *    ver worker/vita-proxy.js.
+ * 3. La URL /exec no cambia. El Worker no necesita ningún secret nuevo para
+ *    esto — ver la nota en worker/vita-proxy.js.
  */
 
 var SHARED_SECRET = "3-estoesparaquevitarenazcabajolasreglasduras";
-var PANEL_SECRET = "CAMBIA-ESTO-por-un-pin-que-solo-sepan-tu-y-peter";
+var PANEL_SECRET = "1990-I";
 
 var COLS = {
   timestamp: 0, modo: 1, nombre_nino: 2, edad: 3, que_deseas_lograr: 4,
