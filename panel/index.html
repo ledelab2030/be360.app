@@ -115,6 +115,15 @@ function relativeDate(iso) {
   return "hace " + diffD + (diffD === 1 ? " día" : " días");
 }
 
+// Algunas capturas viejas guardaron la edad ya con la palabra "años" incluida
+// (ej. "9 años" en vez de "9") — esto evita el "9 años años" que salía en
+// esos casos, sin tocar los datos ya guardados.
+function formatEdad(edad) {
+  if (!edad && edad !== 0) return "";
+  const s = String(edad).trim();
+  return " · " + s + (/años?\b/i.test(s) ? "" : " años");
+}
+
 function App() {
   const [pin, setPin] = useState(() => { try { return localStorage.getItem(PIN_KEY) || ""; } catch (e) { return ""; } });
   const [pinInput, setPinInput] = useState("");
@@ -323,7 +332,7 @@ function App() {
         {(pendientes||[]).map(p => (
           <div key={p.idPlan} className="rise" onClick={()=>abrirDetalle(p.idPlan,"pendientes")} style={{background:P.panel, border:"1px solid "+P.line, borderRadius:16, padding:"14px 16px", cursor:"pointer", display:"flex", justifyContent:"space-between", alignItems:"center", gap:12}}>
             <div style={{minWidth:0}}>
-              <div style={{fontSize:15, fontWeight:800, color:P.ink}}>{p.nombreNino || "(sin nombre)"}{p.edad?" · "+p.edad+" años":""}</div>
+              <div style={{fontSize:15, fontWeight:800, color:P.ink}}>{p.nombreNino || "(sin nombre)"}{formatEdad(p.edad)}</div>
               <div style={{fontSize:12.5, color:P.muted, marginTop:2}}>Padre/madre: {p.nombrePadre || "—"} · {relativeDate(p.timestamp)}</div>
               {p.preocupacionPrincipal && <div style={{fontSize:12.5, color:P.ink, marginTop:5, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap"}}>{p.preocupacionPrincipal}</div>}
             </div>
@@ -355,7 +364,7 @@ function App() {
         {(historial||[]).map(p => (
           <div key={p.idPlan} className="rise" onClick={()=>abrirDetalle(p.idPlan,"historial")} style={{background:P.panel, border:"1px solid "+P.line, borderRadius:16, padding:"14px 16px", cursor:"pointer", display:"flex", justifyContent:"space-between", alignItems:"center", gap:12}}>
             <div style={{minWidth:0}}>
-              <div style={{fontSize:15, fontWeight:800, color:P.ink}}>{p.nombreNino || "(sin nombre)"}{p.edad?" · "+p.edad+" años":""}</div>
+              <div style={{fontSize:15, fontWeight:800, color:P.ink}}>{p.nombreNino || "(sin nombre)"}{formatEdad(p.edad)}</div>
               <div style={{fontSize:12.5, color:P.muted, marginTop:2}}>Padre/madre: {p.nombrePadre || "—"} · aprobado {relativeDate(p.correoEnviadoTs || p.timestamp)}</div>
             </div>
             <div style={{color:P.sageDeep, fontSize:20, flexShrink:0}}>→</div>
@@ -380,7 +389,7 @@ function App() {
         <button onClick={volverALista} style={{...btnGhost, alignSelf:"flex-start"}}>← {soloLectura?"Aprobados":"Pendientes"}</button>
 
         <div>
-          <h1 style={{fontFamily:"'Fraunces',serif", fontWeight:600, fontSize:24, margin:0, color:P.sageDeep}}>{detalle.nombreNino || "(sin nombre)"}{detalle.edad?" · "+detalle.edad+" años":""}</h1>
+          <h1 style={{fontFamily:"'Fraunces',serif", fontWeight:600, fontSize:24, margin:0, color:P.sageDeep}}>{detalle.nombreNino || "(sin nombre)"}{formatEdad(detalle.edad)}</h1>
           <div style={{fontSize:13, color:P.muted, marginTop:4}}>Padre/madre: {detalle.nombrePadre || "—"} · {detalle.emailPadre || "sin correo"}</div>
           {soloLectura && <div style={{display:"inline-block", marginTop:8, background:P.sageSoft, color:P.sageDeep, fontSize:11.5, fontWeight:800, padding:"4px 10px", borderRadius:999}}>✓ Aprobado</div>}
         </div>
