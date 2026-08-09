@@ -454,36 +454,41 @@ function App() {
           <a href={"https://be360.app/plan/?id="+detalle.idPlan} target="_blank" rel="noopener noreferrer"
             style={{...btnPrimary, alignSelf:"flex-start", textDecoration:"none", display:"inline-block"}}>Ver el plan del padre/madre →</a>
         ) : (
-          <React.Fragment>
-            <div style={{display:"flex", gap:10, flexWrap:"wrap"}}>
-              <button onClick={guardarCambios} disabled={guardando} style={{...btnGhost, opacity:guardando?.6:1}}>{guardando?"Guardando…":(guardadoOk?"✓ Guardado":"Guardar cambios")}</button>
-              {!confirmando ? (
-                <button onClick={()=>setConfirmando(true)} style={btnPrimary}>Aprobar y enviar →</button>
-              ) : (
-                <div style={{background:P.sageSoft, border:"1px solid "+P.sage, borderRadius:14, padding:"12px 16px", flex:1, minWidth:260}}>
-                  <div style={{fontSize:13, color:P.sageDeep, marginBottom:10, lineHeight:1.5}}>¿Confirmas? Esto le manda un correo real a {detalle.nombrePadre || "el padre/madre"}{detalle.emailPadre?" ("+detalle.emailPadre+")":""} con el link del plan.</div>
-                  <div style={{display:"flex", gap:8}}>
-                    <button onClick={aprobar} disabled={aprobando} style={{...btnPrimary, opacity:aprobando?.7:1}}>{aprobando?"Enviando…":"Sí, aprobar y enviar"}</button>
-                    <button onClick={()=>setConfirmando(false)} style={btnGhost}>Cancelar</button>
-                  </div>
+          <div style={{display:"flex", gap:10, flexWrap:"wrap"}}>
+            <button onClick={guardarCambios} disabled={guardando} style={{...btnGhost, opacity:guardando?.6:1}}>{guardando?"Guardando…":(guardadoOk?"✓ Guardado":"Guardar cambios")}</button>
+            {!confirmando ? (
+              <button onClick={()=>setConfirmando(true)} style={btnPrimary}>Aprobar y enviar →</button>
+            ) : (
+              <div style={{background:P.sageSoft, border:"1px solid "+P.sage, borderRadius:14, padding:"12px 16px", flex:1, minWidth:260}}>
+                <div style={{fontSize:13, color:P.sageDeep, marginBottom:10, lineHeight:1.5}}>¿Confirmas? Esto le manda un correo real a {detalle.nombrePadre || "el padre/madre"}{detalle.emailPadre?" ("+detalle.emailPadre+")":""} con el link del plan.</div>
+                <div style={{display:"flex", gap:8}}>
+                  <button onClick={aprobar} disabled={aprobando} style={{...btnPrimary, opacity:aprobando?.7:1}}>{aprobando?"Enviando…":"Sí, aprobar y enviar"}</button>
+                  <button onClick={()=>setConfirmando(false)} style={btnGhost}>Cancelar</button>
                 </div>
-              )}
-            </div>
+              </div>
+            )}
+          </div>
+        )}
 
-            <div style={{borderTop:"1px solid "+P.line, paddingTop:14, marginTop:4}}>
-              {!confirmandoDescarte ? (
-                <span onClick={()=>setConfirmandoDescarte(true)} style={{fontSize:12.5, color:P.muted, textDecoration:"underline", cursor:"pointer"}}>Descartar este caso (prueba, duplicado, no aplica)</span>
-              ) : (
-                <div style={{background:P.claySoft, border:"1px solid "+P.clay, borderRadius:14, padding:"12px 16px"}}>
-                  <div style={{fontSize:13, color:P.ink, marginBottom:10, lineHeight:1.5}}>¿Descartar el caso de {detalle.nombreNino || "este niño/a"}? Borra la fila del Sheet — no se puede deshacer. No afecta casos ya aprobados.</div>
-                  <div style={{display:"flex", gap:8}}>
-                    <button onClick={descartar} disabled={descartando} style={{background:P.clay, color:"#fff", border:"none", borderRadius:999, padding:"9px 18px", fontSize:13.5, fontWeight:700, cursor:"pointer", fontFamily:"'Nunito',sans-serif", opacity:descartando?.7:1}}>{descartando?"Descartando…":"Sí, descartar"}</button>
-                    <button onClick={()=>setConfirmandoDescarte(false)} style={btnGhost}>Cancelar</button>
-                  </div>
+        {/* Descartar: disponible en los dos modos, pero solo si a este caso
+            nunca se le mandó el correo real a una familia (correoEnviadoTs
+            vacío) — un plan que puede seguir viendo la familia no se borra
+            desde acá, ni por accidente. Útil para limpiar casos de prueba
+            que quedaron aprobados (ej. sin correo del padre capturado). */}
+        {!detalle.correoEnviadoTs && (
+          <div style={{borderTop:"1px solid "+P.line, paddingTop:14, marginTop:4}}>
+            {!confirmandoDescarte ? (
+              <span onClick={()=>setConfirmandoDescarte(true)} style={{fontSize:12.5, color:P.muted, textDecoration:"underline", cursor:"pointer"}}>Descartar este caso (prueba, duplicado, no aplica)</span>
+            ) : (
+              <div style={{background:P.claySoft, border:"1px solid "+P.clay, borderRadius:14, padding:"12px 16px"}}>
+                <div style={{fontSize:13, color:P.ink, marginBottom:10, lineHeight:1.5}}>¿Descartar el caso de {detalle.nombreNino || "este niño/a"}? Borra la fila del Sheet — no se puede deshacer.</div>
+                <div style={{display:"flex", gap:8}}>
+                  <button onClick={descartar} disabled={descartando} style={{background:P.clay, color:"#fff", border:"none", borderRadius:999, padding:"9px 18px", fontSize:13.5, fontWeight:700, cursor:"pointer", fontFamily:"'Nunito',sans-serif", opacity:descartando?.7:1}}>{descartando?"Descartando…":"Sí, descartar"}</button>
+                  <button onClick={()=>setConfirmandoDescarte(false)} style={btnGhost}>Cancelar</button>
                 </div>
-              )}
-            </div>
-          </React.Fragment>
+              </div>
+            )}
+          </div>
         )}
       </Shell>
     );

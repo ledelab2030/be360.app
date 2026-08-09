@@ -191,6 +191,7 @@ function detallePlan(sheet, body) {
     menteYPantallas: v[COLS.mente_y_pantallas], emociones: v[COLS.emociones],
     mensaje: v[COLS.borrador_texto],
     plan: plan,
+    correoEnviadoTs: v[COLS.correo_enviado_ts],
   });
 }
 
@@ -225,17 +226,22 @@ function aprobarPlan(sheet, body) {
   return respond({ ok: true, envio: resultado });
 }
 
-// Descarta un caso pendiente (borra la fila) — para casos de prueba,
-// duplicados, o algo que claramente no aplica. Bloqueado a propósito si el
-// caso YA fue aprobado: no se puede borrar un plan que ya se le envió a una
-// familia real, ni por accidente ni por confusión de idPlan.
+// Descarta un caso (borra la fila) — para casos de prueba, duplicados, o
+// algo que claramente no aplica. Bloqueado a propósito si a ESE caso YA se
+// le mandó el correo real a una familia (correo_enviado_ts tiene valor): no
+// se puede borrar un plan que una familia real ya puede estar viendo, ni
+// por accidente ni por confusión de idPlan. OJO: el bloqueo es por
+// correo_enviado_ts, NO por decision="aprobado" — un caso puede quedar
+// "aprobado" sin que el correo haya salido de verdad (ej. sin correo del
+// padre capturado, o un caso de prueba aprobado a propósito para verificar
+// el flujo) y ESE sí se puede descartar.
 function descartarPendiente(sheet, body) {
   var idPlan = body.idPlan;
   if (!idPlan) return respond({ ok: false, error: "idPlan faltante" }, 400);
   var found = encontrarFilaPorIdPlan(sheet, idPlan);
   if (!found) return respond({ ok: false, error: "no encontrado" }, 404);
-  if (found.values[COLS.decision] === "aprobado") {
-    return respond({ ok: false, error: "no se puede descartar un caso ya aprobado" }, 400);
+  if (found.values[COLS.correo_enviado_ts]) {
+    return respond({ ok: false, error: "no se puede descartar: ya se le envió el correo a la familia" }, 400);
   }
   sheet.deleteRow(found.row);
   return respond({ ok: true });
