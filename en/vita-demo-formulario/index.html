@@ -202,25 +202,52 @@ const Shell=(props)=>(
   </div>
 );
 
-// Day-coverage confirmation panel — used in both form and chat mode, hence
-// module-level (same reason as Shell). Explains the real consequence of
-// leaving the gap (a more general first plan, possibly more time to find
-// what's really affecting the child) — no guilt, just an informed choice.
-const PanelCobertura=({nombreNino,faltantes,onCompletar,onContinuar,P,btnPrimary})=>(
-  <div onClick={onCompletar} style={{position:"absolute",inset:0,background:"rgba(40,42,36,.55)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:20,padding:20}}>
-    <div onClick={e=>e.stopPropagation()} style={{background:P.panel,borderRadius:20,padding:"22px 20px",maxWidth:340,boxShadow:"0 20px 50px rgba(0,0,0,.3)"}}>
-      <div style={{fontFamily:"'Fraunces',serif",fontSize:18,color:P.sageDeep,marginBottom:10}}>Is that the whole day?</div>
-      <p style={{fontSize:13.5,color:P.ink,lineHeight:1.55,marginBottom:10}}>It looks like we didn't talk about these moments in {nombreNino||"your child"}'s day:</p>
-      <ul style={{fontSize:13,color:P.sageDeep,fontWeight:700,marginBottom:14,paddingLeft:18}}>
-        {faltantes.map(f=><li key={f}>{f}</li>)}
-      </ul>
-      <p style={{fontSize:12.5,color:P.muted,lineHeight:1.5,marginBottom:10}}>It's okay if you don't know or would rather not share them yet — we just want that to be your choice, not something we missed.</p>
-      <p style={{fontSize:12.5,color:P.muted,lineHeight:1.5,marginBottom:16}}>One thing though: the less we know about the full day, the more general the team's first plan will be, and it may take longer to find what's really affecting {nombreNino||"your child"}. If you can fill it in, the plan comes out more precise from the start.</p>
-      <button onClick={onCompletar} style={{...btnPrimary,width:"100%",marginBottom:8}}>I'd like to fill it in</button>
-      <button onClick={onContinuar} style={{background:"none",border:"none",color:P.muted,fontSize:12.5,fontWeight:700,cursor:"pointer",width:"100%",textAlign:"center",fontFamily:"'Nunito',sans-serif"}}>I don't know / I'd rather not share it — continue anyway</button>
+// Simple email format regex — doesn't catch content typos (e.g. a wrong
+// username on an otherwise well-formed address), only obviously broken
+// format. The rest of the typo protection is showing the email large and
+// editable before sending, see PanelRevisionFinal.
+const formatoEmailValido=(email)=>/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test((email||"").trim());
+
+// Final review panel before sending (10 ago 2026, ported from the Spanish
+// version) — used in both form and chat mode, hence module-level (same
+// reason as Shell). ALWAYS shown before actually sending (not only if
+// something's missing): the email is the ONLY delivery channel since
+// WhatsApp was dropped — a silent typo means the family never gets their
+// plan and nobody notices. That's why the email stays editable right here,
+// large and visible, instead of buried in one more form field. If day
+// moments are also missing, it explains the real consequence (a more
+// general plan, no guilt) and lets them continue anyway — the email, on the
+// other hand, has no "continue without fixing it" option when the format
+// looks broken: there's no ambiguity there, delivery simply can't work.
+const PanelRevisionFinal=({dx,onCambiarEmail,faltantes,onCompletarDia,onConfirmar,P,btnPrimary})=>{
+  const emailOk=formatoEmailValido(dx.email_padre);
+  return (
+    <div style={{position:"absolute",inset:0,background:"rgba(40,42,36,.55)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:20,padding:20}}>
+      <div style={{background:P.panel,borderRadius:20,padding:"22px 20px",maxWidth:340,maxHeight:"90%",overflowY:"auto",boxShadow:"0 20px 50px rgba(0,0,0,.3)"}}>
+        <div style={{fontFamily:"'Fraunces',serif",fontSize:18,color:P.sageDeep,marginBottom:12}}>Before you send</div>
+
+        <label style={{fontSize:12,fontWeight:800,color:P.sageDeep,display:"block",marginBottom:5}}>We'll write to:</label>
+        <input value={dx.email_padre||""} onChange={e=>onCambiarEmail(e.target.value)} placeholder="you@example.com"
+          style={{width:"100%",border:"1.5px solid "+(emailOk?P.line:P.clay),borderRadius:12,padding:"10px 12px",fontSize:14.5,fontFamily:"'Nunito',sans-serif",background:"#fff",color:P.ink,outline:"none",marginBottom:6}}/>
+        {!emailOk && <p style={{fontSize:12,color:P.clay,lineHeight:1.4,marginBottom:10}}>This email doesn't look complete — double-check it before continuing.</p>}
+        <p style={{fontSize:11.5,color:P.muted,lineHeight:1.4,marginBottom:16}}>It's the only place your plan gets sent to — if it's wrong, there's no way for us to reach you.</p>
+
+        {faltantes && faltantes.length>0 && (<React.Fragment>
+          <div style={{height:1,background:P.line,margin:"4px 0 14px"}}/>
+          <p style={{fontSize:13.5,color:P.ink,lineHeight:1.55,marginBottom:8}}>It looks like we didn't talk about these moments in {dx.nombre_nino||"your child"}'s day:</p>
+          <ul style={{fontSize:13,color:P.sageDeep,fontWeight:700,marginBottom:12,paddingLeft:18}}>
+            {faltantes.map(f=><li key={f}>{f}</li>)}
+          </ul>
+          <p style={{fontSize:12.5,color:P.muted,lineHeight:1.5,marginBottom:8}}>It's okay if you don't know or would rather not share them yet — we just want that to be your choice, not something we missed.</p>
+          <p style={{fontSize:12.5,color:P.muted,lineHeight:1.5,marginBottom:16}}>One thing though: the less we know about the full day, the more general the team's first plan will be, and it may take longer to find what's really affecting your child. If you can fill it in, the plan comes out more precise from the start.</p>
+          <button onClick={onCompletarDia} style={{...btnPrimary,width:"100%",marginBottom:8}}>I'd like to complete the day</button>
+        </React.Fragment>)}
+
+        <button onClick={onConfirmar} disabled={!emailOk} style={{...btnPrimary,width:"100%",opacity:emailOk?1:.5,cursor:emailOk?"pointer":"default"}}>{faltantes&&faltantes.length>0?"Confirm and send anyway →":"Confirm and send →"}</button>
+      </div>
     </div>
-  </div>
-);
+  );
+};
 
 function App(){
   const [stage,setStage]=useState("welcome");
@@ -237,7 +264,7 @@ function App(){
   const [chatCopied,setChatCopied]=useState(false);
   const [sending,setSending]=useState(false);
   const [sendError,setSendError]=useState(null);
-  const [pendienteCobertura,setPendienteCobertura]=useState(null); // null, or array of day-moments pending confirmation
+  const [mostrarRevisionFinal,setMostrarRevisionFinal]=useState(false); // final review panel (email + day coverage) before actually sending
   const scrollRef=useRef(null);
   useEffect(()=>{ if(scrollRef.current) scrollRef.current.scrollTop=scrollRef.current.scrollHeight; },[messages,loading]);
   const filled=FIELDS.filter(f=>dx[f.key]&&dx[f.key].trim()).length;
@@ -404,24 +431,29 @@ function App(){
     finally{ setSending(false); }
   };
 
+  // ALWAYS goes through the final review before actually sending (10 ago
+  // 2026, ported from Spanish) — before this only paused if a day moment
+  // was missing; now it also always pauses to show the email, editable,
+  // because a typo there is silent and serious (it's the only delivery
+  // channel). See PanelRevisionFinal.
   const sendToReview=()=>{
     if(sending||!puedeEnviar()) return;
-    const {faltantes}=coberturaDia(dx.cronologia_del_dia);
-    if(faltantes.length>0){ setPendienteCobertura(faltantes); return; }
-    enviarDatos(dx);
+    setMostrarRevisionFinal(true);
   };
 
-  // The parent confirmed they want to submit anyway, without filling in
-  // those moments — the gap gets NOTED in the same text Peter sees, never
-  // silently.
-  const confirmarEnvioIncompleto=()=>{
-    const faltantes=pendienteCobertura||[];
-    const dxFinal={...dx, cronologia_del_dia:(dx.cronologia_del_dia||"")+"\n[No data or not shared yet: "+faltantes.join(", ")+"]"};
-    setDx(dxFinal);
-    setPendienteCobertura(null);
+  // Final confirmation: if day moments are also missing, that gap gets
+  // NOTED in the same text Peter sees, never silently.
+  const confirmarYEnviar=()=>{
+    const {faltantes}=coberturaDia(dx.cronologia_del_dia);
+    const dxFinal=faltantes.length>0
+      ? {...dx, cronologia_del_dia:(dx.cronologia_del_dia||"")+"\n[No data or not shared yet: "+faltantes.join(", ")+"]"}
+      : dx;
+    if(faltantes.length>0) setDx(dxFinal);
+    setMostrarRevisionFinal(false);
     enviarDatos(dxFinal);
   };
-  const cancelarConfirmacionCobertura=()=>setPendienteCobertura(null);
+  const volverACompletarDia=()=>setMostrarRevisionFinal(false);
+  const cambiarEmailEnRevision=(valor)=>setDx(prev=>({...prev, email_padre:valor}));
 
   const exportDx=async()=>{ const txt="HABITS FORM · Bienestar 360\n\n"+FIELDS.map(f=>f.label+": "+(dx[f.key]||"—")).join("\n"); try{ await navigator.clipboard.writeText(txt); setExported(true); setTimeout(()=>setExported(false),2000);}catch(e){ const w=window.open("","_blank"); if(w){ w.document.body.style.cssText="font-family:system-ui;padding:20px;white-space:pre-wrap;line-height:1.5"; w.document.body.textContent=txt; } } };
 
@@ -477,7 +509,8 @@ function App(){
       {!puedeEnviar() && <p style={{fontSize:11.5,color:P.muted,textAlign:"center"}}>Still missing: {mensajeFaltante()}.</p>}
       {sendError && <p style={{fontSize:12.5,color:P.clay,textAlign:"center"}}>{sendError}</p>}
       <p style={{fontSize:11,color:P.muted,textAlign:"center",lineHeight:1.5,marginTop:2}}>This supports and complements your pediatrician — it doesn't replace them.</p>
-      {pendienteCobertura&&(<PanelCobertura nombreNino={dx.nombre_nino} faltantes={pendienteCobertura} onCompletar={cancelarConfirmacionCobertura} onContinuar={confirmarEnvioIncompleto} P={P} btnPrimary={btnPrimary}/>)}
+      <button onClick={()=>setStage("welcome")} style={{background:"none",border:"none",color:P.muted,fontSize:12.5,fontWeight:700,cursor:"pointer",alignSelf:"center",fontFamily:"'Nunito',sans-serif"}}>← Back to start</button>
+      {mostrarRevisionFinal&&(<PanelRevisionFinal dx={dx} onCambiarEmail={cambiarEmailEnRevision} faltantes={coberturaDia(dx.cronologia_del_dia).faltantes} onCompletarDia={volverACompletarDia} onConfirmar={confirmarYEnviar} P={P} btnPrimary={btnPrimary}/>)}
     </div></Shell>
   );
 
@@ -501,12 +534,14 @@ function App(){
         <div style={{display:"flex",gap:11}}><div style={{fontSize:18,flexShrink:0}}>🌿</div><div style={{fontSize:13.5,color:P.ink,lineHeight:1.5}}>At the end, your information is recorded — we'll review it and reach out with the first step.</div></div>
       </div>
       <button onClick={startOrResumeChat} style={{...btnPrimary,alignSelf:"center"}}>Start the conversation →</button>
+      <button onClick={()=>setStage("welcome")} style={{background:"none",border:"none",color:P.muted,fontSize:12.5,fontWeight:700,marginTop:14,cursor:"pointer",alignSelf:"center",fontFamily:"'Nunito',sans-serif"}}>← Back</button>
     </div></Shell>
   );
 
   return (
     <Shell>
       <div style={{background:"linear-gradient(135deg,"+P.sageDeep+","+P.sage+")",padding:"14px 16px",display:"flex",alignItems:"center",gap:11}}>
+        <button onClick={()=>setStage("welcome")} title="Back to start" style={{background:"rgba(255,255,255,.18)",border:"none",color:"#fff",borderRadius:999,width:30,height:30,fontSize:16,cursor:"pointer",flexShrink:0}}>←</button>
         <div style={{width:40,height:40,borderRadius:"50%",background:P.panel,display:"grid",placeItems:"center",fontSize:20}}>🌱</div>
         <div style={{flex:1}}><div style={{fontFamily:"'Fraunces',serif",fontWeight:600,fontSize:19,color:"#fff",lineHeight:1}}>Vita</div><div style={{fontSize:11.5,color:P.sageSoft,marginTop:3}}>{loading?"typing…":(dx.nombre_nino?("About "+dx.nombre_nino):"Getting to know them")}</div></div>
         <button onClick={copyChat} title="Copy conversation" style={{background:"rgba(255,255,255,.18)",border:"none",color:"#fff",borderRadius:999,width:34,height:34,fontSize:15,cursor:"pointer",flexShrink:0}}>{chatCopied?"✓":"📋"}</button><button onClick={goToForm} title="Switch to the direct form" style={{background:"rgba(255,255,255,.18)",border:"none",color:"#fff",borderRadius:999,width:34,height:34,fontSize:15,cursor:"pointer",flexShrink:0}}>📝</button><button onClick={()=>setShowDx(true)} style={{background:"rgba(255,255,255,.18)",border:"none",color:"#fff",borderRadius:999,padding:"7px 13px",fontSize:12.5,fontWeight:700,cursor:"pointer",fontFamily:"'Nunito',sans-serif"}}>What we've covered · {filled}/{AREA_TOTAL}</button>
@@ -539,7 +574,7 @@ function App(){
           </div>
         </div>
       </div>)}
-      {pendienteCobertura&&(<PanelCobertura nombreNino={dx.nombre_nino} faltantes={pendienteCobertura} onCompletar={cancelarConfirmacionCobertura} onContinuar={confirmarEnvioIncompleto} P={P} btnPrimary={btnPrimary}/>)}
+      {mostrarRevisionFinal&&(<PanelRevisionFinal dx={dx} onCambiarEmail={cambiarEmailEnRevision} faltantes={coberturaDia(dx.cronologia_del_dia).faltantes} onCompletarDia={volverACompletarDia} onConfirmar={confirmarYEnviar} P={P} btnPrimary={btnPrimary}/>)}
     </Shell>
   );
 }
