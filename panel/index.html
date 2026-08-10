@@ -392,6 +392,7 @@ function App() {
           <h1 style={{fontFamily:"'Fraunces',serif", fontWeight:600, fontSize:24, margin:0, color:P.sageDeep}}>{detalle.nombreNino || "(sin nombre)"}{formatEdad(detalle.edad)}</h1>
           <div style={{fontSize:13, color:P.muted, marginTop:4}}>Padre/madre: {detalle.nombrePadre || "—"} · {detalle.emailPadre || "sin correo"}</div>
           <div style={{fontSize:11.5, color:detalle.consentimientoTs?P.sageDeep:P.clay, marginTop:4}}>{detalle.consentimientoTs ? ("✓ Consentimiento aceptado "+relativeDate(detalle.consentimientoTs)) : "⚠ Sin registro de consentimiento (caso previo al 9 ago, o pendiente actualizar Apps Script)"}</div>
+          <div style={{fontSize:11.5, color:detalle.verificacionTs?P.sageDeep:P.clay, marginTop:4}}>{detalle.verificacionTs ? ("✓ Código de colegio verificado "+relativeDate(detalle.verificacionTs)) : "⚠ Código de colegio sin verificar — el padre/madre todavía no confirma su código (correo enviado al guardar el borrador, 72h de plazo)"}</div>
           {soloLectura && <div style={{display:"inline-block", marginTop:8, background:P.sageSoft, color:P.sageDeep, fontSize:11.5, fontWeight:800, padding:"4px 10px", borderRadius:999}}>✓ Aprobado</div>}
         </div>
 
@@ -457,7 +458,9 @@ function App() {
         ) : (
           <div style={{display:"flex", gap:10, flexWrap:"wrap"}}>
             <button onClick={guardarCambios} disabled={guardando} style={{...btnGhost, opacity:guardando?.6:1}}>{guardando?"Guardando…":(guardadoOk?"✓ Guardado":"Guardar cambios")}</button>
-            {!confirmando ? (
+            {!detalle.verificacionTs ? (
+              <div style={{background:P.claySoft, border:"1px solid "+P.clay, borderRadius:14, padding:"10px 14px", fontSize:12.5, color:P.ink, lineHeight:1.5, flex:1, minWidth:260}}>No se puede aprobar todavía: falta que el padre/madre confirme el código de su colegio.</div>
+            ) : !confirmando ? (
               <button onClick={()=>setConfirmando(true)} style={btnPrimary}>Aprobar y enviar →</button>
             ) : (
               <div style={{background:P.sageSoft, border:"1px solid "+P.sage, borderRadius:14, padding:"12px 16px", flex:1, minWidth:260}}>

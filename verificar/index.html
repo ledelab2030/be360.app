@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+<meta name="robots" content="noindex" />
+<title>Vita · Bienestar 360 (Verificar código)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  /* Vanilla JS a propósito (10 ago 2026) — es un formulario de una sola
+     pregunta, no necesita React ni Babel-standalone (que agregan ~350KB de
+     descarga para una página que un padre abre una sola vez desde un
+     correo). Mismo sistema visual que el resto del producto (paleta
+     sage/cream, tipografías Fraunces/Nunito) para que se sienta parte de lo
+     mismo. */
+  html,body{margin:0;height:100%}
+  *{box-sizing:border-box}
+  body{background:#ECE5D8;font-family:'Nunito',sans-serif;color:#2C2A24;display:flex;justify-content:center;padding:16px 12px 28px;min-height:100vh}
+  .shell{width:100%;max-width:440px;background:#FBF8F1;border-radius:26px;box-shadow:0 24px 60px rgba(40,42,36,.18);border:1px solid #D8CFBE;padding:32px 26px;text-align:center;align-self:center}
+  .emoji{font-size:48px;margin-bottom:14px}
+  h1{font-family:'Fraunces',serif;font-size:24px;color:#3E5A40;margin:0 0 14px;line-height:1.2}
+  p{font-size:14.5px;line-height:1.6;color:#2C2A24;margin:0 0 10px}
+  .muted{font-size:12.5px;color:#8A8473;line-height:1.6}
+  input{width:100%;border:1px solid #D8CFBE;border-radius:12px;padding:12px 14px;font-size:16px;font-family:'Nunito',sans-serif;background:#fff;color:#2C2A24;outline:none;margin:18px 0 6px;text-align:center;letter-spacing:1px}
+  button{background:#5A7A5C;color:#fff;border:none;border-radius:999px;padding:14px 30px;font-size:15.5px;font-weight:800;font-family:'Nunito',sans-serif;cursor:pointer;box-shadow:0 6px 18px rgba(90,122,92,.35)}
+  button:disabled{opacity:.55;cursor:default}
+  .error{font-size:13px;color:#B5764A;margin-top:10px;line-height:1.5}
+  .ok{font-size:15px;color:#3E5A40;line-height:1.6}
+</style>
+</head>
+<body>
+<div class="shell" id="app">
+  <div class="emoji">🌱</div>
+  <div id="content"></div>
+</div>
+<script>
+const WORKER_URL = "https://vita-proxy.leonardo-751.workers.dev";
+const params = new URLSearchParams(window.location.search);
+const idPlan = params.get("id");
+const content = document.getElementById("content");
+
+function render(html) { content.innerHTML = html; }
+
+function renderForm(errorMsg) {
+  render(
+    '<h1>Un paso más</h1>' +
+    '<p>Antes de que el equipo prepare el plan, necesitamos confirmar el código que te dio tu colegio para el programa.</p>' +
+    '<input id="codigo" type="text" placeholder="Código de tu colegio" autocomplete="off" autocapitalize="characters" />' +
+    (errorMsg ? '<div class="error">' + errorMsg + '</div>' : '') +
+    '<div style="margin-top:16px"><button id="btn-verificar">Confirmar código →</button></div>' +
+    '<p class="muted" style="margin-top:18px">¿No tienes el código a mano? Escríbele a tu colegio o a <a href="mailto:leonardo@bienestar360.co" style="color:#5A7A5C">leonardo@bienestar360.co</a>.</p>'
+  );
+  const btn = document.getElementById("btn-verificar");
+  const input = document.getElementById("codigo");
+  input.focus();
+  const enviar = () => verificar(input.value);
+  btn.addEventListener("click", enviar);
+  input.addEventListener("keydown", (e) => { if (e.key === "Enter") enviar(); });
+}
+
+function renderSinId() {
+  render(
+    '<h1>Enlace incompleto</h1>' +
+    '<p>Este enlace no trae la información que necesitamos. Ábrelo directamente desde el correo que te mandamos, o escríbenos a <a href="mailto:leonardo@bienestar360.co" style="color:#5A7A5C">leonardo@bienestar360.co</a>.</p>'
+  );
+}
+
+function renderExito(yaVerificado) {
+  render(
+    '<h1>¡Listo!</h1>' +
+    '<p class="ok">' + (yaVerificado ? "Este código ya estaba confirmado." : "Tu código quedó confirmado.") + ' El equipo sigue con la preparación del plan — te avisamos por correo cuando esté listo.</p>' +
+    '<p class="muted" style="margin-top:16px">Esto acompaña y suma con su pediatra — no lo reemplaza.</p>'
+  );
+}
+
+async function verificar(codigo) {
+  const btn = document.getElementById("btn-verificar");
+  if (btn) { btn.disabled = true; btn.textContent = "Confirmando…"; }
+  try {
+    const res = await fetch(WORKER_URL + "/verificar", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ idPlan: idPlan, codigo: (codigo || "").trim() }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (data && data.ok) { renderExito(!!data.yaVerificado); return; }
+    renderForm(data && data.error ? data.error : "No se pudo confirmar. Intenta de nuevo.");
+  } catch (e) {
+    renderForm("No se pudo conectar. Revisa tu conexión e intenta de nuevo.");
+  }
+}
+
+if (!idPlan) renderSinId(); else renderForm();
+</script>
+</body>
+</html>
