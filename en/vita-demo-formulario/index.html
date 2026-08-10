@@ -1,0 +1,473 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+<meta name="robots" content="noindex" />
+<title>Vita · Bienestar 360 (Habits Form)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+<script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<style>
+  html,body{margin:0;height:100%}
+  *{box-sizing:border-box}
+  .rise{animation:rise .28s cubic-bezier(.2,.8,.2,1)}
+  @keyframes rise{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+  .dot{width:7px;height:7px;border-radius:50%;background:#5A7A5C;display:inline-block;animation:blink 1.2s infinite}
+  .dot:nth-child(2){animation-delay:.2s}.dot:nth-child(3){animation-delay:.4s}
+  @keyframes blink{0%,60%,100%{opacity:.25}30%{opacity:1}}
+  .scroll::-webkit-scrollbar{width:8px}.scroll::-webkit-scrollbar-thumb{background:#D8CFBE;border-radius:8px}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const { useState, useRef, useEffect } = React;
+
+// English translation of ../../vita-demo-formulario/index.html (10 ago 2026).
+// Faithful translation, not new product logic — for English-speaking users
+// (first use case: Geetika, LedeLab Network/Zebira, Delhi). Keep this file in
+// sync with the Spanish original whenever behavior changes there; see that
+// file's header comments for the full history of every decision behind this
+// flow (escalation, mode switching, consent screen, sufficiency validation).
+//
+// WHAT STAYS IDENTICAL TO THE SPANISH VERSION (on purpose, backend contract):
+// - dx JSON keys (nombre_padre, email_padre, nombre_nino, edad, etc.) — the
+//   Sheet/Apps Script columns are fixed to these exact names, in Spanish,
+//   regardless of what language the family used to answer.
+// - The <escalar> reason codes (riesgo_alimentario, riesgo_salud_mental,
+//   urgencia_medica) and the <cambiar_modo>formulario</cambiar_modo> marker —
+//   invisible to the user, only the parsing code in this file reads them.
+// - producto:"formulario" sent to /log — English captures land in the SAME
+//   Sheet/panel as Spanish ones. Peter reviews in Spanish; an English
+//   capture will show up in English in his panel. Flagged, not solved here —
+//   worth a translation aid for Peter if English volume grows.
+//
+// WHAT'S DIFFERENT: every user-facing string and the entire BASE prompt are
+// in English, and RIESGO_PATTERNS (the deterministic safety backstop) has
+// its own English phrase list — the Spanish regex wouldn't match an English
+// parent's words at all, so this isn't optional to duplicate.
+const WORKER_URL = "https://vita-proxy.leonardo-751.workers.dev";
+const MODEL = "claude-sonnet-4-6";
+
+const BASE = `You are Vita, the wellness companion at Bienestar 360.
+
+# WHAT YOU DO HERE (and what you don't)
+- You ONLY capture information about the child of the person you're talking to, for the Habits Form. You NEVER diagnose, NEVER prescribe, NEVER give or suggest a recommendation — not even one, not in passing, not even if asked directly.
+- You ALWAYS talk to the parent. The child or teenager is never your interlocutor and never receives instructions from you.
+- Child's age range: 2 to 20 years old.
+- Everything you capture is reviewed by the clinical team before anything reaches the family. You are never the final word. When you tell the parent about this, always say "the team" — never Peter's name, unless they ask directly who's behind it (see safety protocol).
+- Always respond in English.
+
+# TONE (from Vita's voice guide — follow it to the letter)
+- Address: warm, informal, second person.
+- ZERO emojis.
+- 2 to 4 lines per message. This is a short chat, not a report.
+- One question per message.
+- No lists or bullet points inside the chat.
+- No judgment: never make the parent feel guilty about anything they share.
+- Close each exchange with warmth, never evaluating what they just told you.
+- Never say "without medication", "reverse", "cure", or "epigenetics". Never mention AI, technology, or providers.
+
+# HOW YOU CAPTURE (sprint methodology — no advice during capture)
+While you go through the areas, you ONLY listen and acknowledge warmly ("got it", "thanks, let's keep going", "I understand") — never correct, never suggest, never say things like "that's not ideal" or "you should". None of that exists in this chat: the team does that afterward, separately.
+
+Go through the areas in this order, 1-2 questions per message, in a conversational tone (not an interrogation):
+
+0. CONTACT: before starting with the child, ask the parent's name, and what email to write to with the plan once it's ready. Frame it simply: "Before we start, what's your name, and what email should we write to when your child's plan is ready?" (only once, don't repeat it).
+1. GENERAL: child's name, age. What they'd like to achieve with the program, and what worries them MOST today about their child (this last one is key, ask it calmly, give it space).
+2. ORIGIN: natural birth or C-section; how long they were breastfed (or if not at all).
+3. SLEEP AND MOVEMENT: what time they go to sleep (when lights/screens go off) and what time they wake up; how they wake up (rested / it's hard / tired); whether they wake up at night; what physical activity they do and how many times a week; whether anything hurts when they move.
+4. SIGNS: whether they notice any of these signs with some frequency — mention 4-5 as examples within the question, not the full list at once: stomach pain or burning, frequent headaches, bloating or gas, constipation, anxiety, fatigue or tiredness, difficulty concentrating, restless sleep, irritated skin or breakouts, frequent infections. Let the parent add whatever they want.
+5. DIAGNOSES AND MEDICAL CARE: whether the child has any diagnosis already given by a doctor (asthma, allergies, ADHD, etc. — give 2-3 examples, not the full list); whether they take any medication or are in treatment; which specialists see them. Do NOT ask about upcoming appointments or ask for authorization to coordinate with the doctor — that doesn't apply yet.
+6. THE DAY IN ORDER — this is the heart of the capture. Reconstruct a typical day STRICTLY CHRONOLOGICALLY, with times: on waking up (do they eat or drink anything right away?), breakfast, mid-morning / snack, lunch, mid-afternoon, dinner, before bed. At each moment ask what they eat AND drink — that way hydration comes up naturally in the story, NEVER ask directly "do they drink enough water?". Also ask whether it varies on weekends.
+7. WEEKENDS AND PREFERENCES: what they usually eat on weekends (give 2-3 examples: fast food, sweets, soda); whether any food disagrees with them or causes gas; what foods they like and would be worth keeping in their plan.
+8. MIND AND SCREENS: what kind of content they consume (games, shows, social media) and how many hours of screen time a day; whether they use screens the hour before bed. Gently ask whether they practice any relaxation or mindful breathing — if the parent doesn't understand the question or says it doesn't apply, don't push, note "not applicable" and move on.
+9. EMOTIONS: what emotions they observe with some frequency in their child (give some examples: joy, anger or tantrums, anxiety, frustration) — likewise, if the parent prefers to describe it as behavior ("gets grumpy") instead of naming an emotion, that's perfectly fine, note that.
+
+# CLOSING (CAPTURE-ONLY)
+Once you've covered the areas, close warmly: thank them, summarize in 1-2 sentences what you understood about their child's day (without evaluating, without advice), and explain that this information is now on record for the team to review and prepare the first step — that they'll be in touch. NEVER propose or hint at a recommendation or next step, at any point. Invite them to tap the "Submit for review" button to send the information.
+
+# SAFETY PROTOCOL (TAKES PRIORITY OVER EVERYTHING ELSE)
+- If the parent asks something specific like "should I cut out bread?" or "is it okay if they drink soda?": respond warmly that the team reviews that along with the rest of the information, and continue with the next question in the flow. NEVER answer the question with advice, neither here nor at closing — not even if they insist and ask for "something general" instead of something specific: that's still advice, don't give in.
+- In the face of possible signs of an eating disorder (low weight, restriction, binges, fear of gaining weight), mental health issues (deep sadness, intense anxiety, mention of self-harm), or a medical emergency (acute pain, high fever, sudden weight loss): don't continue the normal flow in that area. Validate warmly ("thank you for telling me, that's important"), tell them you'll put it in the team's hands as a priority, and if it sounds like something that can't wait, clearly tell them to see a trusted doctor or specialist today. Note it under the corresponding signal, and continue with the rest of the flow wherever it's safe to do so. DON'T FORGET the next step: this ALWAYS requires the escalation marker — it's as mandatory as the <dx> block, never skip it because you're focused on responding warmly. See the exact format under "ESCALATION MARKER" below.
+- If asked who's behind this: "Bienestar 360 is led by Peter Álvarez, with a wellness team." Nothing about technology or providers. If asked directly whether you're a real person, an AI, or a robot: be honest, never deny it or dodge it — tell them you're a virtual companion, not a person, without using the words "artificial intelligence" or "technology".
+- If weight comes up in the conversation, never treat it as a goal to lower nor talk about "diet" or body image — only note it as data if the parent mentions it spontaneously.
+
+# ESCALATION MARKER (separate from the <dx> block below)
+When you activate the safety protocol above for a real risk (not a simple "should I give them X?" question), ALSO add, on its own line, one of these invisible markers — never mention or explain it to the parent, it's only for the system:
+<escalar>riesgo_alimentario</escalar> — possible eating disorder
+<escalar>riesgo_salud_mental</escalar> — signs of serious mental health issues
+<escalar>urgencia_medica</escalar> — acute medical emergency
+For everything else (including a specific question about what to feed them), do NOT add any escalation marker — that's not a risk signal, it's just a parent asking.
+
+# MODE SWITCH (direct form)
+Besides this chat, there's a direct (non-conversational) form with the same fields, for a parent who'd rather fill it out themselves instead of chatting. If the parent explicitly asks to switch to that — phrases like "I'd rather use the form", "can I just fill it out directly", "send me the form", "I want to finish this myself", "this is too long, give me the form" — NEVER keep asking as if you hadn't understood. Reply in 1 line warmly confirming the switch (something like "Of course, here's what we already have, finish the rest whenever you'd like") and add, on its own line, the invisible marker: <cambiar_modo>formulario</cambiar_modo>
+Don't add this marker in any other case — only when the parent explicitly asks for the switch.
+
+# OUTPUT FORMAT (CRITICAL)
+ALWAYS respond in two, three, or four parts:
+1. Your normal conversational message (following the tone rules above).
+2. At the end, on its own line, a hidden block with what's been captured so far, exactly like this:
+<dx>{"nombre_padre":"","email_padre":"","nombre_nino":"","edad":"","que_deseas_lograr":"","preocupacion_principal":"","origen":"","sueno_y_movimiento":"","senales_observables":"","diagnosticos_y_atencion_medica":"","cronologia_del_dia":"","finde_y_gustos":"","mente_y_pantallas":"","emociones":""}</dx>
+Fill in only what you already know; leave "" for what's missing. "email_padre" is the email exactly as given — don't invent or complete it, note whatever is there even if it looks incomplete. "cronologia_del_dia" includes the ENTIRE chronology with times + what they eat/drink at each moment + hydration, as one continuous account. Keep values brief, short phrases. The <dx> block is NEVER shown, it's only for the system — don't mention or describe it.
+3. ONLY if you activated the safety protocol, the <escalar>...</escalar> marker from above, on its own line, after the <dx> block.
+4. ONLY if the parent asked to switch to the direct form, the <cambiar_modo>formulario</cambiar_modo> marker from above, on its own line.`;
+
+// Deterministic safety backstop, ENGLISH edition. The Spanish RIESGO_PATTERNS
+// (vita-demo-formulario/index.html) only matches Spanish phrases — it would
+// silently miss every one of these signals from an English-speaking parent.
+// Same three reason codes as the Spanish version (kept in Spanish — they're
+// internal codes, only used by notificarEscalar()/Apps Script, never shown
+// to the user).
+const RIESGO_PATTERNS = [
+  { motivo:"riesgo_salud_mental", re:/suicid|kill (myself|himself|herself)|wants? to die|doesn'?t want to live|self[- ]harm|hurt(ing)? (himself|herself|themselves)|cutting (himself|herself)/i },
+  { motivo:"urgencia_medica", re:/seizure|not breathing|unconscious|faint(ed|ing)|heavy bleeding|very high fever|severe pain|unbearable pain/i },
+  { motivo:"riesgo_alimentario", re:/afraid of (gaining weight|getting fat)|(induces|forces?) (himself|herself) to (vomit|throw up)|purg(e|ing)|hid(es|ing) food|stopped eating (almost )?(completely|entirely)/i },
+];
+const detectarRiesgoTextual=(text)=>{
+  if(!text) return null;
+  for(const p of RIESGO_PATTERNS){ if(p.re.test(text)) return p.motivo; }
+  return null;
+};
+
+// FIELDS: labels/hints in English; "key" values stay identical to the
+// Spanish version — those are the dx object keys, the Sheet columns depend
+// on them.
+const FIELDS = [
+  { key:"nombre_padre", label:"Parent's name" },
+  { key:"email_padre", label:"Contact email", hint:"To send you the plan once it's ready." },
+  { key:"nombre_nino", label:"Child's name" },
+  { key:"edad", label:"Age", hint:"Between 2 and 20 years old." },
+  { key:"que_deseas_lograr", label:"What you'd like to achieve", hint:"What would you like to achieve with the program for your child?" },
+  { key:"preocupacion_principal", label:"Main concern", hint:"What worries you MOST today about your child?" },
+  { key:"origen", label:"Origin (birth · breastfeeding)", hint:"Natural birth or C-section, and how long they were breastfed (or if not at all)." },
+  { key:"sueno_y_movimiento", label:"Sleep and movement", hint:"What time they go to sleep and wake up, how they wake up, whether they wake up at night, what physical activity they do, whether anything hurts when they move." },
+  { key:"senales_observables", label:"Observed signs", hint:"Stomach pain or burning, headaches, gas, constipation, anxiety, fatigue, difficulty concentrating, restless sleep, irritated skin, frequent infections — whatever applies." },
+  { key:"diagnosticos_y_atencion_medica", label:"Diagnoses and medical care", hint:"Diagnoses already given by a doctor, medication or treatment, specialists who see them." },
+  { key:"cronologia_del_dia", label:"Daily timeline", hint:"A typical day with times: what they eat and drink on waking up, breakfast, mid-morning, lunch, mid-afternoon, dinner, before bed. Whether it varies on weekends." },
+  { key:"finde_y_gustos", label:"Weekends and preferences", hint:"What they usually eat on weekends, whether anything disagrees with them, what foods they like and would be worth keeping." },
+  { key:"mente_y_pantallas", label:"Mind and screens", hint:"Type of content and hours of screen time a day, whether used before bed, whether they practice any relaxation or breathing." },
+  { key:"emociones", label:"Emotions", hint:"Emotions you observe frequently (joy, tantrums, anxiety, frustration) — describing it as behavior is fine too." },
+];
+const AREA_TOTAL = FIELDS.length;
+
+const REQUIRED_SIEMPRE = ["nombre_padre","email_padre","nombre_nino","edad","cronologia_del_dia"];
+const MIN_LEN_CRONOLOGIA = 40;
+const OPCIONALES = ["que_deseas_lograr","preocupacion_principal","origen","sueno_y_movimiento","senales_observables","diagnosticos_y_atencion_medica","finde_y_gustos","mente_y_pantallas","emociones"];
+const MIN_OPCIONALES = 4;
+const P = { bg:"#ECE5D8", panel:"#FBF8F1", ink:"#2C2A24", sage:"#5A7A5C", sageDeep:"#3E5A40", sageSoft:"#DCE7D6", user:"#C9DDB8", clay:"#B5764A", line:"#D8CFBE", muted:"#8A8473" };
+const emptyDx = FIELDS.reduce((a,f)=>({...a,[f.key]:""}),{});
+const MODE = "child";
+
+const renderRich = (text) => (text||"").split(/(\*\*[^*]+\*\*)/g).map((part,i)=>
+  part.startsWith("**")&&part.endsWith("**")
+    ? <strong key={i} style={{fontWeight:800}}>{part.slice(2,-2)}</strong>
+    : <React.Fragment key={i}>{part}</React.Fragment>
+);
+
+const Shell=(props)=>(
+  <div style={{minHeight:"100vh",background:P.bg,fontFamily:"'Nunito',sans-serif",color:P.ink,display:"flex",justifyContent:"center",padding:"16px 12px 28px"}}>
+    <div style={{width:"100%",maxWidth:440,position:"relative",display:"flex",flexDirection:"column",height:"calc(100vh - 44px)",background:P.panel,borderRadius:26,overflow:"hidden",boxShadow:"0 24px 60px rgba(40,42,36,.18)",border:"1px solid "+P.line}}>{props.children}</div>
+  </div>
+);
+
+function App(){
+  const [stage,setStage]=useState("welcome");
+  const [messages,setMessages]=useState([]);
+  const [input,setInput]=useState("");
+  const [loading,setLoading]=useState(false);
+  const [dx,setDx]=useState(emptyDx);
+  const [dxAlPausar,setDxAlPausar]=useState(null);
+  const [consentChecked,setConsentChecked]=useState(false);
+  const [pendingStage,setPendingStage]=useState("intro");
+  const [showDx,setShowDx]=useState(false);
+  const [error,setError]=useState(null);
+  const [exported,setExported]=useState(false);
+  const [chatCopied,setChatCopied]=useState(false);
+  const [sending,setSending]=useState(false);
+  const [sendError,setSendError]=useState(null);
+  const scrollRef=useRef(null);
+  useEffect(()=>{ if(scrollRef.current) scrollRef.current.scrollTop=scrollRef.current.scrollHeight; },[messages,loading]);
+  const filled=FIELDS.filter(f=>dx[f.key]&&dx[f.key].trim()).length;
+
+  const faltantes=()=>{
+    const camposFaltantes=[];
+    for(const k of REQUIRED_SIEMPRE){
+      const val=(dx[k]||"").trim();
+      const okLargo = k==="cronologia_del_dia" ? val.length>=MIN_LEN_CRONOLOGIA : val.length>0;
+      if(!okLargo) camposFaltantes.push(FIELDS.find(f=>f.key===k).label);
+    }
+    const opcionalesLlenos=OPCIONALES.filter(k=>dx[k]&&dx[k].trim()).length;
+    const opcFaltan=Math.max(0, MIN_OPCIONALES-opcionalesLlenos);
+    return { camposFaltantes, opcFaltan };
+  };
+  const puedeEnviar=()=>{ const {camposFaltantes,opcFaltan}=faltantes(); return camposFaltantes.length===0 && opcFaltan===0; };
+
+  const irCon=(destino)=>{
+    if(dx.consentimiento_ts){ setStage(destino); return; }
+    setPendingStage(destino); setStage("consentimiento");
+  };
+  const aceptarConsentimiento=()=>{
+    setDx(prev=>({...prev, consentimiento_ts:new Date().toISOString()}));
+    setStage(pendingStage);
+  };
+  const mensajeFaltante=()=>{
+    const {camposFaltantes,opcFaltan}=faltantes();
+    const partes=[];
+    if(camposFaltantes.length) partes.push(camposFaltantes.join(", "));
+    if(opcFaltan>0) partes.push(opcFaltan+" more topic"+(opcFaltan>1?"s":"")+" about their daily life");
+    return partes.join(" and ");
+  };
+
+  const parseDx=(text)=>{
+    const m=text.match(/<dx>([\s\S]*?)<\/dx>/);
+    const clean=text.replace(/<dx>[\s\S]*?<\/dx>/g,"").replace(/<dx>[\s\S]*$/,"").trim();
+    if(m){ try{ const o=JSON.parse(m[1]); setDx(prev=>{const n={...prev}; for(const k of Object.keys(o)) if(o[k]&&o[k].trim()) n[k]=o[k]; return n;}); }catch(e){} }
+    return clean;
+  };
+
+  const parseEscalar=(text)=>{
+    const m=text.match(/<escalar>([\s\S]*?)<\/escalar>/);
+    const clean=text.replace(/<escalar>[\s\S]*?<\/escalar>/g,"").trim();
+    return { clean, motivo: m ? m[1].trim() : null };
+  };
+
+  const notificarEscalar=(motivo, mensajePadre)=>{
+    fetch(WORKER_URL+"/escalar",{ method:"POST", headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({ nombreNino:dx.nombre_nino||"", motivo, mensajePadre:mensajePadre||"" }) }).catch(()=>{});
+  };
+
+  const parseCambiarModo=(text)=>{
+    const m=text.match(/<cambiar_modo>([\s\S]*?)<\/cambiar_modo>/);
+    const clean=text.replace(/<cambiar_modo>[\s\S]*?<\/cambiar_modo>/g,"").trim();
+    return { clean, modo: m ? m[1].trim() : null };
+  };
+
+  const processReply=(raw, mensajePadre, motivoRespaldo)=>{
+    const { clean:sinEscalar, motivo } = parseEscalar(raw);
+    const { clean:sinModo, modo } = parseCambiarModo(sinEscalar);
+    const clean = parseDx(sinModo);
+    const motivoFinal = motivo || motivoRespaldo || null;
+    if(motivoFinal) notificarEscalar(motivoFinal, mensajePadre);
+    return { clean, modo };
+  };
+
+  const callVita=async(msgs)=>{
+    const ctrl=new AbortController();
+    const timer=setTimeout(()=>ctrl.abort(),45000);
+    try{
+      const res=await fetch(WORKER_URL,{ method:"POST", headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({ model:MODEL, max_tokens:2500, system:BASE, messages:msgs.map(x=>({role:x.role,content:x.content})) }), signal:ctrl.signal });
+      const data=await res.json();
+      return (data.content||[]).filter(b=>b.type==="text").map(b=>b.text).join("\n") || (data.error? "⚠️ "+JSON.stringify(data.error):"…");
+    } finally { clearTimeout(timer); }
+  };
+
+  const startOrResumeChat=async()=>{
+    setStage("chat"); setLoading(true); setError(null);
+    const known=FIELDS.filter(f=>dx[f.key]&&dx[f.key].trim());
+    const opener = known.length===0
+      ? "[A parent opened the chat to tell you about their child, for the Habits Form. Greet them, introduce yourself briefly, and ask the first question from area 1 (child's name and age).]"
+      : "[The parent is coming from the direct form (or a previous conversation) and now wants to chat with you. You ALREADY KNOW this — do NOT ask again: "+known.map(f=>f.label+': "'+dx[f.key]+'"').join(" | ")+". Greet them warmly, briefly acknowledging that you already have this information (without listing it all out), and continue with the next natural question for whatever's still missing.]";
+    try{
+      const raw=await callVita([{role:"user",content:opener}]);
+      const {clean}=processReply(raw,"(start or resume of conversation)");
+      setMessages([{role:"assistant",content:clean}]);
+    }
+    catch(e){ setError("Couldn't connect. Try again."); } finally{ setLoading(false); }
+  };
+
+  const sincronizarCambiosFormulario=async()=>{
+    setLoading(true);
+    const known=FIELDS.filter(f=>dx[f.key]&&dx[f.key].trim());
+    const opener="[The parent edited the direct form while the conversation was paused. Here's what there is NOW — update your understanding, don't repeat questions already answered, and continue with the next natural question for what's missing: "+known.map(f=>f.label+': "'+dx[f.key]+'"').join(" | ")+".]";
+    try{
+      const raw=await callVita([...messages,{role:"user",content:opener}]);
+      const {clean}=processReply(raw,"(resuming after editing the form)");
+      setMessages(m=>[...m,{role:"assistant",content:clean}]);
+    }
+    catch(e){ setError("Couldn't connect. Try again."); } finally{ setLoading(false); }
+  };
+
+  const goToChat=()=>{
+    if(messages.length>0){
+      setStage("chat");
+      if(dxAlPausar!==null && dxAlPausar!==JSON.stringify(dx)) sincronizarCambiosFormulario();
+    } else {
+      startOrResumeChat();
+    }
+  };
+  const goToForm=()=>{ setDxAlPausar(JSON.stringify(dx)); setStage("form"); };
+
+  const send=async(text)=>{
+    const content=(text??input).trim(); if(!content||loading) return;
+    setError(null); const next=[...messages,{role:"user",content}]; setMessages(next); setInput(""); setLoading(true);
+    const motivoRespaldo=detectarRiesgoTextual(content);
+    try{
+      const raw=await callVita(next);
+      const {clean,modo}=processReply(raw,content,motivoRespaldo);
+      setMessages(m=>[...m,{role:"assistant",content:clean}]);
+      if(modo==="formulario") setTimeout(goToForm,700);
+    }
+    catch(e){ setError("Couldn't connect. Try again."); } finally{ setLoading(false); }
+  };
+
+  const retry=()=>{
+    if(loading) return;
+    setError(null);
+    if(messages.length===0){ startOrResumeChat(); return; }
+    setLoading(true);
+    const last=messages[messages.length-1];
+    const lastUser=last&&last.role==="user"?last.content:"";
+    const motivoRespaldo=detectarRiesgoTextual(lastUser);
+    callVita(messages)
+      .then(raw=>{
+        const {clean,modo}=processReply(raw,lastUser,motivoRespaldo);
+        setMessages(m=>[...m,{role:"assistant",content:clean}]);
+        if(modo==="formulario") setTimeout(goToForm,700);
+      })
+      .catch(()=>setError("Couldn't connect. Try again."))
+      .finally(()=>setLoading(false));
+  };
+
+  const sendToReview=async()=>{
+    if(sending||!puedeEnviar()) return;
+    setSending(true); setSendError(null);
+    const motivosEncontrados=new Set();
+    for(const k of Object.keys(dx)){ const m=detectarRiesgoTextual(dx[k]); if(m) motivosEncontrados.add(m); }
+    motivosEncontrados.forEach(m=>notificarEscalar(m, dx.preocupacion_principal||dx.senales_observables||""));
+    try{
+      const res=await fetch(WORKER_URL+"/log",{ method:"POST", headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({ producto:"formulario", mode:MODE, dx, ts:new Date().toISOString() }) });
+      const data=await res.json().catch(()=>({}));
+      if(!res.ok || data.ok===false) throw new Error("log failed");
+      setStage("sent");
+    }catch(e){ setSendError("Couldn't submit. Try again."); }
+    finally{ setSending(false); }
+  };
+
+  const exportDx=async()=>{ const txt="HABITS FORM · Bienestar 360\n\n"+FIELDS.map(f=>f.label+": "+(dx[f.key]||"—")).join("\n"); try{ await navigator.clipboard.writeText(txt); setExported(true); setTimeout(()=>setExported(false),2000);}catch(e){ const w=window.open("","_blank"); if(w){ w.document.body.style.cssText="font-family:system-ui;padding:20px;white-space:pre-wrap;line-height:1.5"; w.document.body.textContent=txt; } } };
+
+  const copyChat=async()=>{ const txt="CONVERSATION WITH VITA · Bienestar 360 (Habits Form)\nDate: "+new Date().toLocaleString("en-US")+"\n\n"+messages.map(m=>(m.role==="assistant"?"Vita":"You (parent)")+":\n"+m.content).join("\n\n"); try{ await navigator.clipboard.writeText(txt); setChatCopied(true); setTimeout(()=>setChatCopied(false),2000);}catch(e){ const w=window.open("","_blank"); if(w){ w.document.body.style.cssText="font-family:system-ui;padding:20px;white-space:pre-wrap;line-height:1.5"; w.document.body.textContent=txt; } } };
+  const btnPrimary={background:P.sage,color:"#fff",border:"none",borderRadius:999,padding:"14px 30px",fontSize:15.5,fontWeight:800,fontFamily:"'Nunito',sans-serif",cursor:"pointer",boxShadow:"0 6px 18px rgba(90,122,92,.35)"};
+
+  if(stage==="welcome") return (
+    <Shell><div style={{flex:1,display:"flex",flexDirection:"column",justifyContent:"center",alignItems:"center",padding:"32px 26px",textAlign:"center"}}>
+      <div style={{fontSize:52,marginBottom:14}}>🌱</div>
+      <div style={{fontFamily:"'Fraunces',serif",fontSize:27,color:P.sageDeep,lineHeight:1.15,marginBottom:14}}>Hi, I'm Vita</div>
+      <p style={{fontSize:15,color:P.ink,lineHeight:1.6,maxWidth:360,marginBottom:8}}>Tell me about your child's day-to-day — how they eat, sleep, and move.</p>
+      <p style={{fontSize:13.5,color:P.muted,lineHeight:1.6,maxWidth:360,marginBottom:24}}>At the end, your information is recorded so we can review it and prepare the first step.</p>
+      <button onClick={()=>irCon("intro")} style={btnPrimary}>Get started →</button>
+      <button onClick={()=>irCon("form")} style={{background:"none",border:"none",color:P.sageDeep,fontSize:12.5,fontWeight:700,marginTop:16,cursor:"pointer",textDecoration:"underline",fontFamily:"'Nunito',sans-serif"}}>I'd rather fill out the form directly →</button>
+      <p style={{fontSize:11.5,color:P.muted,marginTop:18,maxWidth:320}}>This supports and complements your pediatrician — it doesn't replace them.</p>
+    </div></Shell>
+  );
+
+  if(stage==="consentimiento") return (
+    <Shell><div className="rise scroll" style={{flex:1,overflowY:"auto",display:"flex",flexDirection:"column",justifyContent:"center",padding:"30px 26px"}}>
+      <div style={{fontSize:40,marginBottom:12,textAlign:"center"}}>🌱</div>
+      <div style={{fontFamily:"'Fraunces',serif",fontSize:23,color:P.sageDeep,lineHeight:1.2,marginBottom:16,textAlign:"center"}}>Before we start</div>
+      <p style={{fontSize:14.5,color:P.ink,lineHeight:1.65,marginBottom:14}}>We're going to ask you to tell us about your child's day-to-day — how they eat, sleep, move, and what worries you. Here's what we do with that information:</p>
+      <div style={{background:P.sageSoft,borderRadius:16,padding:"16px",marginBottom:18}}>
+        <div style={{display:"flex",gap:11,marginBottom:12}}><div style={{fontSize:18,flexShrink:0}}>🩺</div><div style={{fontSize:13.5,color:P.ink,lineHeight:1.5}}>The clinical team reviews it before anything reaches you — we never send a plan without a human having seen it first.</div></div>
+        <div style={{display:"flex",gap:11,marginBottom:12}}><div style={{fontSize:18,flexShrink:0}}>🔒</div><div style={{fontSize:13.5,color:P.ink,lineHeight:1.5}}>We only use it to prepare your child's plan — we don't share it with anyone else.</div></div>
+        <div style={{display:"flex",gap:11}}><div style={{fontSize:18,flexShrink:0}}>✉️</div><div style={{fontSize:13.5,color:P.ink,lineHeight:1.5}}>You can ask us to delete it anytime, by writing to peter@bienestar360.co.</div></div>
+      </div>
+      <label style={{display:"flex",gap:10,alignItems:"flex-start",marginBottom:20,cursor:"pointer"}}>
+        <input type="checkbox" checked={consentChecked} onChange={e=>setConsentChecked(e.target.checked)} style={{marginTop:3,width:17,height:17,flexShrink:0,accentColor:P.sage}}/>
+        <span style={{fontSize:13,color:P.ink,lineHeight:1.5}}>I've read this and agree that it will be used to prepare my child's plan.</span>
+      </label>
+      <button onClick={aceptarConsentimiento} disabled={!consentChecked} style={{...btnPrimary,alignSelf:"center",opacity:consentChecked?1:.5,cursor:consentChecked?"pointer":"default"}}>I agree and continue →</button>
+      <button onClick={()=>setStage("welcome")} style={{background:"none",border:"none",color:P.muted,fontSize:12.5,fontWeight:700,marginTop:14,cursor:"pointer",alignSelf:"center",fontFamily:"'Nunito',sans-serif"}}>← Back</button>
+    </div></Shell>
+  );
+
+  if(stage==="form") return (
+    <Shell><div className="rise scroll" style={{flex:1,overflowY:"auto",padding:"26px 22px 18px",display:"flex",flexDirection:"column",gap:16}}>
+      <div style={{textAlign:"center",marginBottom:2}}>
+        <div style={{fontSize:36,marginBottom:8}}>🌱</div>
+        <div style={{fontFamily:"'Fraunces',serif",fontSize:21,color:P.sageDeep,marginBottom:6}}>Habits Form</div>
+        <p style={{fontSize:12.5,color:P.muted,lineHeight:1.5,maxWidth:340,margin:"0 auto"}}>Fill in what you know — it doesn't need to be perfect or complete, the team reviews it either way. If you'd rather, you can also <span onClick={goToChat} style={{color:P.sageDeep,fontWeight:700,textDecoration:"underline",cursor:"pointer"}}>chat with Vita</span> — what you've filled in here won't be lost.</p>
+      </div>
+      {FIELDS.map(f=>(
+        <div key={f.key} style={{display:"flex",flexDirection:"column",gap:5}}>
+          <label style={{fontSize:13,fontWeight:800,color:P.sageDeep}}>{f.label}</label>
+          {f.hint && <div style={{fontSize:11.5,color:P.muted,lineHeight:1.4}}>{f.hint}</div>}
+          <textarea value={dx[f.key]} onChange={e=>setDx(prev=>({...prev,[f.key]:e.target.value}))} rows={f.key==="cronologia_del_dia"?4:(f.key==="nombre_padre"||f.key==="email_padre"||f.key==="nombre_nino"||f.key==="edad"?1:2)} style={{border:"1px solid "+P.line,borderRadius:12,padding:"9px 11px",fontSize:13.5,fontFamily:"'Nunito',sans-serif",background:"#fff",color:P.ink,outline:"none",resize:"vertical"}}/>
+        </div>
+      ))}
+      <button onClick={sendToReview} disabled={!puedeEnviar()||sending} style={{...btnPrimary,alignSelf:"center",marginTop:6,opacity:(!puedeEnviar()||sending)?.55:1,cursor:(!puedeEnviar()||sending)?"default":"pointer"}}>{sending?"Sending…":"Submit for review →"}</button>
+      {!puedeEnviar() && <p style={{fontSize:11.5,color:P.muted,textAlign:"center"}}>Still missing: {mensajeFaltante()}.</p>}
+      {sendError && <p style={{fontSize:12.5,color:P.clay,textAlign:"center"}}>{sendError}</p>}
+      <p style={{fontSize:11,color:P.muted,textAlign:"center",lineHeight:1.5,marginTop:2}}>This supports and complements your pediatrician — it doesn't replace them.</p>
+    </div></Shell>
+  );
+
+  if(stage==="sent") return (
+    <Shell><div style={{flex:1,display:"flex",flexDirection:"column",justifyContent:"center",alignItems:"center",padding:"32px 26px",textAlign:"center"}}>
+      <div style={{fontSize:52,marginBottom:14}}>🌱</div>
+      <div style={{fontFamily:"'Fraunces',serif",fontSize:25,color:P.sageDeep,lineHeight:1.2,marginBottom:14}}>All set, it's on record</div>
+      <p style={{fontSize:15,color:P.ink,lineHeight:1.6,maxWidth:360,marginBottom:10}}>{dx.nombre_nino?dx.nombre_nino+"'s":"Your child's"} information is now with the team. We'll review it and prepare the first step — we'll be in touch soon.</p>
+      <p style={{fontSize:13,color:P.muted,lineHeight:1.6,maxWidth:340}}>This supports and complements your pediatrician — it doesn't replace them.</p>
+    </div></Shell>
+  );
+
+  if(stage==="intro") return (
+    <Shell><div className="rise scroll" style={{flex:1,overflowY:"auto",display:"flex",flexDirection:"column",justifyContent:"center",padding:"30px 26px"}}>
+      <div style={{fontSize:40,marginBottom:12,textAlign:"center"}}>🌱</div>
+      <div style={{fontFamily:"'Fraunces',serif",fontSize:23,color:P.sageDeep,lineHeight:1.2,marginBottom:16,textAlign:"center"}}>How this will work</div>
+      <p style={{fontSize:14.5,color:P.ink,lineHeight:1.65,marginBottom:14}}>A child's focus, mood, and energy depend a lot on habits at home: what they eat and drink, at what times, how much they move, and how they sleep. You're the bridge.</p>
+      <div style={{background:P.sageSoft,borderRadius:16,padding:"16px",marginBottom:18}}>
+        <div style={{display:"flex",gap:11,marginBottom:12}}><div style={{fontSize:18,flexShrink:0}}>🕊️</div><div style={{fontSize:13.5,color:P.ink,lineHeight:1.5}}>We'll reconstruct a normal day for your child, from waking up to falling asleep. Calmly, without judgment.</div></div>
+        <div style={{display:"flex",gap:11,marginBottom:12}}><div style={{fontSize:18,flexShrink:0}}>💬</div><div style={{fontSize:13.5,color:P.ink,lineHeight:1.5}}>It's a relaxed conversation, no rush — it can take between 20 and 30 minutes.</div></div>
+        <div style={{display:"flex",gap:11}}><div style={{fontSize:18,flexShrink:0}}>🌿</div><div style={{fontSize:13.5,color:P.ink,lineHeight:1.5}}>At the end, your information is recorded — we'll review it and reach out with the first step.</div></div>
+      </div>
+      <button onClick={startOrResumeChat} style={{...btnPrimary,alignSelf:"center"}}>Start the conversation →</button>
+    </div></Shell>
+  );
+
+  return (
+    <Shell>
+      <div style={{background:"linear-gradient(135deg,"+P.sageDeep+","+P.sage+")",padding:"14px 16px",display:"flex",alignItems:"center",gap:11}}>
+        <div style={{width:40,height:40,borderRadius:"50%",background:P.panel,display:"grid",placeItems:"center",fontSize:20}}>🌱</div>
+        <div style={{flex:1}}><div style={{fontFamily:"'Fraunces',serif",fontWeight:600,fontSize:19,color:"#fff",lineHeight:1}}>Vita</div><div style={{fontSize:11.5,color:P.sageSoft,marginTop:3}}>{loading?"typing…":(dx.nombre_nino?("About "+dx.nombre_nino):"Getting to know them")}</div></div>
+        <button onClick={copyChat} title="Copy conversation" style={{background:"rgba(255,255,255,.18)",border:"none",color:"#fff",borderRadius:999,width:34,height:34,fontSize:15,cursor:"pointer",flexShrink:0}}>{chatCopied?"✓":"📋"}</button><button onClick={goToForm} title="Switch to the direct form" style={{background:"rgba(255,255,255,.18)",border:"none",color:"#fff",borderRadius:999,width:34,height:34,fontSize:15,cursor:"pointer",flexShrink:0}}>📝</button><button onClick={()=>setShowDx(true)} style={{background:"rgba(255,255,255,.18)",border:"none",color:"#fff",borderRadius:999,padding:"7px 13px",fontSize:12.5,fontWeight:700,cursor:"pointer",fontFamily:"'Nunito',sans-serif"}}>What we've covered · {filled}/{AREA_TOTAL}</button>
+      </div>
+      {filled>=3 && (
+        <div style={{padding:"9px 14px",background:P.sageSoft,borderBottom:"1px solid "+P.line,display:"flex",alignItems:"center",justifyContent:"space-between",gap:10}}>
+          <div style={{fontSize:12,color:P.sageDeep,lineHeight:1.4}}>{puedeEnviar()?"Once you're done telling me, submit your information for the team to review.":"Still missing: "+mensajeFaltante()+"."}</div>
+          <button onClick={sendToReview} disabled={sending||!puedeEnviar()} style={{background:P.sage,color:"#fff",border:"none",borderRadius:999,padding:"8px 14px",fontSize:12.5,fontWeight:800,cursor:(sending||!puedeEnviar())?"default":"pointer",fontFamily:"'Nunito',sans-serif",flexShrink:0,opacity:(sending||!puedeEnviar())?.55:1}}>{sending?"Sending…":"Submit for review →"}</button>
+        </div>
+      )}
+      <div ref={scrollRef} className="scroll" style={{flex:1,overflowY:"auto",padding:"16px 13px",display:"flex",flexDirection:"column",gap:10,background:"radial-gradient("+P.sageSoft+"55 1px,transparent 1px)",backgroundSize:"22px 22px"}}>
+        {messages.map((m,i)=>(<div key={i} className="rise" style={{alignSelf:m.role==="user"?"flex-end":"flex-start",maxWidth:"84%"}}><div style={{background:m.role==="user"?P.user:"#fff",color:P.ink,padding:"10px 13px",borderRadius:m.role==="user"?"16px 16px 4px 16px":"16px 16px 16px 4px",fontSize:14.5,lineHeight:1.5,boxShadow:"0 1px 2px rgba(40,42,36,.10)",whiteSpace:"pre-wrap",border:m.role==="user"?"none":"1px solid "+P.line}}>{renderRich(m.content)}</div></div>))}
+        {loading&&(<div style={{alignSelf:"flex-start",background:"#fff",padding:"12px 15px",borderRadius:"16px 16px 16px 4px",border:"1px solid "+P.line}}><span className="dot"/> <span className="dot"/> <span className="dot"/></div>)}
+        {error&&!loading&&(<div style={{alignSelf:"center",textAlign:"center",color:P.clay,fontSize:12.5,background:"#fff",padding:"10px 14px",borderRadius:12,border:"1px solid "+P.line,maxWidth:"92%"}}>{error}<div style={{marginTop:8}}><button onClick={retry} style={{background:P.sage,border:"none",color:"#fff",borderRadius:999,padding:"7px 18px",fontSize:12.5,fontWeight:700,cursor:"pointer",fontFamily:"'Nunito',sans-serif"}}>Try again</button></div><div style={{marginTop:7,fontSize:11,color:P.muted,lineHeight:1.4}}>If it keeps failing, open the link in your browser (Chrome or Safari), not inside another app.</div></div>)}
+        {sendError&&(<div style={{alignSelf:"center",textAlign:"center",color:P.clay,fontSize:12.5,background:"#fff",padding:"10px 14px",borderRadius:12,border:"1px solid "+P.line,maxWidth:"92%"}}>{sendError}<div style={{marginTop:8}}><button onClick={sendToReview} style={{background:P.sage,border:"none",color:"#fff",borderRadius:999,padding:"7px 18px",fontSize:12.5,fontWeight:700,cursor:"pointer",fontFamily:"'Nunito',sans-serif"}}>Try submitting again</button></div></div>)}
+      </div>
+      <div style={{padding:"10px 12px",background:P.panel,borderTop:"1px solid "+P.line,display:"flex",gap:8,alignItems:"flex-end"}}>
+        <textarea value={input} onChange={e=>setInput(e.target.value)} onKeyDown={e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();send();}}} placeholder="Type here…" rows={1} style={{flex:1,resize:"none",border:"1px solid "+P.line,borderRadius:20,padding:"11px 15px",fontSize:14.5,fontFamily:"'Nunito',sans-serif",maxHeight:110,background:"#fff",color:P.ink,outline:"none"}}/>
+        <button onClick={()=>send()} disabled={loading||!input.trim()} style={{width:46,height:46,borderRadius:"50%",border:"none",background:input.trim()?P.sage:P.line,color:"#fff",fontSize:19,cursor:input.trim()?"pointer":"default",flexShrink:0}}>➤</button>
+      </div>
+      {showDx&&(<div onClick={()=>setShowDx(false)} style={{position:"absolute",inset:0,background:"rgba(40,42,36,.45)",display:"flex",justifyContent:"flex-end",zIndex:10}}>
+        <div onClick={e=>e.stopPropagation()} style={{width:"86%",maxWidth:360,background:P.panel,height:"100%",display:"flex",flexDirection:"column",boxShadow:"-10px 0 40px rgba(0,0,0,.25)"}}>
+          <div style={{background:P.sageDeep,padding:"16px 18px",display:"flex",justifyContent:"space-between",alignItems:"center"}}><div><div style={{fontFamily:"'Fraunces',serif",fontSize:18,color:"#fff"}}>What we've talked about</div><div style={{fontSize:12,color:P.sageSoft,marginTop:2}}>{filled} of {AREA_TOTAL} topics recorded</div></div><button onClick={()=>setShowDx(false)} style={{background:"rgba(255,255,255,.16)",border:"none",color:"#fff",width:32,height:32,borderRadius:"50%",fontSize:16,cursor:"pointer"}}>✕</button></div>
+          <div className="scroll" style={{flex:1,overflowY:"auto",padding:14}}>
+            {FIELDS.map(f=>{const val=dx[f.key];const has=val&&val.trim();return(<div key={f.key} style={{marginBottom:10,background:"#fff",border:"1px solid "+(has?P.sage:P.line),borderRadius:12,padding:"10px 12px"}}><div style={{fontSize:11.5,fontWeight:800,color:has?P.sageDeep:P.muted,textTransform:"uppercase",letterSpacing:.4,marginBottom:has?4:0}}>{f.label}</div>{has&&<div style={{fontSize:13.5,color:P.ink,lineHeight:1.45}}>{val}</div>}</div>);})}
+          </div>
+          <div style={{padding:12,borderTop:"1px solid "+P.line,display:"flex",flexDirection:"column",gap:8}}>
+            <button onClick={()=>{setShowDx(false);goToForm();}} style={{background:P.sageDeep,color:"#fff",border:"none",borderRadius:12,padding:"11px",fontSize:13.5,fontWeight:800,cursor:"pointer",fontFamily:"'Nunito',sans-serif"}}>Finish it in the direct form →</button>
+            <button onClick={exportDx} style={{background:exported?P.sage:P.clay,color:"#fff",border:"none",borderRadius:12,padding:"11px",fontSize:13.5,fontWeight:800,cursor:"pointer",fontFamily:"'Nunito',sans-serif"}}>{exported?"✓ Copied":"Copy my summary"}</button>
+          </div>
+        </div>
+      </div>)}
+    </Shell>
+  );
+}
+ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
+</script>
+</body>
+</html>
