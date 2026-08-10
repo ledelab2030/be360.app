@@ -10,14 +10,22 @@ preview_urls = false
 [observability]
 enabled = true
 
-# Rate limiting (9 ago 2026) — binding creado desde el dashboard de
-# Cloudflare (namespace "vita_rate_limit"). Declarado aquí por la MISMA
-# razón que [observability] arriba: wrangler.toml es la fuente de verdad en
-# cada deploy — si esto no estuviera declarado, el próximo `wrangler deploy`
-# borraría el binding sin avisar. Ver checkRateLimit() en vita-proxy.js.
-[[kv_namespaces]]
-binding = "RATE_LIMIT_KV"
-id = "1f6ffb40f0d8437faca2c57c5981323e"
+# Rate limiting (9 ago 2026) — Durable Object, NO KV. El primer intento con
+# el namespace de KV "vita_rate_limit" (creado desde el dashboard) se probó
+# en vivo y el contador nunca se disparó tras 73 peticiones seguidas — KV es
+# "eventually consistent" a propósito, no sirve para un contador que cambia
+# en cada petición. Reemplazado por la clase RateLimiter (ver vita-proxy.js),
+# que sí da consistencia real: Cloudflare procesa las peticiones a la misma
+# instancia (misma IP) una por una. El namespace "vita_rate_limit" queda sin
+# usar — no hace daño dejarlo, se puede borrar a mano desde el dashboard si
+# se quiere ordenar.
+[[durable_objects.bindings]]
+name = "RATE_LIMITER"
+class_name = "RateLimiter"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["RateLimiter"]
 
 # Secrets (no van en este archivo, se cargan con `wrangler secret put <nombre>`):
 #   wrangler secret put ANTHROPIC_API_KEY      (ya debería existir si se importa el worker actual)

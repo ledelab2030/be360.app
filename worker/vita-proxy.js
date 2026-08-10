@@ -64,15 +64,24 @@
 // NUEVO (8 ago 2026): la deuda técnica de "no bloquea peticiones sin header
 // Origin" quedó cerrada — ver el chequeo de origen más abajo.
 //
-// NUEVO (9 ago 2026): rate limiting real, por IP, usando el binding de KV
-// "RATE_LIMIT_KV" (namespace "vita_rate_limit", conectado a este Worker
-// desde el dashboard de Cloudflare — no necesitó ningún cambio de
-// wrangler.toml ni token nuevo). Ventana fija de 60s, límite generoso (30
-// peticiones/IP/min) — el objetivo no es ser preciso, es frenar un loop o
-// un curl directo golpeando el Worker sin afectar uso real. Ver
-// checkRateLimit() más abajo. DISEÑO A PRUEBA DE FALLOS: si el binding no
-// existe todavía, o KV falla por lo que sea, el chequeo se salta en vez de
-// romper el Worker — nunca bloquea uso real por un problema de infra.
+// NUEVO (9 ago 2026): rate limiting real, por IP. Primer intento con KV
+// (binding RATE_LIMIT_KV) — probado en vivo con hasta 73 peticiones seguidas
+// y NUNCA se disparó el límite. Causa raíz: KV es "eventually consistent" a
+// propósito (está pensado para lecturas frecuentes con pocas escrituras, no
+// para contadores que cambian en cada petición) — un get() justo después del
+// put() de otra petición puede no ver el valor nuevo todavía. No era un bug
+// del código, era la herramienta equivocada para este trabajo.
+// Reemplazado por un Durable Object (clase RateLimiter, más abajo): cada IP
+// tiene su propia instancia, y Cloudflare garantiza que las peticiones a esa
+// MISMA instancia se procesan una por una (sin condiciones de carrera) — ahí
+// sí un contador de verdad. Requiere declarar la clase como
+// "durable_objects.bindings" + una entrada en "migrations" en wrangler.toml
+// (ver ese archivo). Ventana fija de 60s, límite de 30 peticiones/IP/min —
+// generoso para una familia usando el chat de verdad, corta un loop/curl.
+// DISEÑO A PRUEBA DE FALLOS: si el binding no existe o el Durable Object
+// falla por lo que sea, el chequeo se salta en vez de romper el Worker.
+// El namespace de KV "vita_rate_limit" queda huérfano (ya no se usa) — se
+// puede borrar desde el dashboard si se quiere, no hace daño dejarlo.
 //
 // NUEVO (8 ago 2026, decisión de Leonardo): se deja de pedir WhatsApp al
 // padre/madre en la captura — evita depender de WhatsApp como canal
@@ -86,27 +95,47 @@
 // ============================================================
 
 const ALLOWED_ORIGIN = "https://be360.app";
+const LIMITE_POR_MINUTO = 30; // por IP — generoso para una familia usando el chat de verdad, corta un loop/curl
 
-// Rate limiting simple por IP (9 ago 2026) — ver nota arriba. Devuelve la key
-// que se pasó del límite (para loguear/depurar si hace falta) o null si la
-// petición puede seguir. Ventana fija de 60s: no es perfectamente preciso
-// (dos peticiones justo en el borde de dos minutos distintos cuentan aparte),
-// pero es simple, barato en KV, y suficiente para frenar abuso obvio — no
-// busca ser un rate limiter de producción a gran escala.
+// Durable Object: una instancia por IP (env.RATE_LIMITER.idFromName(ip)).
+// Cloudflare garantiza que las peticiones a la MISMA instancia se procesan
+// una por una — por eso este contador sí es confiable, a diferencia del
+// intento anterior con KV (ver nota arriba). this.state.storage es
+// consistente dentro de esta única instancia, no hay condición de carrera
+// entre el get y el put de dos peticiones distintas porque nunca corren en
+// paralelo para la misma IP.
+export class RateLimiter {
+  constructor(state, env) {
+    this.state = state;
+  }
+  async fetch(request) {
+    const ahora = Date.now();
+    const ventana = Math.floor(ahora / 60000); // minuto actual (cambia cada 60s)
+    let data = await this.state.storage.get("data");
+    if (!data || data.ventana !== ventana) data = { ventana, count: 0 }; // nueva ventana → reinicia
+    data.count++;
+    await this.state.storage.put("data", data);
+    return new Response(JSON.stringify({ limitado: data.count > LIMITE_POR_MINUTO }), {
+      headers: { "Content-Type": "application/json" },
+    });
+  }
+}
+
+// Devuelve true si hay que bloquear la petición, false si puede seguir.
+// DISEÑO A PRUEBA DE FALLOS: si el binding no existe todavía, o el Durable
+// Object falla por lo que sea, se salta el chequeo en vez de romper el
+// Worker — nunca bloquea uso real por un problema de infraestructura.
 async function checkRateLimit(request, env) {
-  if (!env.RATE_LIMIT_KV) return null; // binding no configurado todavía — no bloquea, solo no protege
-  const ip = request.headers.get("CF-Connecting-IP") || "sin-ip";
-  const ventana = Math.floor(Date.now() / 60000); // minuto actual (cambia cada 60s)
-  const key = `rl:${ip}:${ventana}`;
-  const LIMITE_POR_MINUTO = 30; // generoso para una familia usando el chat de verdad; corta un loop/curl
+  if (!env.RATE_LIMITER) return false; // binding no configurado todavía — no bloquea, solo no protege
   try {
-    const actual = parseInt((await env.RATE_LIMIT_KV.get(key)) || "0", 10);
-    if (actual >= LIMITE_POR_MINUTO) return key;
-    // expirationTtl limpia la key sola — no hace falta ningún borrado manual.
-    await env.RATE_LIMIT_KV.put(key, String(actual + 1), { expirationTtl: 120 });
-    return null;
+    const ip = request.headers.get("CF-Connecting-IP") || "sin-ip";
+    const id = env.RATE_LIMITER.idFromName(ip);
+    const stub = env.RATE_LIMITER.get(id);
+    const res = await stub.fetch("https://rate-limiter/check");
+    const data = await res.json();
+    return data.limitado === true;
   } catch (e) {
-    return null; // si KV falla por lo que sea, no bloqueamos uso real por un problema de infraestructura
+    return false; // si el Durable Object falla por lo que sea, no bloqueamos uso real por un problema de infraestructura
   }
 }
 
@@ -152,10 +181,10 @@ export default {
       });
     }
 
-    // Rate limiting (9 ago 2026) — después del chequeo de Origin (no tiene
-    // sentido gastar una lectura/escritura de KV en algo que ya íbamos a
-    // rechazar) y antes de CUALQUIER ruta que cueste algo real (Claude,
-    // Sheets, correos). Aplica parejo a todas — /plan queda afuera a
+    // Rate limiting (9 ago 2026, Durable Object) — después del chequeo de
+    // Origin (no tiene sentido despertar un Durable Object para algo que ya
+    // íbamos a rechazar) y antes de CUALQUIER ruta que cueste algo real
+    // (Claude, Sheets, correos). Aplica parejo a todas — /plan queda afuera a
     // propósito, es lectura pública de un plan ya aprobado, no cuesta nada.
     if (await checkRateLimit(request, env)) {
       return new Response(JSON.stringify({ error: "Demasiadas peticiones seguidas — intenta de nuevo en un minuto" }), {
