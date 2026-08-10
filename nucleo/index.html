@@ -1,0 +1,471 @@
+<!-- Movido aquí desde la raíz de be360.app el 10 ago 2026: la raíz mezclaba
+     be360/Vita con Núcleo (agentes IA para empresas) y Javier Institute,
+     diluyendo la marca be360 en su propio dominio. Este archivo completo
+     (incluidos los caminos de familia/colegio de Vita) se conserva intacto
+     aquí — decisión de Leonardo, nada se descarta. -->
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="theme-color" content="#0d9488">
+<title>Bienestar 360 · ¿Quién eres?</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+:root{
+  --teal:#0d9488;--teal2:rgba(13,148,136,0.1);--teal3:rgba(13,148,136,0.07);
+  --amber:#d97706;--amber2:rgba(217,119,6,0.1);
+  --blue:#2563eb;
+  --ink:#111827;--ink2:#374151;--mt:#9ca3af;
+  --bg:#fff;--bg2:#f8f9fb;--bg3:#f0f2f7;
+  --border:#e5e7eb;
+}
+body{background:var(--bg);color:var(--ink);font-family:"Plus Jakarta Sans",sans-serif;min-height:100vh;overflow-x:hidden}
+.app{max-width:480px;margin:0 auto;min-height:100vh;position:relative}
+.pbar{height:3px;background:var(--border);position:sticky;top:0;z-index:100}
+.pfill{height:100%;background:var(--teal);transition:width .4s ease;border-radius:0 2px 2px 0}
+.screen{padding:28px 24px 48px;min-height:calc(100vh - 3px);display:flex;flex-direction:column;animation:si .3s ease}
+@keyframes si{from{opacity:0;transform:translateX(14px)}to{opacity:1;transform:translateX(0)}}
+.hidden{display:none!important}
+.logo{font-family:"IBM Plex Mono",monospace;font-size:11px;letter-spacing:3px;color:var(--teal);text-transform:uppercase;margin-bottom:32px}
+.emoji{font-size:48px;margin-bottom:14px;display:block}
+.h1{font-size:26px;font-weight:800;color:var(--ink);line-height:1.2;margin-bottom:8px;letter-spacing:-.5px}
+.sub{font-size:15px;color:var(--mt);line-height:1.65;margin-bottom:28px}
+.choices{display:flex;flex-direction:column;gap:12px;margin-bottom:20px}
+.choice{background:var(--bg2);border:2px solid var(--border);border-radius:16px;padding:17px 18px;cursor:pointer;display:flex;align-items:center;gap:14px;transition:all .15s;user-select:none}
+.choice:hover,.choice.sel{border-color:var(--teal);background:var(--teal3)}
+.ci{font-size:26px;flex-shrink:0}
+.ct{flex:1}
+.cn{font-size:15px;font-weight:700;color:var(--ink);margin-bottom:2px}
+.cd{font-size:12.5px;color:var(--mt)}
+.ck{width:22px;height:22px;border-radius:50%;border:2px solid var(--border);flex-shrink:0;display:flex;align-items:center;justify-content:center;transition:all .15s}
+.choice.sel .ck{background:var(--teal);border-color:var(--teal)}
+.ck-dot{width:9px;height:9px;background:#fff;border-radius:50%;display:none}
+.choice.sel .ck-dot{display:block}
+.qlabel{font-family:"IBM Plex Mono",monospace;font-size:12px;letter-spacing:.5px;color:var(--teal);margin-bottom:6px}
+.qh1{font-size:22px;font-weight:800;color:var(--ink);line-height:1.25;margin-bottom:6px;letter-spacing:-.3px}
+.qsub{font-size:14px;color:var(--mt);margin-bottom:22px;line-height:1.55}
+.opts{display:flex;flex-direction:column;gap:10px}
+.opt{background:var(--bg2);border:2px solid var(--border);border-radius:12px;padding:14px 16px;cursor:pointer;font-size:14px;font-weight:600;color:var(--ink2);transition:all .15s;display:flex;align-items:center;gap:12px;user-select:none}
+.opt:hover,.opt.sel{border-color:var(--teal);background:var(--teal3);color:var(--teal)}
+.oi{font-size:20px;flex-shrink:0}
+.sp{flex:1}
+.btn{width:100%;padding:16px;border-radius:14px;font-size:16px;font-weight:700;font-family:"Plus Jakarta Sans",sans-serif;cursor:pointer;border:none;transition:all .15s;letter-spacing:-.2px;margin-top:10px}
+.btn:first-of-type{margin-top:0}
+.btn-p{background:var(--teal);color:#fff}
+.btn-p:hover{background:#0f766e}
+.btn-p:active{transform:scale(.98)}
+.btn-p:disabled{opacity:.35;cursor:default}
+.btn-s{background:var(--bg3);color:var(--ink2)}
+.btn-wa{background:#25d366;color:#fff;display:flex;align-items:center;justify-content:center;gap:10px}
+.btn-pay{background:var(--blue);color:#fff;display:flex;align-items:center;justify-content:center;gap:10px}
+.back{background:none;border:none;font-size:14px;color:var(--mt);cursor:pointer;padding:0;font-family:"Plus Jakarta Sans",sans-serif;margin-bottom:20px;display:flex;align-items:center;gap:6px}
+.score-box{background:linear-gradient(135deg,var(--teal),#0f766e);border-radius:20px;padding:26px;text-align:center;margin-bottom:22px;color:#fff}
+.sl{font-size:11px;letter-spacing:2px;text-transform:uppercase;opacity:.8;font-family:"IBM Plex Mono",monospace;margin-bottom:8px}
+.sv{font-size:48px;font-weight:800;line-height:1;margin-bottom:6px;letter-spacing:-2px}
+.ss{font-size:14px;opacity:.85;line-height:1.5}
+.cards{display:flex;flex-direction:column;gap:10px;margin-bottom:22px}
+.rcard{background:var(--bg2);border-radius:12px;padding:14px 16px;display:flex;gap:12px;align-items:flex-start}
+.ri{font-size:20px;flex-shrink:0;margin-top:1px}
+.rt{font-size:14px;font-weight:700;color:var(--ink);margin-bottom:2px}
+.rd{font-size:12.5px;color:var(--mt);line-height:1.5}
+.steps{display:flex;flex-direction:column;gap:16px;margin-bottom:22px}
+.step{display:flex;gap:14px;align-items:flex-start}
+.snum{width:32px;height:32px;border-radius:50%;background:var(--teal);color:#fff;font-weight:800;font-size:14px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.stitle{font-size:14px;font-weight:700;color:var(--ink);margin-bottom:2px}
+.sdesc{font-size:13px;color:var(--mt);line-height:1.5}
+.proof{background:var(--teal3);border-radius:12px;padding:16px;margin-bottom:18px;border-left:3px solid var(--teal)}
+.pq{font-size:14px;color:var(--ink2);line-height:1.65;font-style:italic;margin-bottom:7px}
+.pw{font-size:12px;font-weight:700;color:var(--teal)}
+.badge{display:inline-flex;align-items:center;gap:6px;background:var(--amber2);color:var(--amber);font-size:11px;font-weight:700;padding:4px 10px;border-radius:20px;margin-bottom:10px;font-family:"IBM Plex Mono",monospace}
+.pname{font-size:22px;font-weight:800;color:var(--ink);margin-bottom:4px;letter-spacing:-.5px}
+.pprice{font-size:32px;font-weight:800;color:var(--teal);margin-bottom:4px;letter-spacing:-1px}
+.pcycle{font-size:13px;color:var(--mt);margin-bottom:14px}
+.pinc{font-size:12px;font-weight:700;color:var(--ink2);margin-bottom:8px;font-family:"IBM Plex Mono",monospace;letter-spacing:.5px}
+.pitems{display:flex;flex-direction:column;gap:7px;margin-bottom:20px}
+.pitem{font-size:14px;color:var(--ink2);display:flex;gap:8px;align-items:flex-start;line-height:1.4}
+.pitem::before{content:"✓";color:var(--teal);font-weight:700;flex-shrink:0}
+.note{font-size:12px;color:var(--mt);text-align:center;line-height:1.6;margin-top:14px}
+.divider{height:1px;background:var(--border);margin:16px 0}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="pbar"><div class="pfill" id="pf" style="width:5%"></div></div>
+
+  <!-- WELCOME -->
+  <div class="screen" id="s-welcome">
+    <div class="logo">Bienestar 360 · LedeLab</div>
+    <span class="emoji">👋</span>
+    <div class="h1">¿Quién eres?</div>
+    <div class="sub">Cuéntanos en qué contexto estás y te mostramos exactamente lo que necesitas. Sin reuniones. En 3 minutos.</div>
+    <div class="choices" id="welcome-choices">
+      <div class="choice" data-val="colegio" onclick="chooseProfile(this)">
+        <span class="ci">🏫</span>
+        <div class="ct"><div class="cn">Institución educativa</div><div class="cd">Quiero conocer Vita para mi colegio</div></div>
+        <div class="ck"><div class="ck-dot"></div></div>
+      </div>
+      <div class="choice" data-val="ceo" onclick="chooseProfile(this)">
+        <span class="ci">💼</span>
+        <div class="ct"><div class="cn">Dueño de empresa o CEO</div><div class="cd">Quiero implementar IA en mi empresa</div></div>
+        <div class="ck"><div class="ck-dot"></div></div>
+      </div>
+      <div class="choice" data-val="ji" onclick="chooseProfile(this)">
+        <span class="ci">🎓</span>
+        <div class="ct"><div class="cn">Investigador o académico</div><div class="cd">Quiero conocer el Javier Institute MTÜ</div></div>
+        <div class="ck"><div class="ck-dot"></div></div>
+      </div>
+      <div class="choice" data-val="familia" onclick="chooseProfile(this)">
+        <span class="ci">🌱</span>
+        <div class="ct"><div class="cn">Familia</div><div class="cd">Quiero bienestar para mi hijo y mi hogar</div></div>
+        <div class="ck"><div class="ck-dot"></div></div>
+      </div>
+    </div>
+    <div class="sp"></div>
+    <button class="btn btn-p" id="btn-welcome" disabled onclick="startFlow()">Continuar →</button>
+    <div class="note">Sin spam · Sin llamadas no solicitadas</div>
+  </div>
+
+  <!-- COLEGIO Q1 -->
+  <div class="screen hidden" id="s-cq1">
+    <button class="back" onclick="goBack('cq1')">← Atrás</button>
+    <div class="qlabel">Pregunta 1 de 3</div>
+    <div class="qh1">¿Cuántos estudiantes tiene tu institución?</div>
+    <div class="qsub">Esto nos ayuda a estimar el impacto potencial de Vita.</div>
+    <div class="opts">
+      <div class="opt" onclick="answerC(0,0,this)"><span class="oi">🏫</span>Menos de 300 estudiantes</div>
+      <div class="opt" onclick="answerC(0,1,this)"><span class="oi">🏛️</span>300 a 800 estudiantes</div>
+      <div class="opt" onclick="answerC(0,2,this)"><span class="oi">🏢</span>Más de 800 estudiantes</div>
+    </div>
+  </div>
+
+  <!-- COLEGIO Q2 -->
+  <div class="screen hidden" id="s-cq2">
+    <button class="back" onclick="goBack('cq2')">← Atrás</button>
+    <div class="qlabel">Pregunta 2 de 3</div>
+    <div class="qh1">¿Tienen algún programa de bienestar estudiantil activo?</div>
+    <div class="qsub">No importa si es informal — cualquier iniciativa cuenta.</div>
+    <div class="opts">
+      <div class="opt" onclick="answerC(1,0,this)"><span class="oi">✅</span>Sí, tenemos un programa estructurado</div>
+      <div class="opt" onclick="answerC(1,1,this)"><span class="oi">🔄</span>Algo informal, sin sistema</div>
+      <div class="opt" onclick="answerC(1,2,this)"><span class="oi">❌</span>No tenemos ninguno actualmente</div>
+    </div>
+  </div>
+
+  <!-- COLEGIO Q3 -->
+  <div class="screen hidden" id="s-cq3">
+    <button class="back" onclick="goBack('cq3')">← Atrás</button>
+    <div class="qlabel">Pregunta 3 de 3</div>
+    <div class="qh1">¿Cuál es el mayor reto de bienestar que enfrentan?</div>
+    <div class="qsub">Selecciona el que más les preocupa hoy.</div>
+    <div class="opts">
+      <div class="opt" onclick="answerC(2,0,this)"><span class="oi">😔</span>Atención y rendimiento académico</div>
+      <div class="opt" onclick="answerC(2,1,this)"><span class="oi">⚡</span>Ausentismo y salud física</div>
+      <div class="opt" onclick="answerC(2,2,this)"><span class="oi">💬</span>Salud emocional y convivencia</div>
+      <div class="opt" onclick="answerC(2,3,this)"><span class="oi">👨‍👩‍👧</span>Hábitos e involucramiento familiar</div>
+    </div>
+  </div>
+
+  <!-- COLEGIO R1: Diagnóstico -->
+  <div class="screen hidden" id="s-cr1">
+    <button class="back" onclick="goBack('cr1')">← Atrás</button>
+    <div class="qlabel">Tu diagnóstico</div>
+    <div class="score-box">
+      <div class="sl">Estudiantes en riesgo estimado</div>
+      <div class="sv" id="c-affected">—</div>
+      <div class="ss" id="c-affected-sub">de tus estudiantes podrían tener factores inflamatorios invisibles afectando su rendimiento</div>
+    </div>
+    <div class="cards">
+      <div class="rcard"><span class="ri">🧠</span><div><div class="rt">Impacto cognitivo real</div><div class="rd">Inflamación crónica por hábitos del hogar reduce hasta 30% la capacidad de atención. No es disciplina — es biología.</div></div></div>
+      <div class="rcard"><span class="ri">📱</span><div><div class="rt">Sin apps que instalar</div><div class="rd">Vita acompaña a las familias por un enlace simple, desde el navegador de su teléfono. Sin cursos que asistir.</div></div></div>
+      <div class="rcard"><span class="ri">🏫</span><div><div class="rt">El colegio facilita, no carga</div><div class="rd">Tu institución ofrece Vita como valor agregado. B360 opera en el backstage. Sin trabajo extra para tu equipo.</div></div></div>
+      <div class="rcard"><span class="ri">💰</span><div><div class="rt">Sin costo para las familias</div><div class="rd">El colegio accede por convenio. Las familias lo usan gratis.</div></div></div>
+    </div>
+    <div class="sp"></div>
+    <button class="btn btn-p" onclick="goto('cr2')">Ver cómo funciona →</button>
+  </div>
+
+  <!-- COLEGIO R2: Cómo funciona -->
+  <div class="screen hidden" id="s-cr2">
+    <button class="back" onclick="goto('cr1')">← Atrás</button>
+    <div class="qlabel">Cómo funciona Vita</div>
+    <div class="qh1">Tres pasos. Sin complicaciones.</div>
+    <div class="steps">
+      <div class="step"><div class="snum">1</div><div><div class="stitle">La institución acepta</div><div class="sdesc">Formalizamos el convenio como valor agregado gratuito para la comunidad estudiantil. Sin costo para las familias.</div></div></div>
+      <div class="step"><div class="snum">2</div><div><div class="stitle">Las familias activan Vita</div><div class="sdesc">Reciben un enlace por correo. Sin instalar nada, sin plataformas. Vita las guía desde el primer mensaje.</div></div></div>
+      <div class="step"><div class="snum">3</div><div><div class="stitle">B360 hace el trabajo</div><div class="sdesc">Diagnóstico conductual, hábitos anti-inflamatorios, seguimiento personalizado. Todo vía chat. Reporte mensual a la institución.</div></div></div>
+    </div>
+    <div class="proof">
+      <div class="pq">"No podemos exigir alto rendimiento académico a un cuerpo inflamado. Vita es la primera herramienta que ataca el problema desde el hogar."</div>
+      <div class="pw">— Bienestar 360 · Metodología basada en evidencia</div>
+    </div>
+    <div class="sp"></div>
+    <button class="btn btn-p" onclick="goto('cr3')">Ver cómo empezar →</button>
+  </div>
+
+  <!-- COLEGIO R3: CTA -->
+  <div class="screen hidden" id="s-cr3">
+    <button class="back" onclick="goto('cr2')">← Atrás</button>
+    <div class="qlabel">Tu próximo paso</div>
+    <div class="badge">🎓 Para tu institución</div>
+    <div class="pname">Vita para Colegios</div>
+    <div class="pprice">Convenio gratuito</div>
+    <div class="pcycle">Para las familias · Tarifa mensual por institución según tamaño</div>
+    <div class="pinc">QUÉ INCLUYE:</div>
+    <div class="pitems">
+      <div class="pitem">Vita activo para todos tus estudiantes y familias</div>
+      <div class="pitem">Diagnóstico conductual por chat, sin instalación</div>
+      <div class="pitem">Seguimiento personalizado por familia</div>
+      <div class="pitem">Reporte mensual para la institución</div>
+      <div class="pitem">Soporte B360 incluido</div>
+      <div class="pitem">Sin costo para las familias</div>
+    </div>
+    <button class="btn btn-wa" onclick="openWA('colegio')">💬 Hablar con un asesor</button>
+    <button class="btn btn-s" onclick="openMail('colegio')">Solicitar información por email</button>
+    <div class="note">Respuesta en menos de 24h · Sin compromiso</div>
+  </div>
+
+  <!-- CEO Q1 -->
+  <div class="screen hidden" id="s-eq1">
+    <button class="back" onclick="goBack('eq1')">← Atrás</button>
+    <div class="qlabel">Pregunta 1 de 3</div>
+    <div class="qh1">¿Cuántas personas trabajan en tu empresa?</div>
+    <div class="qsub">Incluyendo tú y cualquier colaborador regular.</div>
+    <div class="opts">
+      <div class="opt" onclick="answerE(0,0,this)"><span class="oi">🧑</span>Solo yo</div>
+      <div class="opt" onclick="answerE(0,1,this)"><span class="oi">👥</span>2 a 5 personas</div>
+      <div class="opt" onclick="answerE(0,2,this)"><span class="oi">👨‍💼</span>6 a 20 personas</div>
+      <div class="opt" onclick="answerE(0,3,this)"><span class="oi">🏢</span>Más de 20</div>
+    </div>
+  </div>
+
+  <!-- CEO Q2 -->
+  <div class="screen hidden" id="s-eq2">
+    <button class="back" onclick="goBack('eq2')">← Atrás</button>
+    <div class="qlabel">Pregunta 2 de 3</div>
+    <div class="qh1">¿Cuántas apps abres para saber cómo está tu negocio?</div>
+    <div class="qsub">Email, CRM, hojas de cálculo, WhatsApp, notas...</div>
+    <div class="opts">
+      <div class="opt" onclick="answerE(1,0,this)"><span class="oi">1️⃣</span>1 o 2 — tengo algo centralizado</div>
+      <div class="opt" onclick="answerE(1,1,this)"><span class="oi">📱</span>3 a 5 aplicaciones</div>
+      <div class="opt" onclick="answerE(1,2,this)"><span class="oi">😅</span>Más de 5 — es un caos</div>
+      <div class="opt" onclick="answerE(1,3,this)"><span class="oi">🤷</span>No tengo claridad del estado</div>
+    </div>
+  </div>
+
+  <!-- CEO Q3 -->
+  <div class="screen hidden" id="s-eq3">
+    <button class="back" onclick="goBack('eq3')">← Atrás</button>
+    <div class="qlabel">Pregunta 3 de 3</div>
+    <div class="qh1">¿Qué tiempo recuperarías con un asistente IA?</div>
+    <div class="qsub">Piensa en tu semana típica.</div>
+    <div class="opts">
+      <div class="opt" onclick="answerE(2,0,this)"><span class="oi">⏱️</span>1 a 2 horas — tareas pequeñas</div>
+      <div class="opt" onclick="answerE(2,1,this)"><span class="oi">⌚</span>3 a 5 horas — gestión y seguimientos</div>
+      <div class="opt" onclick="answerE(2,2,this)"><span class="oi">🕐</span>Más de 5 horas — casi todo lo operativo</div>
+    </div>
+  </div>
+
+  <!-- CEO R1: Diagnóstico -->
+  <div class="screen hidden" id="s-er1">
+    <button class="back" onclick="goBack('er1')">← Atrás</button>
+    <div class="qlabel">Tu diagnóstico IA</div>
+    <div class="score-box">
+      <div class="sl">Plan recomendado</div>
+      <div class="sv" id="e-plan" style="font-size:32px;margin-bottom:8px">Núcleo Pro</div>
+      <div class="ss">Basado en tu perfil, este plan te libera el mayor tiempo operativo desde el primer mes</div>
+    </div>
+    <div class="cards">
+      <div class="rcard"><span class="ri">⚡</span><div><div class="rt">Un cerebro. Todos tus sistemas.</div><div class="rd">Claude conectado a Gmail, Drive, Calendar, Notion, HubSpot y Stripe. Cualquier pregunta sobre tu empresa — respondida con datos reales.</div></div></div>
+      <div class="rcard"><span class="ri">🤖</span><div><div class="rt">Agentes que trabajan solos</div><div class="rd">ATLAS produce tu resumen del lunes. REVENUE alerta pagos y oportunidades. Tú decides, ellos ejecutan.</div></div></div>
+      <div class="rcard"><span class="ri">🗺️</span><div><div class="rt">Tu empresa documentada</div><div class="rd">El Master Plan de tu empresa: un documento interactivo vivo. No un PowerPoint. Un sistema.</div></div></div>
+      <div class="rcard"><span class="ri">📅</span><div><div class="rt">Funcionando en 2 semanas</div><div class="rd">Diagnóstico → Implementación → Entrega. Sin meses de consultoría ni reuniones infinitas.</div></div></div>
+    </div>
+    <div class="sp"></div>
+    <button class="btn btn-p" onclick="goto('er2')">Ver mi plan personalizado →</button>
+  </div>
+
+  <!-- CEO R2: Plan y CTA -->
+  <div class="screen hidden" id="s-er2">
+    <button class="back" onclick="goto('er1')">← Atrás</button>
+    <div class="qlabel">Tu plan</div>
+    <div class="badge">⚡ Recomendado para ti</div>
+    <div class="pname" id="e-plan2">Núcleo Pro</div>
+    <div class="pprice" id="e-price">$4.5M COP</div>
+    <div class="pcycle" id="e-usd">~USD 1,100 · Pago único · Sin mensualidad</div>
+    <div class="pinc">TUS AGENTES IA:</div>
+    <div class="pitems" id="e-agents">
+      <div class="pitem">ATLAS — asistente ejecutivo</div>
+      <div class="pitem">REVENUE — pipeline comercial</div>
+      <div class="pitem">LEDGER — control financiero</div>
+    </div>
+    <div class="pinc">TAMBIÉN INCLUYE:</div>
+    <div class="pitems">
+      <div class="pitem">Stack MCP-First auditado</div>
+      <div class="pitem">Hasta 5 conectores activos</div>
+      <div class="pitem">Master Plan + Roadmap 90 días</div>
+      <div class="pitem">Soporte WhatsApp 60 días</div>
+    </div>
+    <div class="proof">
+      <div class="pq">"¿Cuántas apps abres para saber cómo está tu negocio? Después de Núcleo, la respuesta es una. Claude."</div>
+      <div class="pw">— Leonardo De la Hoz · Fundador LedeLab · Usa este sistema diariamente</div>
+    </div>
+    <button class="btn btn-wa" onclick="openWA('ceo')">💬 Hablar con Leonardo</button>
+    <button class="btn btn-pay" id="btn-stripe" onclick="openStripe()">💳 Reservar y pagar ahora</button>
+    <div class="note">Verificación Stripe en proceso · Payment Link activo en 24h</div>
+  </div>
+
+  <!-- JI MTÜ -->
+  <div class="screen hidden" id="s-ji">
+    <button class="back" onclick="goto('welcome')">← Volver</button>
+    <span class="emoji">🔬</span>
+    <div class="qlabel">Javier Institute MTÜ · Estonia</div>
+    <div class="h1">Investigación en IA y bienestar humano</div>
+    <div class="sub">Instituto sin fines de lucro registrado en Estonia. Investigamos el impacto de los agentes IA en la salud y bienestar de empresarios y educadores.</div>
+    <div class="cards">
+      <div class="rcard"><span class="ri">🧠</span><div><div class="rt">Línea de investigación activa</div><div class="rd">Cambio conductual guiado por IA en contextos educativos y empresariales — basado en evidencia científica.</div></div></div>
+      <div class="rcard"><span class="ri">🎓</span><div><div class="rt">Primer paper en proceso</div><div class="rd">Derivado de tesis MA Educational Technology, University of Tartu, 2026.</div></div></div>
+      <div class="rcard"><span class="ri">🌍</span><div><div class="rt">Estonia + Colombia</div><div class="rd">Puente investigativo entre el ecosistema digital estonio y el contexto latinoamericano.</div></div></div>
+    </div>
+    <div class="sp"></div>
+    <button class="btn btn-p" onclick="openMail('ji')">Contactar al Instituto →</button>
+  </div>
+
+</div>
+
+<script>
+// ── State ──────────────────────────────────────────────────
+var profile = null;
+var cAnswers = [-1,-1,-1];
+var eAnswers = [-1,-1,-1];
+var current = 'welcome';
+
+// ── Routing ────────────────────────────────────────────────
+function goto(id) {
+  document.getElementById('s-'+current).classList.add('hidden');
+  document.getElementById('s-'+id).classList.remove('hidden');
+  current = id;
+  setProgress(id);
+  window.scrollTo(0,0);
+}
+
+function setProgress(id) {
+  var map = {
+    'welcome':5,'cq1':15,'cq2':35,'cq3':55,
+    'cr1':70,'cr2':82,'cr3':100,
+    'eq1':15,'eq2':35,'eq3':55,
+    'er1':75,'er2':100,'ji':80
+  };
+  document.getElementById('pf').style.width = (map[id]||5)+'%';
+}
+
+// ── Welcome ────────────────────────────────────────────────
+function chooseProfile(el) {
+  document.querySelectorAll('.choice').forEach(function(c){c.classList.remove('sel')});
+  el.classList.add('sel');
+  profile = el.dataset.val;
+  document.getElementById('btn-welcome').disabled = false;
+}
+
+function startFlow() {
+  if(!profile) return;
+  if(profile==='colegio') goto('cq1');
+  else if(profile==='ceo') goto('eq1');
+  else if(profile==='familia') { window.location.href = '/talentos'; return; }
+  else goto('ji');
+}
+
+// ── Colegio questions ──────────────────────────────────────
+function answerC(q, val, el) {
+  var screen = ['cq1','cq2','cq3'][q];
+  document.querySelectorAll('#s-'+screen+' .opt').forEach(function(o){o.classList.remove('sel')});
+  el.classList.add('sel');
+  cAnswers[q] = val;
+  setTimeout(function() {
+    if(q===0) goto('cq2');
+    else if(q===1) goto('cq3');
+    else showColegioResult();
+  }, 180);
+}
+
+function showColegioResult() {
+  var sizes = [300,600,1200];
+  var students = sizes[cAnswers[0]] || 300;
+  var pct = cAnswers[1]===2 ? 0.35 : cAnswers[1]===1 ? 0.25 : 0.18;
+  var affected = Math.round(students * pct);
+  document.getElementById('c-affected').textContent = affected;
+  document.getElementById('c-affected-sub').textContent =
+    'de tus ~' + students + ' estudiantes podrían tener factores inflamatorios invisibles afectando su rendimiento';
+  goto('cr1');
+}
+
+// ── CEO questions ──────────────────────────────────────────
+function answerE(q, val, el) {
+  var screen = ['eq1','eq2','eq3'][q];
+  document.querySelectorAll('#s-'+screen+' .opt').forEach(function(o){o.classList.remove('sel')});
+  el.classList.add('sel');
+  eAnswers[q] = val;
+  setTimeout(function() {
+    if(q===0) goto('eq2');
+    else if(q===1) goto('eq3');
+    else showCEOResult();
+  }, 180);
+}
+
+function showCEOResult() {
+  var apps = eAnswers[1];
+  var plan, price, usd, agents;
+  if(apps >= 2) {
+    plan='Pro'; price='$4.5M COP'; usd='~USD 1,100 · Pago único';
+    agents=['ATLAS — asistente ejecutivo','REVENUE — pipeline comercial','LEDGER — control financiero'];
+  } else {
+    plan='Esencial'; price='$1.8M COP'; usd='~USD 430 · Pago único';
+    agents=['ATLAS — asistente ejecutivo','Stack Card de tu empresa'];
+  }
+  document.getElementById('e-plan').textContent = 'Núcleo ' + plan;
+  document.getElementById('e-plan2').textContent = 'Núcleo ' + plan;
+  document.getElementById('e-price').textContent = price;
+  document.getElementById('e-usd').textContent = usd + ' · Sin mensualidad';
+  var agEl = document.getElementById('e-agents');
+  agEl.innerHTML = agents.map(function(a){ return '<div class="pitem">'+a+'</div>'; }).join('');
+  goto('er1');
+}
+
+// ── Back navigation ────────────────────────────────────────
+function goBack(from) {
+  var map = {
+    'cq1':'welcome','cq2':'cq1','cq3':'cq2',
+    'cr1':'cq3','cr2':'cr1','cr3':'cr2',
+    'eq1':'welcome','eq2':'eq1','eq3':'eq2',
+    'er1':'eq3','er2':'er1'
+  };
+  goto(map[from]||'welcome');
+}
+
+// ── CTAs ───────────────────────────────────────────────────
+function openWA(ctx) {
+  var msg = ctx==='colegio'
+    ? 'Hola%2C%20quiero%20conocer%20m%C3%A1s%20sobre%20Vita%20para%20mi%20colegio'
+    : 'Hola%20Leonardo%2C%20quiero%20empezar%20con%20N%C3%BAcleo';
+  window.open('https://wa.me/573054045990?text='+msg,'_blank');
+}
+
+function openMail(ctx) {
+  var subj = ctx==='colegio'
+    ? 'Quiero%20conocer%20Vita%20para%20mi%20colegio'
+    : ctx==='ji'
+      ? 'Javier%20Institute%20-%20Colaboraci%C3%B3n'
+      : 'Quiero%20informaci%C3%B3n%20sobre%20N%C3%BAcleo';
+  window.open('mailto:leonardo@ledelab.group?subject='+subj,'_blank');
+}
+
+function openStripe() {
+  // Reemplazar con el Payment Link real cuando esté activo
+  alert('Payment Link de Stripe disponible en 24 horas. Escríbenos por WhatsApp para reservar ahora.');
+  openWA('ceo');
+}
+</script>
+</body>
+</html>
