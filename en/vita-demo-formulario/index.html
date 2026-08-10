@@ -133,6 +133,33 @@ const detectarRiesgoTextual=(text)=>{
   return null;
 };
 
+// Day-coverage check (10 ago 2026, ported from the Spanish version) — the
+// cronologia_del_dia field is one free-text field, so a parent can leave it
+// with gaps without noticing, which is exactly what could make Peter reject
+// a case at review. Rather than splitting the field into 7 sub-fields (more
+// tedious to fill), this detects by keyword whether the story mentions the
+// 7 key moments of the day, and if something's missing, sendToReview()
+// pauses and shows a confirmation panel BEFORE submitting — the parent
+// either completes it or explicitly confirms they don't know / don't want
+// to share those moments yet. If they confirm, the gap gets NOTED in the
+// same text Peter sees — never an ambiguous silence. Works the same for
+// chat mode (the model writes the text) and form mode (the parent types it
+// directly) — same field, same check.
+const PERIODOS_DIA = [
+  { label:"Waking up", re:/wak(e|ing) up|got? up/i },
+  { label:"Breakfast", re:/breakfast/i },
+  { label:"Mid-morning", re:/mid-?morning|morning snack/i },
+  { label:"Lunch", re:/lunch/i },
+  { label:"Mid-afternoon", re:/mid-?afternoon|afternoon snack/i },
+  { label:"Dinner", re:/dinner|evening meal/i },
+  { label:"Before bed", re:/before (bed|sleep|bedtime)/i },
+];
+const coberturaDia=(texto)=>{
+  const t=texto||"";
+  const faltantes=PERIODOS_DIA.filter(p=>!p.re.test(t)).map(p=>p.label);
+  return { cubiertos:PERIODOS_DIA.length-faltantes.length, total:PERIODOS_DIA.length, faltantes };
+};
+
 // FIELDS: labels/hints in English; "key" values stay identical to the
 // Spanish version — those are the dx object keys, the Sheet columns depend
 // on them.
@@ -174,6 +201,26 @@ const Shell=(props)=>(
   </div>
 );
 
+// Day-coverage confirmation panel — used in both form and chat mode, hence
+// module-level (same reason as Shell). Explains the real consequence of
+// leaving the gap (a more general first plan, possibly more time to find
+// what's really affecting the child) — no guilt, just an informed choice.
+const PanelCobertura=({nombreNino,faltantes,onCompletar,onContinuar,P,btnPrimary})=>(
+  <div onClick={onCompletar} style={{position:"absolute",inset:0,background:"rgba(40,42,36,.55)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:20,padding:20}}>
+    <div onClick={e=>e.stopPropagation()} style={{background:P.panel,borderRadius:20,padding:"22px 20px",maxWidth:340,boxShadow:"0 20px 50px rgba(0,0,0,.3)"}}>
+      <div style={{fontFamily:"'Fraunces',serif",fontSize:18,color:P.sageDeep,marginBottom:10}}>Is that the whole day?</div>
+      <p style={{fontSize:13.5,color:P.ink,lineHeight:1.55,marginBottom:10}}>It looks like we didn't talk about these moments in {nombreNino||"your child"}'s day:</p>
+      <ul style={{fontSize:13,color:P.sageDeep,fontWeight:700,marginBottom:14,paddingLeft:18}}>
+        {faltantes.map(f=><li key={f}>{f}</li>)}
+      </ul>
+      <p style={{fontSize:12.5,color:P.muted,lineHeight:1.5,marginBottom:10}}>It's okay if you don't know or would rather not share them yet — we just want that to be your choice, not something we missed.</p>
+      <p style={{fontSize:12.5,color:P.muted,lineHeight:1.5,marginBottom:16}}>One thing though: the less we know about the full day, the more general the team's first plan will be, and it may take longer to find what's really affecting {nombreNino||"your child"}. If you can fill it in, the plan comes out more precise from the start.</p>
+      <button onClick={onCompletar} style={{...btnPrimary,width:"100%",marginBottom:8}}>I'd like to fill it in</button>
+      <button onClick={onContinuar} style={{background:"none",border:"none",color:P.muted,fontSize:12.5,fontWeight:700,cursor:"pointer",width:"100%",textAlign:"center",fontFamily:"'Nunito',sans-serif"}}>I don't know / I'd rather not share it — continue anyway</button>
+    </div>
+  </div>
+);
+
 function App(){
   const [stage,setStage]=useState("welcome");
   const [messages,setMessages]=useState([]);
@@ -189,6 +236,7 @@ function App(){
   const [chatCopied,setChatCopied]=useState(false);
   const [sending,setSending]=useState(false);
   const [sendError,setSendError]=useState(null);
+  const [pendienteCobertura,setPendienteCobertura]=useState(null); // null, or array of day-moments pending confirmation
   const scrollRef=useRef(null);
   useEffect(()=>{ if(scrollRef.current) scrollRef.current.scrollTop=scrollRef.current.scrollHeight; },[messages,loading]);
   const filled=FIELDS.filter(f=>dx[f.key]&&dx[f.key].trim()).length;
@@ -333,21 +381,46 @@ function App(){
       .finally(()=>setLoading(false));
   };
 
-  const sendToReview=async()=>{
-    if(sending||!puedeEnviar()) return;
+  // Split in two (10 ago 2026, ported from Spanish version): enviarDatos()
+  // does the real submit and takes the final dx as a parameter (not read
+  // from state) because confirmarEnvioIncompleto() needs to submit a
+  // just-modified version of dx in the same instant — reading from state
+  // there would be stale, since setDx is async. sendToReview() is what the
+  // buttons call: checks day coverage first, only calls enviarDatos()
+  // straight through if the day is fully covered.
+  const enviarDatos=async(dxFinal)=>{
     setSending(true); setSendError(null);
     const motivosEncontrados=new Set();
-    for(const k of Object.keys(dx)){ const m=detectarRiesgoTextual(dx[k]); if(m) motivosEncontrados.add(m); }
-    motivosEncontrados.forEach(m=>notificarEscalar(m, dx.preocupacion_principal||dx.senales_observables||""));
+    for(const k of Object.keys(dxFinal)){ const m=detectarRiesgoTextual(dxFinal[k]); if(m) motivosEncontrados.add(m); }
+    motivosEncontrados.forEach(m=>notificarEscalar(m, dxFinal.preocupacion_principal||dxFinal.senales_observables||""));
     try{
       const res=await fetch(WORKER_URL+"/log",{ method:"POST", headers:{"Content-Type":"application/json"},
-        body:JSON.stringify({ producto:"formulario", mode:MODE, dx, ts:new Date().toISOString() }) });
+        body:JSON.stringify({ producto:"formulario", mode:MODE, dx:dxFinal, ts:new Date().toISOString() }) });
       const data=await res.json().catch(()=>({}));
       if(!res.ok || data.ok===false) throw new Error("log failed");
       setStage("sent");
     }catch(e){ setSendError("Couldn't submit. Try again."); }
     finally{ setSending(false); }
   };
+
+  const sendToReview=()=>{
+    if(sending||!puedeEnviar()) return;
+    const {faltantes}=coberturaDia(dx.cronologia_del_dia);
+    if(faltantes.length>0){ setPendienteCobertura(faltantes); return; }
+    enviarDatos(dx);
+  };
+
+  // The parent confirmed they want to submit anyway, without filling in
+  // those moments — the gap gets NOTED in the same text Peter sees, never
+  // silently.
+  const confirmarEnvioIncompleto=()=>{
+    const faltantes=pendienteCobertura||[];
+    const dxFinal={...dx, cronologia_del_dia:(dx.cronologia_del_dia||"")+"\n[No data or not shared yet: "+faltantes.join(", ")+"]"};
+    setDx(dxFinal);
+    setPendienteCobertura(null);
+    enviarDatos(dxFinal);
+  };
+  const cancelarConfirmacionCobertura=()=>setPendienteCobertura(null);
 
   const exportDx=async()=>{ const txt="HABITS FORM · Bienestar 360\n\n"+FIELDS.map(f=>f.label+": "+(dx[f.key]||"—")).join("\n"); try{ await navigator.clipboard.writeText(txt); setExported(true); setTimeout(()=>setExported(false),2000);}catch(e){ const w=window.open("","_blank"); if(w){ w.document.body.style.cssText="font-family:system-ui;padding:20px;white-space:pre-wrap;line-height:1.5"; w.document.body.textContent=txt; } } };
 
@@ -403,6 +476,7 @@ function App(){
       {!puedeEnviar() && <p style={{fontSize:11.5,color:P.muted,textAlign:"center"}}>Still missing: {mensajeFaltante()}.</p>}
       {sendError && <p style={{fontSize:12.5,color:P.clay,textAlign:"center"}}>{sendError}</p>}
       <p style={{fontSize:11,color:P.muted,textAlign:"center",lineHeight:1.5,marginTop:2}}>This supports and complements your pediatrician — it doesn't replace them.</p>
+      {pendienteCobertura&&(<PanelCobertura nombreNino={dx.nombre_nino} faltantes={pendienteCobertura} onCompletar={cancelarConfirmacionCobertura} onContinuar={confirmarEnvioIncompleto} P={P} btnPrimary={btnPrimary}/>)}
     </div></Shell>
   );
 
@@ -464,6 +538,7 @@ function App(){
           </div>
         </div>
       </div>)}
+      {pendienteCobertura&&(<PanelCobertura nombreNino={dx.nombre_nino} faltantes={pendienteCobertura} onCompletar={cancelarConfirmacionCobertura} onContinuar={confirmarEnvioIncompleto} P={P} btnPrimary={btnPrimary}/>)}
     </Shell>
   );
 }

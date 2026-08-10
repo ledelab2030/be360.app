@@ -187,6 +187,34 @@ const detectarRiesgoTextual=(text)=>{
   return null;
 };
 
+// Cobertura de las 24h del día (10 ago 2026) — hallazgo de Leonardo: el campo
+// cronologia_del_dia es un solo texto libre, así que un padre puede dejarlo
+// con huecos sin darse cuenta — y eso es justo lo que puede generar rechazo
+// de Peter al revisar. La solución NO reestructura el campo en 7 sub-campos
+// (sería más engorroso de llenar); en su lugar, detecta por palabras clave
+// si el relato menciona los 7 momentos clave del día, y si falta alguno,
+// sendToReview() se detiene y muestra un panel de confirmación ANTES de
+// enviar (ver pendienteCobertura/confirmarEnvioIncompleto más abajo) — el
+// padre elige completar o confirmar explícitamente que no sabe / no quiere
+// compartir esos momentos todavía. Si confirma, el hueco queda ANOTADO en el
+// mismo texto que ve Peter (nunca queda como un silencio ambiguo). Funciona
+// igual para el modo chat (el modelo arma el texto) y el modo formulario (el
+// padre lo escribe directo) — es el mismo campo, la misma verificación.
+const PERIODOS_DIA = [
+  { label:"Al levantarse", re:/levant|despert/i },
+  { label:"Desayuno", re:/desayun/i },
+  { label:"Media mañana", re:/media ma[ñn]ana|lonchera|refrigerio/i },
+  { label:"Almuerzo", re:/almuerz/i },
+  { label:"Media tarde", re:/media tarde|onces/i },
+  { label:"Cena", re:/\bcena\b|comida de la noche/i },
+  { label:"Antes de dormir", re:/antes de (dormir|acostarse|la cama)/i },
+];
+const coberturaDia=(texto)=>{
+  const t=texto||"";
+  const faltantes=PERIODOS_DIA.filter(p=>!p.re.test(t)).map(p=>p.label);
+  return { cubiertos:PERIODOS_DIA.length-faltantes.length, total:PERIODOS_DIA.length, faltantes };
+};
+
 // El "hint" es la guía corta que en el chat hace Vita con preguntas — aquí
 // va como ayuda debajo de cada campo, para que el modo formulario capture
 // EXACTAMENTE la misma sustancia clínica que el modo conversacional (mismos
@@ -239,6 +267,27 @@ const Shell=(props)=>(
   </div>
 );
 
+// Panel de confirmación de cobertura del día (10 ago 2026) — se usa tanto en
+// modo formulario como en modo chat, por eso vive a nivel de módulo (mismo
+// motivo que Shell). Explica la consecuencia real de dejar el hueco (plan
+// inicial más general, puede tardar más encontrar qué le afecta al niño/a) —
+// sin culpar, solo para que la decisión de no completar sea informada.
+const PanelCobertura=({nombreNino,faltantes,onCompletar,onContinuar,P,btnPrimary})=>(
+  <div onClick={onCompletar} style={{position:"absolute",inset:0,background:"rgba(40,42,36,.55)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:20,padding:20}}>
+    <div onClick={e=>e.stopPropagation()} style={{background:P.panel,borderRadius:20,padding:"22px 20px",maxWidth:340,boxShadow:"0 20px 50px rgba(0,0,0,.3)"}}>
+      <div style={{fontFamily:"'Fraunces',serif",fontSize:18,color:P.sageDeep,marginBottom:10}}>¿Es todo el día?</div>
+      <p style={{fontSize:13.5,color:P.ink,lineHeight:1.55,marginBottom:10}}>Parece que no hablamos de estos momentos del día de {nombreNino||"tu hijo/a"}:</p>
+      <ul style={{fontSize:13,color:P.sageDeep,fontWeight:700,marginBottom:14,paddingLeft:18}}>
+        {faltantes.map(f=><li key={f}>{f}</li>)}
+      </ul>
+      <p style={{fontSize:12.5,color:P.muted,lineHeight:1.5,marginBottom:10}}>Está bien si no los sabes o prefieres no compartirlos todavía — solo queremos que sea una decisión tuya, no un olvido nuestro.</p>
+      <p style={{fontSize:12.5,color:P.muted,lineHeight:1.5,marginBottom:16}}>Eso sí: mientras menos sepamos del día completo, el primer plan que arme el equipo será más general, y puede tomar más tiempo encontrar qué le está afectando de verdad a {nombreNino||"tu hijo/a"}. Si puedes completarlo, el plan sale más preciso desde el primer intento.</p>
+      <button onClick={onCompletar} style={{...btnPrimary,width:"100%",marginBottom:8}}>Quiero completarlo</button>
+      <button onClick={onContinuar} style={{background:"none",border:"none",color:P.muted,fontSize:12.5,fontWeight:700,cursor:"pointer",width:"100%",textAlign:"center",fontFamily:"'Nunito',sans-serif"}}>No lo sé / prefiero no compartirlo — continuar así</button>
+    </div>
+  </div>
+);
+
 function App(){
   const [stage,setStage]=useState("welcome");
   const [messages,setMessages]=useState([]);
@@ -254,6 +303,7 @@ function App(){
   const [chatCopied,setChatCopied]=useState(false);
   const [sending,setSending]=useState(false);
   const [sendError,setSendError]=useState(null);
+  const [pendienteCobertura,setPendienteCobertura]=useState(null); // null, o array de momentos del día que faltan por confirmar
   const scrollRef=useRef(null);
   useEffect(()=>{ if(scrollRef.current) scrollRef.current.scrollTop=scrollRef.current.scrollHeight; },[messages,loading]);
   const filled=FIELDS.filter(f=>dx[f.key]&&dx[f.key].trim()).length;
@@ -451,25 +501,49 @@ function App(){
   // HITL capture-only: nada se le muestra al padre como recomendación. Esto manda
   // el diagnóstico capturado a revisión (mismo Sheet vía el mismo Worker que
   // vita-demo-srb-3) — Peter lo aprueba antes de que alguien le escriba al padre.
-  const sendToReview=async()=>{
-    if(sending||!puedeEnviar()) return; // el botón ya se deshabilita solo, esto es el respaldo por si acaso
+  // Separado en dos pasos (10 ago 2026): enviarDatos() hace el envío real y
+  // recibe el dx final como parámetro (no lo lee del estado directamente,
+  // porque confirmarEnvioIncompleto() necesita mandar una versión de dx
+  // recién modificada en el mismo instante — leer del estado ahí llegaría
+  // tarde, setDx es asíncrono). sendToReview() es lo que llaman los botones:
+  // revisa cobertura del día primero, y solo llama a enviarDatos() derecho
+  // si el día está completo.
+  const enviarDatos=async(dxFinal)=>{
     setSending(true); setSendError(null);
     // Última red de respaldo antes de enviar: escanea TODO lo capturado —
     // por chat o por el modo formulario directo, que no pasa por el modelo
     // en absoluto y por eso no tiene ningún otro chequeo de riesgo. Dedupe
     // por motivo para no mandar varios correos iguales.
     const motivosEncontrados=new Set();
-    for(const k of Object.keys(dx)){ const m=detectarRiesgoTextual(dx[k]); if(m) motivosEncontrados.add(m); }
-    motivosEncontrados.forEach(m=>notificarEscalar(m, dx.preocupacion_principal||dx.senales_observables||""));
+    for(const k of Object.keys(dxFinal)){ const m=detectarRiesgoTextual(dxFinal[k]); if(m) motivosEncontrados.add(m); }
+    motivosEncontrados.forEach(m=>notificarEscalar(m, dxFinal.preocupacion_principal||dxFinal.senales_observables||""));
     try{
       const res=await fetch(WORKER_URL+"/log",{ method:"POST", headers:{"Content-Type":"application/json"},
-        body:JSON.stringify({ producto:"formulario", mode:MODE, dx, ts:new Date().toISOString() }) });
+        body:JSON.stringify({ producto:"formulario", mode:MODE, dx:dxFinal, ts:new Date().toISOString() }) });
       const data=await res.json().catch(()=>({}));
       if(!res.ok || data.ok===false) throw new Error("log failed");
       setStage("sent");
     }catch(e){ setSendError("No se pudo enviar. Reintenta."); }
     finally{ setSending(false); }
   };
+
+  const sendToReview=()=>{
+    if(sending||!puedeEnviar()) return; // el botón ya se deshabilita solo, esto es el respaldo por si acaso
+    const {faltantes}=coberturaDia(dx.cronologia_del_dia);
+    if(faltantes.length>0){ setPendienteCobertura(faltantes); return; } // pausa, muestra el panel de confirmación
+    enviarDatos(dx);
+  };
+
+  // El padre confirmó que quiere enviar igual, sin completar esos momentos —
+  // el hueco queda ANOTADO en el mismo texto que ve Peter, nunca en silencio.
+  const confirmarEnvioIncompleto=()=>{
+    const faltantes=pendienteCobertura||[];
+    const dxFinal={...dx, cronologia_del_dia:(dx.cronologia_del_dia||"")+"\n[Sin dato o no compartido aún: "+faltantes.join(", ")+"]"};
+    setDx(dxFinal);
+    setPendienteCobertura(null);
+    enviarDatos(dxFinal);
+  };
+  const cancelarConfirmacionCobertura=()=>setPendienteCobertura(null);
 
   const exportDx=async()=>{ const txt="FORMULARIO DE HÁBITOS · Bienestar 360\n\n"+FIELDS.map(f=>f.label+": "+(dx[f.key]||"—")).join("\n"); try{ await navigator.clipboard.writeText(txt); setExported(true); setTimeout(()=>setExported(false),2000);}catch(e){ const w=window.open("","_blank"); if(w){ w.document.body.style.cssText="font-family:system-ui;padding:20px;white-space:pre-wrap;line-height:1.5"; w.document.body.textContent=txt; } } };
 
@@ -525,6 +599,7 @@ function App(){
       {!puedeEnviar() && <p style={{fontSize:11.5,color:P.muted,textAlign:"center"}}>Aún falta: {mensajeFaltante()}.</p>}
       {sendError && <p style={{fontSize:12.5,color:P.clay,textAlign:"center"}}>{sendError}</p>}
       <p style={{fontSize:11,color:P.muted,textAlign:"center",lineHeight:1.5,marginTop:2}}>Esto acompaña y suma con su pediatra — no lo reemplaza.</p>
+      {pendienteCobertura&&(<PanelCobertura nombreNino={dx.nombre_nino} faltantes={pendienteCobertura} onCompletar={cancelarConfirmacionCobertura} onContinuar={confirmarEnvioIncompleto} P={P} btnPrimary={btnPrimary}/>)}
     </div></Shell>
   );
 
@@ -586,6 +661,7 @@ function App(){
           </div>
         </div>
       </div>)}
+      {pendienteCobertura&&(<PanelCobertura nombreNino={dx.nombre_nino} faltantes={pendienteCobertura} onCompletar={cancelarConfirmacionCobertura} onContinuar={confirmarEnvioIncompleto} P={P} btnPrimary={btnPrimary}/>)}
     </Shell>
   );
 }
