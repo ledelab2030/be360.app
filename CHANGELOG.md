@@ -208,6 +208,21 @@ No hay base de datos propia ni backend con estado — el Sheet **es** la base de
 
 ---
 
+### 10 ago 2026 — Confirmación de email antes de enviar + navegación hacia atrás (PR #52)
+
+- **Hallazgo de Leonardo, con screenshot real de una prueba en vivo:** un correo mal escrito (`leonardodelahozb@gmail.com`) se guardó sin ningún punto de confirmación o corrección — y como ya no hay WhatsApp (ver punto 2 de pendientes), el correo es el ÚNICO canal de entrega. Un typo ahí deja a la familia sin forma de recibir su plan, y sin que nadie se entere del error.
+- `PanelCobertura` (el panel de la cobertura del día, PR #49) se reemplaza por `PanelRevisionFinal`: se muestra SIEMPRE antes de enviar, con el correo de contacto editable ahí mismo y validado con formato básico (bloqueo duro del botón solo si el formato es inválido). La cobertura del día sigue siendo un aviso suave dentro del mismo panel — informa la consecuencia, nunca bloquea.
+- Se agregan botones `← Volver` en el formulario directo, la pantalla de intro y el encabezado del chat — el padre puede regresar al inicio desde cualquier punto del recorrido. Aplicado en ES y EN.
+
+### 10 ago 2026 — Verificación de código de colegio antes de aprobar (PR #53)
+
+- Sistema de elegibilidad por colegio: al guardar el borrador, el padre recibe un correo pidiéndole el código que le dio su colegio para el programa (`verificar/index.html`, página standalone en vanilla JS — no justifica el peso de React/Babel para una sola pregunta).
+- Sin ese código confirmado, Peter **no puede aprobar** el plan — bloqueo duro en `aprobarPlan` (backend), reforzado con un badge visible + aviso explicativo en `panel/index.html` (mismo patrón que el badge de consentimiento).
+- Si no se confirma en 72 horas, la información capturada se purga automáticamente (`purgarNoVerificados` + trigger programado) — mismo patrón "nunca silencioso" que la purga por inactividad (punto 13 de pendientes), con aviso al equipo por correo.
+- Ruta nueva `/verificar` en el Worker, reutiliza `handlePanelAction` sin secreto nuevo de Cloudflare. **Pendiente antes de operar con familias reales:** reemplazar el código de ejemplo (`BIS2026`) en `CODIGOS_VALIDOS_COLEGIO` por el código real del colegio.
+
+---
+
 ## Medidas de seguridad y privacidad (para compliance/auditoría)
 
 - **Human-in-the-Loop real, no solo procedimental:** implementado en el código (el Worker verifica el estado de aprobación antes de servir cualquier plan), no solo como una política que alguien podría olvidar seguir.
@@ -242,6 +257,7 @@ No hay base de datos propia ni backend con estado — el Sheet **es** la base de
     - Borrado total pedido por la familia → se borra todo, sin guardar un stub de auditoría interno salvo autorización explícita.
     - Es una recomendación operativa razonable, no asesoría legal — antes del piloto de 100 familias conviene una revisión rápida con un abogado colombiano (Ley 1581, Habeas Data), dado que son datos de menores.
     - ~~Falta implementar en código~~ **Resuelto 10 ago:** `purgarInactivos`/`purgarInactivosProgramado` en `apps-script-formulario-v2.gs.txt` — borra casos aprobados con 24+ meses sin actividad conocida, manda resumen al equipo por correo. Es un trigger instalable de tiempo (igual patrón que `onAprobado`) — no corre solo hasta que se instale a mano en Activadores, cero riesgo de borrado accidental. El flujo de borrado **por solicitud explícita** de una familia sigue siendo manual (alguien del equipo borra la fila al recibir la solicitud) — no automatizado todavía, pero no es tan urgente como el backstop de inactividad. Detalle: Notion "[be360 — Camino a TRL 9](https://app.notion.com/p/3b77dac3d7cc81928514d61dc2ca1fe9)".
+14. **Verificación de código de colegio construida pero no operativa todavía (PR #53, 10 ago):** el bloqueo, el correo, la purga a 72h y el badge del panel están en `main` y el Worker ya tiene la ruta `/verificar` desplegada — pero el Apps Script sigue corriendo la versión anterior (falta el pegado manual + "Nueva versión", ver convenciones abajo) y `CODIGOS_VALIDOS_COLEGIO` todavía tiene el código de ejemplo `BIS2026`, no el real del colegio. Ninguno de los dos pasos es automatizable por diseño (evita que un agente de IA pueda tocar el código de acceso real de una familia sin que un humano lo revise primero).
 
 ---
 
