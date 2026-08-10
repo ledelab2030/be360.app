@@ -51,6 +51,14 @@
  * (appendRow escribe igual aunque no haya encabezado); si quieres un
  * encabezado prolijo, agrega "consentimiento_ts" en la celda de la próxima
  * columna libre a la derecha de correo_enviado_ts.
+ *
+ * purgarInactivos / purgarInactivosProgramado (10 ago 2026): implementa la
+ * política de retención de datos aprobada por Leonardo el 9 ago (ver
+ * CHANGELOG.md, punto 13). Borra casos APROBADOS (familias reales) con más
+ * de 24 meses sin actividad conocida — ver el comentario junto a la función
+ * para el detalle. Es un trigger INSTALABLE de tiempo, igual que onAprobado:
+ * mientras no lo instales a mano (ícono de reloj → activadores → basado en
+ * tiempo), esta función existe en el código pero nunca se ejecuta sola.
  */
 
 var SHARED_SECRET = "3-estoesparaquevitarenazcabajolasreglasduras";
@@ -423,4 +431,78 @@ function onAprobado(e) {
   } catch (err) {
     // No relanzar: un error aquí no debe romper la edición del Sheet.
   }
+}
+
+// ============================================================
+// PURGA POR INACTIVIDAD (10 ago 2026) — implementa la política de
+// retención decidida y aprobada por Leonardo el 9 ago (CHANGELOG.md,
+// punto 13). Regla: si un caso APROBADO (familia real) lleva 24 meses sin
+// actividad conocida, se borra solo. "Actividad conocida" hoy solo se
+// puede medir por correo_enviado_ts (cuándo se le mandó el plan) — el chat
+// de seguimiento (plan/index.html) no escribe nada a este Sheet, así que
+// no hay una señal de "última interacción" más reciente que esa. Si en el
+// futuro el chat de seguimiento empieza a loguear actividad, esta función
+// debería usar esa fecha en vez de correo_enviado_ts.
+//
+// A propósito NO toca filas pendientes (decision distinto de "aprobado")
+// — esas ya se limpian a mano con descartar_pendiente cuando hace falta, y
+// purgarlas automáticamente sería más agresivo que lo que pide la política
+// (que habla de familias reales, no de casos de prueba sin terminar).
+//
+// A propósito SÍ manda un correo de resumen al equipo cuando purga algo —
+// no es un "stub de auditoría" persistente en los datos (la política dice
+// explícitamente que no se guarde uno salvo autorización de la familia),
+// es solo una notificación operativa para que nadie se entere de un
+// borrado real por accidente. El correo no incluye información clínica
+// del niño/a, solo nombre y fecha — lo mínimo para saber qué pasó.
+//
+// NO corre sola con pegar el código — igual que onAprobado, es un trigger
+// INSTALABLE de tiempo. Instálalo así, una sola vez:
+//   1. En el editor de Apps Script, ícono del reloj (⏰, "Activadores").
+//   2. + Agregar activador.
+//   3. Función: purgarInactivosProgramado · Fuente del evento: Basado en
+//      tiempo · Tipo de activador basado en tiempo: Temporizador mensual
+//      (elige el día del mes y la hora) · Guardar.
+//   4. Autoriza permisos si te lo pide (es tu propio script).
+// Mientras no instales el activador, esta función existe en el código pero
+// nunca se ejecuta sola — no hay riesgo de que borre nada sin que lo
+// actives a propósito.
+// ============================================================
+var MESES_INACTIVIDAD_PURGA = 24;
+
+function purgarInactivos(sheet) {
+  var data = sheet.getDataRange().getValues();
+  var limite = new Date();
+  limite.setMonth(limite.getMonth() - MESES_INACTIVIDAD_PURGA);
+  var purgados = [];
+  // De abajo hacia arriba: borrar una fila corre hacia arriba las de abajo,
+  // así que iterar en reversa evita saltarse filas por el corrimiento.
+  for (var r = data.length - 1; r >= 1; r--) {
+    if (data[r][COLS.decision] !== "aprobado") continue;
+    var fechaRef = data[r][COLS.correo_enviado_ts] || data[r][COLS.timestamp];
+    if (!fechaRef) continue;
+    var fecha = new Date(fechaRef);
+    if (isNaN(fecha.getTime())) continue;
+    if (fecha < limite) {
+      purgados.push({ nombreNino: data[r][COLS.nombre_nino] || "(sin nombre)", fechaRef: fechaRef });
+      sheet.deleteRow(r + 1);
+    }
+  }
+  if (purgados.length > 0) {
+    MailApp.sendEmail({
+      to: "leonardo@ledelab.group",
+      subject: "🗑️ Purga automática por inactividad — " + purgados.length + " caso(s)",
+      body: "Se borraron " + purgados.length + " caso(s) por pasar " + MESES_INACTIVIDAD_PURGA +
+        " meses sin actividad conocida (política de retención aprobada 9 ago 2026):\n\n" +
+        purgados.map(function (p) { return "- " + p.nombreNino + " (última actividad: " + p.fechaRef + ")"; }).join("\n"),
+    });
+  }
+  return purgados;
+}
+
+// Función objetivo del trigger de tiempo — sin argumentos, porque los
+// triggers de tiempo de Apps Script no pueden recibir parámetros.
+function purgarInactivosProgramado() {
+  var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheets()[0];
+  purgarInactivos(sheet);
 }
