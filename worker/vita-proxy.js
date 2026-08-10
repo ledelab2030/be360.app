@@ -92,6 +92,18 @@
 // del plan DIRECTO al padre/madre, automáticamente. Este Worker no cambia
 // nada aquí (el campo va opaco dentro de "dx") — el cambio real está en
 // vita-demo-formulario/index.html y worker/apps-script-formulario-v2.gs.txt.
+//
+// NUEVO (10 ago 2026): verificación de elegibilidad por colegio (pedido de
+// Leonardo). be360 solo está habilitado para ciertos colegios, y el control
+// es por hijo/a, no por familia. Se verifica DESPUÉS de capturar (no
+// bloquea el inicio de la conversación): apenas el borrador queda listo,
+// Apps Script le manda al padre un correo con un link a verificar/, que
+// llama a esta ruta con el código. Reusa handlePanelAction tal cual (mismo
+// patrón de passthrough genérico) — no necesita ningún secret nuevo de
+// Cloudflare, la protección real (código válido + conocer el idPlan) vive
+// en Apps Script. Si no se verifica en 72 horas, Apps Script purga el caso
+// solo (purgarNoVerificadosProgramado) y aprobarPlan ya rechaza aprobar
+// cualquier caso sin verificar, así que la recomendación queda retenida.
 // ============================================================
 
 const ALLOWED_ORIGIN = "https://be360.app";
@@ -222,6 +234,9 @@ export default {
     if (url.pathname === "/panel/guardar") return handlePanelAction(request, env, cors, "guardar_edicion_plan");
     if (url.pathname === "/panel/aprobar") return handlePanelAction(request, env, cors, "aprobar_plan");
     if (url.pathname === "/panel/descartar") return handlePanelAction(request, env, cors, "descartar_pendiente");
+
+    // NUEVO (10 ago 2026): verificación del código de colegio — ver nota grande arriba.
+    if (url.pathname === "/verificar") return handlePanelAction(request, env, cors, "verificar_codigo");
 
     try {
       const body = await request.json();

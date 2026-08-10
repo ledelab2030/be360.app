@@ -59,10 +59,34 @@
  * para el detalle. Es un trigger INSTALABLE de tiempo, igual que onAprobado:
  * mientras no lo instales a mano (ícono de reloj → activadores → basado en
  * tiempo), esta función existe en el código pero nunca se ejecuta sola.
+ *
+ * VERIFICACIÓN DE ELEGIBILIDAD POR COLEGIO (10 ago 2026, pedido de Leonardo):
+ * be360 solo está habilitado para ciertos colegios (piloto o comunidad
+ * completa, según el caso) — y el control es POR HIJO/A, no por familia
+ * (dos hermanos pueden ser de colegios distintos, uno elegible y el otro
+ * no). En vez de bloquear la captura al inicio (rompería la experiencia
+ * cálida de la conversación), la verificación pasa DESPUÉS de que el padre
+ * ya compartió todo: apenas se genera el borrador (guardarBorrador), se le
+ * manda un correo pidiendo el código de su colegio, con un link a
+ * be360.app/verificar/?id=idPlan. Mientras no lo verifique:
+ *   - aprobarPlan RECHAZA la aprobación — Peter no puede aprobar un caso
+ *     sin verificar, así se garantice.
+ *   - Si pasan 72 horas sin verificar, purgarNoVerificadosProgramado borra
+ *     la fila entera y retiene la recomendación (nunca se genera/entrega).
+ * CODIGOS_VALIDOS_COLEGIO es una lista simple editable — hoy certifica que
+ * la familia pertenece a un colegio/cohorte habilitado, no un código único
+ * por niño/a (si se necesita eso más adelante, se puede afinar).
  */
 
 var SHARED_SECRET = "3-estoesparaquevitarenazcabajolasreglasduras";
 var PANEL_SECRET = "1990-I";
+
+// Códigos que habilitan a una familia — uno por colegio/cohorte piloto.
+// Editable: agrega uno por línea a medida que se sumen colegios. "BIS2026"
+// es el código de ejemplo para el piloto ancla (BIS Barranquilla) —
+// CÁMBIALO por el real antes de operar con familias de verdad.
+var CODIGOS_VALIDOS_COLEGIO = ["BIS2026"];
+var HORAS_PLAZO_VERIFICACION = 72;
 
 var COLS = {
   timestamp: 0, modo: 1, nombre_nino: 2, edad: 3, que_deseas_lograr: 4,
@@ -72,7 +96,7 @@ var COLS = {
   emociones: 13, estado: 14, notas_peter: 15,
   id_plan: 16, plan_json: 17, decision: 18, borrador_texto: 19,
   nombre_padre: 20, email_padre: 21, correo_enviado_ts: 22,
-  consentimiento_ts: 23,
+  consentimiento_ts: 23, codigo_colegio: 24, verificacion_ts: 25,
 };
 
 function doPost(e) {
@@ -87,6 +111,13 @@ function doPost(e) {
     if (body.action === "guardar_edicion_plan") return conPanelSecret(body, function () { return guardarEdicionPlan(sheet, body); });
     if (body.action === "aprobar_plan") return conPanelSecret(body, function () { return aprobarPlan(sheet, body); });
     if (body.action === "descartar_pendiente") return conPanelSecret(body, function () { return descartarPendiente(sheet, body); });
+
+    // Verificación de código de colegio — viene de verificar/index.html (una
+    // página pública, el padre la abre desde el correo). NO usa SHARED_SECRET
+    // ni PANEL_SECRET: la protección es la misma que ya usa /plan — hace
+    // falta conocer el idPlan (token aleatorio de 16 caracteres), no
+    // enumerable. El código en sí es la credencial real.
+    if (body.action === "verificar_codigo") return verificarCodigo(sheet, body);
 
     // Resto de acciones — vienen del Worker, usan SHARED_SECRET.
     if (!body.secret || body.secret !== SHARED_SECRET) {
@@ -151,6 +182,7 @@ function listarPendientes(sheet) {
         nombrePadre: data[r][COLS.nombre_padre],
         preocupacionPrincipal: data[r][COLS.preocupacion_principal],
         timestamp: data[r][COLS.timestamp],
+        verificacionTs: data[r][COLS.verificacion_ts],
       });
     }
   }
@@ -213,6 +245,7 @@ function detallePlan(sheet, body) {
     plan: plan,
     correoEnviadoTs: v[COLS.correo_enviado_ts],
     consentimientoTs: v[COLS.consentimiento_ts],
+    verificacionTs: v[COLS.verificacion_ts],
   });
 }
 
@@ -233,11 +266,19 @@ function guardarEdicionPlan(sheet, body) {
 // Aprueba: guarda los cambios finales (si vienen) + decision=aprobado +
 // dispara el correo real — mismo camino que el trigger de edición manual,
 // para que ambas formas de aprobar den exactamente el mismo resultado.
+// BLOQUEO DE ELEGIBILIDAD (10 ago 2026): no se puede aprobar un caso cuya
+// familia todavía no verificó el código de su colegio — así se garantiza
+// que la recomendación se retiene mientras no se confirme que tiene
+// derecho a recibirla, sin depender de que alguien se acuerde de revisarlo
+// a ojo en el panel.
 function aprobarPlan(sheet, body) {
   var idPlan = body.idPlan;
   if (!idPlan) return respond({ ok: false, error: "idPlan faltante" }, 400);
   var found = encontrarFilaPorIdPlan(sheet, idPlan);
   if (!found) return respond({ ok: false, error: "no encontrado" }, 404);
+  if (!found.values[COLS.verificacion_ts]) {
+    return respond({ ok: false, error: "no se puede aprobar: el padre todavía no verificó el código de su colegio" }, 400);
+  }
   var row = found.row;
   if (body.plan) sheet.getRange(row, COLS.plan_json + 1).setValue(JSON.stringify(body.plan));
   if (typeof body.mensaje === "string") sheet.getRange(row, COLS.borrador_texto + 1).setValue(body.mensaje);
@@ -283,6 +324,7 @@ function guardarBorrador(sheet, body) {
       sheet.getRange(rowNum, COLS.borrador_texto + 1).setValue(body.mensaje || "");
       sheet.getRange(rowNum, COLS.estado + 1).setValue("borrador_listo");
       SpreadsheetApp.flush();
+      enviarSolicitudVerificacion(sheet, rowNum, idPlan);
       return respond({ ok: true, idPlan: idPlan, row: rowNum });
     }
   }
@@ -505,4 +547,105 @@ function purgarInactivos(sheet) {
 function purgarInactivosProgramado() {
   var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheets()[0];
   purgarInactivos(sheet);
+}
+
+// ============================================================
+// VERIFICACIÓN DE ELEGIBILIDAD POR COLEGIO (10 ago 2026) — ver nota grande
+// al inicio del archivo para el diseño completo.
+// ============================================================
+
+// Verifica el código que el padre escribió en verificar/index.html.
+// Idempotente (si ya estaba verificado, responde ok sin volver a escribir).
+// Solo guarda el código en la hoja si es VÁLIDO — no tiene valor llenarla de
+// intentos fallidos.
+function verificarCodigo(sheet, body) {
+  var idPlan = body.idPlan;
+  var codigo = String(body.codigo || "").trim();
+  if (!idPlan) return respond({ ok: false, error: "idPlan faltante" }, 400);
+  var found = encontrarFilaPorIdPlan(sheet, idPlan);
+  if (!found) return respond({ ok: false, error: "no encontrado" }, 404);
+  if (found.values[COLS.verificacion_ts]) {
+    return respond({ ok: true, yaVerificado: true });
+  }
+  if (!codigo || CODIGOS_VALIDOS_COLEGIO.indexOf(codigo) === -1) {
+    return respond({ ok: false, error: "código inválido — verifica con tu colegio" }, 400);
+  }
+  sheet.getRange(found.row, COLS.codigo_colegio + 1).setValue(codigo);
+  sheet.getRange(found.row, COLS.verificacion_ts + 1).setValue(new Date().toISOString());
+  SpreadsheetApp.flush();
+  return respond({ ok: true });
+}
+
+// Manda el correo pidiendo el código, apenas el borrador queda listo — no
+// antes (no tiene sentido pedir verificación de algo que todavía no existe
+// como caso). No bloquea el flujo si falla (igual que notificarEscalamiento).
+function enviarSolicitudVerificacion(sheet, row, idPlan) {
+  try {
+    var rowValues = sheet.getRange(row, 1, 1, sheet.getLastColumn()).getValues()[0];
+    var nombreNino = rowValues[COLS.nombre_nino] || "";
+    var nombrePadre = rowValues[COLS.nombre_padre] || "";
+    var emailPadre = String(rowValues[COLS.email_padre] || "").trim();
+    if (!emailPadre) return; // sin correo no hay a quién escribirle — quedará pendiente igual, la purga lo resuelve
+    var verificarUrl = "https://be360.app/verificar/?id=" + idPlan;
+    MailApp.sendEmail({
+      to: emailPadre,
+      name: "Bienestar 360",
+      subject: "Un paso más para el plan de " + (nombreNino || "tu hijo/a"),
+      body:
+        "Hola" + (nombrePadre ? " " + nombrePadre : "") + ",\n\n" +
+        "Gracias por contarnos sobre " + (nombreNino || "tu hijo/a") + ". Antes de que el equipo prepare su plan, " +
+        "necesitamos que confirmes el código que te dio tu colegio para el programa:\n\n" +
+        verificarUrl + "\n\n" +
+        "Tienes " + HORAS_PLAZO_VERIFICACION + " horas para hacerlo — si no lo confirmas en ese tiempo, " +
+        "la información que compartiste se elimina y no se prepara ningún plan.\n\n" +
+        "— El equipo de Bienestar 360",
+    });
+  } catch (err) {
+    // No relanzar: un error aquí no debe romper la generación del borrador.
+  }
+}
+
+// Borra casos con borrador listo (decision="pendiente_aprobacion") cuya
+// familia no verificó el código dentro del plazo — así se "retiene la
+// recomendación" de verdad: ni se aprueba, ni queda dando vueltas
+// indefinidamente. NO toca casos ya aprobados (esos ya pasaron el control,
+// aprobarPlan lo exige) ni casos sin borrador todavía (decision="", esos
+// no tuvieron ni siquiera la oportunidad de verificar, ver nota en
+// purgarInactivos sobre no ser más agresivo de lo que pide la política).
+function purgarNoVerificados(sheet) {
+  var data = sheet.getDataRange().getValues();
+  var purgados = [];
+  for (var r = data.length - 1; r >= 1; r--) {
+    if (data[r][COLS.decision] !== "pendiente_aprobacion") continue;
+    if (data[r][COLS.verificacion_ts]) continue; // ya verificado
+    var creado = new Date(data[r][COLS.timestamp]);
+    if (isNaN(creado.getTime())) continue;
+    var horasPasadas = (new Date() - creado) / (1000 * 60 * 60);
+    if (horasPasadas >= HORAS_PLAZO_VERIFICACION) {
+      purgados.push({ nombreNino: data[r][COLS.nombre_nino] || "(sin nombre)", timestamp: data[r][COLS.timestamp] });
+      sheet.deleteRow(r + 1);
+    }
+  }
+  if (purgados.length > 0) {
+    MailApp.sendEmail({
+      to: "leonardo@ledelab.group",
+      subject: "🗑️ Purga por código sin verificar — " + purgados.length + " caso(s)",
+      body: "Se borraron " + purgados.length + " caso(s) por no verificar el código de colegio dentro de " +
+        HORAS_PLAZO_VERIFICACION + " horas — la recomendación queda retenida, no se preparó ningún plan:\n\n" +
+        purgados.map(function (p) { return "- " + p.nombreNino + " (capturado: " + p.timestamp + ")"; }).join("\n"),
+    });
+  }
+  return purgados;
+}
+
+// Función objetivo del trigger de tiempo. Instálala igual que
+// purgarInactivosProgramado, pero con más frecuencia — el plazo es de horas,
+// no de meses, así que un temporizador diario (o cada pocas horas) tiene
+// más sentido que uno mensual:
+//   1. ⏰ Activadores → + Agregar activador.
+//   2. Función: purgarNoVerificadosProgramado · Basado en tiempo ·
+//      Temporizador de horas (cada 6 u 8 horas, por ejemplo) · Guardar.
+function purgarNoVerificadosProgramado() {
+  var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheets()[0];
+  purgarNoVerificados(sheet);
 }
