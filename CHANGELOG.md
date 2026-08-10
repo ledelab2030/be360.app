@@ -176,6 +176,36 @@ No hay base de datos propia ni backend con estado — el Sheet **es** la base de
 - **Verificado en producción, en vivo, limpio:** 30 peticiones seguidas en 400 (rechazo esperado por falta de `messages`), y las peticiones 31, 32 y 33 en 429 — el bloqueo se dispara exactamente donde debía y se sostiene dentro de la misma ventana.
 - **Cómo se desplegó:** primera vez en este proyecto que un agente de IA obtuvo acceso directo de despliegue vía `wrangler` (token de alcance mínimo — `Workers Scripts: Edit` + `Workers KV Storage: Edit` —, provisto por Leonardo vía variable de entorno en `~/.zshenv`, nunca pegado en la conversación). Antes de esto, todo despliegue del Worker requería que Leonardo copiara/pegara el código a mano en el editor del dashboard.
 
+### 9-10 ago 2026 — Política de retención de datos: decidida, aprobada y ya implementada (PRs #40, #41, #47)
+
+- Política aprobada por Leonardo el 9 ago: familias activas se conservan mientras usen el programa; 12 meses sin interacción → inactiva; **24 meses → purga automática**; solicitud explícita de borrado → máximo 30 días; casos de prueba se limpian aparte; borrado total no guarda stub de auditoría salvo autorización. No es asesoría legal — pendiente revisión con abogado colombiano (Ley 1581) antes del piloto de 100 familias.
+- **Implementado 10 ago:** `purgarInactivos`/`purgarInactivosProgramado` en `apps-script-formulario-v2.gs.txt` — borra casos aprobados con 24+ meses sin actividad conocida (`correo_enviado_ts`, o `timestamp` si no hay), manda resumen al equipo por correo (nombre + fecha, sin datos clínicos). Trigger **instalable** de tiempo, mismo patrón que `onAprobado` — no corre sola hasta que Leonardo la active a mano en Activadores, cero riesgo de borrado accidental mientras tanto.
+- El borrado **por solicitud explícita** de una familia sigue siendo manual — no automatizado todavía.
+- **Auditoría de respaldo científico del SRB pediátrico** (10 ago, Gemini + `SRB_v0_42.docx` adjunto): de 7 pilares que Gemini marcó como refutados/alto riesgo para niños (ayuno intermitente, dieta carnívora restrictiva, suero salado sin condicionar, meta fija de insulina, eliminación de cardio, biodescodificación, eliminación universal de lácteos), 6 ya estaban excluidos o condicionados por las reglas duras que Peter firmó el 28 jul — nada peligroso circulando hoy. Único matiz pendiente de decisión de Peter: si la moderación de lácteos (hoy "amarillo" para todos) debería depender de indicación médica. Detalle: `CONTEXT.md` (repo `be360-workspace`).
+
+### 10 ago 2026 — be360.app deja de mezclarse con otros productos de LedeLab; home propio en español e inglés (PRs #42, #43, #44, #46)
+
+- **Hallazgo:** `be360.app/` (la raíz) era un quiz de segmentación compartido con Núcleo (agentes IA para empresas) y Javier Institute — dos productos distintos de LedeLab —, diluyendo la marca be360 en su propio dominio, y su camino de "colegio" todavía prometía entrega por WhatsApp (obsoleto desde el 8 ago).
+- **Decisión de Leonardo:** Núcleo y Javier Institute se conservan intactos en `/nucleo/` y `/javier-institute/` — nada se pierde, solo se mueven. La raíz se reescribe como home propio de be360/Vita: dos caminos claros (familias → `/talentos`, colegios → captura de interés por correo), honesto con la etapa actual ("en validación con nuestro colegio piloto en Barranquilla", sin cifras inventadas — a diferencia del quiz viejo, que calculaba un "% de estudiantes en riesgo" con supuestos sin validar).
+- **Versión en inglés** (`be360.app/en/`): traducción fiel del home, para Geetika (LedeLab Network/Zebira, Delhi) y cualquier visitante de habla inglesa. Selector de idioma ES⇄EN en ambas versiones.
+- **Correos de contacto → Leonardo** (`leonardo@bienestar360.co`, ya no `peter@`): Peter no lee inglés, y en general los correos de los sitios deben llegarle a Leonardo. Aplicado en todo — home ES/EN, pantallas de consentimiento de Vita ES/EN.
+- **Paleta de colores del logo** actualizada a la descrita en el diseño real (`#0A1F44` navy / `#4A7045` verde / `#5D8AA8` azul acero / `#A0A0A0` plata para "Health-Tech") — el archivo de imagen real queda pendiente de que Leonardo lo comparta (no se pudo extraer directo del chat).
+
+### 10 ago 2026 — Vita completo en inglés (PR #45)
+
+- Traducción fiel y completa de la herramienta real (no solo el home): prompt clínico completo, las 14 áreas de captura, protocolo de seguridad, marcador de escalamiento, cambio de modo, pantalla de consentimiento, validación de suficiencia, toda la UI — en `en/vita-demo-formulario/`.
+- Se mantienen IGUALES las keys de `dx`, los códigos de `<escalar>`, y `producto:"formulario"` (contrato con el backend — las capturas en inglés van al mismo Sheet/panel; Peter revisa en español, una captura real en inglés se vería en inglés en su panel, señalado no resuelto).
+- `RIESGO_PATTERNS` (respaldo de seguridad determinístico) tiene su propia lista de frases en inglés — el regex en español no habría detectado ninguna señal de un padre de habla inglesa.
+- De paso: corrige una referencia a WhatsApp que quedó sin arreglar en el prompt real de la versión en español ("Esto es WhatsApp, no un informe" → "Esto es un chat corto, no un informe").
+- No enlazado desde ningún home público — mismo criterio de siempre (sin control de acceso por usuario todavía), se comparte como enlace privado.
+
+### 10 ago 2026 — Verificación de cobertura de las 24 horas del día antes de enviar (PR #49)
+
+- **Hallazgo de Leonardo:** `cronologia_del_dia` es un solo campo de texto libre — un padre puede dejarlo con huecos sin darse cuenta, lo cual puede generar rechazo de Peter al revisar un caso.
+- En vez de reestructurar el campo en 7 sub-campos (más engorroso de llenar), se detecta por palabras clave si el relato menciona los 7 momentos clave del día (al levantarse, desayuno, media mañana, almuerzo, media tarde, cena, antes de dormir). Si falta alguno, `sendToReview()` se detiene ANTES de enviar y muestra un panel de confirmación — el padre completa, o confirma explícitamente que no sabe / no quiere compartir esos momentos todavía, con una nota honesta sobre la consecuencia real (plan inicial más general, puede tardar más encontrar qué le afecta al niño/a), sin culpar.
+- Si confirma, el hueco queda **anotado en el mismo texto que ve Peter** — nunca como un silencio ambiguo. Verificado en vivo: caso de prueba con 3 momentos faltantes detectados correctamente, confirmado, y el texto guardado en el Sheet incluye `[Sin dato o no compartido aún: Media tarde, Cena, Antes de dormir]`.
+- Sin cambios de backend — sigue viajando como un solo string, cero riesgo para Sheet/Apps Script/Prompt Maestro. Aplicado en ambos idiomas (ES y EN), cada uno con su propia lista de palabras clave.
+
 ---
 
 ## Medidas de seguridad y privacidad (para compliance/auditoría)
