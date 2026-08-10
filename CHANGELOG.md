@@ -211,7 +211,7 @@ No hay base de datos propia ni backend con estado — el Sheet **es** la base de
     - Casos de prueba: se limpian aparte del ciclo real (`descartar_pendiente` ya existe para pendientes; falta extender la práctica a aprobados de prueba, manual por ahora).
     - Borrado total pedido por la familia → se borra todo, sin guardar un stub de auditoría interno salvo autorización explícita.
     - Es una recomendación operativa razonable, no asesoría legal — antes del piloto de 100 familias conviene una revisión rápida con un abogado colombiano (Ley 1581, Habeas Data), dado que son datos de menores.
-    - **Falta implementar en código** (purga automática, borrado por solicitud) — fast-follow, no bloquea nada hoy. Detalle: Notion "[be360 — Camino a TRL 9](https://app.notion.com/p/3b77dac3d7cc81928514d61dc2ca1fe9)".
+    - ~~Falta implementar en código~~ **Resuelto 10 ago:** `purgarInactivos`/`purgarInactivosProgramado` en `apps-script-formulario-v2.gs.txt` — borra casos aprobados con 24+ meses sin actividad conocida, manda resumen al equipo por correo. Es un trigger instalable de tiempo (igual patrón que `onAprobado`) — no corre solo hasta que se instale a mano en Activadores, cero riesgo de borrado accidental. El flujo de borrado **por solicitud explícita** de una familia sigue siendo manual (alguien del equipo borra la fila al recibir la solicitud) — no automatizado todavía, pero no es tan urgente como el backstop de inactividad. Detalle: Notion "[be360 — Camino a TRL 9](https://app.notion.com/p/3b77dac3d7cc81928514d61dc2ca1fe9)".
 
 ---
 
