@@ -194,10 +194,10 @@ const detectarRiesgoTextual=(text)=>{
 // de Peter al revisar. La solución NO reestructura el campo en 7 sub-campos
 // (sería más engorroso de llenar); en su lugar, detecta por palabras clave
 // si el relato menciona los 7 momentos clave del día, y si falta alguno,
-// sendToReview() se detiene y muestra un panel de confirmación ANTES de
-// enviar (ver pendienteCobertura/confirmarEnvioIncompleto más abajo) — el
-// padre elige completar o confirmar explícitamente que no sabe / no quiere
-// compartir esos momentos todavía. Si confirma, el hueco queda ANOTADO en el
+// sendToReview() se detiene y el panel de revisión final (PanelRevisionFinal,
+// más abajo) lo muestra junto con el correo — el padre elige completar o
+// confirmar explícitamente que no sabe / no quiere compartir esos momentos
+// todavía. Si confirma, el hueco queda ANOTADO en el
 // mismo texto que ve Peter (nunca queda como un silencio ambiguo). Funciona
 // igual para el modo chat (el modelo arma el texto) y el modo formulario (el
 // padre lo escribe directo) — es el mismo campo, la misma verificación.
@@ -268,26 +268,53 @@ const Shell=(props)=>(
   </div>
 );
 
-// Panel de confirmación de cobertura del día (10 ago 2026) — se usa tanto en
+// Regex simple de formato de correo — no detecta typos de contenido (ej.
+// "leonardodelahozb@gmail.com" en vez de la cuenta real), solo formato
+// obviamente roto. El resto de la protección contra typos es mostrar el
+// correo bien grande y editable antes de enviar, ver PanelRevisionFinal.
+const formatoEmailValido=(email)=>/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test((email||"").trim());
+
+// Panel de revisión final antes de enviar (10 ago 2026) — se usa tanto en
 // modo formulario como en modo chat, por eso vive a nivel de módulo (mismo
-// motivo que Shell). Explica la consecuencia real de dejar el hueco (plan
-// inicial más general, puede tardar más encontrar qué le afecta al niño/a) —
-// sin culpar, solo para que la decisión de no completar sea informada.
-const PanelCobertura=({nombreNino,faltantes,onCompletar,onContinuar,P,btnPrimary})=>(
-  <div onClick={onCompletar} style={{position:"absolute",inset:0,background:"rgba(40,42,36,.55)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:20,padding:20}}>
-    <div onClick={e=>e.stopPropagation()} style={{background:P.panel,borderRadius:20,padding:"22px 20px",maxWidth:340,boxShadow:"0 20px 50px rgba(0,0,0,.3)"}}>
-      <div style={{fontFamily:"'Fraunces',serif",fontSize:18,color:P.sageDeep,marginBottom:10}}>¿Es todo el día?</div>
-      <p style={{fontSize:13.5,color:P.ink,lineHeight:1.55,marginBottom:10}}>Parece que no hablamos de estos momentos del día de {nombreNino||"tu hijo/a"}:</p>
-      <ul style={{fontSize:13,color:P.sageDeep,fontWeight:700,marginBottom:14,paddingLeft:18}}>
-        {faltantes.map(f=><li key={f}>{f}</li>)}
-      </ul>
-      <p style={{fontSize:12.5,color:P.muted,lineHeight:1.5,marginBottom:10}}>Está bien si no los sabes o prefieres no compartirlos todavía — solo queremos que sea una decisión tuya, no un olvido nuestro.</p>
-      <p style={{fontSize:12.5,color:P.muted,lineHeight:1.5,marginBottom:16}}>Eso sí: mientras menos sepamos del día completo, el primer plan que arme el equipo será más general, y puede tomar más tiempo encontrar qué le está afectando de verdad a {nombreNino||"tu hijo/a"}. Si puedes completarlo, el plan sale más preciso desde el primer intento.</p>
-      <button onClick={onCompletar} style={{...btnPrimary,width:"100%",marginBottom:8}}>Quiero completarlo</button>
-      <button onClick={onContinuar} style={{background:"none",border:"none",color:P.muted,fontSize:12.5,fontWeight:700,cursor:"pointer",width:"100%",textAlign:"center",fontFamily:"'Nunito',sans-serif"}}>No lo sé / prefiero no compartirlo — continuar así</button>
+// motivo que Shell). SIEMPRE se muestra antes de enviar de verdad (no solo
+// si algo falta): el correo es el ÚNICO canal de entrega desde que se
+// quitó WhatsApp — un typo silencioso significa que la familia nunca
+// recibe su plan y nadie se entera. Por eso el correo queda editable acá
+// mismo, grande y visible, en vez de enterrado en un campo más del
+// formulario. Si además faltan momentos del día, se explica la
+// consecuencia real (plan más general, sin culpar) y se puede continuar
+// así — el correo, en cambio, no tiene una opción de "continuar sin
+// arreglarlo" si el formato se ve roto, porque ahí no hay ambigüedad
+// posible: sin un correo con formato válido, la entrega no puede funcionar.
+const PanelRevisionFinal=({dx,onCambiarEmail,faltantes,onCompletarDia,onConfirmar,P,btnPrimary})=>{
+  const emailOk=formatoEmailValido(dx.email_padre);
+  return (
+    <div style={{position:"absolute",inset:0,background:"rgba(40,42,36,.55)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:20,padding:20}}>
+      <div style={{background:P.panel,borderRadius:20,padding:"22px 20px",maxWidth:340,maxHeight:"90%",overflowY:"auto",boxShadow:"0 20px 50px rgba(0,0,0,.3)"}}>
+        <div style={{fontFamily:"'Fraunces',serif",fontSize:18,color:P.sageDeep,marginBottom:12}}>Antes de enviar</div>
+
+        <label style={{fontSize:12,fontWeight:800,color:P.sageDeep,display:"block",marginBottom:5}}>Le vamos a escribir a:</label>
+        <input value={dx.email_padre||""} onChange={e=>onCambiarEmail(e.target.value)} placeholder="correo@ejemplo.com"
+          style={{width:"100%",border:"1.5px solid "+(emailOk?P.line:P.clay),borderRadius:12,padding:"10px 12px",fontSize:14.5,fontFamily:"'Nunito',sans-serif",background:"#fff",color:P.ink,outline:"none",marginBottom:6}}/>
+        {!emailOk && <p style={{fontSize:12,color:P.clay,lineHeight:1.4,marginBottom:10}}>Este correo no se ve completo — revísalo antes de continuar.</p>}
+        <p style={{fontSize:11.5,color:P.muted,lineHeight:1.4,marginBottom:16}}>Es el único lugar donde le llega el plan — si tiene un error, no hay forma de avisarte.</p>
+
+        {faltantes && faltantes.length>0 && (<React.Fragment>
+          <div style={{height:1,background:P.line,margin:"4px 0 14px"}}/>
+          <p style={{fontSize:13.5,color:P.ink,lineHeight:1.55,marginBottom:8}}>Parece que no hablamos de estos momentos del día de {dx.nombre_nino||"tu hijo/a"}:</p>
+          <ul style={{fontSize:13,color:P.sageDeep,fontWeight:700,marginBottom:12,paddingLeft:18}}>
+            {faltantes.map(f=><li key={f}>{f}</li>)}
+          </ul>
+          <p style={{fontSize:12.5,color:P.muted,lineHeight:1.5,marginBottom:8}}>Está bien si no los sabes o prefieres no compartirlos todavía — solo queremos que sea una decisión tuya, no un olvido nuestro.</p>
+          <p style={{fontSize:12.5,color:P.muted,lineHeight:1.5,marginBottom:16}}>Eso sí: mientras menos sepamos del día completo, el primer plan que arme el equipo será más general, y puede tomar más tiempo encontrar qué le está afectando de verdad. Si puedes completarlo, el plan sale más preciso desde el primer intento.</p>
+          <button onClick={onCompletarDia} style={{...btnPrimary,width:"100%",marginBottom:8}}>Quiero completar el día</button>
+        </React.Fragment>)}
+
+        <button onClick={onConfirmar} disabled={!emailOk} style={{...btnPrimary,width:"100%",opacity:emailOk?1:.5,cursor:emailOk?"pointer":"default"}}>{faltantes&&faltantes.length>0?"Confirmar y enviar así →":"Confirmar y enviar →"}</button>
+      </div>
     </div>
-  </div>
-);
+  );
+};
 
 function App(){
   const [stage,setStage]=useState("welcome");
@@ -304,7 +331,7 @@ function App(){
   const [chatCopied,setChatCopied]=useState(false);
   const [sending,setSending]=useState(false);
   const [sendError,setSendError]=useState(null);
-  const [pendienteCobertura,setPendienteCobertura]=useState(null); // null, o array de momentos del día que faltan por confirmar
+  const [mostrarRevisionFinal,setMostrarRevisionFinal]=useState(false); // panel de revisión (correo + cobertura del día) antes de enviar de verdad
   const scrollRef=useRef(null);
   useEffect(()=>{ if(scrollRef.current) scrollRef.current.scrollTop=scrollRef.current.scrollHeight; },[messages,loading]);
   const filled=FIELDS.filter(f=>dx[f.key]&&dx[f.key].trim()).length;
@@ -528,23 +555,28 @@ function App(){
     finally{ setSending(false); }
   };
 
+  // SIEMPRE pasa por la revisión final antes de enviar de verdad (10 ago
+  // 2026) — antes solo se detenía si faltaba algo del día; ahora también se
+  // detiene siempre a mostrar el correo, editable, porque un typo ahí es
+  // silencioso y grave (es el único canal de entrega). Ver PanelRevisionFinal.
   const sendToReview=()=>{
     if(sending||!puedeEnviar()) return; // el botón ya se deshabilita solo, esto es el respaldo por si acaso
-    const {faltantes}=coberturaDia(dx.cronologia_del_dia);
-    if(faltantes.length>0){ setPendienteCobertura(faltantes); return; } // pausa, muestra el panel de confirmación
-    enviarDatos(dx);
+    setMostrarRevisionFinal(true);
   };
 
-  // El padre confirmó que quiere enviar igual, sin completar esos momentos —
-  // el hueco queda ANOTADO en el mismo texto que ve Peter, nunca en silencio.
-  const confirmarEnvioIncompleto=()=>{
-    const faltantes=pendienteCobertura||[];
-    const dxFinal={...dx, cronologia_del_dia:(dx.cronologia_del_dia||"")+"\n[Sin dato o no compartido aún: "+faltantes.join(", ")+"]"};
-    setDx(dxFinal);
-    setPendienteCobertura(null);
+  // Confirmación final: si además faltan momentos del día, ese hueco queda
+  // ANOTADO en el mismo texto que ve Peter, nunca en silencio.
+  const confirmarYEnviar=()=>{
+    const {faltantes}=coberturaDia(dx.cronologia_del_dia);
+    const dxFinal=faltantes.length>0
+      ? {...dx, cronologia_del_dia:(dx.cronologia_del_dia||"")+"\n[Sin dato o no compartido aún: "+faltantes.join(", ")+"]"}
+      : dx;
+    if(faltantes.length>0) setDx(dxFinal);
+    setMostrarRevisionFinal(false);
     enviarDatos(dxFinal);
   };
-  const cancelarConfirmacionCobertura=()=>setPendienteCobertura(null);
+  const volverACompletarDia=()=>setMostrarRevisionFinal(false);
+  const cambiarEmailEnRevision=(valor)=>setDx(prev=>({...prev, email_padre:valor}));
 
   const exportDx=async()=>{ const txt="FORMULARIO DE HÁBITOS · Bienestar 360\n\n"+FIELDS.map(f=>f.label+": "+(dx[f.key]||"—")).join("\n"); try{ await navigator.clipboard.writeText(txt); setExported(true); setTimeout(()=>setExported(false),2000);}catch(e){ const w=window.open("","_blank"); if(w){ w.document.body.style.cssText="font-family:system-ui;padding:20px;white-space:pre-wrap;line-height:1.5"; w.document.body.textContent=txt; } } };
 
@@ -600,7 +632,8 @@ function App(){
       {!puedeEnviar() && <p style={{fontSize:11.5,color:P.muted,textAlign:"center"}}>Aún falta: {mensajeFaltante()}.</p>}
       {sendError && <p style={{fontSize:12.5,color:P.clay,textAlign:"center"}}>{sendError}</p>}
       <p style={{fontSize:11,color:P.muted,textAlign:"center",lineHeight:1.5,marginTop:2}}>Esto acompaña y suma con su pediatra — no lo reemplaza.</p>
-      {pendienteCobertura&&(<PanelCobertura nombreNino={dx.nombre_nino} faltantes={pendienteCobertura} onCompletar={cancelarConfirmacionCobertura} onContinuar={confirmarEnvioIncompleto} P={P} btnPrimary={btnPrimary}/>)}
+      <button onClick={()=>setStage("welcome")} style={{background:"none",border:"none",color:P.muted,fontSize:12.5,fontWeight:700,cursor:"pointer",alignSelf:"center",fontFamily:"'Nunito',sans-serif"}}>← Volver al inicio</button>
+      {mostrarRevisionFinal&&(<PanelRevisionFinal dx={dx} onCambiarEmail={cambiarEmailEnRevision} faltantes={coberturaDia(dx.cronologia_del_dia).faltantes} onCompletarDia={volverACompletarDia} onConfirmar={confirmarYEnviar} P={P} btnPrimary={btnPrimary}/>)}
     </div></Shell>
   );
 
@@ -624,12 +657,14 @@ function App(){
         <div style={{display:"flex",gap:11}}><div style={{fontSize:18,flexShrink:0}}>🌿</div><div style={{fontSize:13.5,color:P.ink,lineHeight:1.5}}>Al final, tu información queda registrada — la revisamos y te contactamos con el primer paso.</div></div>
       </div>
       <button onClick={startOrResumeChat} style={{...btnPrimary,alignSelf:"center"}}>Empezar la conversación →</button>
+      <button onClick={()=>setStage("welcome")} style={{background:"none",border:"none",color:P.muted,fontSize:12.5,fontWeight:700,marginTop:14,cursor:"pointer",alignSelf:"center",fontFamily:"'Nunito',sans-serif"}}>← Volver</button>
     </div></Shell>
   );
 
   return (
     <Shell>
       <div style={{background:"linear-gradient(135deg,"+P.sageDeep+","+P.sage+")",padding:"14px 16px",display:"flex",alignItems:"center",gap:11}}>
+        <button onClick={()=>setStage("welcome")} title="Volver al inicio" style={{background:"rgba(255,255,255,.18)",border:"none",color:"#fff",borderRadius:999,width:30,height:30,fontSize:16,cursor:"pointer",flexShrink:0}}>←</button>
         <div style={{width:40,height:40,borderRadius:"50%",background:P.panel,display:"grid",placeItems:"center",fontSize:20}}>🌱</div>
         <div style={{flex:1}}><div style={{fontFamily:"'Fraunces',serif",fontWeight:600,fontSize:19,color:"#fff",lineHeight:1}}>Vita</div><div style={{fontSize:11.5,color:P.sageSoft,marginTop:3}}>{loading?"escribiendo…":(dx.nombre_nino?("Sobre "+dx.nombre_nino):"Conociéndolos")}</div></div>
         <button onClick={copyChat} title="Copiar conversación" style={{background:"rgba(255,255,255,.18)",border:"none",color:"#fff",borderRadius:999,width:34,height:34,fontSize:15,cursor:"pointer",flexShrink:0}}>{chatCopied?"✓":"📋"}</button><button onClick={goToForm} title="Cambiar al formulario directo" style={{background:"rgba(255,255,255,.18)",border:"none",color:"#fff",borderRadius:999,width:34,height:34,fontSize:15,cursor:"pointer",flexShrink:0}}>📝</button><button onClick={()=>setShowDx(true)} style={{background:"rgba(255,255,255,.18)",border:"none",color:"#fff",borderRadius:999,padding:"7px 13px",fontSize:12.5,fontWeight:700,cursor:"pointer",fontFamily:"'Nunito',sans-serif"}}>Lo que llevamos · {filled}/{AREA_TOTAL}</button>
@@ -662,7 +697,7 @@ function App(){
           </div>
         </div>
       </div>)}
-      {pendienteCobertura&&(<PanelCobertura nombreNino={dx.nombre_nino} faltantes={pendienteCobertura} onCompletar={cancelarConfirmacionCobertura} onContinuar={confirmarEnvioIncompleto} P={P} btnPrimary={btnPrimary}/>)}
+      {mostrarRevisionFinal&&(<PanelRevisionFinal dx={dx} onCambiarEmail={cambiarEmailEnRevision} faltantes={coberturaDia(dx.cronologia_del_dia).faltantes} onCompletarDia={volverACompletarDia} onConfirmar={confirmarYEnviar} P={P} btnPrimary={btnPrimary}/>)}
     </Shell>
   );
 }
