@@ -1,27 +1,19 @@
-<!-- Home de be360.app, reescrita el 10 ago 2026 (Leonardo + Claude). Antes esta
-     raíz era un quiz compartido con Núcleo y Javier Institute (otros productos
-     de LedeLab) — se movieron intactos a /nucleo/ y /javier-institute/. Esta
-     página es SOLO be360/Vita: honesta con la etapa actual (TRL 4, piloto en
-     validación con BIS Barranquilla, aún sin resultados de familias reales) —
-     nada de cifras inventadas ("X% de estudiantes en riesgo") ni promesas que
-     no podemos sostener todavía. Actualizar el bloque "Dónde vamos" a medida
-     que avance el TRL (ver be360_TRL_assessment en Drive y CHANGELOG.md).
-     No enlaza directo a la herramienta real (vita-demo-formulario) a
-     propósito — corre con la API de Anthropic de Leonardo, sin control de
-     acceso por usuario todavía (pendiente, ver CHANGELOG). Los caminos de
-     familias/colegios capturan interés por correo; el enlace real al
-     producto se comparte de forma privada, caso por caso, mientras eso no
-     esté resuelto. -->
+<!-- English translation of be360.app/ (10 ago 2026). Same content, honest
+     framing, and official-language rules as the Spanish original — this is
+     a faithful translation, not new copy. The "family" CTA points to a
+     mailto instead of /talentos (which has no English version yet) to
+     avoid sending an English-speaking visitor to a Spanish-only page.
+     Keep this in sync with the root index.html when either changes. -->
 <!DOCTYPE html>
-<html lang="es">
+<html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Bienestar 360 · Cuerpo sano, mente brillante</title>
-  <meta name="description" content="Acompañamiento de bienestar familiar basado en evidencia — para tu hijo y tu hogar, o para tu institución educativa.">
+  <title>Bienestar 360 · Healthy body, sharp mind</title>
+  <meta name="description" content="Evidence-based family wellness support — for your child and your home, or for your school.">
   <meta property="og:title" content="Bienestar 360">
-  <meta property="og:description" content="Cuerpo sano, mente brillante.">
-  <meta property="og:url" content="https://be360.app">
+  <meta property="og:description" content="Healthy body, sharp mind.">
+  <meta property="og:url" content="https://be360.app/en/">
 
   <style>
     :root {
@@ -53,9 +45,7 @@
     section { padding: 44px 0; }
     .section-bg { background: var(--bg-soft); }
     h2 { font-size: clamp(22px, 3.6vw, 30px); font-weight: 700; color: var(--navy); margin-bottom: 26px; text-align: center; letter-spacing: -0.01em; }
-    .h2sub { text-align: center; color: var(--gray-text); font-size: 15px; margin-top: -18px; margin-bottom: 26px; max-width: 520px; margin-left: auto; margin-right: auto; }
 
-    /* Audiencias */
     .audiences { display: grid; grid-template-columns: 1fr; gap: 18px; }
     @media (min-width: 640px) { .audiences { grid-template-columns: 1fr 1fr; } }
     .aud-card { background: white; border: 1px solid var(--border); border-radius: 18px; padding: 26px; display: flex; flex-direction: column; }
@@ -100,7 +90,7 @@
 </head>
 <body>
 
-  <div class="lang-switch"><a href="/en/">EN</a></div>
+  <div class="lang-switch"><a href="/">ES</a></div>
 
   <section class="hero">
     <div class="container">
@@ -108,27 +98,27 @@
         <div class="logo"><span class="be">be</span><span class="three">3</span><span class="sixty">60</span></div>
         <div class="logo-tag">Health-Tech</div>
       </div>
-      <div class="stage-pill">🌱 En validación con nuestro colegio piloto en Barranquilla</div>
-      <h1>Cuerpo sano,<br><span class="accent">mente brillante</span>.</h1>
-      <p class="subtitle">Acompañamiento de bienestar familiar — para tu hijo y tu hogar, o para tu institución educativa. Hábitos que cuidan cuerpo y mente, todos los días.</p>
+      <div class="stage-pill">🌱 Currently validating with our pilot school in Barranquilla</div>
+      <h1>Healthy body,<br><span class="accent">sharp mind</span>.</h1>
+      <p class="subtitle">Family wellness support — for your child and your home, or for your school. Habits that care for body and mind, every day.</p>
     </div>
   </section>
 
   <section>
     <div class="container">
-      <h2>¿Quién eres?</h2>
+      <h2>Who are you?</h2>
       <div class="audiences">
         <div class="aud-card">
           <div class="aud-icon">🌱</div>
-          <h3>Soy familia</h3>
-          <p>Quiero acompañamiento de bienestar para mi hijo/a — hábitos de sueño, alimentación y movimiento que sí se sostienen.</p>
-          <a class="btn" href="/talentos">Quiero saber más →</a>
+          <h3>I'm a parent</h3>
+          <p>I want wellness support for my child — sleep, nutrition, and movement habits that actually stick.</p>
+          <a class="btn" href="mailto:peter@bienestar360.co?subject=I%27d%20like%20to%20learn%20more%20about%20Bienestar%20360&body=Hi%2C%0A%0AI%27d%20like%20to%20learn%20more%20about%20Bienestar%20360%20for%20my%20family.%0A%0AThanks%21">I'd like to know more →</a>
         </div>
         <div class="aud-card">
           <div class="aud-icon">🏫</div>
-          <h3>Soy institución educativa</h3>
-          <p>Quiero conocer cómo Vita se ofrece como valor agregado a las familias de mi colegio, sin costo para ellas.</p>
-          <a class="btn btn-outline" href="mailto:peter@bienestar360.co?subject=Quiero%20conocer%20Vita%20para%20mi%20colegio&body=Hola%2C%0A%0AMe%20gustar%C3%ADa%20conocer%20m%C3%A1s%20sobre%20Vita%20para%20mi%20instituci%C3%B3n.%0A%0ANombre%20de%20la%20instituci%C3%B3n%3A%0AN%C3%BAmero%20aproximado%20de%20estudiantes%3A%0A%0AGracias%21">Quiero conocer Vita para mi colegio →</a>
+          <h3>I'm from a school</h3>
+          <p>I want to learn how Vita is offered as an added benefit to our families, at no cost to them.</p>
+          <a class="btn btn-outline" href="mailto:peter@bienestar360.co?subject=I%27d%20like%20to%20learn%20about%20Vita%20for%20our%20school&body=Hi%2C%0A%0AI%27d%20like%20to%20learn%20more%20about%20Vita%20for%20our%20school.%0A%0ASchool%20name%3A%0AApproximate%20number%20of%20students%3A%0A%0AThanks%21">I'd like to learn about Vita for our school →</a>
         </div>
       </div>
     </div>
@@ -136,27 +126,27 @@
 
   <section class="section-bg">
     <div class="container">
-      <h2>¿Qué hacemos?</h2>
+      <h2>What we do</h2>
       <div class="features">
         <div class="feature">
           <div class="feature-icon">🧭</div>
-          <h3>Diagnóstico personalizado</h3>
-          <p>Mapeamos el estilo de vida actual de cada niño o niña — hábitos, sueño, alimentación, emociones.</p>
+          <h3>Personalized diagnosis</h3>
+          <p>We map each child's current lifestyle — habits, sleep, nutrition, emotions.</p>
         </div>
         <div class="feature">
           <div class="feature-icon">💬</div>
-          <h3>Acompañamiento continuo</h3>
-          <p>Conversaciones cortas y guiadas, sin agendas complicadas ni apps adicionales que instalar.</p>
+          <h3>Ongoing support</h3>
+          <p>Short, guided conversations — no complicated schedules, no extra apps to install.</p>
         </div>
         <div class="feature">
           <div class="feature-icon">🌱</div>
-          <h3>Microcambios sostenibles</h3>
-          <p>Orientación práctica en nutrición, sueño, movimiento y manejo del estrés — un cambio chico a la vez.</p>
+          <h3>Sustainable micro-changes</h3>
+          <p>Practical guidance on nutrition, sleep, movement, and stress management — one small change at a time.</p>
         </div>
         <div class="feature">
           <div class="feature-icon">📚</div>
-          <h3>Basado en evidencia</h3>
-          <p>Intervención conductual preventiva basada en evidencia para reducir factores inflamatorios modificables.</p>
+          <h3>Evidence-based</h3>
+          <p>Evidence-based preventive behavioral intervention to reduce modifiable inflammatory factors.</p>
         </div>
       </div>
     </div>
@@ -164,22 +154,22 @@
 
   <section>
     <div class="container">
-      <h2>Cómo funciona para un colegio</h2>
+      <h2>How it works for a school</h2>
       <div class="features">
         <div class="feature">
           <div class="feature-icon">1️⃣</div>
-          <h3>La institución acepta</h3>
-          <p>Formalizamos el convenio como valor agregado gratuito para la comunidad estudiantil. Sin costo para las familias.</p>
+          <h3>The school signs on</h3>
+          <p>We formalize the agreement as a free added benefit for the student community. No cost to families.</p>
         </div>
         <div class="feature">
           <div class="feature-icon">2️⃣</div>
-          <h3>Las familias activan Vita</h3>
-          <p>Reciben un enlace por correo. Sin instalar nada, sin plataformas nuevas.</p>
+          <h3>Families activate Vita</h3>
+          <p>They receive a link by email. Nothing to install, no new platforms.</p>
         </div>
         <div class="feature">
           <div class="feature-icon">3️⃣</div>
-          <h3>El equipo hace el trabajo</h3>
-          <p>Diagnóstico conductual, hábitos y seguimiento personalizado por familia. La institución solo facilita, no carga con el trabajo.</p>
+          <h3>Our team does the work</h3>
+          <p>Behavioral diagnosis, habits, and personalized follow-up per family. The school just facilitates — no extra workload.</p>
         </div>
       </div>
     </div>
@@ -187,17 +177,17 @@
 
   <section class="section-bg">
     <div class="container">
-      <h2>Quiénes estamos detrás</h2>
+      <h2>Who's behind it</h2>
       <div class="team">
         <div class="person">
           <h3>Peter Álvarez</h3>
-          <div class="role">Director de Bienestar</div>
-          <p>Especialista en reversión biológica. Más de una década acompañando familias en Colombia. Creador del Sistema de Reversión Biológica (SRB).</p>
+          <div class="role">Director of Wellness</div>
+          <p>Specialist in biological reversal. Over a decade supporting families in Colombia. Creator of the Biological Reversal System (SRB).</p>
         </div>
         <div class="person">
           <h3>Leonardo De la Hoz</h3>
-          <div class="role">Director de Aprendizaje e Innovación</div>
-          <p>Executive MBA en Sostenibilidad (Bologna Business School). Candidato a MA en Educación con énfasis en Tecnología Educativa (University of Tartu, Estonia). CEO de LedeLab Group OÜ.</p>
+          <div class="role">Director of Learning &amp; Innovation</div>
+          <p>Executive MBA in Sustainability (Bologna Business School). MA candidate in Educational Technology (University of Tartu, Estonia). CEO of LedeLab Group OÜ.</p>
         </div>
       </div>
     </div>
@@ -205,24 +195,24 @@
 
   <section>
     <div class="container">
-      <h2>Dónde vamos</h2>
+      <h2>Where we're headed</h2>
       <div class="stage-box">
-        <p>Hoy be360 está en fase de <strong>validación</strong> con nuestro colegio piloto en Barranquilla — estamos afinando el programa con un grupo pequeño de familias antes de crecer. Preferimos avanzar con cuidado a prometer algo que todavía no hemos probado a fondo.</p>
+        <p>be360 is currently in a <strong>validation</strong> phase with our pilot school in Barranquilla — we're refining the program with a small group of families before scaling. We'd rather move carefully than promise something we haven't fully tested yet.</p>
       </div>
     </div>
   </section>
 
   <section class="final-cta">
     <div class="container">
-      <h2>¿Hablamos?</h2>
-      <p>Cuéntanos un poco de tu familia o tu institución y te respondemos.</p>
-      <a href="mailto:peter@bienestar360.co?subject=Quiero%20conocer%20Bienestar%20360&body=Hola%2C%0A%0AMe%20gustar%C3%ADa%20conocer%20m%C3%A1s%20sobre%20Bienestar%20360.%0A%0AGracias%21" class="btn">Quiero saber más</a>
+      <h2>Let's talk?</h2>
+      <p>Tell us a bit about your family or your school and we'll get back to you.</p>
+      <a href="mailto:peter@bienestar360.co?subject=I%27d%20like%20to%20learn%20more%20about%20Bienestar%20360&body=Hi%2C%0A%0AI%27d%20like%20to%20learn%20more%20about%20Bienestar%20360.%0A%0AThanks%21" class="btn">I'd like to know more</a>
     </div>
   </section>
 
   <p class="disclaimer">
-    Bienestar 360 es un programa de acompañamiento basado en evidencia.
-    Acompaña y suma con el pediatra de tu hijo/a — no lo reemplaza.
+    Bienestar 360 is an evidence-based wellness support program.
+    It complements your child's pediatrician — it does not replace them.
   </p>
 
   <footer>
