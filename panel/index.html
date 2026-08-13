@@ -173,7 +173,7 @@ function App() {
       setPendientes(data.pendientes || []);
       setSeccion("pendientes"); setStage("lista");
     } catch (e) {
-      setListaError(e.message === "PIN incorrecto" ? null : "No se pudo cargar. Reintenta.");
+      setListaError(e.message === "PIN incorrecto" ? null : (e.message || "No se pudo cargar. Reintenta."));
       setStage(e.message === "PIN incorrecto" ? "cargando" : "lista");
     }
   };
@@ -186,7 +186,7 @@ function App() {
       setHistorial(data.historial || []);
       setSeccion("historial"); setStage("historial");
     } catch (e) {
-      setHistorialError(e.message === "PIN incorrecto" ? null : "No se pudo cargar. Reintenta.");
+      setHistorialError(e.message === "PIN incorrecto" ? null : (e.message || "No se pudo cargar. Reintenta."));
       setStage(e.message === "PIN incorrecto" ? "cargando" : "historial");
     }
   };
@@ -222,7 +222,7 @@ function App() {
       setHabitos(hs.map(h => ({ titulo: h.titulo || "", texto: h.texto || "", incluido: h.incluido !== false })));
       setMensaje(data.mensaje || "");
     } catch (e) {
-      setAccionError("No se pudo cargar este caso. Reintenta.");
+      setAccionError(e.message === "PIN incorrecto" ? null : (e.message || "No se pudo cargar este caso. Reintenta."));
     }
   };
 
@@ -245,7 +245,7 @@ function App() {
       const data = await llamarPanel("guardar", { idPlan: detalle.idPlan, plan: planParaGuardar(), mensaje });
       if (!data.ok) throw new Error(data.error || "error");
       setGuardadoOk(true); setTimeout(() => setGuardadoOk(false), 2500);
-    } catch (e) { setAccionError(e.message === "PIN incorrecto" ? null : "No se pudo guardar. Reintenta."); }
+    } catch (e) { setAccionError(e.message === "PIN incorrecto" ? null : (e.message || "No se pudo guardar. Reintenta.")); }
     finally { setGuardando(false); }
   };
 
@@ -256,7 +256,7 @@ function App() {
       const data = await llamarPanel("aprobar", { idPlan: detalle.idPlan, plan: planParaGuardar(), mensaje });
       if (!data.ok) throw new Error(data.error || "error");
       volverALista();
-    } catch (e) { setAccionError(e.message === "PIN incorrecto" ? null : "No se pudo aprobar. Reintenta."); setConfirmando(false); }
+    } catch (e) { setAccionError(e.message === "PIN incorrecto" ? null : (e.message || "No se pudo aprobar. Reintenta.")); setConfirmando(false); }
     finally { setAprobando(false); }
   };
 
@@ -270,7 +270,7 @@ function App() {
       const data = await llamarPanel("descartar", { idPlan: detalle.idPlan });
       if (!data.ok) throw new Error(data.error || "error");
       volverALista();
-    } catch (e) { setAccionError(e.message === "PIN incorrecto" ? null : "No se pudo descartar. Reintenta."); setConfirmandoDescarte(false); }
+    } catch (e) { setAccionError(e.message === "PIN incorrecto" ? null : (e.message || "No se pudo descartar. Reintenta.")); setConfirmandoDescarte(false); }
     finally { setDescartando(false); }
   };
 
