@@ -439,8 +439,12 @@ function enviarPlanAprobado(sheet, row) {
       "— El equipo de Bienestar 360",
   });
 
+  // A partir del 11 ago 2026, esta confirmación también le llega a Peter
+  // (peter.alvarez.mora@gmail.com), no solo a Leonardo — Peter es quien
+  // aprueba cada caso y hasta ahora no tenía forma de ver qué le llegó de
+  // verdad al padre/madre después de su aprobación, salvo pedirlo aparte.
   MailApp.sendEmail({
-    to: "leonardo@ledelab.group",
+    to: "leonardo@ledelab.group,peter.alvarez.mora@gmail.com",
     subject: "✅ Plan enviado automáticamente — " + (nombreNino || "sin nombre"),
     body: "Se envió el plan de " + (nombreNino || "(sin nombre)") + " directo a " + emailPadre + ".\n\nLink: " + planUrl,
   });
