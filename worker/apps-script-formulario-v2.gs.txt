@@ -428,14 +428,33 @@ function enviarPlanAprobado(sheet, row) {
     return { error: "sin emailPadre" };
   }
 
+  // A partir del 13 ago 2026, el correo ya trae el plan adentro (mensaje +
+  // hábitos), no solo el link — encontrado en la prueba en vivo con Peter:
+  // un correo con solo un link se sentía como que "no llegaba el plan".
+  // Los hábitos excluidos por Peter en el panel NUNCA se muestran acá —
+  // mismo filtro que ya usa doGet para lo que ve el padre en /plan.
+  var mensaje = String(rowValues[COLS.borrador_texto] || "").trim();
+  var habitosTexto = "";
+  try {
+    var planData = JSON.parse(rowValues[COLS.plan_json] || "{}");
+    var habitosIncluidos = (planData.habitos || []).filter(function (h) { return h.incluido !== false; });
+    habitosTexto = habitosIncluidos.map(function (h, i) {
+      return (i + 1) + ". " + h.titulo + ": " + h.texto;
+    }).join("\n\n");
+  } catch (ex) {}
+
   MailApp.sendEmail({
     to: emailPadre,
     name: "Bienestar 360",
     subject: "El plan de " + (nombreNino || "tu hijo/a") + " ya está listo",
     body:
       "Hola" + (nombrePadre ? " " + nombrePadre : "") + ",\n\n" +
-      "Ya está listo el plan de " + (nombreNino || "tu hijo/a") + ". Puedes verlo aquí:\n" +
+      "Ya está listo el plan de " + (nombreNino || "tu hijo/a") + ", revisado y aprobado por Peter Álvarez.\n\n" +
+      (mensaje ? mensaje + "\n\n" : "") +
+      (habitosTexto ? habitosTexto + "\n\n" : "") +
+      "Puedes marcar tu progreso y escribirle a Vita cuando quieras aquí:\n" +
       planUrl + "\n\n" +
+      "Esto acompaña y suma con su pediatra — no lo reemplaza.\n\n" +
       "— El equipo de Bienestar 360",
   });
 
