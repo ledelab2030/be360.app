@@ -53,6 +53,47 @@ function getIdFromUrl() {
   return params.get("id");
 }
 
+// Bandera invisible: los Retos de bienestar no existen para nadie que no
+// reciba un link con ?retos=1 — sin la bandera no se renderiza ni rastro
+// (ni el toggle). Es una función aparte de "activado/desactivado" (ver
+// retosOn más abajo): la bandera decide QUIÉN puede verlo, el toggle decide
+// si esa persona lo quiere prendido. Piloto cerrado a propósito mientras se
+// valida con Peter y las psicólogas de behavior change antes de abrirlo.
+function getRetosFlag() {
+  const params = new URLSearchParams(window.location.search);
+  return params.get("retos") === "1";
+}
+
+// ============================================================
+// RETOS DE BIENESTAR (opt-in, invisible salvo ?retos=1) — banco fijo, no
+// generado por IA, para no necesitar el motor de reglas duras todavía.
+// Principios que esto respeta a propósito (ver conversación de diseño):
+//  - Nunca comparación entre familias: cada quien solo ve su propia curva.
+//  - Nunca "racha rota" / culpa: un día sin marcar no penaliza, solo suma.
+//  - Todo vive en localStorage del padre — nada sale del dispositivo, así
+//    que no hay pregunta de consentimiento nueva ni riesgo de reidentificación
+//    (eso se diseña aparte, si acaso, cuando exista el panel de colegio).
+// ============================================================
+const RETOS = [
+  { id: "bebidas", titulo: "Menos bebidas azucaradas", texto: "Marca los días en que no tomó gaseosa, jugo de caja ni bebidas con azúcar añadida." },
+  { id: "ultraprocesados", titulo: "Menos ultraprocesados", texto: "Ultraprocesado no es lo mismo que \"procesado\": son productos con ingredientes que no usarías en tu cocina (colorantes, saborizantes, conservantes) — snacks empacados, cereales azucarados, embutidos. Marca los días con menos de esto en su plato." },
+  { id: "movimiento", titulo: "Movimiento", texto: "Marca los días en que jugó, caminó o se movió activamente al menos 30 minutos." },
+  { id: "pantallas_noche", titulo: "Sin pantallas antes de dormir", texto: "Marca los días en que se desconectó de tablet, celular o TV al menos 30 minutos antes de acostarse." },
+];
+
+const todayKey = () => new Date().toISOString().slice(0, 10);
+const dateKeyDaysAgo = (n) => { const d = new Date(); d.setDate(d.getDate() - n); return d.toISOString().slice(0, 10); };
+
+// Cuenta días marcados en una ventana [desde..hasta] días atrás — se usa
+// SOLO para comparar contra la propia semana anterior, nunca contra otra
+// familia. desde=0,hasta=6 = últimos 7 días; desde=7,hasta=13 = los 7 antes.
+const contarDias = (log, retoId, desde, hasta) => {
+  const dias = (log && log[retoId]) || {};
+  let n = 0;
+  for (let i = desde; i <= hasta; i++) { if (dias[dateKeyDaysAgo(i)]) n++; }
+  return n;
+};
+
 // ============================================================
 // PROMPT del chat de seguimiento — Vita acompaña un plan YA APROBADO por
 // Peter. No propone hábitos nuevos, no cambia el plan, no diagnostica.
@@ -102,12 +143,15 @@ function App() {
   const [stage, setStage] = useState("cargando"); // cargando | ok | no_disponible | chat
   const [data, setData] = useState(null);
   const [checked, setChecked] = useState({});
+  const [retosOn, setRetosOn] = useState(false);
+  const [retosLog, setRetosLog] = useState({});
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
   const [chatLoading, setChatLoading] = useState(false);
   const [chatError, setChatError] = useState(null);
   const scrollRef = React.useRef(null);
   const id = getIdFromUrl();
+  const retosFlag = getRetosFlag();
 
   useEffect(() => { if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight; }, [messages, chatLoading]);
 
@@ -122,6 +166,10 @@ function App() {
           const saved = JSON.parse(localStorage.getItem("plan_check_" + id) || "{}");
           setChecked(saved);
         } catch (e) {}
+        try {
+          setRetosOn(localStorage.getItem("retos_on_" + id) === "1");
+          setRetosLog(JSON.parse(localStorage.getItem("retos_log_" + id) || "{}"));
+        } catch (e) {}
         setStage("ok");
       })
       .catch(() => setStage("no_disponible"));
@@ -131,6 +179,25 @@ function App() {
     setChecked(prev => {
       const next = { ...prev, [i]: !prev[i] };
       try { localStorage.setItem("plan_check_" + id, JSON.stringify(next)); } catch (e) {}
+      return next;
+    });
+  };
+
+  const toggleRetosOn = () => {
+    setRetosOn(prev => {
+      const next = !prev;
+      try { localStorage.setItem("retos_on_" + id, next ? "1" : "0"); } catch (e) {}
+      return next;
+    });
+  };
+
+  const toggleRetoHoy = (retoId) => {
+    const hoy = todayKey();
+    setRetosLog(prev => {
+      const dias = { ...(prev[retoId] || {}) };
+      dias[hoy] = !dias[hoy];
+      const next = { ...prev, [retoId]: dias };
+      try { localStorage.setItem("retos_log_" + id, JSON.stringify(next)); } catch (e) {}
       return next;
     });
   };
@@ -283,6 +350,42 @@ function App() {
       <p style={{fontSize:13, lineHeight:1.6, color:P.muted, padding:"2px 4px"}}>
         Marca los que ya estén intentando.
       </p>
+
+      {retosFlag && (
+        <div style={{display:"flex", flexDirection:"column", gap:12, background:P.panel, border:"1px solid "+P.line, borderRadius:18, padding:"16px 17px"}}>
+          <div style={{display:"flex", justifyContent:"space-between", alignItems:"center", gap:10}}>
+            <div>
+              <div style={{fontSize:14.5, fontWeight:800, color:P.ink}}>Retos de bienestar</div>
+              <div style={{fontSize:12, color:P.muted, marginTop:2}}>Opcional · solo lo ves tú, no se comparte con el colegio</div>
+            </div>
+            <button onClick={toggleRetosOn} aria-checked={retosOn} style={{flexShrink:0, width:44, height:26, borderRadius:99, border:"1.5px solid "+(retosOn?P.sage:P.line), background: retosOn?P.sage:P.panelRaised, position:"relative", cursor:"pointer"}}>
+              <span style={{position:"absolute", top:2, left: retosOn?20:2, width:19, height:19, borderRadius:"50%", background:"#fff", transition:"left .18s", boxShadow:"0 1px 2px rgba(40,42,36,.25)"}}/>
+            </button>
+          </div>
+
+          {retosOn && (
+            <div style={{display:"flex", flexDirection:"column", gap:10}}>
+              {RETOS.map(r => {
+                const actual = contarDias(retosLog, r.id, 0, 6);
+                const anterior = contarDias(retosLog, r.id, 7, 13);
+                const hoyHecho = !!((retosLog[r.id] || {})[todayKey()]);
+                return (
+                  <div key={r.id} style={{display:"flex", gap:12, alignItems:"flex-start", background: hoyHecho?P.sageSoft:P.panelRaised, border:"1px solid "+(hoyHecho?P.sage:P.line), borderRadius:14, padding:"12px 13px"}}>
+                    <button onClick={() => toggleRetoHoy(r.id)} aria-checked={hoyHecho} style={{flexShrink:0, width:24, height:24, borderRadius:8, border:"1.5px solid "+(hoyHecho?P.sage:P.line), background: hoyHecho?P.sage:P.panelRaised, color: hoyHecho?"#fff":"transparent", cursor:"pointer", display:"grid", placeItems:"center", marginTop:1}}>
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" width="13" height="13"><path d="M4 12l5 5L20 6"/></svg>
+                    </button>
+                    <div style={{flex:1, minWidth:0}}>
+                      <p style={{fontSize:13.5, fontWeight:800, margin:"0 0 2px", color:P.ink}}>{r.titulo}</p>
+                      <p style={{fontSize:12.5, lineHeight:1.5, color:P.muted, margin:"0 0 6px"}}>{r.texto}</p>
+                      <p style={{fontSize:11.5, fontWeight:700, color:P.sageDeep, margin:0}}>Esta semana: {actual} de 7 · Semana pasada: {anterior} de 7</p>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
 
       <button
         onClick={startChat}
