@@ -175,10 +175,17 @@ function doPost(e) {
 }
 
 // Envuelve las acciones del panel con el chequeo de PANEL_SECRET, para no
-// repetirlo en cada función.
+// repetirlo en cada función. "unauthorized:true" (no el texto exacto de
+// "error") es lo que el Worker usa para decidir el status HTTP real —
+// Apps Script/ContentService no puede mandar un status distinto de 200 (ver
+// respond() más abajo), así que el Worker necesita ALGO en el cuerpo para
+// distinguir "credencial inválida" de cualquier otro error. Un campo
+// estructurado, no un string mágico: cualquier acción nueva que valide un
+// secreto puede reusar el mismo patrón sin que el Worker necesite conocer
+// el texto exacto de cada mensaje (ver handlePanelAction en vita-proxy.js).
 function conPanelSecret(body, fn) {
   if (!body.panelSecret || body.panelSecret !== PANEL_SECRET) {
-    return respond({ ok: false, error: "panelSecret inválido" }, 401);
+    return respond({ ok: false, error: "panelSecret inválido", unauthorized: true }, 401);
   }
   return fn();
 }
@@ -732,7 +739,8 @@ function resumenColegio(sheet, body) {
   var pin = String(body.panelColegioSecret || "");
   if (!codigo) return respond({ ok: false, error: "código de colegio faltante" }, 400);
   if (!PANEL_COLEGIO_SECRETS[codigo] || PANEL_COLEGIO_SECRETS[codigo] !== pin) {
-    return respond({ ok: false, error: "panelColegioSecret inválido" }, 401);
+    // unauthorized:true, no el texto exacto — ver la nota junto a conPanelSecret.
+    return respond({ ok: false, error: "panelColegioSecret inválido", unauthorized: true }, 401);
   }
 
   var data = sheet.getDataRange().getValues();
