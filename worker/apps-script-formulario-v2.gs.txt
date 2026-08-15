@@ -345,6 +345,21 @@ function guardarBorrador(sheet, body) {
   for (var r = 1; r < data.length; r++) {
     if (String(data[r][COLS.timestamp]) === String(ts)) {
       var rowNum = r + 1;
+
+      // IDEMPOTENCIA (14 ago 2026): si esta fila YA tiene un id_plan, no
+      // generar uno nuevo ni pisar nada — se devuelve el que ya existe. Sin
+      // esto, dos llamadas para el mismo ts (la generación automática en
+      // segundo plano de /log + una manual, o cualquier reintento futuro)
+      // generan un idPlan NUEVO cada vez y resetean decision a
+      // "pendiente_aprobacion" — lo que borra silenciosamente una
+      // aprobación ya hecha, e invalida cualquier link ya compartido con
+      // una familia. Encontrado en vivo el 14 ago 2026 validando el panel
+      // de colegio.
+      var idPlanExistente = data[r][COLS.id_plan];
+      if (idPlanExistente) {
+        return respond({ ok: true, idPlan: idPlanExistente, row: rowNum, yaExistia: true });
+      }
+
       var idPlan = Utilities.getUuid().replace(/-/g, "").slice(0, 16);
       sheet.getRange(rowNum, COLS.id_plan + 1).setValue(idPlan);
       sheet.getRange(rowNum, COLS.plan_json + 1).setValue(JSON.stringify(body.plan || {}));
