@@ -1,0 +1,255 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+<meta name="robots" content="noindex" />
+<title>Panel del colegio · Bienestar 360</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+<script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<style>
+  html,body{margin:0;height:100%}
+  *{box-sizing:border-box}
+  .rise{animation:rise .22s cubic-bezier(.2,.8,.2,1)}
+  @keyframes rise{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const { useState, useEffect } = React;
+
+// ============================================================
+// Panel del colegio (14 ago 2026) — para el rector o la persona delegada de
+// un colegio aliado, para ver el progreso del piloto o la operación real.
+// DISTINTO del panel de Peter (panel/index.html): este SOLO muestra
+// agregados del colegio, nunca el caso de un niño/a individual. Es la
+// promesa de privacidad ya hecha en las propuestas comerciales, y además
+// protege un riesgo real: en varios colegios el rector/delegado es también
+// padre/madre de una familia inscrita, así que conoce personalmente a otras
+// familias del piloto — un agregado de "1 de 3" no es anónimo para esa
+// persona. Por eso, por debajo de un umbral mínimo de familias (ver abajo),
+// no se muestra ningún desagregado, solo el total.
+//
+// URL: panel-colegio/?colegio=BIS2026 — el código de colegio va en la URL
+// (se la compartimos nosotros al rector), el PIN se pide en pantalla y se
+// guarda en localStorage tras la primera vez, igual que el panel de Peter.
+// Ese PIN es DISTINTO tanto del panel de Peter como del código que usan las
+// familias para verificar elegibilidad — ver worker/apps-script-formulario-v2.gs.txt.
+//
+// Ruta: POST /panel-colegio/resumen { codigo, panelColegioSecret }.
+// ============================================================
+const WORKER_URL = "https://vita-proxy.leonardo-751.workers.dev";
+
+const P = { bg:"#ECE5D8", panel:"#FBF8F1", panelRaised:"#FFFFFF", ink:"#2C2A24", sage:"#5A7A5C", sageDeep:"#3E5A40", sageSoft:"#DCE7D6", clay:"#B5764A", claySoft:"#F0DFCB", line:"#D8CFBE", muted:"#8A8473" };
+
+const Shell = (props) => (
+  <div style={{minHeight:"100vh", background:P.bg, fontFamily:"'Nunito',sans-serif", color:P.ink, display:"flex", justifyContent:"center", padding:"28px 14px 56px"}}>
+    <div style={{width:"100%", maxWidth:560, display:"flex", flexDirection:"column", gap:18}}>{props.children}</div>
+  </div>
+);
+
+const btnPrimary = {background:P.sage,color:"#fff",border:"none",borderRadius:999,padding:"12px 24px",fontSize:14.5,fontWeight:800,fontFamily:"'Nunito',sans-serif",cursor:"pointer",boxShadow:"0 6px 18px rgba(90,122,92,.30)"};
+
+const EDAD_LABELS = { "2-5":"2 a 5 años", "6-9":"6 a 9 años", "10-13":"10 a 13 años", "14-17":"14 a 17 años", "18-20":"18 a 20 años", sin_dato:"Sin dato" };
+const MES_LABELS = ["ene","feb","mar","abr","may","jun","jul","ago","sep","oct","nov","dic"];
+
+function formatMes(clave) {
+  const [anio, mes] = clave.split("-");
+  const i = parseInt(mes, 10) - 1;
+  return (MES_LABELS[i] || mes) + " " + anio;
+}
+
+function getColegioFromUrl() {
+  const params = new URLSearchParams(window.location.search);
+  return (params.get("colegio") || "").trim();
+}
+
+function App() {
+  const colegio = getColegioFromUrl();
+  const pinKey = "be360_panel_colegio_pin_" + colegio;
+
+  const [pin, setPin] = useState(() => { try { return localStorage.getItem(pinKey) || ""; } catch (e) { return ""; } });
+  const [pinInput, setPinInput] = useState("");
+  const [verPin, setVerPin] = useState(false);
+  const [pinError, setPinError] = useState(null);
+  const [checkingPin, setCheckingPin] = useState(false);
+
+  const [stage, setStage] = useState("cargando"); // cargando | resumen
+  const [resumen, setResumen] = useState(null);
+  const [error, setError] = useState(null);
+
+  const cargarResumen = async (pinAUsar) => {
+    setStage("cargando"); setError(null);
+    try {
+      const res = await fetch(WORKER_URL + "/panel-colegio/resumen", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ codigo: colegio, panelColegioSecret: pinAUsar }),
+      });
+      const data = await res.json().catch(() => ({ ok:false, error:"respuesta inválida" }));
+      if (res.status === 401 || (data && data.error === "panelColegioSecret inválido")) {
+        try { localStorage.removeItem(pinKey); } catch (e) {}
+        setPin(""); setStage("cargando");
+        return;
+      }
+      if (!data.ok) throw new Error(data.error || "error");
+      setResumen(data); setStage("resumen");
+    } catch (e) {
+      setError(e.message || "No se pudo cargar. Reintenta.");
+      setStage("resumen");
+    }
+  };
+
+  useEffect(() => { if (pin && colegio) cargarResumen(pin); }, [pin, colegio]);
+
+  const entrarConPin = async () => {
+    if (!pinInput.trim() || checkingPin) return;
+    setCheckingPin(true); setPinError(null);
+    try {
+      const res = await fetch(WORKER_URL + "/panel-colegio/resumen", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ codigo: colegio, panelColegioSecret: pinInput.trim() }),
+      });
+      const data = await res.json().catch(() => ({ ok:false }));
+      if (!data.ok) { setPinError("PIN incorrecto."); return; }
+      try { localStorage.setItem(pinKey, pinInput.trim()); } catch (e) {}
+      setResumen(data); setStage("resumen"); setPin(pinInput.trim());
+    } catch (e) { setPinError("No se pudo conectar. Reintenta."); }
+    finally { setCheckingPin(false); }
+  };
+
+  const salir = () => { try { localStorage.removeItem(pinKey); } catch (e) {} setPin(""); setResumen(null); };
+
+  // ---------- SIN CÓDIGO DE COLEGIO EN LA URL ----------
+  if (!colegio) {
+    return (
+      <Shell>
+        <div style={{background:P.panel, border:"1px solid "+P.line, borderRadius:20, padding:"32px 26px", textAlign:"center"}}>
+          <div style={{fontSize:36, marginBottom:10}}>🌱</div>
+          <div style={{fontFamily:"'Fraunces',serif", fontSize:20, color:P.sageDeep, marginBottom:10}}>Falta el código de colegio</div>
+          <p style={{fontSize:13.5, color:P.muted, lineHeight:1.6}}>Este link debe incluir tu colegio (ej. termina en <code>?colegio=BIS2026</code>). Si no lo tienes, escríbenos.</p>
+        </div>
+      </Shell>
+    );
+  }
+
+  // ---------- PIN ----------
+  if (!pin) return (
+    <Shell>
+      <div style={{background:P.panel, border:"1px solid "+P.line, borderRadius:20, padding:"32px 26px", textAlign:"center"}}>
+        <div style={{fontSize:36, marginBottom:10}}>🌱</div>
+        <div style={{fontFamily:"'Fraunces',serif", fontSize:22, color:P.sageDeep, marginBottom:10}}>Panel del colegio</div>
+        <p style={{fontSize:13.5, color:P.ink, lineHeight:1.6, textAlign:"left", marginBottom:8}}>Acá ves el progreso de Bienestar 360 en tu comunidad — familias inscritas, cuántas ya tienen su plan, y su evolución en el tiempo.</p>
+        <p style={{fontSize:12.5, color:P.muted, lineHeight:1.6, textAlign:"left", marginBottom:8}}>Todo lo que ves acá es agregado del colegio completo — nunca el caso de un niño/a en particular, ni siquiera si eres también padre/madre de una familia inscrita.</p>
+        <p style={{fontSize:12.5, color:P.muted, lineHeight:1.6, textAlign:"left", marginBottom:20}}>El PIN es solo para ti (o quien más tenga acceso autorizado en tu colegio).</p>
+        <div style={{position:"relative", width:"100%", maxWidth:220, margin:"0 auto 14px"}}>
+          <input type={verPin?"text":"password"} value={pinInput} onChange={e=>setPinInput(e.target.value)} onKeyDown={e=>{if(e.key==="Enter") entrarConPin();}} placeholder="PIN"
+            style={{width:"100%", textAlign:"center", fontSize:16, padding:"11px 40px 11px 14px", border:"1px solid "+P.line, borderRadius:12, fontFamily:"'Nunito',sans-serif", outline:"none"}} autoFocus/>
+          <button type="button" onClick={()=>setVerPin(v=>!v)} title={verPin?"Ocultar PIN":"Ver PIN"}
+            style={{position:"absolute", right:6, top:"50%", transform:"translateY(-50%)", background:"none", border:"none", color:P.muted, cursor:"pointer", fontSize:16, padding:6, lineHeight:1}}>
+            {verPin ? "🙈" : "👁"}
+          </button>
+        </div>
+        <div>
+          <button onClick={entrarConPin} disabled={checkingPin} style={{...btnPrimary, opacity:checkingPin?.7:1}}>{checkingPin?"Entrando…":"Entrar →"}</button>
+        </div>
+        {pinError && <p style={{fontSize:12.5, color:P.clay, marginTop:14}}>{pinError}</p>}
+      </div>
+    </Shell>
+  );
+
+  // ---------- CARGANDO ----------
+  if (stage === "cargando") return (
+    <Shell><div style={{textAlign:"center", padding:"60px 10px", color:P.muted}}>Cargando…</div></Shell>
+  );
+
+  // ---------- RESUMEN ----------
+  const r = resumen || {};
+  return (
+    <Shell>
+      <div style={{display:"flex", justifyContent:"space-between", alignItems:"flex-start"}}>
+        <div>
+          <div style={{fontSize:11.5, fontWeight:800, letterSpacing:".09em", textTransform:"uppercase", color:P.sageDeep}}>Panel del colegio</div>
+          <h1 style={{fontFamily:"'Fraunces',serif", fontWeight:600, fontSize:"clamp(24px,6vw,30px)", margin:"4px 0 0", color:P.sageDeep}}>{colegio}</h1>
+        </div>
+        <span onClick={salir} style={{fontSize:12.5, color:P.muted, textDecoration:"underline", cursor:"pointer", flexShrink:0, marginTop:6}}>Salir</span>
+      </div>
+
+      {error && (
+        <div style={{background:P.claySoft, border:"1px solid "+P.clay, borderRadius:14, padding:"12px 16px", fontSize:13, color:P.ink}}>
+          {error} <span onClick={()=>cargarResumen(pin)} style={{color:P.sageDeep, fontWeight:700, textDecoration:"underline", cursor:"pointer"}}>Reintentar</span>
+        </div>
+      )}
+
+      {!error && (
+        <React.Fragment>
+          <div style={{background:P.sageSoft, borderRadius:18, padding:"20px 22px", textAlign:"center"}}>
+            <div style={{fontFamily:"'Fraunces',serif", fontSize:44, fontWeight:600, color:P.sageDeep, lineHeight:1}}>{r.total ?? 0}</div>
+            <div style={{fontSize:12.5, fontWeight:700, color:P.sageDeep, marginTop:6, textTransform:"uppercase", letterSpacing:".04em"}}>Familias inscritas y verificadas</div>
+          </div>
+
+          {r.muestraInsuficiente ? (
+            <div style={{background:P.panel, border:"1px solid "+P.line, borderRadius:16, padding:"16px 18px", fontSize:13.5, color:P.ink, lineHeight:1.7}}>
+              Con menos de {r.umbral} familias, no mostramos ningún desagregado (edades, estado, evolución) — es una protección de privacidad, no una limitación técnica: con tan pocas familias, cualquier dato adicional podría identificar a una familia específica, incluso sin nombres. A medida que crezca la comunidad de {colegio}, esta vista se va a ir completando sola.
+            </div>
+          ) : (
+            <React.Fragment>
+              <div style={{display:"grid", gridTemplateColumns:"1fr 1fr", gap:12}}>
+                <div style={{background:P.panel, border:"1px solid "+P.line, borderRadius:16, padding:"16px 18px", textAlign:"center"}}>
+                  <div style={{fontFamily:"'Fraunces',serif", fontSize:28, fontWeight:600, color:P.sageDeep}}>{r.aprobados ?? 0}</div>
+                  <div style={{fontSize:12, color:P.muted, marginTop:4}}>Con plan ya entregado</div>
+                </div>
+                <div style={{background:P.panel, border:"1px solid "+P.line, borderRadius:16, padding:"16px 18px", textAlign:"center"}}>
+                  <div style={{fontFamily:"'Fraunces',serif", fontSize:28, fontWeight:600, color:P.sageDeep}}>{r.enProceso ?? 0}</div>
+                  <div style={{fontSize:12, color:P.muted, marginTop:4}}>En proceso</div>
+                </div>
+              </div>
+
+              {r.porEdad && (
+                <div style={{background:P.panel, border:"1px solid "+P.line, borderRadius:16, padding:"16px 18px"}}>
+                  <div style={{fontSize:13, fontWeight:800, color:P.ink, marginBottom:10}}>Familias por rango de edad</div>
+                  {Object.keys(EDAD_LABELS).map(k => (r.porEdad[k] > 0 && (
+                    <div key={k} style={{display:"flex", alignItems:"center", gap:10, marginBottom:7}}>
+                      <div style={{width:90, fontSize:12.5, color:P.muted, flexShrink:0}}>{EDAD_LABELS[k]}</div>
+                      <div style={{flex:1, height:8, borderRadius:99, background:P.sageSoft, overflow:"hidden"}}>
+                        <div style={{height:"100%", width:Math.round((r.porEdad[k]/r.total)*100)+"%", background:P.sage, borderRadius:99}}/>
+                      </div>
+                      <div style={{width:20, fontSize:12.5, fontWeight:700, color:P.ink, textAlign:"right"}}>{r.porEdad[k]}</div>
+                    </div>
+                  )))}
+                </div>
+              )}
+
+              {r.evolucionMensual && Object.keys(r.evolucionMensual).length > 0 && (
+                <div style={{background:P.panel, border:"1px solid "+P.line, borderRadius:16, padding:"16px 18px"}}>
+                  <div style={{fontSize:13, fontWeight:800, color:P.ink, marginBottom:10}}>Evolución mensual (familias verificadas)</div>
+                  {Object.keys(r.evolucionMensual).sort().map(mes => (
+                    <div key={mes} style={{display:"flex", alignItems:"center", gap:10, marginBottom:7}}>
+                      <div style={{width:70, fontSize:12.5, color:P.muted, flexShrink:0, textTransform:"capitalize"}}>{formatMes(mes)}</div>
+                      <div style={{flex:1, height:8, borderRadius:99, background:P.sageSoft, overflow:"hidden"}}>
+                        <div style={{height:"100%", width:Math.max(6, Math.round((r.evolucionMensual[mes]/r.total)*100))+"%", background:P.sage, borderRadius:99}}/>
+                      </div>
+                      <div style={{width:20, fontSize:12.5, fontWeight:700, color:P.ink, textAlign:"right"}}>{r.evolucionMensual[mes]}</div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </React.Fragment>
+          )}
+
+          <p style={{fontSize:11.5, textAlign:"center", color:P.muted, lineHeight:1.6, padding:"0 8px"}}>
+            Nunca mostramos el caso de un niño/a en particular — solo agregados de todo {colegio}.
+          </p>
+        </React.Fragment>
+      )}
+    </Shell>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
+</script>
+</body>
+</html>

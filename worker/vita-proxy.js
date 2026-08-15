@@ -238,6 +238,12 @@ export default {
     // NUEVO (10 ago 2026): verificación del código de colegio — ver nota grande arriba.
     if (url.pathname === "/verificar") return handlePanelAction(request, env, cors, "verificar_codigo");
 
+    // NUEVO (14 ago 2026): panel de colegio (panel-colegio/index.html) — SOLO
+    // agregados del colegio (nunca un caso individual), con su propio PIN por
+    // colegio (PANEL_COLEGIO_SECRETS en Apps Script, distinto del PANEL_SECRET
+    // de Peter). Mismo patrón de passthrough genérico que /panel/* y /verificar.
+    if (url.pathname === "/panel-colegio/resumen") return handlePanelAction(request, env, cors, "resumen_colegio");
+
     try {
       const body = await request.json();
 
