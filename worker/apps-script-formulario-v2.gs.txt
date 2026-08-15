@@ -76,6 +76,13 @@
  * CODIGOS_VALIDOS_COLEGIO es una lista simple editable — hoy certifica que
  * la familia pertenece a un colegio/cohorte habilitado, no un código único
  * por niño/a (si se necesita eso más adelante, se puede afinar).
+ *
+ * PANEL DE COLEGIO (14 ago 2026, panel-colegio/index.html): dashboard de
+ * SOLO agregados para el rector o delegado del colegio — nunca un caso
+ * individual. PIN propio por colegio (PANEL_COLEGIO_SECRETS), distinto del
+ * PANEL_SECRET de Peter y de CODIGOS_VALIDOS_COLEGIO. Umbral de privacidad
+ * n>=5 antes de mostrar cualquier desagregado — ver el comentario grande
+ * junto a resumenColegio() para el porqué.
  */
 
 var SHARED_SECRET = "3-estoesparaquevitarenazcabajolasreglasduras";
@@ -87,6 +94,15 @@ var PANEL_SECRET = "1990-I";
 // CÁMBIALO por el real antes de operar con familias de verdad.
 var CODIGOS_VALIDOS_COLEGIO = ["BIS2026"];
 var HORAS_PLAZO_VERIFICACION = 72;
+
+// PIN del panel de colegio (panel-colegio/index.html) — uno por colegio,
+// DISTINTO tanto de PANEL_SECRET (panel de Peter) como de
+// CODIGOS_VALIDOS_COLEGIO (el código que usan las familias para verificar
+// elegibilidad). Con esto separado, el código de una familia no sirve para
+// entrar al panel del colegio, y el PIN del colegio no sirve para verificar
+// una familia. CAMBIA el PIN de ejemplo antes de compartirlo con un rector
+// real.
+var PANEL_COLEGIO_SECRETS = { "BIS2026": "CAMBIAR-ESTE-PIN" };
 
 var COLS = {
   timestamp: 0, modo: 1, nombre_nino: 2, edad: 3, que_deseas_lograr: 4,
@@ -118,6 +134,10 @@ function doPost(e) {
     // falta conocer el idPlan (token aleatorio de 16 caracteres), no
     // enumerable. El código en sí es la credencial real.
     if (body.action === "verificar_codigo") return verificarCodigo(sheet, body);
+
+    // Panel de colegio (panel-colegio/index.html) — su propio secreto por
+    // colegio (PANEL_COLEGIO_SECRETS), validado adentro de resumenColegio.
+    if (body.action === "resumen_colegio") return resumenColegio(sheet, body);
 
     // Resto de acciones — vienen del Worker, usan SHARED_SECRET.
     if (!body.secret || body.secret !== SHARED_SECRET) {
@@ -672,4 +692,89 @@ function purgarNoVerificados(sheet) {
 function purgarNoVerificadosProgramado() {
   var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheets()[0];
   purgarNoVerificados(sheet);
+}
+
+// ============================================================
+// PANEL DE COLEGIO (14 ago 2026, pedido de Leonardo) — para el rector o la
+// persona delegada del colegio, DISTINTO del panel de Peter. Muestra SOLO
+// agregados del colegio, nunca el caso de un niño/a individual — es la
+// promesa de privacidad ya hecha en las propuestas comerciales (Royal
+// School, FUMAVI, Altamira, Medalla Milagrosa), y además protege contra un
+// riesgo real que identificamos: en varios colegios el rector o delegado es
+// también padre/madre de una familia inscrita, así que conoce personalmente
+// a otras familias del piloto.
+//
+// UMBRAL DE PRIVACIDAD (n>=5, UMBRAL_PRIVACIDAD_COLEGIO): con cohortes
+// chicas, cualquier desagregado (aprobados/en proceso, edades, evolución
+// mensual) puede volverse identificable para alguien que conoce a las
+// familias — un agregado de "1 de 3" no es anónimo para quien conoce a las
+// otras 2. Por debajo del umbral SOLO se devuelve el total (un número de
+// inscripción no es sensible por sí solo) — nada desagregado. Es un umbral
+// de PRIVACIDAD (evita reidentificación por eliminación), NO de
+// representatividad estadística — no confundir los dos conceptos al
+// explicarle esto a un colegio.
+//
+// Solo cuenta familias VERIFICADAS de ese colegio (verificacion_ts con
+// valor) — un borrador sin confirmar todavía podría terminar siendo de otro
+// colegio, o nunca completarse.
+//
+// LO QUE NO HACE A PROPÓSITO: no desagrega por "señales observadas" ni
+// ningún otro campo de texto libre del formulario — esos campos los llena
+// cada familia con sus propias palabras (no son checkboxes), así que
+// cualquier conteo por palabra clave sería una afirmación poco confiable
+// sobre datos de salud. Mejor no mostrar ese dato que mostrar uno impreciso.
+// ============================================================
+var UMBRAL_PRIVACIDAD_COLEGIO = 5;
+
+function resumenColegio(sheet, body) {
+  var codigo = String(body.codigo || "").trim();
+  var pin = String(body.panelColegioSecret || "");
+  if (!codigo) return respond({ ok: false, error: "código de colegio faltante" }, 400);
+  if (!PANEL_COLEGIO_SECRETS[codigo] || PANEL_COLEGIO_SECRETS[codigo] !== pin) {
+    return respond({ ok: false, error: "panelColegioSecret inválido" }, 401);
+  }
+
+  var data = sheet.getDataRange().getValues();
+  var filas = [];
+  for (var r = 1; r < data.length; r++) {
+    if (data[r][COLS.codigo_colegio] === codigo && data[r][COLS.verificacion_ts]) {
+      filas.push(data[r]);
+    }
+  }
+
+  var total = filas.length;
+  var out = { ok: true, colegio: codigo, total: total, umbral: UMBRAL_PRIVACIDAD_COLEGIO };
+
+  if (total < UMBRAL_PRIVACIDAD_COLEGIO) {
+    out.muestraInsuficiente = true;
+    return respond(out);
+  }
+
+  var aprobados = 0;
+  var porEdad = { "2-5": 0, "6-9": 0, "10-13": 0, "14-17": 0, "18-20": 0, sin_dato: 0 };
+  var porMes = {}; // "2026-08" -> conteo, por fecha de verificación
+
+  filas.forEach(function (v) {
+    if (v[COLS.decision] === "aprobado") aprobados++;
+
+    var edadNum = parseInt(String(v[COLS.edad]).replace(/[^0-9]/g, ""), 10);
+    if (isNaN(edadNum)) porEdad.sin_dato++;
+    else if (edadNum <= 5) porEdad["2-5"]++;
+    else if (edadNum <= 9) porEdad["6-9"]++;
+    else if (edadNum <= 13) porEdad["10-13"]++;
+    else if (edadNum <= 17) porEdad["14-17"]++;
+    else porEdad["18-20"]++;
+
+    var fecha = new Date(v[COLS.verificacion_ts]);
+    if (!isNaN(fecha.getTime())) {
+      var mes = fecha.getFullYear() + "-" + ("0" + (fecha.getMonth() + 1)).slice(-2);
+      porMes[mes] = (porMes[mes] || 0) + 1;
+    }
+  });
+
+  out.aprobados = aprobados;
+  out.enProceso = total - aprobados;
+  out.porEdad = porEdad;
+  out.evolucionMensual = porMes;
+  return respond(out);
 }
