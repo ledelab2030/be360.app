@@ -100,9 +100,10 @@ var HORAS_PLAZO_VERIFICACION = 72;
 // CODIGOS_VALIDOS_COLEGIO (el código que usan las familias para verificar
 // elegibilidad). Con esto separado, el código de una familia no sirve para
 // entrar al panel del colegio, y el PIN del colegio no sirve para verificar
-// una familia. CAMBIA el PIN de ejemplo antes de compartirlo con un rector
-// real.
-var PANEL_COLEGIO_SECRETS = { "BIS2026": "CAMBIAR-ESTE-PIN" };
+// una familia. PIN real generado 14 ago 2026 (antes placeholder) — si algún
+// día cambia, actualízalo AQUÍ para que quede como el default real, mismo
+// criterio que PANEL_SECRET arriba.
+var PANEL_COLEGIO_SECRETS = { "BIS2026": "BIS-GQ5R05" };
 
 var COLS = {
   timestamp: 0, modo: 1, nombre_nino: 2, edad: 3, que_deseas_lograr: 4,
