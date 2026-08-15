@@ -600,7 +600,17 @@ async function handlePanelAction(request, env, cors, accion) {
     let sheetData;
     try { sheetData = JSON.parse(sheetText); } catch (e) { sheetData = { ok: false, error: "respuesta inválida de Apps Script" }; }
 
-    const status = sheetData.ok === false ? (sheetData.error === "panelSecret inválido" ? 401 : 400) : 200;
+    // NUEVO (14 ago 2026): antes esto comparaba sheetData.error contra el
+    // texto exacto "panelSecret inválido" — funcionaba para el panel de
+    // Peter, pero cualquier acción nueva con SU PROPIO secreto (ej.
+    // resumen_colegio, con "panelColegioSecret inválido") caía siempre en
+    // 400 genérico, aunque la causa real fuera credencial inválida. Apps
+    // Script no puede mandar un status HTTP real (ContentService siempre
+    // responde 200), así que necesita decírselo al Worker de otra forma —
+    // ahora vía el campo estructurado "unauthorized:true" en el cuerpo, que
+    // cualquier acción protegida por secreto puede reusar sin que el Worker
+    // tenga que conocer el texto exacto de cada mensaje de error.
+    const status = sheetData.ok === false ? (sheetData.unauthorized ? 401 : 400) : 200;
     return new Response(JSON.stringify(sheetData), { status, headers: jsonHeaders });
   } catch (e) {
     return new Response(JSON.stringify({ ok: false, error: String(e) }), { status: 500, headers: jsonHeaders });
