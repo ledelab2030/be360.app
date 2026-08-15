@@ -13,65 +13,70 @@
 <style>
   html,body{margin:0;height:100%}
   *{box-sizing:border-box}
+  .barfill{transition:width .45s cubic-bezier(.2,.8,.2,1)}
+  .numfade{transition:opacity .2s}
+  input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:26px;background:transparent;cursor:pointer;margin:0}
+  input[type=range]::-webkit-slider-runnable-track{height:10px;border-radius:99px}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:22px;height:22px;border-radius:50%;background:#fff;border:3px solid #3E5A40;margin-top:-6px;box-shadow:0 2px 8px rgba(40,42,36,.3)}
+  input[type=range]::-moz-range-track{height:10px;border-radius:99px}
+  input[type=range]::-moz-range-thumb{width:16px;height:16px;border-radius:50%;background:#fff;border:3px solid #3E5A40;box-shadow:0 2px 8px rgba(40,42,36,.3)}
+  .tabbtn{transition:background .15s,color .15s}
+  .fade{animation:fade .25s ease-out}
+  @keyframes fade{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
 </style>
 </head>
 <body>
 <div id="root"></div>
 <script type="text/babel">
-const { useState } = React;
+const { useState, useMemo } = React;
 
 // ============================================================
-// PROYECCIÓN del panel de colegio (14 ago 2026, pedido de Leonardo) — NO es
-// el panel real (ese vive en panel-colegio/index.html, conectado al Worker
-// y al Sheet). Esta página es 100% simulada, un mockup de diseño para
-// pensar cómo se vería el panel al final de un ciclo completo — NUNCA se
-// conecta a datos reales, no hace ningún fetch.
+// PROYECCIÓN del panel de colegio — v2, rediseñada desde UX/interaction
+// design (14 ago 2026, pedido de Leonardo). Sigue siendo 100% simulada, un
+// mockup de diseño, NUNCA conectada a datos reales (sin fetch). La v1 era
+// un scroll plano de tarjetas apiladas; esta versión reemplaza eso por UNA
+// interacción central — un scrubber de mes — de la que cuelga todo lo
+// demás, para que explorar el ciclo se sienta como manipular una
+// simulación, no leer un reporte estático.
 //
-// Por qué existe: el panel real de hoy solo puede mostrar inscripción y
-// entrega de plan — apenas la primera etapa. Leonardo pidió proyectar el
-// resto (adherencia a hábitos, experiencia, resultados, feedback médico
-// externo) para diseñarlo antes de construirlo de verdad, con un punto
-// metodológico central: NO se puede confiar solo en la apreciación
-// subjetiva del padre para decir que el método funciona — por eso esta
-// proyección distingue explícitamente "reportado por el padre" de
-// "medido" en todo momento, y muestra honestamente que lo medido today
-// sería bajo (el kit recomendado y el enlace con el pediatra externo
-// todavía no existen).
-//
-// Calendario B de Colombia (BIS: agosto–junio), año completo desde el mes
-// 1 (ago 2026) — incluye las dos ventanas de vacaciones (dic–ene, jun–jul)
-// a propósito: lo que pasa en vacaciones importa igual, porque los hábitos
-// aprendidos pueden perderse o reforzarse ahí. La continuidad en
-// vacaciones se resuelve con Retos (plan/index.html, ya construido,
-// invisible hoy tras ?retos=1) + el chat de seguimiento de Vita — no es
-// una pieza nueva, es activar lo que ya existe durante esa ventana.
+// Decisiones de diseño:
+// - Scrubber de mes (input range) como pieza central: en vez de repetir 12
+//   barras por cada métrica (total, aprobados, adherencia — como en v1),
+//   hay UN eje de tiempo y las métricas cambian con él. Así se puede
+//   "sentir" la caída de adherencia en vacaciones arrastrando el control,
+//   en vez de leerla como un número más en una lista.
+// - Vacaciones pintadas directo en el track del slider (gradiente), no
+//   solo con un ícono al lado de cada fila.
+// - "Reportado" vs. "medido" como TOGGLE, no dos tarjetas una al lado de
+//   la otra — obliga a elegir cuál mirar, para que la distinción
+//   metodológica de Leonardo no se pueda pasar por alto de un vistazo.
+// - Contenido que NO depende del mes (esperados/no esperados, kit,
+//   médico externo) va en tabs aparte — separado del eje de tiempo en vez
+//   de seguir el mismo scroll infinito.
 // ============================================================
 
 const P = { bg:"#ECE5D8", panel:"#FBF8F1", panelRaised:"#FFFFFF", ink:"#2C2A24", sage:"#5A7A5C", sageDeep:"#3E5A40", sageSoft:"#DCE7D6", clay:"#B5764A", claySoft:"#F0DFCB", line:"#D8CFBE", muted:"#8A8473" };
 
 const Shell = (props) => (
   <div style={{minHeight:"100vh", background:P.bg, fontFamily:"'Nunito',sans-serif", color:P.ink, display:"flex", justifyContent:"center", padding:"0 14px 56px"}}>
-    <div style={{width:"100%", maxWidth:640, display:"flex", flexDirection:"column", gap:18}}>{props.children}</div>
+    <div style={{width:"100%", maxWidth:640, display:"flex", flexDirection:"column", gap:16}}>{props.children}</div>
   </div>
 );
 
-// ---------- DATOS SIMULADOS (año completo, calendario B, ago 2026–jul 2027) ----------
-// "real" en ago 2026 = 6 (coincide con el estado verificado en producción el
-// 14 ago 2026, punto de partida honesto). Todo lo demás (sep 2026 en
-// adelante) es proyección ilustrativa, no una meta ni una promesa.
+// ---------- DATOS SIMULADOS (idénticos a v1 — solo cambia la interacción) ----------
 const MESES = [
-  { clave:"2026-08", label:"Ago 2026", vacaciones:false, total:6,  aprobados:4,  adherencia:58 },
-  { clave:"2026-09", label:"Sep 2026", vacaciones:false, total:11, aprobados:9,  adherencia:61 },
-  { clave:"2026-10", label:"Oct 2026", vacaciones:false, total:18, aprobados:15, adherencia:63 },
-  { clave:"2026-11", label:"Nov 2026", vacaciones:false, total:24, aprobados:21, adherencia:60 },
-  { clave:"2026-12", label:"Dic 2026", vacaciones:true,  total:24, aprobados:22, adherencia:33 },
-  { clave:"2027-01", label:"Ene 2027", vacaciones:true,  total:26, aprobados:24, adherencia:31 },
-  { clave:"2027-02", label:"Feb 2027", vacaciones:false, total:33, aprobados:30, adherencia:57 },
-  { clave:"2027-03", label:"Mar 2027", vacaciones:false, total:40, aprobados:37, adherencia:62 },
-  { clave:"2027-04", label:"Abr 2027", vacaciones:false, total:47, aprobados:44, adherencia:64 },
-  { clave:"2027-05", label:"May 2027", vacaciones:false, total:53, aprobados:50, adherencia:65 },
-  { clave:"2027-06", label:"Jun 2027", vacaciones:false, total:58, aprobados:55, adherencia:63 },
-  { clave:"2027-07", label:"Jul 2027", vacaciones:true,  total:58, aprobados:56, adherencia:35 },
+  { clave:"2026-08", label:"Ago", labelLargo:"Agosto 2026", vacaciones:false, total:6,  aprobados:4,  adherencia:58 },
+  { clave:"2026-09", label:"Sep", labelLargo:"Septiembre 2026", vacaciones:false, total:11, aprobados:9,  adherencia:61 },
+  { clave:"2026-10", label:"Oct", labelLargo:"Octubre 2026", vacaciones:false, total:18, aprobados:15, adherencia:63 },
+  { clave:"2026-11", label:"Nov", labelLargo:"Noviembre 2026", vacaciones:false, total:24, aprobados:21, adherencia:60 },
+  { clave:"2026-12", label:"Dic", labelLargo:"Diciembre 2026", vacaciones:true,  total:24, aprobados:22, adherencia:33 },
+  { clave:"2027-01", label:"Ene", labelLargo:"Enero 2027", vacaciones:true,  total:26, aprobados:24, adherencia:31 },
+  { clave:"2027-02", label:"Feb", labelLargo:"Febrero 2027", vacaciones:false, total:33, aprobados:30, adherencia:57 },
+  { clave:"2027-03", label:"Mar", labelLargo:"Marzo 2027", vacaciones:false, total:40, aprobados:37, adherencia:62 },
+  { clave:"2027-04", label:"Abr", labelLargo:"Abril 2027", vacaciones:false, total:47, aprobados:44, adherencia:64 },
+  { clave:"2027-05", label:"May", labelLargo:"Mayo 2027", vacaciones:false, total:53, aprobados:50, adherencia:65 },
+  { clave:"2027-06", label:"Jun", labelLargo:"Junio 2027", vacaciones:false, total:58, aprobados:55, adherencia:63 },
+  { clave:"2027-07", label:"Jul", labelLargo:"Julio 2027", vacaciones:true,  total:58, aprobados:56, adherencia:35 },
 ];
 
 const RESULTADOS_ESPERADOS = [
@@ -83,7 +88,6 @@ const RESULTADOS_NO_ESPERADOS = [
   "Mejoría reportada en la relación padre/madre–hijo/a, más allá del hábito puntual",
   "El niño/a pide participar activamente en las conversaciones de seguimiento con Vita",
 ];
-
 const KIT_EJEMPLOS = [
   "Termómetro digital",
   "Báscula sencilla (peso)",
@@ -91,110 +95,157 @@ const KIT_EJEMPLOS = [
   "Diario de sueño — ya cubierto por Retos, no necesita herramienta aparte",
 ];
 
+// Gradiente del track del slider: un segmento por mes, sombreado si es vacación.
+function trackGradient(meses) {
+  const n = meses.length;
+  const stops = [];
+  meses.forEach((m, i) => {
+    const color = m.vacaciones ? P.claySoft : P.sageSoft;
+    const from = (i / n) * 100, to = ((i + 1) / n) * 100;
+    stops.push(color + " " + from + "%", color + " " + to + "%");
+  });
+  return "linear-gradient(to right, " + stops.join(",") + ")";
+}
+
+function Sparkline({ valores, hastaIndex, color }) {
+  const max = Math.max(...valores);
+  const pts = valores.slice(0, hastaIndex + 1).map((v, i) => {
+    const x = (i / (valores.length - 1)) * 100;
+    const y = 28 - (v / max) * 26;
+    return x + "," + y;
+  }).join(" ");
+  return (
+    <svg viewBox="0 0 100 28" preserveAspectRatio="none" style={{width:"100%", height:28, display:"block"}}>
+      <polyline points={pts} fill="none" stroke={color} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
 function App() {
-  const total = MESES[MESES.length - 1].total;
-  const aprobados = MESES[MESES.length - 1].aprobados;
-  const maxTotal = Math.max(...MESES.map(m => m.total));
+  const [mesIndex, setMesIndex] = useState(MESES.length - 1); // arranca en el cierre del ciclo
+  const [lente, setLente] = useState("reportado"); // reportado | medido
+  const [tab, setTab] = useState("resultados"); // resultados | kit | medico
+
+  const mes = MESES[mesIndex];
+  const gradiente = useMemo(() => trackGradient(MESES), []);
 
   return (
     <Shell>
-      <div style={{background:P.clay, color:"#fff", padding:"14px 18px", textAlign:"center", fontSize:13, fontWeight:800, letterSpacing:".02em"}}>
-        ⚠️ PROYECCIÓN — año completo simulado, no son datos reales. No conectado al panel de colegio en producción.
+      {/* ---------- IDENTIDAD DE PROYECCIÓN — persistente pero no gritado ---------- */}
+      <div style={{display:"flex", alignItems:"center", gap:8, padding:"14px 4px 0"}}>
+        <span style={{background:P.clay, color:"#fff", fontSize:10.5, fontWeight:800, letterSpacing:".06em", padding:"4px 9px", borderRadius:999, flexShrink:0}}>PROYECCIÓN · SIMULADO</span>
+        <span style={{fontSize:11, color:P.muted}}>No conectado a datos reales — ver panel real en panel-colegio/</span>
       </div>
 
-      <div style={{padding:"18px 4px 0"}}>
-        <div style={{fontSize:11.5, fontWeight:800, letterSpacing:".09em", textTransform:"uppercase", color:P.sageDeep}}>Proyección · Panel del colegio</div>
+      <div style={{padding:"2px 4px 0"}}>
         <h1 style={{fontFamily:"'Fraunces',serif", fontWeight:600, fontSize:"clamp(24px,6vw,30px)", margin:"4px 0 0", color:P.sageDeep}}>BIS2026 — ciclo completo</h1>
-        <div style={{fontSize:13, color:P.muted, marginTop:4}}>Calendario B (Colombia) · agosto 2026 – julio 2027 · así se vería el panel si hoy tuviéramos todas las piezas construidas</div>
+        <div style={{fontSize:13, color:P.muted, marginTop:4}}>Calendario B (Colombia) · arrastra para explorar cualquier mes del ciclo</div>
       </div>
 
-      {/* ---------- EVOLUCIÓN MENSUAL ---------- */}
-      <div style={{background:P.panel, border:"1px solid "+P.line, borderRadius:16, padding:"16px 18px"}}>
-        <div style={{fontSize:13, fontWeight:800, color:P.ink, marginBottom:2}}>Familias inscritas y verificadas — evolución del ciclo</div>
-        <div style={{fontSize:11.5, color:P.muted, marginBottom:12}}>Ago 2026 es el único dato real (6, verificado en producción) — el resto es proyección ilustrativa.</div>
-        {MESES.map(m => (
-          <div key={m.clave} style={{display:"flex", alignItems:"center", gap:10, marginBottom:6}}>
-            <div style={{width:64, fontSize:11.5, color: m.vacaciones?P.clay:P.muted, fontWeight: m.vacaciones?800:400, flexShrink:0}}>{m.label}{m.vacaciones?" 🏖":""}</div>
-            <div style={{flex:1, height:8, borderRadius:99, background: m.vacaciones?P.claySoft:P.sageSoft, overflow:"hidden"}}>
-              <div style={{height:"100%", width:Math.round((m.total/maxTotal)*100)+"%", background: m.vacaciones?P.clay:P.sage, borderRadius:99}}/>
-            </div>
-            <div style={{width:24, fontSize:11.5, fontWeight:700, color:P.ink, textAlign:"right"}}>{m.total}</div>
-          </div>
-        ))}
-        <div style={{fontSize:11, color:P.muted, marginTop:8}}>🏖 = mes de vacaciones escolares</div>
-      </div>
-
-      {/* ---------- ADHERENCIA A HÁBITOS (RETOS) ---------- */}
-      <div style={{background:P.panel, border:"1px solid "+P.line, borderRadius:16, padding:"16px 18px"}}>
-        <div style={{fontSize:13, fontWeight:800, color:P.ink, marginBottom:2}}>Adherencia a hábitos recomendados</div>
-        <div style={{fontSize:11.5, color:P.muted, marginBottom:12}}>% de familias con plan entregado que registró al menos un hábito esa semana (vía Retos, opt-in) — fuente: reportado por el padre al marcar su checklist, no medido de forma independiente.</div>
-        {MESES.map(m => (
-          <div key={m.clave} style={{display:"flex", alignItems:"center", gap:10, marginBottom:6}}>
-            <div style={{width:64, fontSize:11.5, color: m.vacaciones?P.clay:P.muted, fontWeight: m.vacaciones?800:400, flexShrink:0}}>{m.label}</div>
-            <div style={{flex:1, height:8, borderRadius:99, background: m.vacaciones?P.claySoft:P.sageSoft, overflow:"hidden"}}>
-              <div style={{height:"100%", width:m.adherencia+"%", background: m.vacaciones?P.clay:P.sage, borderRadius:99}}/>
-            </div>
-            <div style={{width:30, fontSize:11.5, fontWeight:700, color:P.ink, textAlign:"right"}}>{m.adherencia}%</div>
-          </div>
-        ))}
-        <div style={{marginTop:10, background:P.claySoft, borderRadius:12, padding:"10px 14px", fontSize:12, color:P.ink, lineHeight:1.6}}>
-          La caída en vacaciones (🏖) es el riesgo real que señalaste: los hábitos aprendidos pueden perderse sin acompañamiento. El mecanismo para sostenerlos ya existe — Retos + el chat de seguimiento de Vita — solo falta activarlo específicamente para esas ventanas, no construir algo nuevo.
+      {/* ---------- SCRUBBER — la interacción central ---------- */}
+      <div style={{background:P.panel, border:"1px solid "+P.line, borderRadius:16, padding:"16px 18px 12px"}}>
+        <div style={{display:"flex", justifyContent:"space-between", alignItems:"baseline", marginBottom:6}}>
+          <div style={{fontFamily:"'Fraunces',serif", fontSize:19, fontWeight:600, color:P.sageDeep}}>{mes.labelLargo}</div>
+          {mes.vacaciones && <div style={{fontSize:11.5, fontWeight:800, color:P.clay}}>🏖 VACACIONES</div>}
+        </div>
+        <input type="range" min="0" max={MESES.length - 1} value={mesIndex}
+          onChange={e => setMesIndex(parseInt(e.target.value, 10))}
+          style={{background: gradiente}} />
+        <div style={{display:"flex", justifyContent:"space-between", marginTop:4}}>
+          {MESES.map((m, i) => (
+            <span key={m.clave} onClick={()=>setMesIndex(i)} style={{fontSize:10, color: i===mesIndex?P.sageDeep:P.muted, fontWeight: i===mesIndex?800:400, cursor:"pointer", width:20, textAlign:"center"}}>{m.label}</span>
+          ))}
         </div>
       </div>
 
-      {/* ---------- RESULTADOS: MEDIDO VS. REPORTADO ---------- */}
+      {/* ---------- KPIs DEL MES SELECCIONADO ---------- */}
+      <div key={mes.clave} className="fade" style={{display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:10}}>
+        <div style={{background:P.panelRaised, border:"1px solid "+P.line, borderRadius:14, padding:"14px 10px", textAlign:"center"}}>
+          <div style={{fontFamily:"'Fraunces',serif", fontSize:26, fontWeight:600, color:P.sageDeep}}>{mes.total}</div>
+          <div style={{fontSize:10.5, color:P.muted, marginTop:2, lineHeight:1.3}}>Familias inscritas</div>
+          <Sparkline valores={MESES.map(m=>m.total)} hastaIndex={mesIndex} color={P.sage}/>
+        </div>
+        <div style={{background:P.panelRaised, border:"1px solid "+P.line, borderRadius:14, padding:"14px 10px", textAlign:"center"}}>
+          <div style={{fontFamily:"'Fraunces',serif", fontSize:26, fontWeight:600, color:P.sageDeep}}>{mes.aprobados}</div>
+          <div style={{fontSize:10.5, color:P.muted, marginTop:2, lineHeight:1.3}}>Con plan entregado</div>
+          <Sparkline valores={MESES.map(m=>m.aprobados)} hastaIndex={mesIndex} color={P.sage}/>
+        </div>
+        <div style={{background: mes.vacaciones?P.claySoft:P.panelRaised, border:"1px solid "+(mes.vacaciones?P.clay:P.line), borderRadius:14, padding:"14px 10px", textAlign:"center"}}>
+          <div style={{fontFamily:"'Fraunces',serif", fontSize:26, fontWeight:600, color: mes.vacaciones?P.clay:P.sageDeep}}>{mes.adherencia}%</div>
+          <div style={{fontSize:10.5, color:P.muted, marginTop:2, lineHeight:1.3}}>Adherencia a hábitos</div>
+          <Sparkline valores={MESES.map(m=>m.adherencia)} hastaIndex={mesIndex} color={mes.vacaciones?P.clay:P.sage}/>
+        </div>
+      </div>
+
+      {/* ---------- BANNER CONTEXTUAL — solo aparece en meses de vacaciones ---------- */}
+      {mes.vacaciones && (
+        <div className="fade" style={{background:P.claySoft, border:"1px solid "+P.clay, borderRadius:14, padding:"12px 16px", fontSize:12.5, color:P.ink, lineHeight:1.6}}>
+          <b>Por qué cae la adherencia acá:</b> sin colegio de por medio, el ritmo de las familias cambia y los hábitos aprendidos están en riesgo de perderse — o pueden reforzarse, si hay acompañamiento. El mecanismo para sostenerla ya existe (Retos + el chat de seguimiento de Vita), solo falta activarlo específicamente para esta ventana.
+        </div>
+      )}
+
+      {/* ---------- REPORTADO vs. MEDIDO — toggle, no dos tarjetas paralelas ---------- */}
       <div style={{background:P.panel, border:"1px solid "+P.line, borderRadius:16, padding:"16px 18px"}}>
         <div style={{fontSize:13, fontWeight:800, color:P.ink, marginBottom:2}}>Resultados al cierre del ciclo</div>
-        <div style={{fontSize:11.5, color:P.muted, marginBottom:14}}>Separado a propósito — no podemos confiar solo en la apreciación del padre para decir que el método funciona.</div>
-        <div style={{display:"grid", gridTemplateColumns:"1fr 1fr", gap:12}}>
-          <div style={{background:P.sageSoft, borderRadius:14, padding:"16px", textAlign:"center"}}>
-            <div style={{fontFamily:"'Fraunces',serif", fontSize:30, fontWeight:600, color:P.sageDeep}}>78%</div>
-            <div style={{fontSize:11.5, color:P.sageDeep, fontWeight:700, marginTop:4}}>REPORTADO POR EL PADRE</div>
-            <div style={{fontSize:11, color:P.ink, marginTop:4}}>dice notar mejoría en la preocupación principal</div>
-          </div>
-          <div style={{background:P.claySoft, borderRadius:14, padding:"16px", textAlign:"center"}}>
-            <div style={{fontFamily:"'Fraunces',serif", fontSize:30, fontWeight:600, color:P.clay}}>12%</div>
-            <div style={{fontSize:11.5, color:P.clay, fontWeight:700, marginTop:4}}>MEDIDO</div>
-            <div style={{fontSize:11, color:P.ink, marginTop:4}}>con un dato objetivo (kit o pediatra externo)</div>
-          </div>
+        <div style={{fontSize:11.5, color:P.muted, marginBottom:12}}>No podemos confiar solo en la apreciación del padre — elige qué lente estás mirando.</div>
+        <div style={{display:"flex", background:P.panelRaised, border:"1px solid "+P.line, borderRadius:999, padding:3, marginBottom:14}}>
+          <button className="tabbtn" onClick={()=>setLente("reportado")} style={{flex:1, border:"none", borderRadius:999, padding:"9px 0", fontSize:12.5, fontWeight:800, fontFamily:"'Nunito',sans-serif", cursor:"pointer", background: lente==="reportado"?P.sage:"transparent", color: lente==="reportado"?"#fff":P.muted}}>💬 Reportado por el padre</button>
+          <button className="tabbtn" onClick={()=>setLente("medido")} style={{flex:1, border:"none", borderRadius:999, padding:"9px 0", fontSize:12.5, fontWeight:800, fontFamily:"'Nunito',sans-serif", cursor:"pointer", background: lente==="medido"?P.clay:"transparent", color: lente==="medido"?"#fff":P.muted}}>📏 Medido</button>
         </div>
-        <div style={{marginTop:10, fontSize:12, color:P.ink, lineHeight:1.6}}>
-          El 12% es bajo a propósito en esta proyección: hoy no existe el kit recomendado ni el enlace con el pediatra externo, así que casi todo lo que sabemos es autoreportado. Esta brecha es exactamente el argumento para construir esas dos piezas — no un defecto del mockup.
-        </div>
+        {lente === "reportado" ? (
+          <div key="reportado" className="fade" style={{textAlign:"center"}}>
+            <div style={{fontFamily:"'Fraunces',serif", fontSize:40, fontWeight:600, color:P.sageDeep}}>78%</div>
+            <div style={{fontSize:12.5, color:P.ink, marginTop:6}}>de las familias dice notar mejoría en la preocupación principal</div>
+            <div style={{fontSize:11, color:P.muted, marginTop:8}}>Fuente: lo que el padre cuenta — subjetivo, sin verificación independiente.</div>
+          </div>
+        ) : (
+          <div key="medido" className="fade" style={{textAlign:"center"}}>
+            <div style={{fontFamily:"'Fraunces',serif", fontSize:40, fontWeight:600, color:P.clay}}>12%</div>
+            <div style={{fontSize:12.5, color:P.ink, marginTop:6}}>tiene un dato objetivo detrás (kit recomendado o pediatra externo)</div>
+            <div style={{fontSize:11, color:P.muted, marginTop:8}}>Bajo a propósito: hoy ni el kit ni el enlace con el pediatra existen — es el argumento para construirlos, no un defecto de esta proyección.</div>
+          </div>
+        )}
       </div>
 
-      {/* ---------- ESPERADOS / NO ESPERADOS ---------- */}
-      <div style={{background:P.panel, border:"1px solid "+P.line, borderRadius:16, padding:"16px 18px"}}>
-        <div style={{fontSize:13, fontWeight:800, color:P.ink, marginBottom:10}}>Resultados esperados y no esperados <span style={{fontWeight:400, color:P.muted}}>(percibidos, no todos comprobados)</span></div>
-        <div style={{fontSize:11.5, fontWeight:800, color:P.sageDeep, marginBottom:6}}>ESPERADOS</div>
-        <ul style={{margin:"0 0 14px", paddingLeft:20, fontSize:12.5, color:P.ink, lineHeight:1.7}}>
-          {RESULTADOS_ESPERADOS.map((r,i) => <li key={i}>{r}</li>)}
-        </ul>
-        <div style={{fontSize:11.5, fontWeight:800, color:P.clay, marginBottom:6}}>NO ESPERADOS</div>
-        <ul style={{margin:0, paddingLeft:20, fontSize:12.5, color:P.ink, lineHeight:1.7}}>
-          {RESULTADOS_NO_ESPERADOS.map((r,i) => <li key={i}>{r}</li>)}
-        </ul>
+      {/* ---------- TABS — contenido que no depende del mes ---------- */}
+      <div style={{display:"flex", gap:6}}>
+        {[["resultados","Esperados"],["kit","Kit recomendado"],["medico","Médico externo"]].map(([key,label]) => (
+          <button key={key} className="tabbtn" onClick={()=>setTab(key)} style={{flex:1, border:"1px solid "+(tab===key?P.sageDeep:P.line), borderRadius:12, padding:"9px 6px", fontSize:11.5, fontWeight:800, fontFamily:"'Nunito',sans-serif", cursor:"pointer", background: tab===key?P.sageDeep:P.panelRaised, color: tab===key?"#fff":P.ink}}>{label}</button>
+        ))}
       </div>
 
-      {/* ---------- KIT RECOMENDADO ---------- */}
-      <div style={{background:P.panel, border:"1px solid "+P.line, borderRadius:16, padding:"16px 18px"}}>
-        <div style={{fontSize:13, fontWeight:800, color:P.ink, marginBottom:2}}>Kit recomendado para medir en casa</div>
-        <div style={{fontSize:11.5, color:P.muted, marginBottom:10}}>Ejemplos ilustrativos aportados por Leonardo — la lista real, y qué aplica según el caso, la define Peter como autoridad clínica. Pendiente de diseño, no implementado.</div>
-        <ul style={{margin:0, paddingLeft:20, fontSize:12.5, color:P.ink, lineHeight:1.8}}>
-          {KIT_EJEMPLOS.map((k,i) => <li key={i}>{k}</li>)}
-        </ul>
-      </div>
-
-      {/* ---------- FEEDBACK CON MÉDICOS EXTERNOS — CONCEPTO, NO DATOS ---------- */}
-      <div style={{background:P.claySoft, border:"1px solid "+P.clay, borderRadius:16, padding:"16px 18px"}}>
-        <div style={{fontSize:13, fontWeight:800, color:P.ink, marginBottom:6}}>Feedback con médicos externos — concepto de diseño</div>
-        <p style={{fontSize:12.5, color:P.ink, lineHeight:1.7, margin:0}}>
-          Espacio para que el pediatra o médico que atiende al niño/a fuera de be360 confirme o contraste lo que se observó en el acompañamiento — sin que be360 reemplace esa relación (ver "esto acompaña y suma con su pediatra, no lo reemplaza" en el plan del padre). <b>Todavía no existe ningún mecanismo real para esto</b> — esta tarjeta es una idea a diseñar, no una función construida.
-        </p>
+      <div style={{background:P.panel, border:"1px solid "+P.line, borderRadius:16, padding:"16px 18px", minHeight:120}}>
+        {tab === "resultados" && (
+          <div key="resultados" className="fade">
+            <div style={{fontSize:11.5, fontWeight:800, color:P.sageDeep, marginBottom:6}}>ESPERADOS</div>
+            <ul style={{margin:"0 0 14px", paddingLeft:20, fontSize:12.5, color:P.ink, lineHeight:1.7}}>
+              {RESULTADOS_ESPERADOS.map((r,i) => <li key={i}>{r}</li>)}
+            </ul>
+            <div style={{fontSize:11.5, fontWeight:800, color:P.clay, marginBottom:6}}>NO ESPERADOS <span style={{fontWeight:400, color:P.muted}}>(percibidos, no todos comprobados)</span></div>
+            <ul style={{margin:0, paddingLeft:20, fontSize:12.5, color:P.ink, lineHeight:1.7}}>
+              {RESULTADOS_NO_ESPERADOS.map((r,i) => <li key={i}>{r}</li>)}
+            </ul>
+          </div>
+        )}
+        {tab === "kit" && (
+          <div key="kit" className="fade">
+            <div style={{fontSize:11.5, color:P.muted, marginBottom:10}}>Ejemplos ilustrativos aportados por Leonardo — la lista real, y qué aplica según el caso, la define Peter como autoridad clínica. Pendiente de diseño, no implementado.</div>
+            <ul style={{margin:0, paddingLeft:20, fontSize:12.5, color:P.ink, lineHeight:1.8}}>
+              {KIT_EJEMPLOS.map((k,i) => <li key={i}>{k}</li>)}
+            </ul>
+          </div>
+        )}
+        {tab === "medico" && (
+          <div key="medico" className="fade">
+            <p style={{fontSize:12.5, color:P.ink, lineHeight:1.7, margin:0}}>
+              Espacio para que el pediatra o médico que atiende al niño/a fuera de be360 confirme o contraste lo que se observó en el acompañamiento — sin que be360 reemplace esa relación (ver "esto acompaña y suma con su pediatra, no lo reemplaza" en el plan del padre). <b>Todavía no existe ningún mecanismo real para esto</b> — es una idea a diseñar, no una función construida.
+            </p>
+          </div>
+        )}
       </div>
 
       <p style={{fontSize:11.5, textAlign:"center", color:P.muted, lineHeight:1.6, padding:"0 8px 20px"}}>
-        Esta página es una proyección de diseño — no está conectada a datos reales ni al panel de producción. El panel real ({total} familias hoy, {aprobados} con plan entregado) vive en panel-colegio/.
+        Único dato real: agosto 2026 = 6 familias, igual al panel en producción. Todo lo demás en esta página es proyección ilustrativa.
       </p>
     </Shell>
   );
