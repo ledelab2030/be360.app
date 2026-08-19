@@ -92,7 +92,16 @@ var PANEL_SECRET = "1990-I";
 // Editable: agrega uno por línea a medida que se sumen colegios. "BIS2026"
 // es el código de ejemplo para el piloto ancla (BIS Barranquilla) —
 // CÁMBIALO por el real antes de operar con familias de verdad.
-var CODIGOS_VALIDOS_COLEGIO = ["BIS2026"];
+//
+// PILOTO-01..05 (19 ago 2026, pedido de Leonardo): 5 códigos individuales
+// para la ronda de validación con 5 personas reales, DISTINTOS de
+// "BIS2026" a propósito — estas 5 personas no son necesariamente familias
+// del colegio BIS, así que no deben mezclarse con el agregado real de
+// BIS2026 en panel-colegio/. Cada validador usa su propio código, lo que
+// además deja rastro de cuál de los 5 completó el flujo (columna
+// codigo_colegio queda con "PILOTO-0N-XXXX" en su fila). Si alguno de
+// estos 5 SÍ es familia de BIS, avísame y lo movemos al código real.
+var CODIGOS_VALIDOS_COLEGIO = ["BIS2026", "PILOTO-01-Q562", "PILOTO-02-H4XQ", "PILOTO-03-1NX8", "PILOTO-04-TSEP", "PILOTO-05-T2IU"];
 var HORAS_PLAZO_VERIFICACION = 72;
 
 // PIN del panel de colegio (panel-colegio/index.html) — uno por colegio,
