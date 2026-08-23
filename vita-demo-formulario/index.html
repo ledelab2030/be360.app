@@ -324,6 +324,7 @@ function App(){
   const [dx,setDx]=useState(emptyDx);
   const [dxAlPausar,setDxAlPausar]=useState(null); // snapshot de dx al salir del chat, para detectar si el formulario cambió algo mientras tanto
   const [consentChecked,setConsentChecked]=useState(false); // checkbox de la pantalla de consentimiento
+  const [consentInvestigacionChecked,setConsentInvestigacionChecked]=useState(false); // casilla SEPARADA y opcional (19 ago 2026) — investigación/mejora de otros planes, nunca condiciona el servicio
   const [pendingStage,setPendingStage]=useState("intro"); // a dónde ir después de aceptar (intro→chat, o form)
   const [showDx,setShowDx]=useState(false);
   const [error,setError]=useState(null);
@@ -369,7 +370,13 @@ function App(){
     setPendingStage(destino); setStage("consentimiento");
   };
   const aceptarConsentimiento=()=>{
-    setDx(prev=>({...prev, consentimiento_ts:new Date().toISOString()}));
+    setDx(prev=>({...prev,
+      consentimiento_ts:new Date().toISOString(),
+      // Vacío si no marcó la casilla de investigación — igual que el resto
+      // del formulario, un campo vacío significa "no aplica", no "no
+      // preguntado". Nunca se infiere desde consentimiento_ts.
+      consentimiento_investigacion_ts: consentInvestigacionChecked ? new Date().toISOString() : "",
+    }));
     setStage(pendingStage);
   };
   const mensajeFaltante=()=>{
@@ -609,6 +616,24 @@ function App(){
         <input type="checkbox" checked={consentChecked} onChange={e=>setConsentChecked(e.target.checked)} style={{marginTop:3,width:17,height:17,flexShrink:0,accentColor:P.sage}}/>
         <span style={{fontSize:13,color:P.ink,lineHeight:1.5}}>He leído esto y acepto que se use para preparar el plan de mi hijo/a.</span>
       </label>
+
+      {/* NUEVO (19 ago 2026, pedido de Leonardo): casilla de investigación —
+          SEPARADA de la de arriba a propósito. Desmarcada por defecto, nadie
+          queda inscrito sin decidirlo explícitamente. No condiciona el
+          servicio (el botón de abajo se habilita solo con el checkbox
+          principal, este NO es requisito) — se lo digo dos veces al padre
+          (acá y en el texto de la casilla) para que quede claro. Mismo
+          estilo ícono+frase que los 3 puntos de arriba, para que no se
+          sienta pegado con cinta. Nunca menciona IA/modelo/tecnología —
+          misma regla dura que el resto de cara al padre. */}
+      <div style={{background:P.sageSoft,borderRadius:16,padding:"16px",marginBottom:14}}>
+        <div style={{display:"flex",gap:11}}><div style={{fontSize:18,flexShrink:0}}>📊</div><div style={{fontSize:13.5,color:P.ink,lineHeight:1.5}}>También podemos usar esta información, sin tu nombre ni el de tu hijo/a, para investigación y para mejorar cómo preparamos los planes de otras familias.</div></div>
+      </div>
+      <label style={{display:"flex",gap:10,alignItems:"flex-start",marginBottom:20,cursor:"pointer"}}>
+        <input type="checkbox" checked={consentInvestigacionChecked} onChange={e=>setConsentInvestigacionChecked(e.target.checked)} style={{marginTop:3,width:17,height:17,flexShrink:0,accentColor:P.sage}}/>
+        <span style={{fontSize:13,color:P.ink,lineHeight:1.5}}>Además, acepto que la información de mi hijo/a, sin nombre ni datos que lo identifiquen, se use para investigación y para mejorar los planes de otras familias. Esto es opcional — si no la marco, igual recibo el plan de mi hijo/a.</span>
+      </label>
+
       <button onClick={aceptarConsentimiento} disabled={!consentChecked} style={{...btnPrimary,alignSelf:"center",opacity:consentChecked?1:.5,cursor:consentChecked?"pointer":"default"}}>Acepto y continúo →</button>
       <button onClick={()=>setStage("welcome")} style={{background:"none",border:"none",color:P.muted,fontSize:12.5,fontWeight:700,marginTop:14,cursor:"pointer",alignSelf:"center",fontFamily:"'Nunito',sans-serif"}}>← Volver</button>
     </div></Shell>
