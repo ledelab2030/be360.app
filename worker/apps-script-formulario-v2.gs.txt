@@ -14,13 +14,14 @@
  * que usa el Worker (SHARED_SECRET) — el panel nunca ve el secreto real que
  * escribe en la hoja.
  *
- * OJO — PANEL_SECRET (8 ago 2026): esta variable YA trae el PIN real
- * ("1990-I", acordado con Leonardo) como valor por defecto, a propósito —
- * antes tenía un placeholder genérico, y cada vez que alguien pegaba este
- * archivo completo para una nueva versión, el placeholder pisaba el PIN real
- * y rompía el acceso al panel sin avisar. Si el PIN cambia alguna vez,
- * actualiza el valor AQUÍ (en este archivo, para que quede como el default
- * real de aquí en adelante), no solo en el editor de Apps Script.
+ * OJO — PANEL_SECRET (actualizado 19 ago 2026): ya NO vive como texto en
+ * este archivo — se lee de PropertiesService (ver el comentario grande
+ * junto a su declaración, más abajo). Esto reemplaza el enfoque anterior
+ * (el PIN como valor literal acá) precisamente porque este repo es
+ * PÚBLICO — un secreto en el código pegado queda expuesto para cualquiera.
+ * El efecto colateral bueno: pegar una versión nueva de este archivo YA NO
+ * puede pisar el PIN real por accidente (el problema original que motivó
+ * tener el PIN como default aquí) — están completamente desacoplados.
  *
  * onAprobado (el trigger de "Al editar", por si Peter edita la hoja directo
  * alguna vez) es un wrapper delgado sobre enviarPlanAprobado(sheet, row) —
@@ -85,8 +86,28 @@
  * junto a resumenColegio() para el porqué.
  */
 
-var SHARED_SECRET = "3-estoesparaquevitarenazcabajolasreglasduras";
-var PANEL_SECRET = "1990-I";
+// SECRETOS (19 ago 2026) — YA NO viven como texto literal acá. Este repo es
+// PÚBLICO; hasta el 19 ago los 3 secretos de abajo estuvieron escritos en
+// texto plano, expuestos desde que se crearon (PANEL_SECRET desde el 8 ago).
+// Cualquiera pudo copiarlos y usarlos directo contra el Worker/panel — el
+// chequeo de Origin no protege contra curl/scripts, solo contra JS de otro
+// sitio corriendo en un navegador.
+//
+// Ahora se leen de PropertiesService (Project Settings → Script Properties
+// en el editor de Apps Script) — un almacén aparte del código, que NUNCA
+// viaja en el texto que copias/pegas para actualizar el script. Configúralo
+// UNA SOLA VEZ, a mano, en el editor (nunca por código, nunca en un commit):
+//   1. Apps Script → ⚙️ Configuración del proyecto (ícono de engranaje).
+//   2. Sección "Propiedades del script" → Añadir propiedad del script.
+//   3. Agrega estas 3 (nombre exacto a la izquierda, valor real a la
+//      derecha — los valores te los paso aparte, nunca en este archivo):
+//      - PANEL_SECRET
+//      - SHARED_SECRET
+//      - PANEL_COLEGIO_SECRETS  (formato JSON, ej: {"COLEGIO2026":"PIN-EJEMPLO"})
+// A partir de ahora, pegar una versión nueva de este archivo NUNCA vuelve a
+// pisar ningún secreto — están completamente separados del código pegado.
+var SHARED_SECRET = PropertiesService.getScriptProperties().getProperty("SHARED_SECRET");
+var PANEL_SECRET = PropertiesService.getScriptProperties().getProperty("PANEL_SECRET");
 
 // Códigos que habilitan a una familia — uno por colegio/cohorte piloto.
 // Editable: agrega uno por línea a medida que se sumen colegios. "BIS2026"
@@ -111,10 +132,14 @@ var HORAS_PLAZO_VERIFICACION = 72;
 // CODIGOS_VALIDOS_COLEGIO (el código que usan las familias para verificar
 // elegibilidad). Con esto separado, el código de una familia no sirve para
 // entrar al panel del colegio, y el PIN del colegio no sirve para verificar
-// una familia. PIN real generado 14 ago 2026 (antes placeholder) — si algún
-// día cambia, actualízalo AQUÍ para que quede como el default real, mismo
-// criterio que PANEL_SECRET arriba.
-var PANEL_COLEGIO_SECRETS = { "BIS2026": "BIS-GQ5R05" };
+// una familia.
+//
+// Igual que SHARED_SECRET/PANEL_SECRET arriba (19 ago 2026): ya NO vive
+// como texto literal — se lee de PropertiesService, propiedad
+// "PANEL_COLEGIO_SECRETS", como un string JSON (ej: {"BIS2026":"BIS-..."}).
+// Para agregar el PIN de un colegio nuevo, edita esa propiedad en el editor
+// de Apps Script — nunca en este archivo.
+var PANEL_COLEGIO_SECRETS = JSON.parse(PropertiesService.getScriptProperties().getProperty("PANEL_COLEGIO_SECRETS") || "{}");
 
 var COLS = {
   timestamp: 0, modo: 1, nombre_nino: 2, edad: 3, que_deseas_lograr: 4,
