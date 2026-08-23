@@ -125,6 +125,11 @@ var COLS = {
   id_plan: 16, plan_json: 17, decision: 18, borrador_texto: 19,
   nombre_padre: 20, email_padre: 21, correo_enviado_ts: 22,
   consentimiento_ts: 23, codigo_colegio: 24, verificacion_ts: 25,
+  // NUEVO (19 ago 2026, pedido de Leonardo): casilla SEPARADA y opcional de
+  // la pantalla de consentimiento — investigación/mejora de otros planes,
+  // nunca condiciona el servicio. Vacío = no marcada, igual que el resto de
+  // columnas de este Sheet (vacío = no aplica, no "no preguntado").
+  consentimiento_investigacion_ts: 26,
 };
 
 function doPost(e) {
@@ -175,7 +180,13 @@ function doPost(e) {
       "pendiente", "",       // estado, notas_peter
       "", "", "", "",        // id_plan, plan_json, decision, borrador_texto
       dx.nombre_padre || "", dx.email_padre || "", "",   // correo_enviado_ts vacío
-      dx.consentimiento_ts || ""   // cuándo aceptó la pantalla de consentimiento (9 ago 2026)
+      dx.consentimiento_ts || "",  // cuándo aceptó la pantalla de consentimiento (9 ago 2026)
+      "", "",   // codigo_colegio, verificacion_ts — vacíos hasta que el padre verifique (ver verificarCodigo)
+      // NUEVO (19 ago 2026): casilla SEPARADA de investigación — vacío si no
+      // la marcó. OJO al agregar más columnas después de esta: hay que
+      // mantener el mismo orden posicional que COLS, appendRow no usa
+      // nombres de columna.
+      dx.consentimiento_investigacion_ts || ""
     ]);
     var lastRow = sheet.getLastRow();
     SpreadsheetApp.flush();
