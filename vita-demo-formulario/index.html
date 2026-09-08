@@ -135,7 +135,7 @@ Recorre las áreas en este orden, 1-2 preguntas por mensaje, en tono de conversa
 3. SUEÑO Y MOVIMIENTO: a qué hora se duerme (cuando se apagan luces y pantallas) y a qué hora se levanta; cómo despierta (descansado / le cuesta / cansado); si se despierta en la noche; qué actividad física hace y cuántas veces por semana; si algo le duele al moverse.
 4. SEÑALES: si nota alguna de estas señales con cierta frecuencia — menciona 4-5 a modo de ejemplo dentro de la pregunta, no la lista completa de golpe: dolor o ardor de estómago, dolores de cabeza frecuentes, inflamación o gases, estreñimiento, ansiedad, fatiga o cansancio, dificultad para concentrarse, sueño inquieto, piel irritada o brotes, infecciones frecuentes. Deja que el padre agregue lo que quiera.
 5. DIAGNÓSTICOS Y ATENCIÓN MÉDICA: si el hijo/a tiene algún diagnóstico ya dado por un médico (asma, alergias, TDAH, etc. — da 2-3 ejemplos, no la lista completa); si toma alguna medicación o está en tratamiento; qué especialistas lo atienden. NO preguntes por citas próximas ni pidas autorización para coordinar con el médico — eso no aplica todavía.
-6. EL DÍA EN ORDEN — es el corazón de la captura. Ya sabes a qué hora se despierta y a qué hora se duerme (lo preguntaste en el área 3) — NO lo vuelvas a preguntar aquí, solo reutilízalo. Reconstruye el resto del día de forma ESTRICTAMENTE CRONOLÓGICA, con horas aproximadas donde tenga sentido (desayuno, almuerzo, cena, etc.): al levantarse (¿come o bebe algo apenas se levanta?), desayuno, media mañana / lonchera, almuerzo, media tarde, cena, antes de dormir. En cada momento pregunta qué come Y qué bebe — así la hidratación aparece sola en el relato, NUNCA preguntes directo "¿toma suficiente agua?". Pregunta también si varía el fin de semana.
+6. EL DÍA EN ORDEN — es el corazón de la captura. Ya sabes a qué hora se despierta y a qué hora se duerme (lo preguntaste en el área 3) — NO lo vuelvas a preguntar aquí, solo reutilízalo. Reconstruye el resto del día de forma ESTRICTAMENTE CRONOLÓGICA, y para CADA momento (al levantarse, desayuno, media mañana/lonchera, almuerzo, media tarde, cena, antes de dormir) pide una hora aproximada — no la des por sentada ni la asumas: "¿como a qué hora desayuna?", "¿y la cena, más o menos a qué hora?". Esto no es opcional ni decorativo — el equipo clínico necesita las horas reales, sobre todo la de la cena, para poder trabajar con precisión. Si el padre no sabe la hora exacta de algún momento, está bien un aproximado ("como a las 7", "después del colegio") — lo que no debe pasar es que quede sin ninguna hora. En cada momento pregunta también qué come Y qué bebe — así la hidratación aparece sola en el relato, NUNCA preguntes directo "¿toma suficiente agua?". Pregunta también si varía el fin de semana.
 7. FIN DE SEMANA Y GUSTOS: qué suele comer los fines de semana (da 2-3 ejemplos: comida rápida, dulces, gaseosas); si algún alimento le cae mal o le produce gases; qué alimentos le gustan y valdría la pena conservar en su plan.
 8. MENTE Y PANTALLAS: qué tipo de contenido consume (juegos, series, redes) y cuántas horas de pantalla al día; si usa pantallas la hora antes de dormir. Pregunta con suavidad si practica algo de relajación o respiración consciente — si el padre no entiende la pregunta o dice que no aplica, no insistas, anota "no aplica" y sigue.
 9. EMOCIONES: qué emociones observa con alguna frecuencia en su hijo/a (da algunos ejemplos: alegría, ira o rabietas, ansiedad, frustración) — igual, si el padre prefiere describirlo como comportamiento ("se pone de mal genio") en vez de nombrar una emoción, está perfecto, anota eso.
@@ -210,10 +210,37 @@ const PERIODOS_DIA = [
   { label:"Cena", re:/\bcena\b|comida de la noche/i },
   { label:"Antes de dormir", re:/antes de (dormir|acostarse|la cama)/i },
 ];
+
+// NUEVO (8 sep 2026, pedido explícito de Peter en la reunión del 19 ago):
+// "asegurar que se capturen todas las horas del día" — antes coberturaDia
+// solo detectaba si el padre MENCIONABA el momento ("desayuno"), no si daba
+// una hora real. Un padre podía escribir "desayuno cereal" sin decir a qué
+// hora, y eso pasaba como "cubierto" — exactamente lo que Peter dice que le
+// llega genérico y sin lo que necesita para alinear con la metodología SRB
+// (el horario de la cena, en particular, es un dato duro: "detener la
+// ingesta antes de las 6pm" solo se puede verificar si hay una hora real).
+// Sigue sin partir el campo en 7 sub-campos rígidos (se evaluó antes y se
+// descartó por más engorroso de llenar) — en su lugar, exige que exista un
+// patrón de hora (12h, 24h, o "las X" en palabras) DENTRO de una ventana de
+// texto alrededor de cada mención, no en cualquier parte del relato.
+const TIME_PATTERN = /\b([01]?\d|2[0-3])[:.,]?[0-5]\d?\s*(am|pm|a\.?\s?m\.?|p\.?\s?m\.?)?\b|\b(a la|a las)\s+(una|dos|tres|cuatro|cinco|seis|siete|ocho|nueve|diez|once|doce|\d{1,2})\b/i;
+const VENTANA_HORA = 45; // caracteres a cada lado de la mención — cubre "desayuno a las 7" y "a las 7 desayuna", no cualquier hora del relato
+function tieneHoraCerca(texto, indexMatch){
+  const inicio=Math.max(0,indexMatch-VENTANA_HORA);
+  const fin=Math.min(texto.length,indexMatch+VENTANA_HORA);
+  return TIME_PATTERN.test(texto.slice(inicio,fin));
+}
 const coberturaDia=(texto)=>{
   const t=texto||"";
-  const faltantes=PERIODOS_DIA.filter(p=>!p.re.test(t)).map(p=>p.label);
-  return { cubiertos:PERIODOS_DIA.length-faltantes.length, total:PERIODOS_DIA.length, faltantes };
+  const faltantes=[];
+  let cubiertos=0;
+  for(const p of PERIODOS_DIA){
+    const m=t.match(p.re);
+    if(!m){ faltantes.push({label:p.label, motivo:"no_mencionado"}); continue; }
+    if(!tieneHoraCerca(t, m.index)){ faltantes.push({label:p.label, motivo:"sin_hora"}); continue; }
+    cubiertos++;
+  }
+  return { cubiertos, total:PERIODOS_DIA.length, faltantes };
 };
 
 // El "hint" es la guía corta que en el chat hace Vita con preguntas — aquí
@@ -233,7 +260,7 @@ const FIELDS = [
   { key:"sueno_y_movimiento", label:"Sueño y movimiento", hint:"A qué hora se duerme y se levanta, cómo despierta, si se despierta en la noche, qué actividad física hace, si algo le duele al moverse." },
   { key:"senales_observables", label:"Señales observadas", hint:"Dolor o ardor de estómago, dolores de cabeza, gases, estreñimiento, ansiedad, fatiga, dificultad para concentrarse, sueño inquieto, piel irritada, infecciones frecuentes — lo que aplique." },
   { key:"diagnosticos_y_atencion_medica", label:"Diagnósticos y atención médica", hint:"Diagnósticos ya dados por un médico, medicación o tratamiento, especialistas que lo atienden." },
-  { key:"cronologia_del_dia", label:"Cronología del día", hint:"Un día típico con horas: qué come y bebe al levantarse, desayuno, media mañana, almuerzo, media tarde, cena, antes de dormir. Si varía el fin de semana." },
+  { key:"cronologia_del_dia", label:"Cronología del día", hint:"Un día típico CON HORA APROXIMADA en cada momento (aunque sea \"como a las 7\"): qué come y bebe al levantarse, desayuno, media mañana, almuerzo, media tarde, cena, antes de dormir. La hora de la cena es especialmente importante para el equipo. Si varía el fin de semana." },
   { key:"finde_y_gustos", label:"Fin de semana y gustos", hint:"Qué suele comer los fines de semana, si algo le cae mal, qué alimentos le gustan y valdría la pena conservar." },
   { key:"mente_y_pantallas", label:"Mente y pantallas", hint:"Tipo de contenido y horas de pantalla al día, si las usa antes de dormir, si practica algo de relajación o respiración." },
   { key:"emociones", label:"Emociones", hint:"Emociones que observas con frecuencia (alegría, rabietas, ansiedad, frustración) — vale describirlo como comportamiento." },
@@ -301,9 +328,9 @@ const PanelRevisionFinal=({dx,onCambiarEmail,faltantes,onCompletarDia,onConfirma
 
         {faltantes && faltantes.length>0 && (<React.Fragment>
           <div style={{height:1,background:P.line,margin:"4px 0 14px"}}/>
-          <p style={{fontSize:13.5,color:P.ink,lineHeight:1.55,marginBottom:8}}>Parece que no hablamos de estos momentos del día de {dx.nombre_nino||"tu hijo/a"}:</p>
+          <p style={{fontSize:13.5,color:P.ink,lineHeight:1.55,marginBottom:8}}>Parece que falta la hora en estos momentos del día de {dx.nombre_nino||"tu hijo/a"}:</p>
           <ul style={{fontSize:13,color:P.sageDeep,fontWeight:700,marginBottom:12,paddingLeft:18}}>
-            {faltantes.map(f=><li key={f}>{f}</li>)}
+            {faltantes.map(f=><li key={f.label}>{f.label}{f.motivo==="sin_hora"?<span style={{fontWeight:400,color:P.muted}}> — falta la hora exacta</span>:null}</li>)}
           </ul>
           <p style={{fontSize:12.5,color:P.muted,lineHeight:1.5,marginBottom:8}}>Está bien si no los sabes o prefieres no compartirlos todavía — solo queremos que sea una decisión tuya, no un olvido nuestro.</p>
           <p style={{fontSize:12.5,color:P.muted,lineHeight:1.5,marginBottom:16}}>Eso sí: mientras menos sepamos del día completo, el primer plan que arme el equipo será más general, y puede tomar más tiempo encontrar qué le está afectando de verdad. Si puedes completarlo, el plan sale más preciso desde el primer intento.</p>
@@ -575,8 +602,9 @@ function App(){
   // ANOTADO en el mismo texto que ve Peter, nunca en silencio.
   const confirmarYEnviar=()=>{
     const {faltantes}=coberturaDia(dx.cronologia_del_dia);
+    const resumenFaltantes=faltantes.map(f=>f.motivo==="sin_hora"?f.label+" (mencionado, sin hora exacta)":f.label).join(", ");
     const dxFinal=faltantes.length>0
-      ? {...dx, cronologia_del_dia:(dx.cronologia_del_dia||"")+"\n[Sin dato o no compartido aún: "+faltantes.join(", ")+"]"}
+      ? {...dx, cronologia_del_dia:(dx.cronologia_del_dia||"")+"\n[Sin dato, sin hora exacta, o no compartido aún: "+resumenFaltantes+"]"}
       : dx;
     if(faltantes.length>0) setDx(dxFinal);
     setMostrarRevisionFinal(false);
