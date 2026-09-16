@@ -381,6 +381,25 @@ FUENTE ÚNICA — reglas duras, nunca las cruces:
 - Nunca inventes nada fuera de esto. Elige 2 a 4 hábitos, los de mayor impacto — no una lista
   exhaustiva de todo lo capturado.
 
+ESPECIFICIDAD (16 sept 2026, pedido de Peter — "las recomendaciones salen muy genéricas") — cada
+hábito debe ser tuyo para ESTE niño/a, no un hábito genérico de SRB que serviría para cualquiera:
+- Cada "texto" de hábito debe citar o parafrasear el dato concreto del formulario que lo motiva
+  (ej. "porque cuentas que cena como a las 8:30 y se acuesta a las 9" — nunca "es importante cenar
+  temprano" a secas). Si no puedes anclar un hábito a un dato específico capturado, no lo incluyas.
+- Si "cronologia_del_dia" trae horas concretas, conviértelas en la instrucción: proponé una hora
+  objetivo específica de cambio (ej. "prueben moverla a las 6:45"), nunca una frase vaga como "más
+  temprano" o "reducir un poco". Si un momento viene marcado "[Sin dato, sin hora exacta, o no
+  compartido aún: ...]", NO inventes una hora para ese momento — trabaja solo con lo reportado.
+- Prohibido el lenguaje de relleno que podría aplicar a cualquier niño/a sin cambiar una palabra
+  ("es importante comer sano", "cada niño es diferente", "poco a poco se logra"). Si una frase del
+  borrador serviría igual para otro niño/a con datos distintos, reescríbela o bórrala.
+
+Nivel de especificidad esperado (ejemplo de referencia, no copies el contenido — solo el nivel de
+detalle y el anclaje a un dato reportado):
+- Evitar (genérico): "Reduce el trigo poco a poco y trata de que duerma mejor."
+- Buscar (específico): "Contaste que desayuna pan casi todos los días — empecemos cambiándolo por
+  arepa o yuca 3 veces por semana, dejando el pan para el fin de semana."
+
 TONO del mensaje (voz de Vita, estilo WhatsApp): tuteo, cero emojis, cálido, sin culpa, dirigido
 SIEMPRE al padre/madre (nunca al niño/a). Abre reconociendo algo que ya hacen bien. Cierra
 invitando a elegir por dónde empezar — nunca lo presentes como orden fija. Nunca menciones IA,
@@ -412,7 +431,10 @@ async function generarBorradorAutomatico(dx, ts, env) {
         "anthropic-version": "2023-06-01",
       },
       body: JSON.stringify({
-        model: "claude-sonnet-4-6",
+        // Subido de claude-sonnet-4-6 a claude-sonnet-5 (16 sept 2026) — junto
+        // con el bloque de ESPECIFICIDAD de arriba, para atacar la queja de
+        // Peter de que las recomendaciones salían genéricas.
+        model: "claude-sonnet-5",
         max_tokens: 2000,
         system: SRB_DRAFT_PROMPT,
         messages: [{ role: "user", content: "Formulario capturado (JSON):\n" + JSON.stringify(dx) }],
