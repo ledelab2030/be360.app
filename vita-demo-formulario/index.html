@@ -636,7 +636,7 @@ function App(){
       <div style={{fontFamily:"'Fraunces',serif",fontSize:23,color:P.sageDeep,lineHeight:1.2,marginBottom:16,textAlign:"center"}}>Antes de empezar</div>
       <p style={{fontSize:14.5,color:P.ink,lineHeight:1.65,marginBottom:14}}>Vamos a pedirte que nos cuentes sobre el día a día de tu hijo/a — cómo come, duerme, se mueve y qué te preocupa. Esto es lo que hacemos con esa información:</p>
       <div style={{background:P.sageSoft,borderRadius:16,padding:"16px",marginBottom:18}}>
-        <div style={{display:"flex",gap:11,marginBottom:12}}><div style={{fontSize:18,flexShrink:0}}>🩺</div><div style={{fontSize:13.5,color:P.ink,lineHeight:1.5}}>La revisa el equipo clínico antes de que te llegue cualquier cosa — nunca te escribimos un plan sin que un humano lo haya visto primero.</div></div>
+        <div style={{display:"flex",gap:11,marginBottom:12}}><div style={{fontSize:18,flexShrink:0}}>🩺</div><div style={{fontSize:13.5,color:P.ink,lineHeight:1.5}}>Un humano del equipo clínico revisa todo antes de que te llegue.</div></div>
         <div style={{display:"flex",gap:11,marginBottom:12}}><div style={{fontSize:18,flexShrink:0}}>🔒</div><div style={{fontSize:13.5,color:P.ink,lineHeight:1.5}}>La usamos solo para preparar el plan de tu hijo/a.</div></div>
         {/* NUEVO (16 sept 2026, pedido de Leonardo): esto ya pasaba en panel-colegio
             (agregados con umbral de privacidad, nunca datos individuales) pero no
@@ -663,11 +663,11 @@ function App(){
           sienta pegado con cinta. Nunca menciona IA/modelo/tecnología —
           misma regla dura que el resto de cara al padre. */}
       <div style={{background:P.sageSoft,borderRadius:16,padding:"16px",marginBottom:14}}>
-        <div style={{display:"flex",gap:11}}><div style={{fontSize:18,flexShrink:0}}>📊</div><div style={{fontSize:13.5,color:P.ink,lineHeight:1.5}}>También podemos usar esta información, sin tu nombre ni el de tu hijo/a, para investigación y para mejorar cómo preparamos los planes de otras familias.</div></div>
+        <div style={{display:"flex",gap:11}}><div style={{fontSize:18,flexShrink:0}}>📊</div><div style={{fontSize:13.5,color:P.ink,lineHeight:1.5}}>También podemos usar esta información, sin nombres, para investigación y para mejorar los planes de otras familias.</div></div>
       </div>
       <label style={{display:"flex",gap:10,alignItems:"flex-start",marginBottom:20,cursor:"pointer"}}>
         <input type="checkbox" checked={consentInvestigacionChecked} onChange={e=>setConsentInvestigacionChecked(e.target.checked)} style={{marginTop:3,width:17,height:17,flexShrink:0,accentColor:P.sage}}/>
-        <span style={{fontSize:13,color:P.ink,lineHeight:1.5}}>Además, acepto que la información de mi hijo/a, sin nombre ni datos que lo identifiquen, se use para investigación y para mejorar los planes de otras familias. Esto es opcional — si no la marco, igual recibo el plan de mi hijo/a.</span>
+        <span style={{fontSize:13,color:P.ink,lineHeight:1.5}}>Acepto que se use así. Es opcional — si no la marco, igual recibo el plan de mi hijo/a.</span>
       </label>
 
       <button onClick={aceptarConsentimiento} disabled={!consentChecked} style={{...btnPrimary,alignSelf:"center",opacity:consentChecked?1:.5,cursor:consentChecked?"pointer":"default"}}>Acepto y continúo →</button>
