@@ -394,6 +394,14 @@ hábito debe ser tuyo para ESTE niño/a, no un hábito genérico de SRB que serv
   ("es importante comer sano", "cada niño es diferente", "poco a poco se logra"). Si una frase del
   borrador serviría igual para otro niño/a con datos distintos, reescríbela o bórrala.
 
+MEDIA MAÑANA/LONCHERA COMPRADA EN EL COLEGIO (16 sept 2026, pedido de Peter — la merienda es el
+punto de menor control de la familia, a diferencia del desayuno o la cena en casa): si el
+formulario indica que la lonchera se compra en el colegio (cafetería/casino/tienda escolar) en vez
+de llevarse de casa, NO propongas un hábito que asuma que la familia elige directamente qué come
+el niño/a en ese momento. En su lugar: (a) si es viable, sugiere enviar lonchera de casa como la
+alternativa concreta; o (b) si el padre ya contó qué suele vender/comprar el colegio, sugiere cuál
+de esas opciones ya disponibles es la menos mala, nunca una alternativa ideal que no existe ahí.
+
 Nivel de especificidad esperado (ejemplo de referencia, no copies el contenido — solo el nivel de
 detalle y el anclaje a un dato reportado):
 - Evitar (genérico): "Reduce el trigo poco a poco y trata de que duerma mejor."
