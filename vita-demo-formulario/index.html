@@ -240,9 +240,16 @@ const coberturaDia=(texto)=>{
   const faltantes=[];
   let cubiertos=0;
   for(const p of PERIODOS_DIA){
-    const m=t.match(p.re);
-    if(!m){ faltantes.push({label:p.label, motivo:"no_mencionado"}); continue; }
-    if(!tieneHoraCerca(t, m.index)){ faltantes.push({label:p.label, motivo:"sin_hora"}); continue; }
+    // FIX (2 oct 2026, encontrado en vivo con Peter — caso Samuel): t.match(p.re) sin bandera
+    // global solo devuelve la PRIMERA mención de la palabra clave. Un padre real mencionó
+    // "almuerza" dos veces en el mismo relato (una genérica, otra con la hora real pegada) y el
+    // chequeo solo miraba la primera, así que marcaba "sin hora" aunque la hora sí estuviera un
+    // poco más abajo en el mismo texto. Ahora revisa TODAS las menciones — alcanza con que UNA
+    // tenga una hora cerca.
+    const reGlobal=new RegExp(p.re.source, p.re.flags.includes("g")?p.re.flags:p.re.flags+"g");
+    const matches=[...t.matchAll(reGlobal)];
+    if(!matches.length){ faltantes.push({label:p.label, motivo:"no_mencionado"}); continue; }
+    if(!matches.some(m=>tieneHoraCerca(t, m.index))){ faltantes.push({label:p.label, motivo:"sin_hora"}); continue; }
     cubiertos++;
   }
   return { cubiertos, total:PERIODOS_DIA.length, faltantes };
