@@ -356,7 +356,32 @@ async function handleLog(request, env, cors, ctx) {
 // adaptada para responder JSON estricto (no texto libre con "Parte A/B"),
 // para poder guardarse sola sin intervención humana. Si algún día se edita
 // el Prompt Maestro del sprint, replicar el cambio aquí también.
+//
+// TRAZABILIDAD (2 oct 2026, pedido de Leonardo en vivo con Peter) — desde que
+// este prompt vive embebido aquí, se ha seguido ajustando DIRECTO en este
+// archivo sin reflejar los cambios de vuelta en el repo de documentación del
+// sprint (design-sprint/docs/reglas_duras_srb.md, el SRB clínico firmado por
+// Peter el 28 jul 2026). SRB_PROMPT_VERSION de abajo registra cada cambio, y
+// marca cuáles son contenido CLÍNICO (requieren una versión nueva del SRB
+// documentado, con firma de Peter) vs. cuáles son solo voz/comunicación (no
+// cambian qué se permite o prohíbe, no requieren SRB nuevo):
+//   v1.0 · 31 jul 2026            · origen: srb_draft_generator.txt v1
+//                                    (carve-out pediátrico firmado 28 jul).
+//   v1.1 · 16 sept 2026 · PR #71  · ESPECIFICIDAD (pedido de Peter) — voz/
+//                                    comunicación, NO clínico.
+//   v1.2 · 16 sept 2026 · PR #73  · lonchera comprada en el colegio (pedido
+//                                    de Peter) — ⚠ SÍ ES CLÍNICO, pendiente
+//                                    de ratificar formalmente en
+//                                    reglas_duras_srb.md (ver addendum ahí).
+//   v1.3 · 2 oct 2026   · PR #78  · idioma latinoamericano estándar +
+//                                    concisión (pedido de Peter en vivo) —
+//                                    voz/comunicación, NO clínico.
+// Al generar un borrador, esta versión queda disponible para quien llame al
+// Worker (ver generarBorradorAutomatico) — no se persiste todavía por caso
+// individual en el Sheet (requeriría una columna nueva + cambio en Apps
+// Script, pendiente de que Leonardo lo despliegue a mano).
 // ============================================================
+const SRB_PROMPT_VERSION = "1.3";
 const SRB_DRAFT_PROMPT = `Eres el generador de borradores de plan de hábitos de be360, a partir del
 Formulario de Hábitos que llenó un padre/madre sobre su hijo/a (2 a 20 años). Tu borrador NO
 llega directo a la familia — lo revisa Peter Álvarez (autoridad clínica) antes de aprobarlo.
