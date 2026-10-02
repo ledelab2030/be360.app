@@ -10,6 +10,7 @@
 <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
 <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
 <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<script src="/shared/formulario-fields.js"></script>
 <style>
   html,body{margin:0;height:100%}
   *{box-sizing:border-box}
@@ -51,24 +52,19 @@ const PIN_KEY = "be360_panel_pin";
 
 const P = { bg:"#ECE5D8", panel:"#FBF8F1", panelRaised:"#FFFFFF", ink:"#2C2A24", sage:"#5A7A5C", sageDeep:"#3E5A40", sageSoft:"#DCE7D6", clay:"#B5764A", claySoft:"#F0DFCB", line:"#D8CFBE", muted:"#8A8473" };
 
-// Etiquetas Y pregunta/hint copiadas LITERALMENTE de la constante FIELDS en
-// vita-demo-formulario/index.html (y su copia vita-demo-formulario-v2/) — a
-// propósito, deben quedar idénticas (pedido explícito de Leonardo, 2 oct
-// 2026, tras notar que el panel mostraba el contexto clínico sin la pregunta
-// real que vio el padre). Si el formulario cambia un hint, hay que
-// replicarlo aquí a mano — las tres copias no están conectadas por código.
-const DX_FIELDS = [
-  { key:"queDeseaLograr", label:"Qué desea lograr el padre", hint:"¿Qué te gustaría lograr con el programa para tu hijo/a?" },
-  { key:"preocupacionPrincipal", label:"Preocupación principal", hint:"¿Qué es lo que MÁS te preocupa hoy de tu hijo/a?" },
-  { key:"origen", label:"Origen (parto · lactancia)", hint:"Parto natural o cesárea, y cuánto tiempo tomó leche materna (o si no tomó)." },
-  { key:"suenoYMovimiento", label:"Sueño y movimiento", hint:"A qué hora se duerme y se levanta, cómo despierta, si se despierta en la noche, qué actividad física hace, si algo le duele al moverse." },
-  { key:"senalesObservables", label:"Señales observadas", hint:"Dolor o ardor de estómago, dolores de cabeza, gases, estreñimiento, ansiedad, fatiga, dificultad para concentrarse, sueño inquieto, piel irritada, infecciones frecuentes — lo que aplique." },
-  { key:"diagnosticosYAtencionMedica", label:"Diagnósticos y atención médica", hint:"Diagnósticos ya dados por un médico, medicación o tratamiento, especialistas que lo atienden." },
-  { key:"cronologiaDelDia", label:"Cronología del día", hint:"Un día típico CON HORA APROXIMADA en cada momento (aunque sea \"como a las 7\"): qué come y bebe al levantarse, desayuno, media mañana, almuerzo, media tarde, cena, antes de dormir. La hora de la cena es especialmente importante para el equipo. En media mañana, indica si la lonchera es de casa o la compra en el colegio. Si varía el fin de semana." },
-  { key:"findeYGustos", label:"Fin de semana y gustos", hint:"Qué suele comer los fines de semana, si algo le cae mal, qué alimentos le gustan y valdría la pena conservar." },
-  { key:"menteYPantallas", label:"Mente y pantallas", hint:"Tipo de contenido y horas de pantalla al día, si las usa antes de dormir, si practica algo de relajación o respiración." },
-  { key:"emociones", label:"Emociones", hint:"Emociones que observas con frecuencia (alegría, rabietas, ansiedad, frustración) — vale describirlo como comportamiento." },
-];
+// DX_FIELDS ya NO se escribe a mano (2 oct 2026) — se DERIVA de la misma
+// constante FIELDS que usan vita-demo-formulario/ y vita-demo-formulario-v2/
+// (cargada arriba vía <script src="/shared/formulario-fields.js">), así las
+// tres páginas quedan imposibles de desincronizar: cambiar un hint en el
+// archivo compartido lo cambia en las tres a la vez. Se excluyen los 4
+// campos de identidad (ya se muestran aparte, en el encabezado del caso) y
+// se convierte snake_case -> camelCase para que coincida con lo que devuelve
+// detallePlan() en Apps Script.
+const CAMPOS_IDENTIDAD = new Set(["nombre_padre","email_padre","nombre_nino","edad"]);
+const snakeACamel = s => s.replace(/_([a-z])/g, (_, c) => c.toUpperCase());
+const DX_FIELDS = FIELDS
+  .filter(f => !CAMPOS_IDENTIDAD.has(f.key))
+  .map(f => ({ key: snakeACamel(f.key), label: f.label, hint: f.hint }));
 
 const Shell = (props) => (
   <div style={{minHeight:"100vh", background:P.bg, fontFamily:"'Nunito',sans-serif", color:P.ink, display:"flex", justifyContent:"center", padding:"28px 14px 56px"}}>
