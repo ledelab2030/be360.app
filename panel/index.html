@@ -51,17 +51,23 @@ const PIN_KEY = "be360_panel_pin";
 
 const P = { bg:"#ECE5D8", panel:"#FBF8F1", panelRaised:"#FFFFFF", ink:"#2C2A24", sage:"#5A7A5C", sageDeep:"#3E5A40", sageSoft:"#DCE7D6", clay:"#B5764A", claySoft:"#F0DFCB", line:"#D8CFBE", muted:"#8A8473" };
 
+// Etiquetas Y pregunta/hint copiadas LITERALMENTE de la constante FIELDS en
+// vita-demo-formulario/index.html (y su copia vita-demo-formulario-v2/) — a
+// propósito, deben quedar idénticas (pedido explícito de Leonardo, 2 oct
+// 2026, tras notar que el panel mostraba el contexto clínico sin la pregunta
+// real que vio el padre). Si el formulario cambia un hint, hay que
+// replicarlo aquí a mano — las tres copias no están conectadas por código.
 const DX_FIELDS = [
-  { key:"queDeseaLograr", label:"Qué desea lograr el padre" },
-  { key:"preocupacionPrincipal", label:"Preocupación principal" },
-  { key:"origen", label:"Origen (parto · lactancia)" },
-  { key:"suenoYMovimiento", label:"Sueño y movimiento" },
-  { key:"senalesObservables", label:"Señales observadas" },
-  { key:"diagnosticosYAtencionMedica", label:"Diagnósticos y atención médica" },
-  { key:"cronologiaDelDia", label:"Cronología del día" },
-  { key:"findeYGustos", label:"Fin de semana y gustos" },
-  { key:"menteYPantallas", label:"Mente y pantallas" },
-  { key:"emociones", label:"Emociones" },
+  { key:"queDeseaLograr", label:"Qué desea lograr el padre", hint:"¿Qué te gustaría lograr con el programa para tu hijo/a?" },
+  { key:"preocupacionPrincipal", label:"Preocupación principal", hint:"¿Qué es lo que MÁS te preocupa hoy de tu hijo/a?" },
+  { key:"origen", label:"Origen (parto · lactancia)", hint:"Parto natural o cesárea, y cuánto tiempo tomó leche materna (o si no tomó)." },
+  { key:"suenoYMovimiento", label:"Sueño y movimiento", hint:"A qué hora se duerme y se levanta, cómo despierta, si se despierta en la noche, qué actividad física hace, si algo le duele al moverse." },
+  { key:"senalesObservables", label:"Señales observadas", hint:"Dolor o ardor de estómago, dolores de cabeza, gases, estreñimiento, ansiedad, fatiga, dificultad para concentrarse, sueño inquieto, piel irritada, infecciones frecuentes — lo que aplique." },
+  { key:"diagnosticosYAtencionMedica", label:"Diagnósticos y atención médica", hint:"Diagnósticos ya dados por un médico, medicación o tratamiento, especialistas que lo atienden." },
+  { key:"cronologiaDelDia", label:"Cronología del día", hint:"Un día típico CON HORA APROXIMADA en cada momento (aunque sea \"como a las 7\"): qué come y bebe al levantarse, desayuno, media mañana, almuerzo, media tarde, cena, antes de dormir. La hora de la cena es especialmente importante para el equipo. En media mañana, indica si la lonchera es de casa o la compra en el colegio. Si varía el fin de semana." },
+  { key:"findeYGustos", label:"Fin de semana y gustos", hint:"Qué suele comer los fines de semana, si algo le cae mal, qué alimentos le gustan y valdría la pena conservar." },
+  { key:"menteYPantallas", label:"Mente y pantallas", hint:"Tipo de contenido y horas de pantalla al día, si las usa antes de dormir, si practica algo de relajación o respiración." },
+  { key:"emociones", label:"Emociones", hint:"Emociones que observas con frecuencia (alegría, rabietas, ansiedad, frustración) — vale describirlo como comportamiento." },
 ];
 
 const Shell = (props) => (
@@ -412,6 +418,7 @@ function App() {
               {DX_FIELDS.map(f => detalle[f.key] ? (
                 <div key={f.key}>
                   <div style={{fontSize:11, fontWeight:800, color:P.muted, textTransform:"uppercase", letterSpacing:.3}}>{f.label}</div>
+                  {f.hint && <div style={{fontSize:11.5, color:P.muted, fontStyle:"italic", marginTop:1, marginBottom:3}}>{f.hint}</div>}
                   <div style={{fontSize:13.5, color:P.ink, lineHeight:1.5, whiteSpace:"pre-wrap"}}>{detalle[f.key]}</div>
                 </div>
               ) : null)}
