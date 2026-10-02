@@ -1,0 +1,780 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+<meta name="robots" content="noindex" />
+<title>Vita · Bienestar 360 (Formulario de Hábitos)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+<script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<style>
+  html,body{margin:0;height:100%}
+  *{box-sizing:border-box}
+  .rise{animation:rise .28s cubic-bezier(.2,.8,.2,1)}
+  @keyframes rise{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+  .dot{width:7px;height:7px;border-radius:50%;background:#5A7A5C;display:inline-block;animation:blink 1.2s infinite}
+  .dot:nth-child(2){animation-delay:.2s}.dot:nth-child(3){animation-delay:.4s}
+  @keyframes blink{0%,60%,100%{opacity:.25}30%{opacity:1}}
+  .scroll::-webkit-scrollbar{width:8px}.scroll::-webkit-scrollbar-thumb{background:#D8CFBE;border-radius:8px}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<!-- Marcador de versión discreto, SOLO para pruebas (pedido de Leonardo, 2 oct 2026) — formato
+     "PR#<último PR que tocó este archivo> · <fecha AAMMDD de ese PR>". Actualizar a mano en cada
+     PR que cambie este archivo; no es visible a simple vista para el padre/madre que lo usa. -->
+<div style="position:fixed;bottom:4px;right:6px;font:10px/1 -apple-system,sans-serif;color:#D8CFBE;opacity:.55;pointer-events:none;z-index:9999;">SRB v2 · PR#83 · 261002</div>
+<script type="text/babel">
+const { useState, useRef, useEffect } = React;
+
+// Mismo Worker que vita-demo-srb-3 — el proxy y la ruta /log (HITL) no cambian.
+const WORKER_URL = "https://vita-proxy.leonardo-751.workers.dev";
+const MODEL = "claude-sonnet-4-6";
+
+// ============================================================
+// PROMPT — captura conversacional del FORMULARIO DE HÁBITOS del
+// design-sprint (design-sprint/src/schemas/formulario_habitos.json v4).
+// No es el diagnóstico SRB genérico de vita-demo-srb-3 (ese es otro
+// producto, para otra cosa). Este SOLO captura, en la voz de Vita
+// (design-sprint/docs/tono_identidad_bot.txt) — nunca aconseja, nunca
+// prescribe. El plan lo arma después el Prompt Maestro
+// (design-sprint/src/prompts/srb_draft_generator.txt), revisado por
+// Peter en su panel, fuera de este chat.
+//
+// NUEVO (8 ago 2026): escalamiento en vivo. Antes, una señal de riesgo real
+// (posible trastorno alimentario, salud mental grave, urgencia médica) que
+// aparecía durante ESTA captura —el primer contacto, antes de que exista
+// cualquier plan— solo quedaba como texto en el Sheet: nadie se enteraba
+// hasta que Peter abriera esa fila por su cuenta. plan/index.html (el chat
+// de seguimiento, post-aprobación) ya tenía un aviso real por correo vía
+// /escalar; esta captura no. Se cierra esa brecha reusando el mismo
+// mecanismo — ver PROTOCOLO DE SEGURIDAD en el prompt y processReply() más
+// abajo. Encontrado simulando un caso de riesgo con un padre de prueba.
+// Verificado en vivo que el modelo NO ponía el marcador de forma confiable
+// (respondía bien EN EL TEXTO pero se le olvidaba el <escalar>) — por eso
+// además hay una red de respaldo determinística (detectarRiesgoTextual) que
+// no depende de que el modelo lo recuerde.
+//
+// NUEVO (8 ago 2026): modo formulario directo (stage "form"). Alternativa NO
+// conversacional a este mismo chat, para el padre que prefiera llenar los
+// mismos campos de una — o porque a Peter le preocupa que cambiar de método
+// de captura cambie la calidad/fidelidad clínica de los datos frente a su
+// experiencia. Mismos campos (FIELDS), mismo <dx>, mismo /log — el único
+// cambio es CÓMO se recorren, no QUÉ se pregunta. Como este camino no pasa
+// por el modelo, no tiene el chequeo de seguridad por turno del chat: por
+// eso sendToReview() corre detectarRiesgoTextual() sobre TODO dx antes de
+// enviar, cubriendo ambos caminos por igual.
+//
+// NUEVO (8 ago 2026): cambiar de chat a formulario y viceversa SIN perder ni
+// duplicar nada. Antes solo se podía elegir un camino al inicio (pantalla de
+// bienvenida) y quedaba fijo. Como dx es el mismo estado de React en ambos
+// modos, cambiar de vista nunca pierde datos — lo que faltaba era la forma de
+// cambiar de vista. Ahora hay botones en los dos sentidos (header del chat,
+// drawer "Lo que hemos hablado", link en el formulario), y además Vita
+// reacciona si el padre lo pide por texto en el chat (marcador
+// <cambiar_modo>, ver CAMBIO DE MODO en el prompt) — encontrado probando en
+// vivo: pedirle "prefiero el formulario" por chat no hacía nada, Vita seguía
+// preguntando como si no hubiera entendido. Al volver al chat después de
+// llenar parte del formulario, startOrResumeChat() le dice a Vita qué ya se
+// sabe para que no lo vuelva a preguntar.
+//
+// NUEVO (9 ago 2026): pantalla de consentimiento antes de capturar nada. Antes
+// no existía NINGUNA pantalla dentro del producto que explicara qué se
+// captura, quién lo revisa y cómo pedir que se borre — solo un guion VERBAL
+// para el Día 5 del sprint (reclutamiento_y_consentimiento.txt), que no cubre
+// a nadie que use el producto fuera de esa sesión. Gap encontrado en el
+// assessment de RAI (Privacy → Consent management, score 0/4) — el más serio
+// de los 9 dimensiones evaluadas. Ambos caminos de entrada (chat directo o
+// formulario directo) pasan ahora por stage "consentimiento" una sola vez;
+// ver irCon()/aceptarConsentimiento() más abajo. Guarda la aceptación como
+// dx.consentimiento_ts (timestamp ISO), que viaja con el resto de dx hacia
+// /log sin que el Worker necesite ningún cambio (dx pasa completo tal cual).
+// Pendiente de un humano: agregar la columna correspondiente en
+// apps-script-formulario-v2.gs.txt (ya preparada en el código, comentada)
+// para que quede registrado también en el Sheet, no solo viajando en el
+// payload — requiere que alguien despliegue una nueva versión del Apps
+// Script a mano, cosa que este agente no puede hacer por su cuenta.
+//
+// NUEVO (8 ago 2026): "Enviar a revisión" ahora exige sustancia real, no solo
+// una cuenta de campos. Antes bastaba con 4 campos llenos, los que fueran —
+// dejaba pasar casos como nombre+correo+edad+una palabra suelta, sin nada
+// útil para que Peter arme un plan. Ahora exige: identificación completa del
+// hijo/a (nombre, edad) + contacto (nombre y correo del padre) + la
+// cronología del día CON sustancia real (el propio prompt la llama "el
+// corazón de la captura", no es un campo más) + un mínimo de otras áreas del
+// panorama. Ver REQUIRED_SIEMPRE/OPCIONALES/faltantes()/puedeEnviar() más
+// abajo. El mensaje al padre ahora dice qué falta en concreto, no solo un
+// contador ("Aún falta: X, Y").
+// ============================================================
+const BASE = `Eres Vita, acompañante de bienestar de Bienestar 360.
+
+# QUÉ HACES AQUÍ (y qué NO)
+- SOLO capturas información sobre el hijo o hija de la persona con la que hablas, para el Formulario de Hábitos. NUNCA diagnosticas, NUNCA prescribes, NUNCA das ni sugieres una recomendación — ni una sola, ni de pasada, ni si te la piden directamente.
+- Hablas SIEMPRE con el padre o la madre. El niño o adolescente nunca es tu interlocutor y nunca recibe indicaciones de ti.
+- Rango de edad del hijo/a: 2 años en adelante, sin límite superior (decisión de Peter y Leonardo, 2 oct 2026 — un tope fijo excluía a estudiantes reales de colegio público en extraedad/CLEI, que en Colombia pueden seguir matriculados bien entrados los 20).
+- Todo lo que captures lo revisa el equipo clínico antes de que a la familia le llegue cualquier cosa. Tú nunca eres la última palabra. Cuando le cuentes esto al padre/madre di siempre "el equipo" — nunca el nombre de Peter, salvo que te pregunten directamente quién está detrás (ver protocolo de seguridad).
+- Si el padre menciona otro hijo/a (hermano/a) durante la conversación, NUNCA ofrezcas proactivamente "hacer el mismo recorrido" para ese otro niño/a — no sabes si ese hermano/a está habilitado para el programa, solo el equipo lo confirma. Si el padre PREGUNTA directamente si puede hacerlo también, respóndele con calidez que el equipo se lo confirma.
+
+# TONO (de la guía de voz de Vita — seguirla al pie de la letra)
+- Trato: tuteo, cercano.
+- CERO emojis.
+- 2 a 4 líneas por mensaje. Esto es un chat corto, no un informe.
+- Una sola pregunta por mensaje.
+- Sin listas ni viñetas dentro del chat.
+- Sin juicio: nunca hagas sentir culpa al padre por nada de lo que cuente.
+- Cierra cada intercambio con calidez, nunca evaluando lo que acaban de contarte.
+- Nunca digas "sin medicamentos", "revertir", "curar" ni "epigenética". Nunca menciones IA, tecnología ni proveedores.
+
+# CÓMO CAPTURAS (metodología del sprint — no aconsejar durante la captura)
+Mientras recorres las áreas, SOLO escuchas y reconoces con calidez ("listo", "gracias, sigamos", "entiendo") — nunca corriges, nunca sugieres, nunca dices cosas como "eso no es lo ideal" o "deberías". Toda esa parte no existe en este chat: la hace el equipo después, aparte.
+
+Recorre las áreas en este orden, 1-2 preguntas por mensaje, en tono de conversación (no interrogatorio):
+
+0. CONTACTO: antes de empezar con el hijo/a, pregunta el nombre del padre/madre con quien hablas, y a qué correo le pueden escribir con el plan cuando esté listo. Encuádralo simple: "Antes de empezar, ¿cómo te llamas, y a qué correo te escribimos cuando tengamos su plan listo?" (una sola vez, no lo repitas).
+1. GENERAL: nombre del hijo/a, edad. Qué le gustaría lograr con el programa, y qué es lo que MÁS le preocupa hoy de su hijo/a (esto último es clave, pregúntalo con calma, dale espacio).
+2. ORIGEN: parto natural o cesárea; cuánto tiempo de lactancia materna (o si no tomó).
+3. SUEÑO Y MOVIMIENTO: a qué hora se duerme (cuando se apagan luces y pantallas) y a qué hora se levanta; cómo despierta (descansado / le cuesta / cansado); si se despierta en la noche; qué actividad física hace y cuántas veces por semana; si algo le duele al moverse.
+4. SEÑALES: si nota alguna de estas señales con cierta frecuencia — menciona 4-5 a modo de ejemplo dentro de la pregunta, no la lista completa de golpe: dolor o ardor de estómago, dolores de cabeza frecuentes, inflamación o gases, estreñimiento, ansiedad, fatiga o cansancio, dificultad para concentrarse, sueño inquieto, piel irritada o brotes, infecciones frecuentes. Deja que el padre agregue lo que quiera.
+5. DIAGNÓSTICOS Y ATENCIÓN MÉDICA: si el hijo/a tiene algún diagnóstico ya dado por un médico (asma, alergias, TDAH, etc. — da 2-3 ejemplos, no la lista completa); si toma alguna medicación o está en tratamiento; qué especialistas lo atienden. NO preguntes por citas próximas ni pidas autorización para coordinar con el médico — eso no aplica todavía.
+6. EL DÍA EN ORDEN — es el corazón de la captura. Ya sabes a qué hora se despierta y a qué hora se duerme (lo preguntaste en el área 3) — NO lo vuelvas a preguntar aquí, solo reutilízalo. Reconstruye el resto del día de forma ESTRICTAMENTE CRONOLÓGICA, y para CADA momento (al levantarse, desayuno, media mañana/lonchera, almuerzo, media tarde, cena, antes de dormir) pide una hora aproximada — no la des por sentada ni la asumas: "¿como a qué hora desayuna?", "¿y la cena, más o menos a qué hora?". Esto no es opcional ni decorativo — el equipo clínico necesita las horas reales, sobre todo la de la cena, para poder trabajar con precisión. Si el padre no sabe la hora exacta de algún momento, está bien un aproximado ("como a las 7", "después del colegio") — lo que no debe pasar es que quede sin ninguna hora. En cada momento pregunta también qué come Y qué bebe — así la hidratación aparece sola en el relato, NUNCA preguntes directo "¿toma suficiente agua?". Pregunta también si varía el fin de semana.
+   Para MEDIA MAÑANA/LONCHERA específicamente, pregunta además si lleva comida de casa o la compra en el colegio (cafetería/casino/tienda escolar) — esto es clínicamente relevante porque cambia qué tan controlable es por la familia: "¿la lonchera se la mandas de la casa, o la compra allá en el colegio?". Si compra en el colegio, pregunta qué suele comprar, aunque el padre no esté 100% seguro.
+7. FIN DE SEMANA Y GUSTOS: qué suele comer los fines de semana (da 2-3 ejemplos: comida rápida, dulces, gaseosas); si algún alimento le cae mal o le produce gases; qué alimentos le gustan y valdría la pena conservar en su plan.
+8. MENTE Y PANTALLAS: qué tipo de contenido consume (juegos, series, redes) y cuántas horas de pantalla al día; si usa pantallas la hora antes de dormir. Pregunta con suavidad si practica algo de relajación o respiración consciente — si el padre no entiende la pregunta o dice que no aplica, no insistas, anota "no aplica" y sigue.
+9. EMOCIONES: qué emociones observa con alguna frecuencia en su hijo/a (da algunos ejemplos: alegría, ira o rabietas, ansiedad, frustración) — igual, si el padre prefiere describirlo como comportamiento ("se pone de mal genio") en vez de nombrar una emoción, está perfecto, anota eso.
+
+# CIERRE (CAPTURE-ONLY)
+Cuando ya cubriste las áreas, cierra con calidez: agradece, resume en 1-2 frases lo que entendiste del día de su hijo/a (sin evaluar, sin consejos), y explica que esa información queda registrada para que el equipo la revise y prepare el primer paso — que le van a escribir. NUNCA propongas ni insinúes una recomendación o próximo paso, en ningún momento. Invita a tocar el botón «Enviar a revisión» para mandar la información.
+
+# PROTOCOLO DE SEGURIDAD (PRIORITARIO SOBRE TODO LO DEMÁS)
+- Si el padre pregunta algo puntual tipo "¿debería quitarle el pan?" o "¿está bien que tome gaseosa?": responde con calidez que eso lo revisa el equipo junto con el resto de la información, y sigue con la siguiente pregunta del recorrido. NUNCA respondas la pregunta con un consejo, ni aquí ni en el cierre — tampoco si insisten pidiendo "algo general" en vez de algo específico: eso también es un consejo, no cede.
+- Ante señales de posible trastorno de conducta alimentaria (bajo peso, restricción, atracones, miedo a engordar), salud mental (tristeza profunda, ansiedad intensa, mención de hacerse daño) o urgencia médica (dolor agudo, fiebre alta, pérdida de peso brusca): no sigas con el recorrido normal en esa área. Valida con calidez ("gracias por contarme, eso es importante"), dile que lo va a poner en manos del equipo con prioridad, y si suena a algo que no puede esperar dile con claridad que busque un médico o especialista de confianza hoy mismo. Anótalo en la señal correspondiente, y sigue con el resto del recorrido donde sí sea seguro. NO OLVIDES el paso siguiente: esto SIEMPRE requiere el marcador de escalamiento — es tan obligatorio como el bloque <dx>, nunca lo omitas por estar concentrada en responder con calidez. Ver el formato exacto en "MARCADOR DE ESCALAMIENTO" más abajo.
+- Si preguntan quién está detrás: "Bienestar 360 lo lidera Peter Álvarez, con un equipo de bienestar." Nada de tecnología ni proveedores. Si preguntan directo si eres una persona real, una IA o un robot: sé honesta, nunca lo niegues ni lo evadas — dile que eres una acompañante virtual, no una persona, sin usar las palabras "inteligencia artificial" ni "tecnología".
+- Si el peso surge en la conversación, nunca lo trates como un objetivo a bajar ni hables de "dieta" o imagen corporal — solo anótalo como dato si el padre lo menciona espontáneamente.
+
+# MARCADOR DE ESCALAMIENTO (aparte del bloque <dx> de abajo)
+Cuando actives el protocolo de seguridad de arriba por un riesgo real (no por una simple pregunta de "¿le doy X?"), agrega TAMBIÉN, en su propia línea, uno de estos marcadores invisibles — nunca lo menciones ni lo expliques al padre, es solo para el sistema:
+<escalar>riesgo_alimentario</escalar> — posible trastorno de conducta alimentaria
+<escalar>riesgo_salud_mental</escalar> — señales de salud mental grave
+<escalar>urgencia_medica</escalar> — urgencia médica aguda
+Para todo lo demás (incluida una pregunta puntual sobre qué darle de comer), NO agregues ningún marcador de escalamiento — eso no es una señal de riesgo, es solo un padre preguntando.
+
+# CAMBIO DE MODO (formulario directo)
+Además de este chat, existe un formulario directo (no conversacional) con los mismos campos, para el padre que prefiera llenarlo él mismo en vez de conversar. Si el padre te pide explícitamente cambiar a eso — frases como "prefiero el formulario", "mejor lo lleno directo", "pásamelo directo", "quiero terminarlo yo", "esto es muy largo, dame el formulario" — NUNCA sigas preguntando como si no hubieras entendido. Responde en 1 línea confirmando cálidamente el cambio (algo como "Claro, ahí tienes lo que ya sabemos, completa el resto cuando quieras") y agrega, en su propia línea, el marcador invisible: <cambiar_modo>formulario</cambiar_modo>
+No agregues este marcador en ningún otro caso — solo cuando el padre pida el cambio explícitamente.
+
+# FORMATO DE SALIDA (CRÍTICO)
+Responde SIEMPRE en dos, tres o cuatro partes:
+1. Tu mensaje conversacional normal (según las reglas de tono de arriba).
+2. Al final, en una línea aparte, un bloque oculto con lo capturado hasta ahora, exactamente así:
+<dx>{"nombre_padre":"","email_padre":"","nombre_nino":"","edad":"","que_deseas_lograr":"","preocupacion_principal":"","origen":"","sueno_y_movimiento":"","senales_observables":"","diagnosticos_y_atencion_medica":"","cronologia_del_dia":"","finde_y_gustos":"","mente_y_pantallas":"","emociones":""}</dx>
+Rellena solo lo que ya sepas; deja "" lo que falte. "email_padre" es el correo tal cual lo dieron — no lo inventes ni lo completes, anota lo que haya aunque parezca incompleto. "cronologia_del_dia" incluye TODA la cronología con horas + qué come/bebe en cada momento + hidratación, como un relato corrido. Valores breves, frases cortas. El bloque <dx> NUNCA se muestra, es solo para el sistema — no lo menciones ni lo describas.
+3. SOLO si activaste el protocolo de seguridad, el marcador <escalar>...</escalar> de arriba, en su propia línea, después del bloque <dx>.
+4. SOLO si el padre pidió cambiar al formulario directo, el marcador <cambiar_modo>formulario</cambiar_modo> de arriba, en su propia línea.`;
+
+// Red de respaldo del escalamiento: en pruebas, el modelo a veces responde
+// bien EN EL TEXTO (valida, dice que avisa al equipo con prioridad) pero se
+// le olvida agregar el marcador <escalar> — un problema conocido de pedirle
+// a un LLM que recuerde un formato técnico condicional en medio de una
+// respuesta cargada emocionalmente. Esto escanea lo que escribe el padre
+// directamente, SIN depender de que el modelo lo marque, para las señales
+// más claras e inequívocas (no cubre todo — las señales más sutiles siguen
+// dependiendo del criterio del modelo, ver PROTOCOLO DE SEGURIDAD arriba).
+const RIESGO_PATTERNS = [
+  { motivo:"riesgo_salud_mental", re:/suicid|quitarse la vida|matarse|no quiere vivir|autolesi[oó]n|hacerse da[ñn]o|cortarse/i },
+  { motivo:"urgencia_medica", re:/convuls|no respira|inconsciente|desmay|sangrado (abundante|mucho)|fiebre muy alta|dolor (muy fuerte|insoportable)/i },
+  { motivo:"riesgo_alimentario", re:/miedo a engordar|se (provoca|induce) (el )?v[oó]mito|se purga|esconde (la )?comida|comida escondida|dej[oó] de comer (casi )?(por completo|del todo)/i },
+];
+const detectarRiesgoTextual=(text)=>{
+  if(!text) return null;
+  for(const p of RIESGO_PATTERNS){ if(p.re.test(text)) return p.motivo; }
+  return null;
+};
+
+// Cobertura de las 24h del día (10 ago 2026) — hallazgo de Leonardo: el campo
+// cronologia_del_dia es un solo texto libre, así que un padre puede dejarlo
+// con huecos sin darse cuenta — y eso es justo lo que puede generar rechazo
+// de Peter al revisar. La solución NO reestructura el campo en 7 sub-campos
+// (sería más engorroso de llenar); en su lugar, detecta por palabras clave
+// si el relato menciona los 7 momentos clave del día, y si falta alguno,
+// sendToReview() se detiene y el panel de revisión final (PanelRevisionFinal,
+// más abajo) lo muestra junto con el correo — el padre elige completar o
+// confirmar explícitamente que no sabe / no quiere compartir esos momentos
+// todavía. Si confirma, el hueco queda ANOTADO en el
+// mismo texto que ve Peter (nunca queda como un silencio ambiguo). Funciona
+// igual para el modo chat (el modelo arma el texto) y el modo formulario (el
+// padre lo escribe directo) — es el mismo campo, la misma verificación.
+const PERIODOS_DIA = [
+  { label:"Al levantarse", re:/levant|despert/i },
+  { label:"Desayuno", re:/desayun/i },
+  { label:"Media mañana", re:/media ma[ñn]ana|lonchera|refrigerio/i },
+  { label:"Almuerzo", re:/almuerz/i },
+  { label:"Media tarde", re:/media tarde|onces/i },
+  { label:"Cena", re:/\bcena\b|comida de la noche/i },
+  { label:"Antes de dormir", re:/antes de (dormir|acostarse|la cama)/i },
+];
+
+// NUEVO (8 sep 2026, pedido explícito de Peter en la reunión del 19 ago):
+// "asegurar que se capturen todas las horas del día" — antes coberturaDia
+// solo detectaba si el padre MENCIONABA el momento ("desayuno"), no si daba
+// una hora real. Un padre podía escribir "desayuno cereal" sin decir a qué
+// hora, y eso pasaba como "cubierto" — exactamente lo que Peter dice que le
+// llega genérico y sin lo que necesita para alinear con la metodología SRB
+// (el horario de la cena, en particular, es un dato duro: "detener la
+// ingesta antes de las 6pm" solo se puede verificar si hay una hora real).
+// Sigue sin partir el campo en 7 sub-campos rígidos (se evaluó antes y se
+// descartó por más engorroso de llenar) — en su lugar, exige que exista un
+// patrón de hora (12h, 24h, o "las X" en palabras) DENTRO de una ventana de
+// texto alrededor de cada mención, no en cualquier parte del relato.
+const TIME_PATTERN = /\b([01]?\d|2[0-3])[:.,]?[0-5]\d?\s*(am|pm|a\.?\s?m\.?|p\.?\s?m\.?)?\b|\b(a la|a las)\s+(una|dos|tres|cuatro|cinco|seis|siete|ocho|nueve|diez|once|doce|\d{1,2})\b/i;
+const VENTANA_HORA = 45; // caracteres a cada lado de la mención — cubre "desayuno a las 7" y "a las 7 desayuna", no cualquier hora del relato
+function tieneHoraCerca(texto, indexMatch){
+  const inicio=Math.max(0,indexMatch-VENTANA_HORA);
+  const fin=Math.min(texto.length,indexMatch+VENTANA_HORA);
+  return TIME_PATTERN.test(texto.slice(inicio,fin));
+}
+const coberturaDia=(texto)=>{
+  const t=texto||"";
+  const faltantes=[];
+  let cubiertos=0;
+  for(const p of PERIODOS_DIA){
+    // FIX (2 oct 2026, encontrado en vivo con Peter — caso Samuel): t.match(p.re) sin bandera
+    // global solo devuelve la PRIMERA mención de la palabra clave. Un padre real mencionó
+    // "almuerza" dos veces en el mismo relato (una genérica, otra con la hora real pegada) y el
+    // chequeo solo miraba la primera, así que marcaba "sin hora" aunque la hora sí estuviera un
+    // poco más abajo en el mismo texto. Ahora revisa TODAS las menciones — alcanza con que UNA
+    // tenga una hora cerca.
+    const reGlobal=new RegExp(p.re.source, p.re.flags.includes("g")?p.re.flags:p.re.flags+"g");
+    const matches=[...t.matchAll(reGlobal)];
+    if(!matches.length){ faltantes.push({label:p.label, motivo:"no_mencionado"}); continue; }
+    if(!matches.some(m=>tieneHoraCerca(t, m.index))){ faltantes.push({label:p.label, motivo:"sin_hora"}); continue; }
+    cubiertos++;
+  }
+  return { cubiertos, total:PERIODOS_DIA.length, faltantes };
+};
+
+// El "hint" es la guía corta que en el chat hace Vita con preguntas — aquí
+// va como ayuda debajo de cada campo, para que el modo formulario capture
+// EXACTAMENTE la misma sustancia clínica que el modo conversacional (mismos
+// campos, mismas señales a cubrir), solo que en un formato distinto. Esto es
+// a propósito: la metodología de Peter no debe cambiar según el camino que
+// elija el padre, solo la manera de recorrerla.
+const FIELDS = [
+  { key:"nombre_padre", label:"Nombre del padre/madre" },
+  { key:"email_padre", label:"Correo de contacto", hint:"Para enviarte el plan cuando esté listo." },
+  { key:"nombre_nino", label:"Nombre del hijo/a" },
+  { key:"edad", label:"Edad", hint:"2 años en adelante, sin límite superior." },
+  { key:"que_deseas_lograr", label:"Qué desea lograr el padre", hint:"¿Qué te gustaría lograr con el programa para tu hijo/a?" },
+  { key:"preocupacion_principal", label:"Preocupación principal", hint:"¿Qué es lo que MÁS te preocupa hoy de tu hijo/a?" },
+  { key:"origen", label:"Origen (parto · lactancia)", hint:"Parto natural o cesárea, y cuánto tiempo tomó leche materna (o si no tomó)." },
+  { key:"sueno_y_movimiento", label:"Sueño y movimiento", hint:"A qué hora se duerme y se levanta, cómo despierta, si se despierta en la noche, qué actividad física hace, si algo le duele al moverse." },
+  { key:"senales_observables", label:"Señales observadas", hint:"Dolor o ardor de estómago, dolores de cabeza, gases, estreñimiento, ansiedad, fatiga, dificultad para concentrarse, sueño inquieto, piel irritada, infecciones frecuentes — lo que aplique." },
+  { key:"diagnosticos_y_atencion_medica", label:"Diagnósticos y atención médica", hint:"Diagnósticos ya dados por un médico, medicación o tratamiento, especialistas que lo atienden." },
+  { key:"cronologia_del_dia", label:"Cronología del día", hint:"Un día típico CON HORA APROXIMADA en cada momento (aunque sea \"como a las 7\"): qué come y bebe al levantarse, desayuno, media mañana, almuerzo, media tarde, cena, antes de dormir. La hora de la cena es especialmente importante para el equipo. En media mañana, indica si la lonchera es de casa o la compra en el colegio. Si varía el fin de semana." },
+  { key:"finde_y_gustos", label:"Fin de semana y gustos", hint:"Qué suele comer los fines de semana, si algo le cae mal, qué alimentos le gustan y valdría la pena conservar." },
+  { key:"mente_y_pantallas", label:"Mente y pantallas", hint:"Tipo de contenido y horas de pantalla al día, si las usa antes de dormir, si practica algo de relajación o respiración." },
+  { key:"emociones", label:"Emociones", hint:"Emociones que observas con frecuencia (alegría, rabietas, ansiedad, frustración) — vale describirlo como comportamiento." },
+];
+const AREA_TOTAL = FIELDS.length;
+
+// Qué hace falta para que "Enviar a revisión" tenga sentido — antes esto era
+// solo "al menos 4 campos llenos, los que sean", lo cual dejaba pasar casos
+// como nombre+correo+edad+una palabra suelta. Ahora exige lo que Peter
+// realmente necesita para armar algo: identificación completa del hijo/a +
+// la cronología del día (que el propio prompt llama "el corazón de la
+// captura", no es opcional) + una base mínima del resto del panorama.
+const REQUIRED_SIEMPRE = ["nombre_padre","email_padre","nombre_nino","edad","cronologia_del_dia"];
+const MIN_LEN_CRONOLOGIA = 40; // filtra respuestas de una palabra ("normal", "no sé") sin bloquear un relato corto real
+const OPCIONALES = ["que_deseas_lograr","preocupacion_principal","origen","sueno_y_movimiento","senales_observables","diagnosticos_y_atencion_medica","finde_y_gustos","mente_y_pantallas","emociones"];
+const MIN_OPCIONALES = 4; // de los 9 restantes, para que el panorama no sea solo la cronología sola
+const P = { bg:"#ECE5D8", panel:"#FBF8F1", ink:"#2C2A24", sage:"#5A7A5C", sageDeep:"#3E5A40", sageSoft:"#DCE7D6", user:"#C9DDB8", clay:"#B5764A", line:"#D8CFBE", muted:"#8A8473" };
+const emptyDx = FIELDS.reduce((a,f)=>({...a,[f.key]:""}),{});
+const MODE = "child"; // este demo SOLO captura para un hijo/a — no hay modo adulto.
+
+// Renderiza **negrita** como <strong>; conserva saltos de línea via white-space:pre-wrap.
+const renderRich = (text) => (text||"").split(/(\*\*[^*]+\*\*)/g).map((part,i)=>
+  part.startsWith("**")&&part.endsWith("**")
+    ? <strong key={i} style={{fontWeight:800}}>{part.slice(2,-2)}</strong>
+    : <React.Fragment key={i}>{part}</React.Fragment>
+);
+
+// Shell a nivel de módulo: NO redefinir dentro de App (eso remonta el textarea y hace perder el foco al escribir).
+const Shell=(props)=>(
+  <div style={{minHeight:"100vh",background:P.bg,fontFamily:"'Nunito',sans-serif",color:P.ink,display:"flex",justifyContent:"center",padding:"16px 12px 28px"}}>
+    <div style={{width:"100%",maxWidth:440,position:"relative",display:"flex",flexDirection:"column",height:"calc(100vh - 44px)",background:P.panel,borderRadius:26,overflow:"hidden",boxShadow:"0 24px 60px rgba(40,42,36,.18)",border:"1px solid "+P.line}}>{props.children}</div>
+  </div>
+);
+
+// Regex simple de formato de correo — no detecta typos de contenido (ej.
+// "leonardodelahozb@gmail.com" en vez de la cuenta real), solo formato
+// obviamente roto. El resto de la protección contra typos es mostrar el
+// correo bien grande y editable antes de enviar, ver PanelRevisionFinal.
+const formatoEmailValido=(email)=>/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test((email||"").trim());
+
+// Panel de revisión final antes de enviar (10 ago 2026) — se usa tanto en
+// modo formulario como en modo chat, por eso vive a nivel de módulo (mismo
+// motivo que Shell). SIEMPRE se muestra antes de enviar de verdad (no solo
+// si algo falta): el correo es el ÚNICO canal de entrega desde que se
+// quitó WhatsApp — un typo silencioso significa que la familia nunca
+// recibe su plan y nadie se entera. Por eso el correo queda editable acá
+// mismo, grande y visible, en vez de enterrado en un campo más del
+// formulario. Si además faltan momentos del día, se explica la
+// consecuencia real (plan más general, sin culpar) y se puede continuar
+// así — el correo, en cambio, no tiene una opción de "continuar sin
+// arreglarlo" si el formato se ve roto, porque ahí no hay ambigüedad
+// posible: sin un correo con formato válido, la entrega no puede funcionar.
+const PanelRevisionFinal=({dx,onCambiarEmail,faltantes,onCompletarDia,onConfirmar,P,btnPrimary})=>{
+  const emailOk=formatoEmailValido(dx.email_padre);
+  return (
+    <div style={{position:"absolute",inset:0,background:"rgba(40,42,36,.55)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:20,padding:20}}>
+      <div style={{background:P.panel,borderRadius:20,padding:"22px 20px",maxWidth:340,maxHeight:"90%",overflowY:"auto",boxShadow:"0 20px 50px rgba(0,0,0,.3)"}}>
+        <div style={{fontFamily:"'Fraunces',serif",fontSize:18,color:P.sageDeep,marginBottom:12}}>Antes de enviar</div>
+
+        <label style={{fontSize:12,fontWeight:800,color:P.sageDeep,display:"block",marginBottom:5}}>Le vamos a escribir a:</label>
+        <input value={dx.email_padre||""} onChange={e=>onCambiarEmail(e.target.value)} placeholder="correo@ejemplo.com"
+          style={{width:"100%",border:"1.5px solid "+(emailOk?P.line:P.clay),borderRadius:12,padding:"10px 12px",fontSize:14.5,fontFamily:"'Nunito',sans-serif",background:"#fff",color:P.ink,outline:"none",marginBottom:6}}/>
+        {!emailOk && <p style={{fontSize:12,color:P.clay,lineHeight:1.4,marginBottom:10}}>Este correo no se ve completo — revísalo antes de continuar.</p>}
+        <p style={{fontSize:11.5,color:P.muted,lineHeight:1.4,marginBottom:16}}>Es el único lugar donde le llega el plan — si tiene un error, no hay forma de avisarte.</p>
+
+        {faltantes && faltantes.length>0 && (<React.Fragment>
+          <div style={{height:1,background:P.line,margin:"4px 0 14px"}}/>
+          <p style={{fontSize:13.5,color:P.ink,lineHeight:1.55,marginBottom:8}}>Parece que falta la hora en estos momentos del día de {dx.nombre_nino||"tu hijo/a"}:</p>
+          <ul style={{fontSize:13,color:P.sageDeep,fontWeight:700,marginBottom:12,paddingLeft:18}}>
+            {faltantes.map(f=><li key={f.label}>{f.label}{f.motivo==="sin_hora"?<span style={{fontWeight:400,color:P.muted}}> — falta la hora exacta</span>:null}</li>)}
+          </ul>
+          <p style={{fontSize:12.5,color:P.muted,lineHeight:1.5,marginBottom:8}}>Está bien si no los sabes o prefieres no compartirlos todavía — solo queremos que sea una decisión tuya, no un olvido nuestro.</p>
+          <p style={{fontSize:12.5,color:P.muted,lineHeight:1.5,marginBottom:16}}>Eso sí: mientras menos sepamos del día completo, el primer plan que arme el equipo será más general, y puede tomar más tiempo encontrar qué le está afectando de verdad. Si puedes completarlo, el plan sale más preciso desde el primer intento.</p>
+          <button onClick={onCompletarDia} style={{...btnPrimary,width:"100%",marginBottom:8}}>Quiero completar el día</button>
+        </React.Fragment>)}
+
+        <button onClick={onConfirmar} disabled={!emailOk} style={{...btnPrimary,width:"100%",opacity:emailOk?1:.5,cursor:emailOk?"pointer":"default"}}>{faltantes&&faltantes.length>0?"Confirmar y enviar así →":"Confirmar y enviar →"}</button>
+      </div>
+    </div>
+  );
+};
+
+function App(){
+  const [stage,setStage]=useState("welcome");
+  const [messages,setMessages]=useState([]);
+  const [input,setInput]=useState("");
+  const [loading,setLoading]=useState(false);
+  const [dx,setDx]=useState(emptyDx);
+  const [dxAlPausar,setDxAlPausar]=useState(null); // snapshot de dx al salir del chat, para detectar si el formulario cambió algo mientras tanto
+  const [consentChecked,setConsentChecked]=useState(false); // checkbox de la pantalla de consentimiento
+  const [consentInvestigacionChecked,setConsentInvestigacionChecked]=useState(false); // casilla SEPARADA y opcional (19 ago 2026) — investigación/mejora de otros planes, nunca condiciona el servicio
+  const [pendingStage,setPendingStage]=useState("intro"); // a dónde ir después de aceptar (intro→chat, o form)
+  const [showDx,setShowDx]=useState(false);
+  const [error,setError]=useState(null);
+  const [exported,setExported]=useState(false);
+  const [chatCopied,setChatCopied]=useState(false);
+  const [sending,setSending]=useState(false);
+  const [sendError,setSendError]=useState(null);
+  const [mostrarRevisionFinal,setMostrarRevisionFinal]=useState(false); // panel de revisión (correo + cobertura del día) antes de enviar de verdad
+  const scrollRef=useRef(null);
+  useEffect(()=>{ if(scrollRef.current) scrollRef.current.scrollTop=scrollRef.current.scrollHeight; },[messages,loading]);
+  const filled=FIELDS.filter(f=>dx[f.key]&&dx[f.key].trim()).length;
+
+  // Qué falta, en palabras — para mostrarle al padre algo más útil que un
+  // contador. Devuelve los campos SIEMPRE requeridos que faltan (o que están
+  // pero sin sustancia, en el caso de la cronología) y cuántos opcionales
+  // más hacen falta para tener un panorama real.
+  const faltantes=()=>{
+    const camposFaltantes=[];
+    for(const k of REQUIRED_SIEMPRE){
+      const val=(dx[k]||"").trim();
+      const okLargo = k==="cronologia_del_dia" ? val.length>=MIN_LEN_CRONOLOGIA : val.length>0;
+      if(!okLargo) camposFaltantes.push(FIELDS.find(f=>f.key===k).label);
+    }
+    const opcionalesLlenos=OPCIONALES.filter(k=>dx[k]&&dx[k].trim()).length;
+    const opcFaltan=Math.max(0, MIN_OPCIONALES-opcionalesLlenos);
+    return { camposFaltantes, opcFaltan };
+  };
+  const puedeEnviar=()=>{ const {camposFaltantes,opcFaltan}=faltantes(); return camposFaltantes.length===0 && opcFaltan===0; };
+
+  // Consentimiento (9 ago 2026): antes no había NINGUNA pantalla dentro del
+  // producto que explicara qué se captura, quién lo revisa y cómo pedir que
+  // se borre — era el gap más serio del assessment de RAI (Privacy → Consent
+  // management, score 0/4). Ahora ambos caminos de entrada (chat o
+  // formulario directo) pasan por acá primero, una sola vez por sesión —
+  // dx.consentimiento_ts sirve como bandera de "ya lo aceptó" (no hace falta
+  // un estado aparte) y viaja con el resto de dx hacia /log sin que el Worker
+  // ni el Apps Script necesiten tocarse para que quede guardado en el futuro
+  // (dx pasa completo tal cual a la hoja) — pendiente: agregar la columna
+  // correspondiente en apps-script-formulario-v2.gs.txt para que quede
+  // registrado también ahí, no solo viajando en el payload.
+  const irCon=(destino)=>{
+    if(dx.consentimiento_ts){ setStage(destino); return; }
+    setPendingStage(destino); setStage("consentimiento");
+  };
+  const aceptarConsentimiento=()=>{
+    setDx(prev=>({...prev,
+      consentimiento_ts:new Date().toISOString(),
+      // Vacío si no marcó la casilla de investigación — igual que el resto
+      // del formulario, un campo vacío significa "no aplica", no "no
+      // preguntado". Nunca se infiere desde consentimiento_ts.
+      consentimiento_investigacion_ts: consentInvestigacionChecked ? new Date().toISOString() : "",
+    }));
+    setStage(pendingStage);
+  };
+  const mensajeFaltante=()=>{
+    const {camposFaltantes,opcFaltan}=faltantes();
+    const partes=[];
+    if(camposFaltantes.length) partes.push(camposFaltantes.join(", "));
+    if(opcFaltan>0) partes.push(opcFaltan+" tema"+(opcFaltan>1?"s":"")+" más de su día a día");
+    return partes.join(" y ");
+  };
+
+  const parseDx=(text)=>{
+    const m=text.match(/<dx>([\s\S]*?)<\/dx>/);
+    const clean=text.replace(/<dx>[\s\S]*?<\/dx>/g,"").replace(/<dx>[\s\S]*$/,"").trim();
+    if(m){ try{ const o=JSON.parse(m[1]); setDx(prev=>{const n={...prev}; for(const k of Object.keys(o)) if(o[k]&&o[k].trim()) n[k]=o[k]; return n;}); }catch(e){} }
+    return clean;
+  };
+
+  // Detecta el marcador <escalar>motivo</escalar> (ver PROTOCOLO DE SEGURIDAD
+  // del prompt) y lo oculta del texto que ve el padre — mismo patrón que
+  // plan/index.html. Antes de esto, una señal de riesgo real durante la
+  // CAPTURA (a diferencia del chat de seguimiento post-aprobación) quedaba
+  // solo como texto en el Sheet, sin avisarle a nadie en el momento.
+  const parseEscalar=(text)=>{
+    const m=text.match(/<escalar>([\s\S]*?)<\/escalar>/);
+    const clean=text.replace(/<escalar>[\s\S]*?<\/escalar>/g,"").trim();
+    return { clean, motivo: m ? m[1].trim() : null };
+  };
+
+  // Notifica una señal real al equipo — sin bloquear el chat si falla.
+  const notificarEscalar=(motivo, mensajePadre)=>{
+    fetch(WORKER_URL+"/escalar",{ method:"POST", headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({ nombreNino:dx.nombre_nino||"", motivo, mensajePadre:mensajePadre||"" }) }).catch(()=>{});
+  };
+
+  // Detecta el marcador <cambiar_modo>formulario</cambiar_modo> — cuando el
+  // padre pide por texto pasarse al formulario directo en vez de un botón.
+  // Antes de esto, Vita simplemente seguía preguntando como si no hubiera
+  // entendido (encontrado probando en vivo: "prefiero seguir con el
+  // formulario" → Vita respondía "claro, seguimos" y hacía la siguiente
+  // pregunta del chat, sin cambiar nada).
+  const parseCambiarModo=(text)=>{
+    const m=text.match(/<cambiar_modo>([\s\S]*?)<\/cambiar_modo>/);
+    const clean=text.replace(/<cambiar_modo>[\s\S]*?<\/cambiar_modo>/g,"").trim();
+    return { clean, modo: m ? m[1].trim() : null };
+  };
+
+  // Une el parseo de los tres marcadores (<escalar>, <cambiar_modo>, <dx>) en
+  // un solo paso. Devuelve el texto limpio para mostrar y, si aplica, el modo
+  // al que hay que cambiar — dx SIEMPRE queda compartido entre chat y
+  // formulario (mismo estado de React), así que cambiar de modo nunca pierde
+  // ni duplica lo ya capturado.
+  const processReply=(raw, mensajePadre, motivoRespaldo)=>{
+    const { clean:sinEscalar, motivo } = parseEscalar(raw);
+    const { clean:sinModo, modo } = parseCambiarModo(sinEscalar);
+    const clean = parseDx(sinModo);
+    const motivoFinal = motivo || motivoRespaldo || null;
+    if(motivoFinal) notificarEscalar(motivoFinal, mensajePadre);
+    return { clean, modo };
+  };
+
+  const callVita=async(msgs)=>{
+    const ctrl=new AbortController();
+    const timer=setTimeout(()=>ctrl.abort(),45000);
+    try{
+      const res=await fetch(WORKER_URL,{ method:"POST", headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({ model:MODEL, max_tokens:2500, system:BASE, messages:msgs.map(x=>({role:x.role,content:x.content})) }), signal:ctrl.signal });
+      const data=await res.json();
+      return (data.content||[]).filter(b=>b.type==="text").map(b=>b.text).join("\n") || (data.error? "⚠️ "+JSON.stringify(data.error):"…");
+    } finally { clearTimeout(timer); }
+  };
+
+  // Arranca el chat de cero O lo retoma sabiendo lo que ya se capturó (por
+  // ejemplo, si el padre vino del formulario directo con algunos campos ya
+  // llenos, o de una sesión anterior). dx es el mismo estado compartido con
+  // el modo formulario, así que nunca hay que "reconstruir" nada — solo
+  // decirle a Vita qué ya sabe para que no lo vuelva a preguntar.
+  const startOrResumeChat=async()=>{
+    setStage("chat"); setLoading(true); setError(null);
+    const known=FIELDS.filter(f=>dx[f.key]&&dx[f.key].trim());
+    const opener = known.length===0
+      ? "[Un padre/madre abrió el chat para contarte sobre su hijo/a, para el Formulario de Hábitos. Salúdalo, preséntate breve y haz la primera pregunta del área 1 (nombre y edad del hijo/a).]"
+      : "[El padre/madre viene del formulario directo (o de una conversación previa) y ahora quiere conversar contigo. YA SABES esto — NO lo vuelvas a preguntar: "+known.map(f=>f.label+': "'+dx[f.key]+'"').join(" | ")+". Salúdalo con calidez reconociendo brevemente que ya tienes esa información (sin listarla toda de corrido), y continúa con la siguiente pregunta natural de lo que aún falte.]";
+    try{
+      const raw=await callVita([{role:"user",content:opener}]);
+      const {clean}=processReply(raw,"(inicio o retoma de conversación)");
+      setMessages([{role:"assistant",content:clean}]);
+    }
+    catch(e){ setError("No se pudo conectar. Reintenta."); } finally{ setLoading(false); }
+  };
+
+  // Si el padre edita el formulario mientras el chat está pausado a mitad de
+  // camino, Vita no se entera sola (esos campos nunca pasaron por la
+  // conversación) — sin esto, al volver podría repreguntar algo que ya está
+  // en el formulario. Manda un turno invisible (no se agrega a los mensajes
+  // visibles, mismo patrón que el opener de arriba) con lo que cambió.
+  const sincronizarCambiosFormulario=async()=>{
+    setLoading(true);
+    const known=FIELDS.filter(f=>dx[f.key]&&dx[f.key].trim());
+    const opener="[El padre/madre editó el formulario directo mientras la conversación estaba pausada. Esto es lo que hay AHORA — actualiza tu entendimiento, no repitas preguntas ya resueltas, y sigue con la siguiente pregunta natural de lo que falte: "+known.map(f=>f.label+': "'+dx[f.key]+'"').join(" | ")+".]";
+    try{
+      const raw=await callVita([...messages,{role:"user",content:opener}]);
+      const {clean}=processReply(raw,"(retoma tras editar el formulario)");
+      setMessages(m=>[...m,{role:"assistant",content:clean}]);
+    }
+    catch(e){ setError("No se pudo conectar. Reintenta."); } finally{ setLoading(false); }
+  };
+
+  // Botón/link "cambiar a chat": si ya había una conversación en curso, solo
+  // cambia de vista — y si el formulario cambió algo mientras tanto, le
+  // avisa a Vita antes de seguir. Si no había conversación, arranca una
+  // nueva sabiendo lo que ya haya en dx (ej. llenado parcial del formulario).
+  const goToChat=()=>{
+    if(messages.length>0){
+      setStage("chat");
+      if(dxAlPausar!==null && dxAlPausar!==JSON.stringify(dx)) sincronizarCambiosFormulario();
+    } else {
+      startOrResumeChat();
+    }
+  };
+  // "cambiar a formulario": dx ya es el mismo estado en ambos modos, así que
+  // cambiar de vista alcanza — el formulario aparece con lo ya capturado.
+  // Se guarda un snapshot de dx para poder detectar, al volver, si el padre
+  // cambió algo mientras el chat estaba pausado.
+  const goToForm=()=>{ setDxAlPausar(JSON.stringify(dx)); setStage("form"); };
+
+  const send=async(text)=>{
+    const content=(text??input).trim(); if(!content||loading) return;
+    setError(null); const next=[...messages,{role:"user",content}]; setMessages(next); setInput(""); setLoading(true);
+    const motivoRespaldo=detectarRiesgoTextual(content);
+    try{
+      const raw=await callVita(next);
+      const {clean,modo}=processReply(raw,content,motivoRespaldo);
+      setMessages(m=>[...m,{role:"assistant",content:clean}]);
+      if(modo==="formulario") setTimeout(goToForm,700);
+    }
+    catch(e){ setError("No se pudo conectar. Reintenta."); } finally{ setLoading(false); }
+  };
+
+  const retry=()=>{
+    if(loading) return;
+    setError(null);
+    if(messages.length===0){ startOrResumeChat(); return; }
+    setLoading(true);
+    const last=messages[messages.length-1];
+    const lastUser=last&&last.role==="user"?last.content:"";
+    const motivoRespaldo=detectarRiesgoTextual(lastUser);
+    callVita(messages)
+      .then(raw=>{
+        const {clean,modo}=processReply(raw,lastUser,motivoRespaldo);
+        setMessages(m=>[...m,{role:"assistant",content:clean}]);
+        if(modo==="formulario") setTimeout(goToForm,700);
+      })
+      .catch(()=>setError("No se pudo conectar. Reintenta."))
+      .finally(()=>setLoading(false));
+  };
+
+  // HITL capture-only: nada se le muestra al padre como recomendación. Esto manda
+  // el diagnóstico capturado a revisión (mismo Sheet vía el mismo Worker que
+  // vita-demo-srb-3) — Peter lo aprueba antes de que alguien le escriba al padre.
+  // Separado en dos pasos (10 ago 2026): enviarDatos() hace el envío real y
+  // recibe el dx final como parámetro (no lo lee del estado directamente,
+  // porque confirmarEnvioIncompleto() necesita mandar una versión de dx
+  // recién modificada en el mismo instante — leer del estado ahí llegaría
+  // tarde, setDx es asíncrono). sendToReview() es lo que llaman los botones:
+  // revisa cobertura del día primero, y solo llama a enviarDatos() derecho
+  // si el día está completo.
+  const enviarDatos=async(dxFinal)=>{
+    setSending(true); setSendError(null);
+    // Última red de respaldo antes de enviar: escanea TODO lo capturado —
+    // por chat o por el modo formulario directo, que no pasa por el modelo
+    // en absoluto y por eso no tiene ningún otro chequeo de riesgo. Dedupe
+    // por motivo para no mandar varios correos iguales.
+    const motivosEncontrados=new Set();
+    for(const k of Object.keys(dxFinal)){ const m=detectarRiesgoTextual(dxFinal[k]); if(m) motivosEncontrados.add(m); }
+    motivosEncontrados.forEach(m=>notificarEscalar(m, dxFinal.preocupacion_principal||dxFinal.senales_observables||""));
+    try{
+      const res=await fetch(WORKER_URL+"/log",{ method:"POST", headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({ producto:"formulario_pediatrico_v2", mode:MODE, dx:dxFinal, ts:new Date().toISOString() }) });
+      const data=await res.json().catch(()=>({}));
+      if(!res.ok || data.ok===false) throw new Error("log failed");
+      setStage("sent");
+    }catch(e){ setSendError("No se pudo enviar. Reintenta."); }
+    finally{ setSending(false); }
+  };
+
+  // SIEMPRE pasa por la revisión final antes de enviar de verdad (10 ago
+  // 2026) — antes solo se detenía si faltaba algo del día; ahora también se
+  // detiene siempre a mostrar el correo, editable, porque un typo ahí es
+  // silencioso y grave (es el único canal de entrega). Ver PanelRevisionFinal.
+  const sendToReview=()=>{
+    if(sending||!puedeEnviar()) return; // el botón ya se deshabilita solo, esto es el respaldo por si acaso
+    setMostrarRevisionFinal(true);
+  };
+
+  // Confirmación final: si además faltan momentos del día, ese hueco queda
+  // ANOTADO en el mismo texto que ve Peter, nunca en silencio.
+  const confirmarYEnviar=()=>{
+    const {faltantes}=coberturaDia(dx.cronologia_del_dia);
+    const resumenFaltantes=faltantes.map(f=>f.motivo==="sin_hora"?f.label+" (mencionado, sin hora exacta)":f.label).join(", ");
+    const dxFinal=faltantes.length>0
+      ? {...dx, cronologia_del_dia:(dx.cronologia_del_dia||"")+"\n[Sin dato, sin hora exacta, o no compartido aún: "+resumenFaltantes+"]"}
+      : dx;
+    if(faltantes.length>0) setDx(dxFinal);
+    setMostrarRevisionFinal(false);
+    enviarDatos(dxFinal);
+  };
+  const volverACompletarDia=()=>setMostrarRevisionFinal(false);
+  const cambiarEmailEnRevision=(valor)=>setDx(prev=>({...prev, email_padre:valor}));
+
+  const exportDx=async()=>{ const txt="FORMULARIO DE HÁBITOS · Bienestar 360\n\n"+FIELDS.map(f=>f.label+": "+(dx[f.key]||"—")).join("\n"); try{ await navigator.clipboard.writeText(txt); setExported(true); setTimeout(()=>setExported(false),2000);}catch(e){ const w=window.open("","_blank"); if(w){ w.document.body.style.cssText="font-family:system-ui;padding:20px;white-space:pre-wrap;line-height:1.5"; w.document.body.textContent=txt; } } };
+
+  const copyChat=async()=>{ const txt="CONVERSACIÓN CON VITA · Bienestar 360 (Formulario de Hábitos)\nFecha: "+new Date().toLocaleString("es-CO")+"\n\n"+messages.map(m=>(m.role==="assistant"?"Vita":"Tú (mamá/papá)")+":\n"+m.content).join("\n\n"); try{ await navigator.clipboard.writeText(txt); setChatCopied(true); setTimeout(()=>setChatCopied(false),2000);}catch(e){ const w=window.open("","_blank"); if(w){ w.document.body.style.cssText="font-family:system-ui;padding:20px;white-space:pre-wrap;line-height:1.5"; w.document.body.textContent=txt; } } };
+  const btnPrimary={background:P.sage,color:"#fff",border:"none",borderRadius:999,padding:"14px 30px",fontSize:15.5,fontWeight:800,fontFamily:"'Nunito',sans-serif",cursor:"pointer",boxShadow:"0 6px 18px rgba(90,122,92,.35)"};
+
+  if(stage==="welcome") return (
+    <Shell><div style={{flex:1,display:"flex",flexDirection:"column",justifyContent:"center",alignItems:"center",padding:"32px 26px",textAlign:"center"}}>
+      <div style={{fontSize:52,marginBottom:14}}>🌱</div>
+      <div style={{fontFamily:"'Fraunces',serif",fontSize:27,color:P.sageDeep,lineHeight:1.15,marginBottom:14}}>Hola, soy Vita</div>
+      <p style={{fontSize:15,color:P.ink,lineHeight:1.6,maxWidth:360,marginBottom:8}}>Cuéntame del día a día de tu hijo o hija — cómo come, duerme y se mueve.</p>
+      <p style={{fontSize:13.5,color:P.muted,lineHeight:1.6,maxWidth:360,marginBottom:24}}>Al final, tu información queda registrada para que la revisemos y preparemos el primer paso.</p>
+      <button onClick={()=>irCon("intro")} style={btnPrimary}>Comenzar →</button>
+      <button onClick={()=>irCon("form")} style={{background:"none",border:"none",color:P.sageDeep,fontSize:12.5,fontWeight:700,marginTop:16,cursor:"pointer",textDecoration:"underline",fontFamily:"'Nunito',sans-serif"}}>Prefiero llenar el formulario directo →</button>
+      <p style={{fontSize:11.5,color:P.muted,marginTop:18,maxWidth:320}}>Esto acompaña y suma con su pediatra — no lo reemplaza.</p>
+    </div></Shell>
+  );
+
+  if(stage==="consentimiento") return (
+    <Shell><div className="rise scroll" style={{flex:1,overflowY:"auto",display:"flex",flexDirection:"column",justifyContent:"center",padding:"30px 26px"}}>
+      <div style={{fontSize:40,marginBottom:12,textAlign:"center"}}>🌱</div>
+      <div style={{fontFamily:"'Fraunces',serif",fontSize:23,color:P.sageDeep,lineHeight:1.2,marginBottom:16,textAlign:"center"}}>Antes de empezar</div>
+      <p style={{fontSize:14.5,color:P.ink,lineHeight:1.65,marginBottom:14}}>Vamos a pedirte que nos cuentes sobre el día a día de tu hijo/a — cómo come, duerme, se mueve y qué te preocupa. Esto es lo que hacemos con esa información:</p>
+      <div style={{background:P.sageSoft,borderRadius:16,padding:"16px",marginBottom:18}}>
+        <div style={{display:"flex",gap:11,marginBottom:12}}><div style={{fontSize:18,flexShrink:0}}>🩺</div><div style={{fontSize:13.5,color:P.ink,lineHeight:1.5}}>Un humano del equipo clínico revisa todo antes de que te llegue.</div></div>
+        <div style={{display:"flex",gap:11,marginBottom:12}}><div style={{fontSize:18,flexShrink:0}}>🔒</div><div style={{fontSize:13.5,color:P.ink,lineHeight:1.5}}>La usamos solo para preparar el plan de tu hijo/a.</div></div>
+        {/* NUEVO (16 sept 2026, pedido de Leonardo): esto ya pasaba en panel-colegio
+            (agregados con umbral de privacidad, nunca datos individuales) pero no
+            estaba dicho en esta pantalla, y la frase de arriba ("no la compartimos
+            con nadie más") lo contradecía. No es opt-in: es parte del servicio que
+            el colegio ya contrató (ver propuestas BIS/Royal), igual que el punto de
+            arriba — por eso va en esta caja, no en la de investigación de abajo. */}
+        <div style={{display:"flex",gap:11,marginBottom:12}}><div style={{fontSize:18,flexShrink:0}}>🏫</div><div style={{fontSize:13.5,color:P.ink,lineHeight:1.5}}>También compartimos con tu colegio reportes agregados y anónimos del programa — nunca datos de tu hijo/a en particular.</div></div>
+        <div style={{display:"flex",gap:11}}><div style={{fontSize:18,flexShrink:0}}>✉️</div><div style={{fontSize:13.5,color:P.ink,lineHeight:1.5}}>Puedes pedirnos que la borremos cuando quieras, escribiendo a leonardo@bienestar360.co.</div></div>
+      </div>
+      <p style={{fontSize:12,color:P.muted,marginTop:-10,marginBottom:18,textAlign:"center"}}><a href="/terminos" target="_blank" rel="noopener" style={{color:P.sageDeep,fontWeight:700,textDecoration:"underline"}}>Lee la política completa →</a></p>
+      <label style={{display:"flex",gap:10,alignItems:"flex-start",marginBottom:20,cursor:"pointer"}}>
+        <input type="checkbox" checked={consentChecked} onChange={e=>setConsentChecked(e.target.checked)} style={{marginTop:3,width:17,height:17,flexShrink:0,accentColor:P.sage}}/>
+        <span style={{fontSize:13,color:P.ink,lineHeight:1.5}}>He leído esto y acepto que se use para preparar el plan de mi hijo/a.</span>
+      </label>
+
+      {/* NUEVO (19 ago 2026, pedido de Leonardo): casilla de investigación —
+          SEPARADA de la de arriba a propósito. Desmarcada por defecto, nadie
+          queda inscrito sin decidirlo explícitamente. No condiciona el
+          servicio (el botón de abajo se habilita solo con el checkbox
+          principal, este NO es requisito) — se lo digo dos veces al padre
+          (acá y en el texto de la casilla) para que quede claro. Mismo
+          estilo ícono+frase que los 3 puntos de arriba, para que no se
+          sienta pegado con cinta. Nunca menciona IA/modelo/tecnología —
+          misma regla dura que el resto de cara al padre. */}
+      <div style={{background:P.sageSoft,borderRadius:16,padding:"16px",marginBottom:14}}>
+        <div style={{display:"flex",gap:11}}><div style={{fontSize:18,flexShrink:0}}>📊</div><div style={{fontSize:13.5,color:P.ink,lineHeight:1.5}}>También podemos usar esta información, sin nombres, para investigación y para mejorar los planes de otras familias.</div></div>
+      </div>
+      <label style={{display:"flex",gap:10,alignItems:"flex-start",marginBottom:20,cursor:"pointer"}}>
+        <input type="checkbox" checked={consentInvestigacionChecked} onChange={e=>setConsentInvestigacionChecked(e.target.checked)} style={{marginTop:3,width:17,height:17,flexShrink:0,accentColor:P.sage}}/>
+        <span style={{fontSize:13,color:P.ink,lineHeight:1.5}}>Acepto que se use así. Es opcional — si no la marco, igual recibo el plan de mi hijo/a.</span>
+      </label>
+
+      <button onClick={aceptarConsentimiento} disabled={!consentChecked} style={{...btnPrimary,alignSelf:"center",opacity:consentChecked?1:.5,cursor:consentChecked?"pointer":"default"}}>Acepto y continúo →</button>
+      <button onClick={()=>setStage("welcome")} style={{background:"none",border:"none",color:P.muted,fontSize:12.5,fontWeight:700,marginTop:14,cursor:"pointer",alignSelf:"center",fontFamily:"'Nunito',sans-serif"}}>← Volver</button>
+    </div></Shell>
+  );
+
+  if(stage==="form") return (
+    <Shell><div className="rise scroll" style={{flex:1,overflowY:"auto",padding:"26px 22px 18px",display:"flex",flexDirection:"column",gap:16}}>
+      <div style={{textAlign:"center",marginBottom:2}}>
+        <div style={{fontSize:36,marginBottom:8}}>🌱</div>
+        <div style={{fontFamily:"'Fraunces',serif",fontSize:21,color:P.sageDeep,marginBottom:6}}>Formulario de Hábitos</div>
+        <p style={{fontSize:12.5,color:P.muted,lineHeight:1.5,maxWidth:340,margin:"0 auto"}}>Llena lo que sepas — no hace falta que sea perfecto ni completo, el equipo lo revisa igual. Si prefieres, también puedes <span onClick={goToChat} style={{color:P.sageDeep,fontWeight:700,textDecoration:"underline",cursor:"pointer"}}>conversar con Vita</span> — lo que ya llenaste aquí no se pierde.</p>
+      </div>
+      {FIELDS.map(f=>(
+        <div key={f.key} style={{display:"flex",flexDirection:"column",gap:5}}>
+          <label style={{fontSize:13,fontWeight:800,color:P.sageDeep}}>{f.label}</label>
+          {f.hint && <div style={{fontSize:11.5,color:P.muted,lineHeight:1.4}}>{f.hint}</div>}
+          <textarea value={dx[f.key]} onChange={e=>setDx(prev=>({...prev,[f.key]:e.target.value}))} rows={f.key==="cronologia_del_dia"?4:(f.key==="nombre_padre"||f.key==="email_padre"||f.key==="nombre_nino"||f.key==="edad"?1:2)} style={{border:"1px solid "+P.line,borderRadius:12,padding:"9px 11px",fontSize:13.5,fontFamily:"'Nunito',sans-serif",background:"#fff",color:P.ink,outline:"none",resize:"vertical"}}/>
+        </div>
+      ))}
+      <button onClick={sendToReview} disabled={!puedeEnviar()||sending} style={{...btnPrimary,alignSelf:"center",marginTop:6,opacity:(!puedeEnviar()||sending)?.55:1,cursor:(!puedeEnviar()||sending)?"default":"pointer"}}>{sending?"Enviando…":"Enviar a revisión →"}</button>
+      {!puedeEnviar() && <p style={{fontSize:11.5,color:P.muted,textAlign:"center"}}>Aún falta: {mensajeFaltante()}.</p>}
+      {sendError && <p style={{fontSize:12.5,color:P.clay,textAlign:"center"}}>{sendError}</p>}
+      <p style={{fontSize:11,color:P.muted,textAlign:"center",lineHeight:1.5,marginTop:2}}>Esto acompaña y suma con su pediatra — no lo reemplaza.</p>
+      <button onClick={()=>setStage("welcome")} style={{background:"none",border:"none",color:P.muted,fontSize:12.5,fontWeight:700,cursor:"pointer",alignSelf:"center",fontFamily:"'Nunito',sans-serif"}}>← Volver al inicio</button>
+      {mostrarRevisionFinal&&(<PanelRevisionFinal dx={dx} onCambiarEmail={cambiarEmailEnRevision} faltantes={coberturaDia(dx.cronologia_del_dia).faltantes} onCompletarDia={volverACompletarDia} onConfirmar={confirmarYEnviar} P={P} btnPrimary={btnPrimary}/>)}
+    </div></Shell>
+  );
+
+  if(stage==="sent") return (
+    <Shell><div style={{flex:1,display:"flex",flexDirection:"column",justifyContent:"center",alignItems:"center",padding:"32px 26px",textAlign:"center"}}>
+      <div style={{fontSize:52,marginBottom:14}}>🌱</div>
+      <div style={{fontFamily:"'Fraunces',serif",fontSize:25,color:P.sageDeep,lineHeight:1.2,marginBottom:14}}>Listo, ya quedó registrado</div>
+      <p style={{fontSize:15,color:P.ink,lineHeight:1.6,maxWidth:360,marginBottom:10}}>La información de {dx.nombre_nino?dx.nombre_nino:"tu hijo/a"} queda en manos del equipo. La revisamos y preparamos el primer paso — te contactamos pronto.</p>
+      <p style={{fontSize:13,color:P.muted,lineHeight:1.6,maxWidth:340}}>Esto acompaña y suma con su pediatra — no lo reemplaza.</p>
+    </div></Shell>
+  );
+
+  if(stage==="intro") return (
+    <Shell><div className="rise scroll" style={{flex:1,overflowY:"auto",display:"flex",flexDirection:"column",justifyContent:"center",padding:"30px 26px"}}>
+      <div style={{fontSize:40,marginBottom:12,textAlign:"center"}}>🌱</div>
+      <div style={{fontFamily:"'Fraunces',serif",fontSize:23,color:P.sageDeep,lineHeight:1.2,marginBottom:16,textAlign:"center"}}>Cómo vamos a hacerlo</div>
+      <p style={{fontSize:14.5,color:P.ink,lineHeight:1.65,marginBottom:14}}>La atención, el ánimo y la energía de un niño se apoyan mucho en los hábitos del hogar: lo que come y bebe, a qué hora, cuánto se mueve y cómo duerme. Tú eres el puente.</p>
+      <div style={{background:P.sageSoft,borderRadius:16,padding:"16px",marginBottom:18}}>
+        <div style={{display:"flex",gap:11,marginBottom:12}}><div style={{fontSize:18,flexShrink:0}}>🕊️</div><div style={{fontSize:13.5,color:P.ink,lineHeight:1.5}}>Reconstruimos un día normal de tu hijo/a, desde que despierta hasta que se duerme. Con calma, sin juzgar.</div></div>
+        <div style={{display:"flex",gap:11,marginBottom:12}}><div style={{fontSize:18,flexShrink:0}}>💬</div><div style={{fontSize:13.5,color:P.ink,lineHeight:1.5}}>Es una conversación tranquila, sin afán — puede tomar entre 20 y 30 minutos.</div></div>
+        <div style={{display:"flex",gap:11}}><div style={{fontSize:18,flexShrink:0}}>🌿</div><div style={{fontSize:13.5,color:P.ink,lineHeight:1.5}}>Al final, tu información queda registrada — la revisamos y te contactamos con el primer paso.</div></div>
+      </div>
+      <button onClick={startOrResumeChat} style={{...btnPrimary,alignSelf:"center"}}>Empezar la conversación →</button>
+      <button onClick={()=>setStage("welcome")} style={{background:"none",border:"none",color:P.muted,fontSize:12.5,fontWeight:700,marginTop:14,cursor:"pointer",alignSelf:"center",fontFamily:"'Nunito',sans-serif"}}>← Volver</button>
+    </div></Shell>
+  );
+
+  return (
+    <Shell>
+      <div style={{background:"linear-gradient(135deg,"+P.sageDeep+","+P.sage+")",padding:"14px 16px",display:"flex",alignItems:"center",gap:11}}>
+        <button onClick={()=>setStage("welcome")} title="Volver al inicio" style={{background:"rgba(255,255,255,.18)",border:"none",color:"#fff",borderRadius:999,width:30,height:30,fontSize:16,cursor:"pointer",flexShrink:0}}>←</button>
+        <div style={{width:40,height:40,borderRadius:"50%",background:P.panel,display:"grid",placeItems:"center",fontSize:20}}>🌱</div>
+        <div style={{flex:1}}><div style={{fontFamily:"'Fraunces',serif",fontWeight:600,fontSize:19,color:"#fff",lineHeight:1}}>Vita</div><div style={{fontSize:11.5,color:P.sageSoft,marginTop:3}}>{loading?"escribiendo…":(dx.nombre_nino?("Sobre "+dx.nombre_nino):"Conociéndolos")}</div></div>
+        <button onClick={copyChat} title="Copiar conversación" style={{background:"rgba(255,255,255,.18)",border:"none",color:"#fff",borderRadius:999,width:34,height:34,fontSize:15,cursor:"pointer",flexShrink:0}}>{chatCopied?"✓":"📋"}</button><button onClick={goToForm} title="Cambiar al formulario directo" style={{background:"rgba(255,255,255,.18)",border:"none",color:"#fff",borderRadius:999,width:34,height:34,fontSize:15,cursor:"pointer",flexShrink:0}}>📝</button><button onClick={()=>setShowDx(true)} style={{background:"rgba(255,255,255,.18)",border:"none",color:"#fff",borderRadius:999,padding:"7px 13px",fontSize:12.5,fontWeight:700,cursor:"pointer",fontFamily:"'Nunito',sans-serif"}}>Lo que llevamos · {filled}/{AREA_TOTAL}</button>
+      </div>
+      {filled>=3 && (
+        <div style={{padding:"9px 14px",background:P.sageSoft,borderBottom:"1px solid "+P.line,display:"flex",alignItems:"center",justifyContent:"space-between",gap:10}}>
+          <div style={{fontSize:12,color:P.sageDeep,lineHeight:1.4}}>{puedeEnviar()?"Cuando termines de contarme, envía tu información para que el equipo la revise.":"Aún falta: "+mensajeFaltante()+"."}</div>
+          <button onClick={sendToReview} disabled={sending||!puedeEnviar()} style={{background:P.sage,color:"#fff",border:"none",borderRadius:999,padding:"8px 14px",fontSize:12.5,fontWeight:800,cursor:(sending||!puedeEnviar())?"default":"pointer",fontFamily:"'Nunito',sans-serif",flexShrink:0,opacity:(sending||!puedeEnviar())?.55:1}}>{sending?"Enviando…":"Enviar a revisión →"}</button>
+        </div>
+      )}
+      <div ref={scrollRef} className="scroll" style={{flex:1,overflowY:"auto",padding:"16px 13px",display:"flex",flexDirection:"column",gap:10,background:"radial-gradient("+P.sageSoft+"55 1px,transparent 1px)",backgroundSize:"22px 22px"}}>
+        {messages.map((m,i)=>(<div key={i} className="rise" style={{alignSelf:m.role==="user"?"flex-end":"flex-start",maxWidth:"84%"}}><div style={{background:m.role==="user"?P.user:"#fff",color:P.ink,padding:"10px 13px",borderRadius:m.role==="user"?"16px 16px 4px 16px":"16px 16px 16px 4px",fontSize:14.5,lineHeight:1.5,boxShadow:"0 1px 2px rgba(40,42,36,.10)",whiteSpace:"pre-wrap",border:m.role==="user"?"none":"1px solid "+P.line}}>{renderRich(m.content)}</div></div>))}
+        {loading&&(<div style={{alignSelf:"flex-start",background:"#fff",padding:"12px 15px",borderRadius:"16px 16px 16px 4px",border:"1px solid "+P.line}}><span className="dot"/> <span className="dot"/> <span className="dot"/></div>)}
+        {error&&!loading&&(<div style={{alignSelf:"center",textAlign:"center",color:P.clay,fontSize:12.5,background:"#fff",padding:"10px 14px",borderRadius:12,border:"1px solid "+P.line,maxWidth:"92%"}}>{error}<div style={{marginTop:8}}><button onClick={retry} style={{background:P.sage,border:"none",color:"#fff",borderRadius:999,padding:"7px 18px",fontSize:12.5,fontWeight:700,cursor:"pointer",fontFamily:"'Nunito',sans-serif"}}>Reintentar</button></div><div style={{marginTop:7,fontSize:11,color:P.muted,lineHeight:1.4}}>Si sigue fallando, abre el enlace en tu navegador (Chrome o Safari), no dentro de otra app.</div></div>)}
+        {sendError&&(<div style={{alignSelf:"center",textAlign:"center",color:P.clay,fontSize:12.5,background:"#fff",padding:"10px 14px",borderRadius:12,border:"1px solid "+P.line,maxWidth:"92%"}}>{sendError}<div style={{marginTop:8}}><button onClick={sendToReview} style={{background:P.sage,border:"none",color:"#fff",borderRadius:999,padding:"7px 18px",fontSize:12.5,fontWeight:700,cursor:"pointer",fontFamily:"'Nunito',sans-serif"}}>Reintentar envío</button></div></div>)}
+      </div>
+      <div style={{padding:"10px 12px",background:P.panel,borderTop:"1px solid "+P.line,display:"flex",gap:8,alignItems:"flex-end"}}>
+        <textarea value={input} onChange={e=>setInput(e.target.value)} onKeyDown={e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();send();}}} placeholder="Escribe aquí…" rows={1} style={{flex:1,resize:"none",border:"1px solid "+P.line,borderRadius:20,padding:"11px 15px",fontSize:14.5,fontFamily:"'Nunito',sans-serif",maxHeight:110,background:"#fff",color:P.ink,outline:"none"}}/>
+        <button onClick={()=>send()} disabled={loading||!input.trim()} style={{width:46,height:46,borderRadius:"50%",border:"none",background:input.trim()?P.sage:P.line,color:"#fff",fontSize:19,cursor:input.trim()?"pointer":"default",flexShrink:0}}>➤</button>
+      </div>
+      {showDx&&(<div onClick={()=>setShowDx(false)} style={{position:"absolute",inset:0,background:"rgba(40,42,36,.45)",display:"flex",justifyContent:"flex-end",zIndex:10}}>
+        <div onClick={e=>e.stopPropagation()} style={{width:"86%",maxWidth:360,background:P.panel,height:"100%",display:"flex",flexDirection:"column",boxShadow:"-10px 0 40px rgba(0,0,0,.25)"}}>
+          <div style={{background:P.sageDeep,padding:"16px 18px",display:"flex",justifyContent:"space-between",alignItems:"center"}}><div><div style={{fontFamily:"'Fraunces',serif",fontSize:18,color:"#fff"}}>Lo que hemos hablado</div><div style={{fontSize:12,color:P.sageSoft,marginTop:2}}>{filled} de {AREA_TOTAL} temas registrados</div></div><button onClick={()=>setShowDx(false)} style={{background:"rgba(255,255,255,.16)",border:"none",color:"#fff",width:32,height:32,borderRadius:"50%",fontSize:16,cursor:"pointer"}}>✕</button></div>
+          <div className="scroll" style={{flex:1,overflowY:"auto",padding:14}}>
+            {FIELDS.map(f=>{const val=dx[f.key];const has=val&&val.trim();return(<div key={f.key} style={{marginBottom:10,background:"#fff",border:"1px solid "+(has?P.sage:P.line),borderRadius:12,padding:"10px 12px"}}><div style={{fontSize:11.5,fontWeight:800,color:has?P.sageDeep:P.muted,textTransform:"uppercase",letterSpacing:.4,marginBottom:has?4:0}}>{f.label}</div>{has&&<div style={{fontSize:13.5,color:P.ink,lineHeight:1.45}}>{val}</div>}</div>);})}
+          </div>
+          <div style={{padding:12,borderTop:"1px solid "+P.line,display:"flex",flexDirection:"column",gap:8}}>
+            <button onClick={()=>{setShowDx(false);goToForm();}} style={{background:P.sageDeep,color:"#fff",border:"none",borderRadius:12,padding:"11px",fontSize:13.5,fontWeight:800,cursor:"pointer",fontFamily:"'Nunito',sans-serif"}}>Terminarlo en el formulario directo →</button>
+            <button onClick={exportDx} style={{background:exported?P.sage:P.clay,color:"#fff",border:"none",borderRadius:12,padding:"11px",fontSize:13.5,fontWeight:800,cursor:"pointer",fontFamily:"'Nunito',sans-serif"}}>{exported?"✓ Copiado":"Copiar mi resumen"}</button>
+          </div>
+        </div>
+      </div>)}
+      {mostrarRevisionFinal&&(<PanelRevisionFinal dx={dx} onCambiarEmail={cambiarEmailEnRevision} faltantes={coberturaDia(dx.cronologia_del_dia).faltantes} onCompletarDia={volverACompletarDia} onConfirmar={confirmarYEnviar} P={P} btnPrimary={btnPrimary}/>)}
+    </Shell>
+  );
+}
+ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
+</script>
+</body>
+</html>
