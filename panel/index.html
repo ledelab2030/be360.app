@@ -392,7 +392,12 @@ function App() {
           <h1 style={{fontFamily:"'Fraunces',serif", fontWeight:600, fontSize:24, margin:0, color:P.sageDeep}}>{detalle.nombreNino || "(sin nombre)"}{formatEdad(detalle.edad)}</h1>
           <div style={{fontSize:13, color:P.muted, marginTop:4}}>Padre/madre: {detalle.nombrePadre || "—"} · {detalle.emailPadre || "sin correo"}</div>
           <div style={{fontSize:11.5, color:detalle.consentimientoTs?P.sageDeep:P.clay, marginTop:4}}>{detalle.consentimientoTs ? ("✓ Consentimiento aceptado "+relativeDate(detalle.consentimientoTs)) : "⚠ Sin registro de consentimiento (caso previo al 9 ago, o pendiente actualizar Apps Script)"}</div>
-          {("verificacionTs" in detalle) && (
+          {/* Aviso de código de colegio DESACTIVADO mientras dure MODO_PRUEBAS (2 oct 2026,
+              pedido de Leonardo en vivo) — ya no bloqueaba la aprobación desde el PR #77, pero
+              seguía mostrándose como nota informativa y generaba confusión durante las pruebas
+              con Peter. Reactivar (quitar este comentario) cuando MODO_PRUEBAS vuelva a false en
+              Apps Script. */}
+          {false && ("verificacionTs" in detalle) && (
             <div style={{fontSize:11.5, color:detalle.verificacionTs?P.sageDeep:P.clay, marginTop:4}}>{detalle.verificacionTs ? ("✓ Código de colegio verificado "+relativeDate(detalle.verificacionTs)) : "⚠ Código de colegio sin verificar — el padre/madre todavía no confirma su código (correo enviado al guardar el borrador, 72h de plazo)"}</div>
           )}
           {soloLectura && <div style={{display:"inline-block", marginTop:8, background:P.sageSoft, color:P.sageDeep, fontSize:11.5, fontWeight:800, padding:"4px 10px", borderRadius:999}}>✓ Aprobado</div>}
