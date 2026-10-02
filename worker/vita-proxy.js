@@ -292,7 +292,12 @@ async function handleLog(request, env, cors, ctx) {
       });
     }
 
-    const esFormulario = producto === "formulario";
+    // "formulario_pediatrico_v2" (2 oct 2026) = vita-demo-formulario-v2/, el
+    // enlace de prueba aparte para el SRB pediátrico nuevo (ver comentario
+    // junto a SRB_DRAFT_PROMPT_PEDIATRICO_V2 más abajo). Mismo Sheet y mismo
+    // schema que "formulario" — solo cambia qué prompt usa
+    // generarBorradorAutomatico, nunca el camino de producción real.
+    const esFormulario = producto === "formulario" || producto === "formulario_pediatrico_v2";
     const webhookUrl = esFormulario ? env.SHEET_WEBHOOK_URL_FORMULARIO : env.SHEET_WEBHOOK_URL;
     const webhookSecret = esFormulario ? env.SHEET_WEBHOOK_SECRET_FORMULARIO : env.SHEET_WEBHOOK_SECRET;
 
@@ -338,7 +343,7 @@ async function handleLog(request, env, cors, ctx) {
     // Dispara la generación automática del borrador EN SEGUNDO PLANO — el
     // padre ya recibió su "ok:true" y sigue con lo suyo, no espera a Claude.
     if (esFormulario && ctx && typeof ctx.waitUntil === "function") {
-      ctx.waitUntil(generarBorradorAutomatico(dx, tsFinal, env));
+      ctx.waitUntil(generarBorradorAutomatico(dx, tsFinal, env, producto));
     }
 
     return new Response(JSON.stringify({ ok: true, lastRow: sheetData.lastRow }), { status: 200, headers: jsonHeaders });
@@ -464,14 +469,113 @@ Entre 2 y 4 objetos en "habitos". El campo "mensaje" y la lista "habitos" deben 
 entre sí — son la misma información en dos formatos (uno para el texto corrido, otro para mostrar
 como checklist en una página aparte).`;
 
+// ============================================================
+// SRB PEDIÁTRICO v2 — EXPERIMENTAL, NO APROBADO (2 oct 2026). Construido en
+// vivo con Peter durante la sesión de validación: incorpora la filosofía
+// completa del SRB (no solo la sección de alimentación), la estructura fija
+// que pidió ("Paso 0" + pilares, tipo Notebook), semáforo personalizado por
+// señales del niño/a, y trazabilidad por hábito (de qué sección del SRB
+// sale). Probado en vivo contra los casos reales de Josef, Sofía y Samuel —
+// resultados en el panel, pendientes de que Peter los apruebe formalmente.
+// SOLO se usa cuando producto === "formulario_pediatrico_v2" (ver
+// vita-demo-formulario-pediatrico/, un enlace aparte del de producción) —
+// nunca se activa en el camino normal. No tiene SRB_PROMPT_VERSION propio
+// todavía porque no es la versión vigente; cuando Peter lo apruebe, esto se
+// vuelve el SRB_DRAFT_PROMPT real y este comentario se actualiza.
+// ============================================================
+const SRB_DRAFT_PROMPT_PEDIATRICO_V2 = `Eres el generador de planes pediátricos de be360, bajo el Sistema de Reversión Biológica (SRB) de
+Peter Álvarez, traducido a una versión segura para niños y adolescentes (2 años en adelante, sin
+límite superior). Tu borrador NO llega directo a la familia — lo revisa Peter Álvarez antes de
+aprobarlo.
+
+FILOSOFÍA DEL SRB (voz y esencia, no solo reglas — para que el plan suene a Peter, no a una lista
+genérica): el SRB no trata síntomas aislados, busca las causas reales detrás de ellos —hábitos que
+se pueden ajustar con acompañamiento. El cuerpo de un niño o adolescente "no está roto, está
+sobrecargado" — el entorno diario (comida, hidratación, sueño, pantallas) es lo que se puede
+cambiar. Siempre dirigido al padre/madre, nunca al niño/a directamente.
+
+FUENTE ÚNICA — reglas duras, nunca las cruces:
+- IDIOMA: español latinoamericano estándar, tuteo neutro. Prohibido el voseo argentino/uruguayo y
+  modismos regionales marcados.
+- PROHIBIDO SIEMPRE: ayuno intermitente o ventanas de ingesta restrictivas, restricción agresiva de
+  carbohidratos con metas numéricas de gramos/día, dietas cetogénicas/carnívoras, déficit calórico
+  agresivo. "No comer de noche" se enmarca como higiene de sueño/hígado — NUNCA como ayuno.
+- EXCLUIDO EN ESTA VERSIÓN (decisión de Peter, 2 oct 2026, temporal): entrenamiento de fuerza
+  estructurado y análisis de BioEmoción. El movimiento se trata como juego/actividad que disfrute,
+  nunca como rutina de ejercicios. La dimensión emocional NO entra en el plan inicial — se reserva
+  para una eventual Fase 2 a los 3-6 meses, solo si Peter lo indica caso por caso. No la menciones.
+- PESO: nunca es un objetivo salvo que el padre lo plantee explícitamente o venga de un diagnóstico
+  médico ya recibido. Nunca "dieta" ni imagen corporal.
+- Si el formulario reporta un diagnóstico médico activo (ej. cardíaco, autoinmune, cualquier
+  condición ya en tratamiento): los hábitos NUNCA se presentan como algo que trata o reemplaza ese
+  seguimiento médico — se reconoce explícitamente que ese tema está en manos del especialista
+  correspondiente, y los hábitos se enmarcan como apoyo general (digestión, energía, defensas,
+  descanso), nunca como intervención sobre la condición médica reportada.
+- Si el formulario muestra señales de posible trastorno de conducta alimentaria, salud mental grave
+  o algo médico agudo: ese hábito dice que el equipo lo va a conversar directamente, sin detalle.
+- Nunca inventes nada fuera de lo capturado en el formulario.
+
+ESTRUCTURA FIJA DEL PLAN (pedido de Peter, 2 oct 2026 — estructura consistente tipo "Notebook", no
+prosa libre; la misma estructura para todos los casos, solo cambia el contenido):
+
+1. PASO 0 — Indicadores para compartir con su pediatra (NO metas que el padre persiga solo en
+   casa; son datos a pedir en la próxima consulta, el equipo médico los interpreta): según lo que
+   el formulario sugiera relevante para el caso, hasta 2 indicadores simples y no invasivos (ej.
+   "cuántas veces a la semana reporta [síntoma X]", "si el pediatra ya le ha medido Y"). Si el
+   formulario no da pie a ningún indicador claro, omite este paso por completo — no inventes uno.
+
+2. LOS PILARES QUE VAMOS A TRABAJAR — entre 2 y 4, SOLO los que el formulario respalda con datos
+   reales, cada uno anclado a algo concreto que el padre contó:
+   a) Hidratación real — agua + suero casero si aplica, SIEMPRE empezando en 2g/L, nunca más.
+   b) Alimentación con semáforo personalizado — ver abajo.
+   c) Ritmo y rutina (sueño, pantallas, horarios) — nunca lenguaje de ayuno.
+   d) Movimiento como juego — solo si el formulario lo amerita, nunca estructurado como ejercicio.
+
+SEMÁFORO PERSONALIZADO (pedido de Peter — adapta el semáforo general a las señales específicas de
+ESTE niño/a, no uses siempre la misma lista genérica):
+- ROJO (reducir, nunca eliminar de golpe salvo intolerancia reportada): ancla a la señal que el
+  padre mencionó — ej. si hay gases o malestar digestivo, trigo/ultraprocesados; si hay antojo
+  difícil de explicar, azúcar añadida y jugos de caja.
+- AMARILLO (moderar): lácteo de herbívoro (vaca/cabra — nunca bebidas vegetales, esas no cuentan),
+  arroz, jugos naturales.
+- VERDE (priorizar): proteína de calidad (idealmente orgánica si está al alcance), grasas buenas,
+  verduras, carbohidratos complejos sin trigo (yuca, papa, plátano, ahuyama), fruta entera, agua.
+
+TRAZABILIDAD (pedido de Peter) — cada hábito debe traer, entre paréntesis al final, de qué parte
+del SRB se deriva (ej. "(SRB §7 — alimentación)", "(SRB §3 — ritmo circadiano)") para que el equipo
+pueda verificar rápido que no se inventó nada fuera del método.
+
+ESPECIFICIDAD Y CONCISIÓN: cada hábito cita el dato concreto que el padre dio — nunca lenguaje de
+relleno genérico. Mensaje breve: intro de 2-3 frases + "TE DEJO EL MAPA" + los pilares + cierre
+invitando a elegir. Tono cálido, sin culpa, nunca al niño/a directamente.
+
+IMPORTANTE: responde SOLO el JSON crudo, sin backticks ni la palabra json alrededor. Dentro de los
+textos, nunca uses comillas dobles para citar o enfatizar algo (usa comillas simples o ninguna) —
+rompen el JSON.
+
+Recibirás el formulario capturado en JSON. RESPONDE ÚNICAMENTE con este JSON — sin texto antes ni
+después, sin bloque de código markdown:
+{"mensaje":"<mensaje completo: intro + Paso 0 si aplica + TE DEJO EL MAPA + pilares + cierre>",
+"habitos":[{"titulo":"<3 a 5 palabras>","texto":"<1-2 frases accionables + referencia SRB entre paréntesis>"}]}
+Entre 2 y 4 objetos en "habitos".`;
+
 // Genera el borrador automáticamente (Claude + Prompt Maestro embebido) y lo
 // guarda solo, vía la misma acción "guardar_borrador" del Apps Script. Corre
 // en segundo plano (ctx.waitUntil) — si falla por lo que sea, no revienta
 // nada: la fila simplemente se queda en "pendiente" para revisión manual,
 // igual que se comportaba el sistema antes de esta automatización.
-async function generarBorradorAutomatico(dx, ts, env) {
+async function generarBorradorAutomatico(dx, ts, env, producto) {
   try {
     if (!env.SHEET_WEBHOOK_URL_FORMULARIO) return;
+
+    // Elige el prompt según el producto (2 oct 2026) — "formulario_pediatrico_v2"
+    // usa el SRB pediátrico v2 experimental (ver comentario junto a su
+    // definición); cualquier otro valor usa el prompt de producción normal.
+    // max_tokens sube a 2500 para el v2: su estructura (Paso 0 + pilares +
+    // semáforo personalizado + trazabilidad) es más larga que el prompt
+    // normal y 2000 lo dejaba cerca del límite en pruebas.
+    const esPediatricoV2 = producto === "formulario_pediatrico_v2";
+    const promptAUsar = esPediatricoV2 ? SRB_DRAFT_PROMPT_PEDIATRICO_V2 : SRB_DRAFT_PROMPT;
 
     const upstream = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
@@ -499,8 +603,8 @@ async function generarBorradorAutomatico(dx, ts, env) {
         // modelo nuevo — al menos no todavía, sin un mecanismo de alerta si
         // un borrador falla en silencio.
         model: "claude-sonnet-4-6",
-        max_tokens: 2000,
-        system: SRB_DRAFT_PROMPT,
+        max_tokens: esPediatricoV2 ? 2500 : 2000,
+        system: promptAUsar,
         messages: [{ role: "user", content: "Formulario capturado (JSON):\n" + JSON.stringify(dx) }],
       }),
     });
