@@ -582,8 +582,12 @@ function App(){
     for(const k of Object.keys(dxFinal)){ const m=detectarRiesgoTextual(dxFinal[k]); if(m) motivosEncontrados.add(m); }
     motivosEncontrados.forEach(m=>notificarEscalar(m, dxFinal.preocupacion_principal||dxFinal.senales_observables||""));
     try{
+      // camposSnapshot (2 oct 2026, pedido de Leonardo): manda el FIELDS que
+      // usó ESTE padre al llenar, tal cual estaba hoy — así, si mañana
+      // cambia un hint en shared/formulario-fields.js, el panel sigue
+      // mostrando la pregunta exacta que él vio, no la versión nueva.
       const res=await fetch(WORKER_URL+"/log",{ method:"POST", headers:{"Content-Type":"application/json"},
-        body:JSON.stringify({ producto:"formulario_pediatrico_v2", mode:MODE, dx:dxFinal, ts:new Date().toISOString() }) });
+        body:JSON.stringify({ producto:"formulario_pediatrico_v2", mode:MODE, dx:dxFinal, ts:new Date().toISOString(), camposSnapshot:FIELDS }) });
       const data=await res.json().catch(()=>({}));
       if(!res.ok || data.ok===false) throw new Error("log failed");
       setStage("sent");

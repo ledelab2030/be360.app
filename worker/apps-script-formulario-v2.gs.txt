@@ -166,6 +166,13 @@ var COLS = {
   // nunca condiciona el servicio. Vacío = no marcada, igual que el resto de
   // columnas de este Sheet (vacío = no aplica, no "no preguntado").
   consentimiento_investigacion_ts: 26,
+  // NUEVO (2 oct 2026, pedido de Leonardo): foto (JSON) de los hints del
+  // formulario (shared/formulario-fields.js) tal como estaban en el momento
+  // de ESTA captura — para que el panel siempre pueda mostrarle a Peter la
+  // pregunta exacta que vio el padre, aunque el formulario cambie después.
+  // Vacío en casos capturados antes de este cambio — el panel cae de vuelta
+  // a los hints actuales para esos.
+  campos_snapshot: 27,
 };
 
 function doPost(e) {
@@ -222,7 +229,12 @@ function doPost(e) {
       // la marcó. OJO al agregar más columnas después de esta: hay que
       // mantener el mismo orden posicional que COLS, appendRow no usa
       // nombres de columna.
-      dx.consentimiento_investigacion_ts || ""
+      dx.consentimiento_investigacion_ts || "",
+      // NUEVO (2 oct 2026): snapshot de los hints del formulario en el
+      // momento de esta captura (ver COLS.campos_snapshot). Vacío si el
+      // Worker no lo mandó (ej. producto="srb3", o una versión vieja del
+      // frontend que todavía no lo envía).
+      body.camposSnapshot ? JSON.stringify(body.camposSnapshot) : ""
     ]);
     var lastRow = sheet.getLastRow();
     SpreadsheetApp.flush();
@@ -316,6 +328,11 @@ function detallePlan(sheet, body) {
   var v = found.values;
   var plan = {};
   try { plan = JSON.parse(v[COLS.plan_json] || "{}"); } catch (ex) {}
+  // Snapshot de los hints vigentes cuando se capturó este caso (2 oct 2026)
+  // — "" en casos de antes de este cambio, el panel sabe caer de vuelta a
+  // los hints actuales cuando recibe un array vacío.
+  var camposSnapshot = [];
+  try { camposSnapshot = JSON.parse(v[COLS.campos_snapshot] || "[]"); } catch (ex) {}
   return respond({
     ok: true,
     idPlan: idPlan,
@@ -332,6 +349,7 @@ function detallePlan(sheet, body) {
     correoEnviadoTs: v[COLS.correo_enviado_ts],
     consentimientoTs: v[COLS.consentimiento_ts],
     verificacionTs: v[COLS.verificacion_ts],
+    camposSnapshot: camposSnapshot,
   });
 }
 
