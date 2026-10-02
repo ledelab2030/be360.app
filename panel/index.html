@@ -460,9 +460,7 @@ function App() {
         ) : (
           <div style={{display:"flex", gap:10, flexWrap:"wrap"}}>
             <button onClick={guardarCambios} disabled={guardando} style={{...btnGhost, opacity:guardando?.6:1}}>{guardando?"Guardando…":(guardadoOk?"✓ Guardado":"Guardar cambios")}</button>
-            {("verificacionTs" in detalle) && !detalle.verificacionTs ? (
-              <div style={{background:P.claySoft, border:"1px solid "+P.clay, borderRadius:14, padding:"10px 14px", fontSize:12.5, color:P.ink, lineHeight:1.5, flex:1, minWidth:260}}>No se puede aprobar todavía: falta que el padre/madre confirme el código de su colegio.</div>
-            ) : !confirmando ? (
+            {!confirmando ? (
               <button onClick={()=>setConfirmando(true)} style={btnPrimary}>Aprobar y enviar →</button>
             ) : (
               <div style={{background:P.sageSoft, border:"1px solid "+P.sage, borderRadius:14, padding:"12px 16px", flex:1, minWidth:260}}>
