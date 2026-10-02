@@ -439,10 +439,24 @@ async function generarBorradorAutomatico(dx, ts, env) {
         "anthropic-version": "2023-06-01",
       },
       body: JSON.stringify({
-        // Subido de claude-sonnet-4-6 a claude-sonnet-5 (16 sept 2026) — junto
-        // con el bloque de ESPECIFICIDAD de arriba, para atacar la queja de
-        // Peter de que las recomendaciones salían genéricas.
-        model: "claude-sonnet-5",
+        // REVERTIDO a claude-sonnet-4-6 (2 oct 2026) — el intento de subir a
+        // claude-sonnet-5 (16 sept 2026, junto con el bloque de ESPECIFICIDAD
+        // de arriba) causaba fallas silenciosas reales: encontrado probando
+        // con Samuel (12 años, hijo de Leonardo) — el caso se guardaba pero
+        // nunca aparecía en el panel de Peter. Causa confirmada y reproducida:
+        // Sonnet 5 gasta una porción grande del límite de 2000 tokens en
+        // "pensar" internamente antes de escribir la respuesta visible: con
+        // datos tan detallados como los de Samuel, eso dejaba la respuesta
+        // cortada a la mitad, rompía el formato JSON esperado, y
+        // generarBorradorAutomatico() se quedaba callado (por diseño, ver
+        // comentario de la función) — la fila quedaba huérfana para siempre,
+        // sin que nadie se enterara. El bloque de ESPECIFICIDAD en el prompt
+        // se queda igual (sigue siendo la instrucción correcta); solo se
+        // revierte el modelo. Decisión de Leonardo: no vale la pena asumir el
+        // riesgo de la nueva falla por la ganancia de especificidad del
+        // modelo nuevo — al menos no todavía, sin un mecanismo de alerta si
+        // un borrador falla en silencio.
+        model: "claude-sonnet-4-6",
         max_tokens: 2000,
         system: SRB_DRAFT_PROMPT,
         messages: [{ role: "user", content: "Formulario capturado (JSON):\n" + JSON.stringify(dx) }],
