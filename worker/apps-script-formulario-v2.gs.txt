@@ -127,6 +127,17 @@ var PANEL_SECRET = PropertiesService.getScriptProperties().getProperty("PANEL_SE
 var CODIGOS_VALIDOS_COLEGIO = ["BIS2026", "DSB2026", "PILOTO-02-H4XQ", "PILOTO-03-1NX8", "PILOTO-04-TSEP", "PILOTO-05-T2IU"];
 var HORAS_PLAZO_VERIFICACION = 72;
 
+// MODO_PRUEBAS (2 oct 2026, pedido de Leonardo): mientras esto sea true,
+// aprobarPlan() NO exige que el padre haya verificado el código de su
+// colegio antes de que Peter pueda aprobar — pensado para la ronda de
+// pruebas con Samuel y los 5 usuarios de confianza, donde esperar a que el
+// padre revise su correo y confirme un código rompe la sesión en vivo con
+// Peter. IMPORTANTE: volver a false antes de que cualquier familia real del
+// piloto (BIS u otro colegio con cobro real) empiece a usar el sistema — con
+// esto en true, Peter puede aprobar un plan para CUALQUIER correo que se
+// haya puesto en el formulario, verificado o no.
+var MODO_PRUEBAS = true;
+
 // PIN del panel de colegio (panel-colegio/index.html) — uno por colegio,
 // DISTINTO tanto de PANEL_SECRET (panel de Peter) como de
 // CODIGOS_VALIDOS_COLEGIO (el código que usan las familias para verificar
@@ -351,7 +362,7 @@ function aprobarPlan(sheet, body) {
   if (!idPlan) return respond({ ok: false, error: "idPlan faltante" }, 400);
   var found = encontrarFilaPorIdPlan(sheet, idPlan);
   if (!found) return respond({ ok: false, error: "no encontrado" }, 404);
-  if (!found.values[COLS.verificacion_ts]) {
+  if (!MODO_PRUEBAS && !found.values[COLS.verificacion_ts]) {
     return respond({ ok: false, error: "no se puede aprobar: el padre todavía no verificó el código de su colegio" }, 400);
   }
   var row = found.row;
