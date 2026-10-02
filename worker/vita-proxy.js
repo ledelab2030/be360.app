@@ -376,14 +376,23 @@ async function handleLog(request, env, cors, ctx) {
 //   v1.3 · 2 oct 2026   · PR #78  · idioma latinoamericano estándar +
 //                                    concisión (pedido de Peter en vivo) —
 //                                    voz/comunicación, NO clínico.
+//   v1.4 · 2 oct 2026   · PR #81  · quita el tope de 20 años (pedido de
+//                                    Peter y Leonardo en vivo) — ⚠ SÍ ES
+//                                    CLÍNICO, pendiente de ratificar
+//                                    formalmente en reglas_duras_srb.md (ver
+//                                    addendum ahí). Un tope fijo excluía
+//                                    estudiantes reales de colegio público en
+//                                    extraedad/CLEI (Colombia permite seguir
+//                                    matriculado bien entrados los 20).
 // Al generar un borrador, esta versión queda disponible para quien llame al
 // Worker (ver generarBorradorAutomatico) — no se persiste todavía por caso
 // individual en el Sheet (requeriría una columna nueva + cambio en Apps
 // Script, pendiente de que Leonardo lo despliegue a mano).
 // ============================================================
-const SRB_PROMPT_VERSION = "1.3";
+const SRB_PROMPT_VERSION = "1.4";
 const SRB_DRAFT_PROMPT = `Eres el generador de borradores de plan de hábitos de be360, a partir del
-Formulario de Hábitos que llenó un padre/madre sobre su hijo/a (2 a 20 años). Tu borrador NO
+Formulario de Hábitos que llenó un padre/madre sobre su hijo/a (2 años en adelante, sin límite
+superior). Tu borrador NO
 llega directo a la familia — lo revisa Peter Álvarez (autoridad clínica) antes de aprobarlo.
 
 FUENTE ÚNICA — reglas duras, nunca las cruces:
