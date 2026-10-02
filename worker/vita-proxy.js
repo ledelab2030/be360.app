@@ -282,7 +282,7 @@ async function handleLog(request, env, cors, ctx) {
   const jsonHeaders = { ...cors, "Content-Type": "application/json" };
   try {
     const body = await request.json();
-    const { mode, dx, ts, producto } = body || {};
+    const { mode, dx, ts, producto, camposSnapshot } = body || {};
     const tsFinal = ts || new Date().toISOString();
 
     if (!dx || typeof dx !== "object") {
@@ -320,6 +320,11 @@ async function handleLog(request, env, cors, ctx) {
         mode: mode || "",
         dx: safeDx,
         ts: tsFinal,
+        // Snapshot de los hints del formulario tal como estaban en el
+        // momento de esta captura (2 oct 2026, pedido de Leonardo) — solo
+        // tiene sentido para "formulario"/"formulario_pediatrico_v2"; el
+        // schema viejo (srb3) no lo manda y Apps Script lo guarda vacío.
+        camposSnapshot: esFormulario ? (camposSnapshot || null) : null,
       }),
     });
 

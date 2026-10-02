@@ -62,9 +62,19 @@ const P = { bg:"#ECE5D8", panel:"#FBF8F1", panelRaised:"#FFFFFF", ink:"#2C2A24",
 // detallePlan() en Apps Script.
 const CAMPOS_IDENTIDAD = new Set(["nombre_padre","email_padre","nombre_nino","edad"]);
 const snakeACamel = s => s.replace(/_([a-z])/g, (_, c) => c.toUpperCase());
-const DX_FIELDS = FIELDS
+const camposAFields = (lista) => lista
   .filter(f => !CAMPOS_IDENTIDAD.has(f.key))
   .map(f => ({ key: snakeACamel(f.key), label: f.label, hint: f.hint }));
+// DX_FIELDS_ACTUAL: los hints de HOY — se usan como respaldo para casos
+// capturados antes de que existiera el snapshot por caso (2 oct 2026, ver
+// camposSnapshotAFields más abajo).
+const DX_FIELDS_ACTUAL = camposAFields(FIELDS);
+// Devuelve los campos a mostrar PARA ESTE CASO: si trae su propio snapshot
+// (capturado con el padre viendo exactamente esos hints), se usa ese — nunca
+// los hints actuales, que pudieron cambiar después. Si no trae snapshot
+// (casos de antes del 2 oct 2026), cae de vuelta a los hints de hoy.
+const camposParaDetalle = (detalle) =>
+  (detalle.camposSnapshot && detalle.camposSnapshot.length) ? camposAFields(detalle.camposSnapshot) : DX_FIELDS_ACTUAL;
 
 const Shell = (props) => (
   <div style={{minHeight:"100vh", background:P.bg, fontFamily:"'Nunito',sans-serif", color:P.ink, display:"flex", justifyContent:"center", padding:"28px 14px 56px"}}>
@@ -411,7 +421,7 @@ function App() {
           </div>
           {showFormulario && (
             <div style={{paddingBottom:14, display:"flex", flexDirection:"column", gap:10}}>
-              {DX_FIELDS.map(f => detalle[f.key] ? (
+              {camposParaDetalle(detalle).map(f => detalle[f.key] ? (
                 <div key={f.key}>
                   <div style={{fontSize:11, fontWeight:800, color:P.muted, textTransform:"uppercase", letterSpacing:.3}}>{f.label}</div>
                   {f.hint && <div style={{fontSize:11.5, color:P.muted, fontStyle:"italic", marginTop:1, marginBottom:3}}>{f.hint}</div>}
