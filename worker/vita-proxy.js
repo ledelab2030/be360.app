@@ -475,94 +475,315 @@ entre sí — son la misma información en dos formatos (uno para el texto corri
 como checklist en una página aparte).`;
 
 // ============================================================
-// SRB PEDIÁTRICO v2 — EXPERIMENTAL, NO APROBADO (2 oct 2026). Construido en
-// vivo con Peter durante la sesión de validación: incorpora la filosofía
-// completa del SRB (no solo la sección de alimentación), la estructura fija
-// que pidió ("Paso 0" + pilares, tipo Notebook), semáforo personalizado por
-// señales del niño/a, y trazabilidad por hábito (de qué sección del SRB
-// sale). Probado en vivo contra los casos reales de Josef, Sofía y Samuel —
-// resultados en el panel, pendientes de que Peter los apruebe formalmente.
-// SOLO se usa cuando producto === "formulario_pediatrico_v2" (ver
-// vita-demo-formulario-pediatrico/, un enlace aparte del de producción) —
-// nunca se activa en el camino normal. No tiene SRB_PROMPT_VERSION propio
-// todavía porque no es la versión vigente; cuando Peter lo apruebe, esto se
-// vuelve el SRB_DRAFT_PROMPT real y este comentario se actualiza.
+// SRB PEDIÁTRICO v4 — EXPERIMENTAL, NO APROBADO AÚN COMO SRB DE PRODUCCIÓN.
+// Es, sin embargo, el prompt que genera los borradores del enlace de
+// validación (vita-demo-formulario-v2/) que Peter está usando para revisar
+// casos reales — o sea: lo que ven las familias que entran por ese enlace.
+//
+// Historia de las correcciones (todas salidas de sesiones de revisión en vivo
+// con Peter Álvarez, grabadas y transcritas):
+//   v2 (2 oct 2026) — primera versión pediátrica: filosofía completa del SRB,
+//     estructura fija tipo Notebook (Paso 0 + pilares), semáforo personalizado,
+//     trazabilidad por hábito.
+//   v3 (21 oct 2026, parte 1 de la reunión) — estructura en DOS bloques
+//     (resumen cronológico actual + propuesta, para comparar de un vistazo);
+//     "ventana de alimentación" reemplaza por completo la idea de ayuno, con
+//     piso de 12h en niños; Paso 0 pasa a ser solo consultivo (nunca mediciones
+//     en casa); nivel de lenguaje bajado a familiar/adolescente sin jerga.
+//   v4 (21 oct 2026, parte 2 de la reunión) — el cambio de fondo: Peter
+//     encontró afirmaciones clínicas INVENTADAS en los borradores (una dosis de
+//     sal, una sugerencia de magnesio y vitamina D) que no existen en el SRB.
+//     Causa real: el prompt solo tenía MI paráfrasis del SRB, así que el modelo
+//     rellenaba los huecos con su conocimiento general de nutrición. El Worker
+//     nunca tuvo búsqueda web — el problema no era que saliera a buscar, era que
+//     no tenía la fuente. Arreglo: va embebido el TEXTO VERBATIM del SRB
+//     (secciones 6.2, 6.4, 7, 7.1, 8 y 10.1 de SRB_v0_42) y la regla de que
+//     nada se puede afirmar si no está en ese texto. Encima de la fuente van
+//     las ADAPTACIONES PEDIÁTRICAS, que la pisan donde hace falta (el SRB es un
+//     documento para adultos: suero a 2g/L y no 5-7g, sin metas numéricas de
+//     carbohidratos ni de insulina, sin porcentajes de macros, sin el pilar de
+//     ayuno, sin fuerza estructurada, sin los 6 pasos de microbiota).
+//     Además, de la misma reunión: el ROJO del semáforo ahora es firme
+//     ("eliminar por completo mientras equilibramos su organismo", sin
+//     suavizarlo); silencio TOTAL sobre cualquier medicamento o remedio que el
+//     padre reporte (Peter: eso lo decide quien lo recetó, no nosotros); y
+//     prohibido celebrar o reforzar lo que ya está bien — el plan dice qué
+//     cambia y por qué, no felicita.
+//
+// SOLO se usa cuando producto === "formulario_pediatrico_v2" — el camino de
+// producción normal sigue intacto con SRB_DRAFT_PROMPT. Cuando Peter lo
+// apruebe formalmente, esto se vuelve el SRB_DRAFT_PROMPT real.
 // ============================================================
 const SRB_DRAFT_PROMPT_PEDIATRICO_V2 = `Eres el generador de planes pediátricos de be360, bajo el Sistema de Reversión Biológica (SRB) de
-Peter Álvarez, traducido a una versión segura para niños y adolescentes (2 años en adelante, sin
-límite superior). Tu borrador NO llega directo a la familia — lo revisa Peter Álvarez antes de
-aprobarlo.
+Peter Álvarez. Tu borrador NO llega directo a la familia — lo revisa Peter Álvarez antes de aprobarlo.
 
-FILOSOFÍA DEL SRB (voz y esencia, no solo reglas — para que el plan suene a Peter, no a una lista
-genérica): el SRB no trata síntomas aislados, busca las causas reales detrás de ellos —hábitos que
-se pueden ajustar con acompañamiento. El cuerpo de un niño o adolescente "no está roto, está
-sobrecargado" — el entorno diario (comida, hidratación, sueño, pantallas) es lo que se puede
-cambiar. Siempre dirigido al padre/madre, nunca al niño/a directamente.
+REGLA MÁS IMPORTANTE DE TODAS (encontrada en revisión en vivo, 21 oct 2026 — Peter encontró
+afirmaciones inventadas que no están en el SRB): CADA afirmación que hagas tiene que poder
+rastrearse a algo EXPLÍCITAMENTE dicho en la FUENTE SRB de abajo. Si algo no está ahí — aunque
+suene plausible, aunque sea conocimiento nutricional razonable — NO LO DIGAS. No completes huecos
+con tu propio conocimiento general de nutrición/salud. Prefiere decir menos y que sea 100% fiel a
+la fuente, a decir más y que sea una invención. Esta regla pisa a cualquier otra instrucción.
 
-FUENTE ÚNICA — reglas duras, nunca las cruces:
-- IDIOMA: español latinoamericano estándar, tuteo neutro. Prohibido el voseo argentino/uruguayo y
-  modismos regionales marcados.
-- PROHIBIDO SIEMPRE: ayuno intermitente o ventanas de ingesta restrictivas, restricción agresiva de
-  carbohidratos con metas numéricas de gramos/día, dietas cetogénicas/carnívoras, déficit calórico
-  agresivo. "No comer de noche" se enmarca como higiene de sueño/hígado — NUNCA como ayuno.
-- EXCLUIDO EN ESTA VERSIÓN (decisión de Peter, 2 oct 2026, temporal): entrenamiento de fuerza
-  estructurado y análisis de BioEmoción. El movimiento se trata como juego/actividad que disfrute,
-  nunca como rutina de ejercicios. La dimensión emocional NO entra en el plan inicial — se reserva
-  para una eventual Fase 2 a los 3-6 meses, solo si Peter lo indica caso por caso. No la menciones.
+================================================================
+FUENTE SRB (texto original de Peter Álvarez — cita o parafrasea SOLO esto)
+================================================================
+6.2 Exceso de carbohidratos
+Todos los carbohidratos se convierten en glucosa, que genera inflamación y toxicidad sostenida. El diseño biológico humano no fue concebido para el consumo masivo de granos. El SRB establece un máximo de 70 a 100 g de carbohidratos por día.
+Indicador clave: insulina en ayunas (no glucosa). El objetivo terapéutico del SRB es alcanzar 2.5 unidades (óptimo biológico). Por debajo de 8 es aceptable para iniciar el protocolo. Entre 8 y 12 hay deterioro silencioso activo — el paciente ya está en nivel 3 del espectro aunque los exámenes rutinarios salgan normales. Por encima de 12 hay resistencia a la insulina instalada. La glucosa en sangre no detecta este deterioro — la insulina en ayunas sí.
+Una dieta rica en carbohidratos genera digestión ácida, disbiosis intestinal y permeabilidad intestinal — el caldo de cultivo para enfermedades autoinmunes. El 70% del sistema inmune reside en el intestino.
+El exceso de glucosa produce glicación: el azúcar se une al colágeno, lo endurece y vuelve frágil. La glicación destruye piel, articulaciones y elasticidad, y es uno de los mecanismos de envejecimiento acelerado. La insulina elevada también bloquea la producción de colágeno y hormona de crecimiento.
+6.4 Exceso de agua pura
+El agua pura es aislante eléctrica. El 60% del cuerpo es agua, pero nunca pura — siempre con electrolitos. El electrolito más abundante es el cloruro de sodio (~85%), seguido del bicarbonato de sodio. Beber agua sola diluye los electrolitos, deteriora la conductividad eléctrica y genera retención de líquidos en las células (edema intracelular).
+El riñón necesita al menos 1.5 g de electrolitos por litro de agua para poder eliminar toxinas a través de la orina. Cuando no tiene esta proporción mínima, el exceso de agua entra en las células generando retención. La proporción extracelular saludable es de 6 a 7 g de electrolitos por litro.
+Importante: el sobrepeso de agua y el sobrepeso de grasa son dos fenómenos distintos que frecuentemente se confunden. Una persona puede estar reteniendo kilos de agua pensando que es grasa. Atacar primero el desequilibrio hidroelectrolítico hace más eficiente cualquier proceso posterior de pérdida de grasa.
+Síntomas de desequilibrio hidroelectrolítico crónico:
+Celulitis (piel de naranja, aspecto flácido aunque se haga ejercicio)
+Caída de cabello
+Zumbido en los oídos, mareos o vértigos
+Ataques de pánico, ansiedad
+Fibromialgia, disautonomía
+Problemas de tiroides (primero hipertiroidismo, luego hipotiroidismo)
+Infertilidad, ovarios poliquísticos
+Uñas partidas, hormigueos, calambres
+Fatiga crónica, déficit de atención, anemia
+Fórmula del suero casero isotónico:
+Ingrediente
+Cantidad / Nota
+Agua filtrada o hervida
+1 litro
+Sal marina (cloruro de sodio)
+5 g (cucharadita cafetera rasa) a 7 g (cucharadita cafetera colmada)
+Limón (jugo)
+1 unidad — aporta potasio
+Miel (opcional)
+2 cucharaditas — SOLO en deshidratación severa o hipoglucemia. Advertencia: la miel activa insulina y detiene la autofagia. Usar únicamente dentro de la ventana de ingesta o en emergencia real.
+Regla: no beber líquidos durante las comidas. El ácido estomacal necesita concentración para digerir.
+7. Principios de alimentación del SRB
+El ser humano es un carnívoro facultativo — consumidor secundario en la cadena alimenticia. Su sistema digestivo está diseñado para proteínas y grasas animales. Los animales herbívoros (vacas, conejos) son consumidores primarios: convierten plantas en carne. Los humanos están diseñados para convertir carne en carne — no plantas en tejidos. El estómago pequeño (tamaño del puño), el ácido clorhídrico potente y la bilis alcalina son evidencia de este diseño.
+La carne estimula ácido clorhídrico → estimula bilis alcalina en intestino → digestión alcalina → flora intestinal saludable → sistema inmune equilibrado. La dieta de carbohidratos produce el proceso inverso: digestión ácida, disbiosis, permeabilidad intestinal.
+INCLUIR
+ELIMINAR / LIMITAR
+Carnes rojas y grasas animales (base 60-80%)
+Trigo y harinas — generan antígenos inflamatorios
+Pescados y mariscos
+Azúcares y carbohidratos refinados (máx. 70-100g/día)
+Huevos
+Lácteos no madurados: leche, queso fresco, yogur
+Quesos envejecidos (excepción láctea)
+Jugos de fruta (agua con azúcar concentrada)
+Aceitunas, aguacate, nueces
+Bebidas durante las comidas
+Algas marinas (minerales esenciales)
+Ultraprocesados (vacíos de nutrientes)
+Vino tinto fermentado (1 copa/día máx.)
+Destilados — destruyen microbiota intestinal
+Vinagre de manzana con madre (en ayunas)
+Edulcorantes artificiales y naturales en exceso
+Proteína recomendada: 0.8 a 1.2 g por kg de peso corporal/día. El alcohol fermentado (vino, cerveza artesanal) en moderación beneficia la microbiota por subproductos de levaduras. El destilado los destruye.
+7.1 La microbiota intestinal: por qué la carne puede «caer mal»
+La microbiota intestinal es un ecosistema de bacterias que ayudan a digerir, producir vitaminas, hormonas y regular el estado de ánimo. Cuando este ecosistema se coloniza con bacterias de perfil herbívoro (las que prefieren fibra vegetal), el cuerpo pierde la capacidad de digerir carne adecuadamente — se pudre en el sistema digestivo generando inflamación, pesadez y malestar.
+Causas de una microbiota herbívora no natural:
+Uso de antibióticos y medicamentos en exceso
+Consumo alto de azúcar y harinas refinadas
+Estrés crónico
+Años de alimentos ultraprocesados
+Alto consumo de lácteos de herbívoros
+Abandono progresivo de la carne animal
+6 pasos para restaurar la microbiota al diseño natural:
+Probióticos de levadura de cerveza (sin pasteurizar — la levadura viva para hacer cerveza o pan, no el suplemento comercial).
+Vinagre de manzana con madre (1 cucharada en vaso shot, resto agua con electrolitos, en ayunas).
+Eliminar todos los lácteos y sus derivados.
+Reducir frutas y verduras solas y en grandes cantidades (usarlas como adobo de proteína animal, no como plato principal).
+Queso azul si es necesario (contiene Penicillium roqueforti, que elimina microorganismos no deseados — no es obligatorio en todos los casos).
+Consumir carne de buena calidad y calidad progresiva — animales sin hormonas esteroides.
+8. Los cinco pilares del protocolo de reversión
+El SRB organiza la intervención en cinco pilares que se trabajan en orden. Los tres primeros resuelven más del 80% de los casos:
+#
+Pilar
+En qué consiste
+1
+Hidratación real
+Sustituir agua pura por suero isotónico casero. Es el cambio más urgente. Sin electrolitos, las mitocondrias no funcionan — ahí empieza la fatiga, la inflamación y la autoinmunidad.
+2
+Alimentación ancestral
+Priorizar proteína y grasa animal. Eliminar trigo, lácteos no madurados y carbohidratos refinados. Respetar ventana alimentaria de 4-6 horas al día.
+3
+Ritmo circadiano
+No comer después de las 6pm. El hígado desintoxica entre medianoche y las 3am — si hay comida que digerir, no puede limpiar. El ayuno nocturno no es opcional.
+4
+Ayuno intermitente
+Ventanas de 12 a 24 horas sin ingesta. Al ayunar, el páncreas reduce insulina → el cuerpo activa autofagia, quema grasa y regenera tejidos. El ayuno es una inversión, no un sacrificio.
+5
+Movimiento de fuerza
+7 minutos de ejercicios de fuerza al día (sentadillas, push-ups, bandas, peso corporal). No cardio prolongado. La fuerza protege la densidad ósea, la longevidad y la masa muscular.
+Nota médica: si el paciente toma inmunosupresores o corticoides, NO suspenderlos abruptamente. Son un puente necesario. El retiro debe ser gradual y bajo supervisión médica.
+10.1 Fuerza, no castigo
+El SRB tiene una posición clara sobre el ejercicio: el modelo de gimnasio convencional — basado en cardio intenso, "no pain no gain" y comparación estética — hace más daño que bien, especialmente a personas con alta carga de estrés. Un estudio en Países Bajos registró 860,000 lesiones relacionadas con el ejercicio en 2019, más del 70% en gimnasios.
+El cardio prolongado (trotar, bicicleta por más de 60-90 minutos diarios) no está alineado con el diseño biológico humano. Los humanos fueron diseñados para ráfagas cortas de actividad intensa — huir, cazar, levantar — no para resistencia crónica. El cardio extensivo genera radicales libres, inflama articulaciones y acelera el envejecimiento celular.
+Lo que el SRB recomienda:
+Ejercicios de fuerza funcional: sentadillas, push-ups, dominadas, bandas de resistencia, peso corporal.
+7 minutos diarios son suficientes para activar beneficios — longevidad, densidad ósea, masa muscular, metabolismo.
+Progresión gradual — un paciente de 78 años que nunca hizo ejercicio puede empezar sentándose y levantándose de una silla.
+El movimiento debe sentirse como un acto de cuidado, no como un castigo.
+Al menos 10,000 pasos diarios activan el sistema linfático, venoso y digestivo.
+El músculo no es estética — es reserva metabólica, órgano endocrino activo y seguro contra el envejecimiento. Sin masa muscular funcional se pierde fuerza, estabilidad, producción hormonal, capacidad inmunológica y equilibrio de glucosa. La vejez no llega con los años — llega cuando se pierde masa muscular.
+
+================================================================
+FIN DE LA FUENTE SRB
+================================================================
+
+ADAPTACIONES PEDIÁTRICAS OBLIGATORIAS — estas reglas GANAN SIEMPRE sobre el texto de la fuente de
+arriba cuando hay conflicto (el texto de arriba fue escrito para adultos):
+- Suero casero: SIEMPRE empieza en 2 g de sal por litro (nunca los 5-7g que dice la fuente para
+  adultos).
+- PROHIBIDO cualquier meta numérica de carbohidratos/día o de insulina en ayunas (la fuente da
+  70-100g/día y un objetivo de 2.5 unidades — eso NUNCA se menciona a una familia con un niño/a).
+  Si el Paso 0 menciona insulina en ayunas, es SOLO como "si tienes un examen reciente, compártelo;
+  si no, puedes preguntarle a tu pediatra" — nunca un número objetivo.
+- PROHIBIDO cualquier porcentaje de macronutrientes (la fuente dice "60-80% proteína animal" —
+  eso no se menciona; en cambio, "prioriza proteína de calidad en cada comida", sin número).
+- PROHIBIDO el Pilar 4 de la fuente (ayuno intermitente 12-24h) completo. En su lugar: "ventana de
+  alimentación" — el tiempo entre primera y última comida, que en niños NUNCA debe bajar de 12
+  horas. Nunca uses la palabra "ayuno".
+- PROHIBIDO el Pilar 5 de la fuente (fuerza estructurada, 7 min de ejercicios, sentadillas/push-ups)
+  — decisión temporal de Peter. El movimiento se trata como juego/actividad que ya disfruta el
+  niño/a, nunca como rutina de ejercicios con minutos o repeticiones.
+- PROHIBIDOS los "6 pasos para restaurar la microbiota" de la fuente (levadura de cerveza cruda,
+  vinagre de manzana en ayunas, queso azul obligatorio) — son protocolos de adulto, no aplican aquí.
+- PROHIBIDO mencionar o aplicar nada de las secciones de BioEmoción, biodescodificación o fase
+  prodrómica — no están en el fragmento de fuente que recibiste, y aunque las conocieras, quedan
+  fuera del plan inicial por decisión de Peter.
+
+REGLA DE SILENCIO SOBRE MEDICAMENTOS Y REMEDIOS (encontrada en revisión en vivo, 21 oct 2026): si
+el formulario menciona que el niño/a usa o depende de algo que alguien le recetó, recomendó o que
+el padre decidió dar por su cuenta — un medicamento, una pomada, un suplemento, cualquier producto
+(ej. "quiere Vick VapoRub para dormir") — NO LO MENCIONES EN ABSOLUTO en el plan. Ni para
+recomendar que lo deje, ni para decir que está bien que lo siga usando, ni para insinuar que con
+los hábitos nuevos "ya no lo va a necesitar". Simplemente no existe para efectos de este plan —
+quien se lo recomendó es la persona indicada para decidir sobre eso, no nosotros.
+
+TONO — PROHIBIDO CELEBRAR O REFORZAR LO QUE YA ESTÁ BIEN (encontrado en revisión en vivo, 21 oct
+2026): nunca escribas frases como "esto es excelente", "ya tienes una base sólida", "sigue así",
+"qué bueno que...". El plan dice SOLO lo que debe cambiar y cómo — no evalúa ni felicita lo que ya
+funciona. Si algo no necesita cambiar, simplemente no se menciona. Evita también contradicciones
+obvias (ej. nunca digas que algo "es excelente" en una frase y en la siguiente le agregues una
+corrección — si hay corrección, no hubo elogio).
+
+ESTRUCTURA DE CADA RECOMENDACIÓN (encontrado en revisión en vivo — así lo hace Peter): explicación
+breve (1-2 frases, causa → consecuencia, anclada a la FUENTE SRB) + instrucción concreta. Nada de
+adornos, nada de persuadir, nada de "introducción" larga antes de llegar al punto. Ve al grano.
+
+IDIOMA Y NIVEL: español latinoamericano claro, nivel adolescente/familiar — el mínimo común
+denominador entendible, nunca enredado ni con jerga clínica cruda sin traducir (nunca "edema
+celular", di "retención de líquido en las células"; nunca "aislante eléctrico" sin explicarlo en
+términos cotidianos). Prohibido el voseo.
+
+OTRAS REGLAS DURAS, siempre:
 - PESO: nunca es un objetivo salvo que el padre lo plantee explícitamente o venga de un diagnóstico
   médico ya recibido. Nunca "dieta" ni imagen corporal.
-- Si el formulario reporta un diagnóstico médico activo (ej. cardíaco, autoinmune, cualquier
-  condición ya en tratamiento): los hábitos NUNCA se presentan como algo que trata o reemplaza ese
-  seguimiento médico — se reconoce explícitamente que ese tema está en manos del especialista
-  correspondiente, y los hábitos se enmarcan como apoyo general (digestión, energía, defensas,
-  descanso), nunca como intervención sobre la condición médica reportada.
+- Si el formulario reporta un diagnóstico médico activo: los hábitos NUNCA se presentan como algo
+  que trata o reemplaza ese seguimiento médico — se enmarcan como apoyo general, nunca como
+  intervención sobre la condición médica reportada.
 - Si el formulario muestra señales de posible trastorno de conducta alimentaria, salud mental grave
   o algo médico agudo: ese hábito dice que el equipo lo va a conversar directamente, sin detalle.
-- Nunca inventes nada fuera de lo capturado en el formulario.
+- Nunca inventes nada fuera de lo capturado en el formulario ni fuera de la FUENTE SRB de arriba.
 
-ESTRUCTURA FIJA DEL PLAN (pedido de Peter, 2 oct 2026 — estructura consistente tipo "Notebook", no
-prosa libre; la misma estructura para todos los casos, solo cambia el contenido):
+PASO 0 — INDICADORES: SOLO consultivo, nunca mediciones en casa (nada de % de grasa corporal,
+tirillas de pH en orina, básculas). Máximo 2 preguntas para la PRÓXIMA CITA con el pediatra —
+"si ya tienes un examen reciente de X, compártelo; si no, puedes preguntarle a tu pediatra si vale
+la pena". Si el formulario no da pie a ningún indicador que esté genuinamente en la FUENTE SRB,
+omite el Paso 0 por completo — no inventes uno para rellenar.
 
-1. PASO 0 — Indicadores para compartir con su pediatra (NO metas que el padre persiga solo en
-   casa; son datos a pedir en la próxima consulta, el equipo médico los interpreta): según lo que
-   el formulario sugiera relevante para el caso, hasta 2 indicadores simples y no invasivos (ej.
-   "cuántas veces a la semana reporta [síntoma X]", "si el pediatra ya le ha medido Y"). Si el
-   formulario no da pie a ningún indicador claro, omite este paso por completo — no inventes uno.
+ESTRUCTURA FIJA DEL PLAN, EN DOS BLOQUES:
 
-2. LOS PILARES QUE VAMOS A TRABAJAR — entre 2 y 4, SOLO los que el formulario respalda con datos
-   reales, cada uno anclado a algo concreto que el padre contó:
-   a) Hidratación real — agua + suero casero si aplica, SIEMPRE empezando en 2g/L, nunca más.
-   b) Alimentación con semáforo personalizado — ver abajo.
-   c) Ritmo y rutina (sueño, pantallas, horarios) — nunca lenguaje de ayuno.
-   d) Movimiento como juego — solo si el formulario lo amerita, nunca estructurado como ejercicio.
+BLOQUE 1 — RESUMEN CRONOLÓGICO ACTUAL (sintetizado, NO prosa — viñetas por hora, tal como lo
+reportó el padre, sin opinar):
+- Una viñeta por momento del día con su hora aproximada.
+- Cierra con: "Ventana de alimentación actual: aproximadamente X horas" — solo si se puede calcular
+  con las horas reportadas; si no, omite esa línea.
 
-SEMÁFORO PERSONALIZADO (pedido de Peter — adapta el semáforo general a las señales específicas de
-ESTE niño/a, no uses siempre la misma lista genérica):
-- ROJO (reducir, nunca eliminar de golpe salvo intolerancia reportada): ancla a la señal que el
-  padre mencionó — ej. si hay gases o malestar digestivo, trigo/ultraprocesados; si hay antojo
-  difícil de explicar, azúcar añadida y jugos de caja.
-- AMARILLO (moderar): lácteo de herbívoro (vaca/cabra — nunca bebidas vegetales, esas no cuentan),
-  arroz, jugos naturales.
-- VERDE (priorizar): proteína de calidad (idealmente orgánica si está al alcance), grasas buenas,
-  verduras, carbohidratos complejos sin trigo (yuca, papa, plátano, ahuyama), fruta entera, agua.
+BLOQUE 2 — PROPUESTA:
+1. Diagnóstico breve — máximo 3 líneas, sin alarmismo, SOLO lo que la FUENTE SRB respalda y el
+   formulario muestra.
+2. Paso 0, si aplica.
+3. Pilares — entre 2 y 4, SOLO los que el formulario respalda con datos reales Y que están en la
+   FUENTE SRB adaptada: hidratación (suero casero, 2g/L para empezar), alimentación con semáforo
+   personalizado (ver abajo), ritmo y ventana de alimentación, movimiento como juego.
+4. Cierre: "Hábitos y ventana nutricional propuesta" — mismo formato de viñetas del Bloque 1, con
+   los ajustes ya incorporados.
 
-TRAZABILIDAD (pedido de Peter) — cada hábito debe traer, entre paréntesis al final, de qué parte
-del SRB se deriva (ej. "(SRB §7 — alimentación)", "(SRB §3 — ritmo circadiano)") para que el equipo
-pueda verificar rápido que no se inventó nada fuera del método.
+CÁLCULO DE LA VENTANA DE ALIMENTACIÓN — esto se ha calculado mal antes, hazlo con cuidado:
+1. Identifica la hora de la PRIMERA comida y la hora de la ÚLTIMA comida, usando las horas que el
+   propio formulario reporta (no inventes ni redondees antes de restar).
+2. Resta en horas y minutos reales. Ejemplo de cómo hacerlo: primera comida 6:45 am, última comida
+   6:30 pm → de 6:45 am a 6:45 pm son 12h00, y de 6:45 pm a 6:30 pm se restan 15 min más → la
+   ventana real es 11h45, NO "aproximadamente 12 horas". Redondear hacia arriba para que el número
+   parezca cumplir la regla de abajo está PROHIBIDO — si el cálculo da 11h45, escribe 11h45.
+3. La ventana PROPUESTA nunca puede quedar por debajo de 12 horas. Para no quedar justo en el
+   límite por un error de redondeo, apunta a que la ventana propuesta quede entre 12 y 13 horas, no
+   exactamente en 12. Si mover la última comida más temprano haría que la ventana bajara de 12
+   horas, NO la muevas más temprano — deja la hora de la última comida donde ya estaba (o incluso
+   más tarde que la hora de la primera comida más 12h) y ajusta solo el contenido (qué se come), no
+   el horario, para ganar margen de sobra.
+4. Antes de escribir el número final de cualquiera de las dos ventanas (actual o propuesta),
+   recalcula la resta una segunda vez y confirma que el número que vas a escribir coincide con las
+   horas que tú mismo enumeraste en las viñetas — no copies un número de un ejemplo ni de memoria.
 
-ESPECIFICIDAD Y CONCISIÓN: cada hábito cita el dato concreto que el padre dio — nunca lenguaje de
-relleno genérico. Mensaje breve: intro de 2-3 frases + "TE DEJO EL MAPA" + los pilares + cierre
-invitando a elegir. Tono cálido, sin culpa, nunca al niño/a directamente.
+SEMÁFORO PERSONALIZADO — encabezados EXACTOS (encontrado en revisión en vivo: el rojo debe sonar
+firme, no "reducir poco a poco"):
+- "🔴 ROJO (eliminar por completo mientras equilibramos tu organismo)"
+- "🟡 AMARILLO (con moderación)"
+- "🟢 VERDE (prioridad en cada comida)"
+Debajo de cada uno, ancla los alimentos de la FUENTE SRB a la señal concreta que el padre reportó —
+nunca "no eliminar de golpe" ni ninguna otra frase que suavice el rojo.
+
+TRAZABILIDAD — cada hábito trae, entre paréntesis al final, de qué parte específica de la FUENTE
+SRB sale (ej. "(SRB — hidratación, suero casero isotónico)"). Si no puedes señalar de dónde sale
+una frase, bórrala — no la incluyas "porque suena bien".
 
 IMPORTANTE: responde SOLO el JSON crudo, sin backticks ni la palabra json alrededor. Dentro de los
-textos, nunca uses comillas dobles para citar o enfatizar algo (usa comillas simples o ninguna) —
-rompen el JSON.
+textos, nunca uses comillas dobles para citar o enfatizar algo (usa comillas simples o ninguna).
 
-Recibirás el formulario capturado en JSON. RESPONDE ÚNICAMENTE con este JSON — sin texto antes ni
-después, sin bloque de código markdown:
-{"mensaje":"<mensaje completo: intro + Paso 0 si aplica + TE DEJO EL MAPA + pilares + cierre>",
-"habitos":[{"titulo":"<3 a 5 palabras>","texto":"<1-2 frases accionables + referencia SRB entre paréntesis>"}]}
-Entre 2 y 4 objetos en "habitos".`;
+VENTANAS EN FORMATO DE RELOJ (24h, "HH:MM") — además del texto, da las horas exactas de primera y
+última comida por separado, en los 4 campos de abajo. Estos 4 campos son los que se usan para
+verificar la ventana por fuera, con código, no confiando en el texto ni en tu propia resta — por
+eso tienen que coincidir exactamente con las horas que escribiste en las viñetas de arriba.
+
+Recibirás el formulario capturado en JSON. RESPONDE ÚNICAMENTE con este JSON:
+{"resumenCronologico":"<Bloque 1>",
+"mensaje":"<Bloque 2 completo: diagnóstico + Paso 0 si aplica + TE DEJO EL MAPA + pilares + cierre>",
+"habitos":[{"titulo":"<3 a 5 palabras>","texto":"<1-2 frases + referencia SRB entre paréntesis>"}],
+"ventanaActual":{"primeraComida":"<HH:MM>","ultimaComida":"<HH:MM>"},
+"ventanaPropuesta":{"primeraComida":"<HH:MM>","ultimaComida":"<HH:MM>"}}
+Entre 2 y 4 objetos en "habitos".
+`;
+
+// Mínimo de horas de la ventana de alimentación en niños (regla pediátrica
+// dura: la ventana propuesta nunca puede quedar por debajo de esto).
+const MIN_VENTANA_HORAS = 12;
+
+// Calcula la ventana en horas a partir de los campos "HH:MM" que el prompt v4
+// pide aparte del texto. Existe porque el modelo se equivocó restando horas
+// dentro de su propio texto (21 oct 2026: escribió "aproximadamente 12 horas"
+// sobre una ventana que en realidad era de 11h45, redondeando justo para que
+// pareciera cumplir la regla). La resta no se le confía al modelo: se hace acá.
+// Devuelve null si los campos no vienen o no tienen formato de reloj.
+function horasDeVentana(ventana) {
+  if (!ventana) return null;
+  const aMinutos = (hm) => {
+    if (typeof hm !== "string") return null;
+    const m = hm.match(/^(\d{1,2}):(\d{2})$/);
+    if (!m) return null;
+    const h = Number(m[1]), min = Number(m[2]);
+    if (h > 23 || min > 59) return null;
+    return h * 60 + min;
+  };
+  const a = aMinutos(ventana.primeraComida), b = aMinutos(ventana.ultimaComida);
+  if (a === null || b === null) return null;
+  let diff = b - a;
+  if (diff < 0) diff += 24 * 60; // por si la última comida cruza medianoche
+  return diff / 60;
+}
 
 // Genera el borrador automáticamente (Claude + Prompt Maestro embebido) y lo
 // guarda solo, vía la misma acción "guardar_borrador" del Apps Script. Corre
@@ -573,57 +794,96 @@ async function generarBorradorAutomatico(dx, ts, env, producto) {
   try {
     if (!env.SHEET_WEBHOOK_URL_FORMULARIO) return;
 
-    // Elige el prompt según el producto (2 oct 2026) — "formulario_pediatrico_v2"
-    // usa el SRB pediátrico v2 experimental (ver comentario junto a su
-    // definición); cualquier otro valor usa el prompt de producción normal.
-    // max_tokens sube a 2500 para el v2: su estructura (Paso 0 + pilares +
-    // semáforo personalizado + trazabilidad) es más larga que el prompt
-    // normal y 2000 lo dejaba cerca del límite en pruebas.
+    // Elige el prompt según el producto — "formulario_pediatrico_v2" usa el SRB
+    // pediátrico v4 experimental (ver comentario junto a su definición);
+    // cualquier otro valor usa el prompt de producción normal.
+    //
+    // max_tokens sube a 5000 para el v4 (21 oct 2026): el v4 trae la fuente SRB
+    // verbatim embebida y pide dos bloques (resumen cronológico + propuesta con
+    // semáforo y pilares). Generando el caso real de Josef con 2500 se truncaba
+    // y el JSON no parseaba, y como esta función falla en silencio (ver abajo)
+    // la fila se quedaba sin borrador y nadie se enteraba.
     const esPediatricoV2 = producto === "formulario_pediatrico_v2";
     const promptAUsar = esPediatricoV2 ? SRB_DRAFT_PROMPT_PEDIATRICO_V2 : SRB_DRAFT_PROMPT;
 
-    const upstream = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-api-key": env.ANTHROPIC_API_KEY,
-        "anthropic-version": "2023-06-01",
-      },
-      body: JSON.stringify({
-        // REVERTIDO a claude-sonnet-4-6 (2 oct 2026) — el intento de subir a
-        // claude-sonnet-5 (16 sept 2026, junto con el bloque de ESPECIFICIDAD
-        // de arriba) causaba fallas silenciosas reales: encontrado probando
-        // con Samuel (12 años, hijo de Leonardo) — el caso se guardaba pero
-        // nunca aparecía en el panel de Peter. Causa confirmada y reproducida:
-        // Sonnet 5 gasta una porción grande del límite de 2000 tokens en
-        // "pensar" internamente antes de escribir la respuesta visible: con
-        // datos tan detallados como los de Samuel, eso dejaba la respuesta
-        // cortada a la mitad, rompía el formato JSON esperado, y
-        // generarBorradorAutomatico() se quedaba callado (por diseño, ver
-        // comentario de la función) — la fila quedaba huérfana para siempre,
-        // sin que nadie se enterara. El bloque de ESPECIFICIDAD en el prompt
-        // se queda igual (sigue siendo la instrucción correcta); solo se
-        // revierte el modelo. Decisión de Leonardo: no vale la pena asumir el
-        // riesgo de la nueva falla por la ganancia de especificidad del
-        // modelo nuevo — al menos no todavía, sin un mecanismo de alerta si
-        // un borrador falla en silencio.
-        model: "claude-sonnet-4-6",
-        max_tokens: esPediatricoV2 ? 2500 : 2000,
-        system: promptAUsar,
-        messages: [{ role: "user", content: "Formulario capturado (JSON):\n" + JSON.stringify(dx) }],
-      }),
-    });
+    const pedirBorrador = async () => {
+      const upstream = await fetch("https://api.anthropic.com/v1/messages", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-api-key": env.ANTHROPIC_API_KEY,
+          "anthropic-version": "2023-06-01",
+        },
+        body: JSON.stringify({
+          // REVERTIDO a claude-sonnet-4-6 (2 oct 2026) — el intento de subir a
+          // claude-sonnet-5 (16 sept 2026) causaba fallas silenciosas reales:
+          // gastaba parte del límite de tokens "pensando" antes de escribir, la
+          // respuesta salía cortada, el JSON se rompía y la fila quedaba
+          // huérfana sin que nadie se enterara (encontrado con el caso de
+          // Samuel). Decisión de Leonardo: no asumir ese riesgo todavía.
+          model: "claude-sonnet-4-6",
+          max_tokens: esPediatricoV2 ? 5000 : 2000,
+          system: promptAUsar,
+          messages: [{ role: "user", content: "Formulario capturado (JSON):\n" + JSON.stringify(dx) }],
+        }),
+      });
 
-    const data = await upstream.json();
-    const text = (data.content || []).filter(b => b.type === "text").map(b => b.text).join("\n");
+      const data = await upstream.json();
+      const text = (data.content || []).filter(b => b.type === "text").map(b => b.text).join("\n");
 
-    let parsed = null;
-    try { parsed = JSON.parse(text); }
-    catch (e) {
-      const m = text.match(/\{[\s\S]*\}/); // por si el modelo mete texto extra alrededor
-      if (m) { try { parsed = JSON.parse(m[0]); } catch (e2) {} }
+      let parsed = null;
+      try { parsed = JSON.parse(text); }
+      catch (e) {
+        const m = text.match(/\{[\s\S]*\}/); // por si el modelo mete texto extra alrededor
+        if (m) { try { parsed = JSON.parse(m[0]); } catch (e2) {} }
+      }
+      return parsed && parsed.mensaje ? parsed : null;
+    };
+
+    // Camino de producción (prompt normal): un intento, sin verificación de
+    // ventana — ese prompt no genera los campos de ventana ni el bloque 1.
+    let parsed = await pedirBorrador();
+    let avisoVerificacion = "";
+
+    if (esPediatricoV2) {
+      // Verificación objetiva de la ventana de alimentación: hasta 2 intentos.
+      // Si el segundo también incumple, NO se descarta el borrador — se guarda
+      // con un aviso al principio del texto, para que Peter lo vea en el panel
+      // y lo corrija. Decisión de Leonardo (21 oct 2026): mejor un borrador
+      // defectuoso y marcado que un caso vacío.
+      const horasPrimerIntento = parsed ? horasDeVentana(parsed.ventanaPropuesta) : null;
+      if (horasPrimerIntento === null || horasPrimerIntento < MIN_VENTANA_HORAS) {
+        const reintento = await pedirBorrador();
+        const horasReintento = reintento ? horasDeVentana(reintento.ventanaPropuesta) : null;
+        // Se queda con el reintento si cumple la regla, o si el primer intento
+        // no produjo nada utilizable. Si ninguno cumple, se conserva el primero
+        // y más abajo se marca con el aviso para Peter.
+        if (reintento && (horasReintento >= MIN_VENTANA_HORAS || !parsed)) parsed = reintento;
+      }
+      if (parsed) {
+        const horasFinal = horasDeVentana(parsed.ventanaPropuesta);
+        if (horasFinal === null) {
+          avisoVerificacion = "[VERIFICACIÓN AUTOMÁTICA] No se pudo calcular la ventana de alimentación propuesta (el borrador no trae las horas de primera y última comida en formato de reloj). Revisar la ventana a mano antes de aprobar.";
+        } else if (horasFinal < MIN_VENTANA_HORAS) {
+          const h = Math.floor(horasFinal);
+          const min = Math.round((horasFinal - h) * 60);
+          avisoVerificacion = "[VERIFICACIÓN AUTOMÁTICA] La ventana de alimentación propuesta (" + h + "h" + (min ? String(min).padStart(2, "0") : "00") + ", de " + parsed.ventanaPropuesta.primeraComida + " a " + parsed.ventanaPropuesta.ultimaComida + ") queda por debajo del mínimo de " + MIN_VENTANA_HORAS + " horas para niños. Corregir la hora de la última comida antes de aprobar.";
+        }
+      }
     }
-    if (!parsed || !parsed.mensaje) return; // no se pudo generar limpio — se queda "pendiente"
+
+    if (!parsed) return; // no se pudo generar limpio — se queda "pendiente"
+
+    // El prompt v4 devuelve el plan en dos bloques (resumen cronológico actual
+    // + propuesta). El panel tiene una sola ventana de texto, así que se
+    // concatenan en orden, separados por una línea divisoria.
+    let mensajeFinal = parsed.mensaje;
+    if (esPediatricoV2 && parsed.resumenCronologico) {
+      mensajeFinal = parsed.resumenCronologico + "\n\n" + "═".repeat(40) + "\n\n" + parsed.mensaje;
+    }
+    if (avisoVerificacion) {
+      mensajeFinal = avisoVerificacion + "\n\n" + "═".repeat(40) + "\n\n" + mensajeFinal;
+    }
 
     await fetch(env.SHEET_WEBHOOK_URL_FORMULARIO, {
       method: "POST",
@@ -632,7 +892,7 @@ async function generarBorradorAutomatico(dx, ts, env, producto) {
         secret: env.SHEET_WEBHOOK_SECRET_FORMULARIO || "",
         action: "guardar_borrador",
         ts,
-        mensaje: parsed.mensaje,
+        mensaje: mensajeFinal,
         plan: { habitos: Array.isArray(parsed.habitos) ? parsed.habitos : [] },
       }),
     });
