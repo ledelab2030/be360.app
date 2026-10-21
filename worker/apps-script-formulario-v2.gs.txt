@@ -74,9 +74,15 @@
  *     sin verificar, así se garantice.
  *   - Si pasan 72 horas sin verificar, purgarNoVerificadosProgramado borra
  *     la fila entera y retiene la recomendación (nunca se genera/entrega).
- * CODIGOS_VALIDOS_COLEGIO es una lista simple editable — hoy certifica que
- * la familia pertenece a un colegio/cohorte habilitado, no un código único
- * por niño/a (si se necesita eso más adelante, se puede afinar).
+ * CODIGOS_VALIDOS_COLEGIO es un mapa código_de_familia → id_de_colegio que
+ * vive en PropertiesService (21 oct 2026) — certifica que la familia
+ * pertenece a un colegio/cohorte habilitado, no es un código único por
+ * niño/a. El código se reutiliza entre las familias del mismo colegio y no se
+ * consume; lo que se guarda en la hoja es el id del colegio, no el código.
+ * Si más adelante se necesita un control real por familia (código único de un
+ * solo uso, o validación contra una lista de correos que entregue el
+ * colegio), eso es un diseño aparte y depende del modelo comercial: hoy lo
+ * que de verdad controla el acceso es que Peter revisa cada caso a mano.
  *
  * PANEL DE COLEGIO (14 ago 2026, panel-colegio/index.html): dashboard de
  * SOLO agregados para el rector o delegado del colegio — nunca un caso
@@ -99,32 +105,60 @@
 // UNA SOLA VEZ, a mano, en el editor (nunca por código, nunca en un commit):
 //   1. Apps Script → ⚙️ Configuración del proyecto (ícono de engranaje).
 //   2. Sección "Propiedades del script" → Añadir propiedad del script.
-//   3. Agrega estas 3 (nombre exacto a la izquierda, valor real a la
+//   3. Agrega estas 4 (nombre exacto a la izquierda, valor real a la
 //      derecha — los valores te los paso aparte, nunca en este archivo):
 //      - PANEL_SECRET
 //      - SHARED_SECRET
 //      - PANEL_COLEGIO_SECRETS  (formato JSON, ej: {"COLEGIO2026":"PIN-EJEMPLO"})
+//      - CODIGOS_VALIDOS_COLEGIO (formato JSON, mapa código_de_familia →
+//        id_de_colegio, ej: {"ABC-2026-XXXXXX":"ABC2026"})
+//        OJO con el orden al actualizar: configura esta propiedad ANTES de
+//        pegar esta versión del archivo. Si pegas primero, la lista queda
+//        vacía y ninguna familia puede verificar hasta que la configures.
 // A partir de ahora, pegar una versión nueva de este archivo NUNCA vuelve a
 // pisar ningún secreto — están completamente separados del código pegado.
 var SHARED_SECRET = PropertiesService.getScriptProperties().getProperty("SHARED_SECRET");
 var PANEL_SECRET = PropertiesService.getScriptProperties().getProperty("PANEL_SECRET");
 
 // Códigos que habilitan a una familia — uno por colegio/cohorte piloto.
-// Editable: agrega uno por línea a medida que se sumen colegios. "BIS2026"
-// es el código de ejemplo para el piloto ancla (BIS Barranquilla) —
-// CÁMBIALO por el real antes de operar con familias de verdad.
+// Un código POR COLEGIO, no por persona: se reutiliza para todas las familias
+// de ese colegio (verificarCodigo no lo consume ni lo marca, solo comprueba
+// que esté en esta lista), y queda escrito en la columna codigo_colegio, que
+// es lo que usa resumenColegio para agrupar el agregado del colegio.
 //
-// Ronda de validación con 5 personas reales (19 ago 2026, pedido de
-// Leonardo) — DISTINTOS de "BIS2026" a propósito, no son necesariamente
-// familias del colegio BIS, así que no deben mezclarse con ese agregado en
-// panel-colegio/. Un código POR COLEGIO (mismo estilo que BIS2026:
-// abreviación + año), no por persona. Este repo es PÚBLICO — nunca poner
-// el nombre de una familia real acá, ni en código ni en comentarios; el
-// mapa código↔validador vive aparte, en un lugar privado.
-//   DSB2026 = Deutsche Schule Barranquilla
-//   PILOTO-02..05 = colegio todavía sin identificar — reemplazar cuando se
-//   sepa (mismo patrón: abreviación del colegio + 2026).
-var CODIGOS_VALIDOS_COLEGIO = ["BIS2026", "DSB2026", "PILOTO-02-H4XQ", "PILOTO-03-1NX8", "PILOTO-04-TSEP", "PILOTO-05-T2IU"];
+// SACADO DEL CÓDIGO (21 oct 2026) — se quedó atrás en la migración del 19 ago:
+// los otros tres secretos se movieron a PropertiesService ese día y estos no,
+// así que siguieron en texto plano en un repo PÚBLICO hasta hoy. Se podían
+// descargar sin autenticarse desde raw.githubusercontent.com, lo que volvía la
+// verificación de elegibilidad un control decorativo: cualquiera podía leerlos
+// y pasar como familia de un colegio inscrito. Los seis códigos anteriores
+// quedaron quemados y se reemplazaron por códigos nuevos con sufijo aleatorio
+// (los anteriores eran además adivinables: abreviación del colegio + año).
+// Rotarlos no rompió ninguna atribución: al momento del cambio solo había dos
+// filas verificadas, ambas de prueba ficticias.
+//
+// DESACOPLADO DEL IDENTIFICADOR DEL COLEGIO (21 oct 2026): antes el código que
+// escribía la familia y el identificador del colegio eran el MISMO string, y
+// eso hacía imposible que el código fuera secreto — el identificador viaja en
+// la URL del panel del colegio (panel-colegio/?colegio=BIS2026) y es una llave
+// de PANEL_COLEGIO_SECRETS, o sea que el colegio necesariamente lo conoce y lo
+// comparte. Ahora esta propiedad es un MAPA código_de_familia → id_de_colegio:
+// en la columna codigo_colegio se escribe el id del colegio (el valor), nunca
+// el código que escribió la familia (la llave). Así los códigos de familia se
+// pueden rotar sin tocar la URL del panel del colegio ni su PIN, y la URL del
+// panel ya no revela ningún código de familia.
+//
+// Se lee de PropertiesService, propiedad "CODIGOS_VALIDOS_COLEGIO", como un
+// string JSON con un objeto (ej: {"ABC-2026-XXXXXX":"ABC2026"}). Para agregar
+// un colegio nuevo, edita esa propiedad en el editor de Apps Script — nunca en
+// este archivo. El mapa código↔colegio vive aparte, en un lugar privado; este
+// repo es público.
+//
+// Si la propiedad no está configurada, el mapa queda vacío y NINGÚN código
+// verifica (falla cerrado, nunca abierto). verificarCodigo distingue ese caso
+// con su propio error para que no se confunda con "el padre escribió mal el
+// código" — este proyecto ya perdió tiempo con fallas silenciosas.
+var CODIGOS_VALIDOS_COLEGIO = JSON.parse(PropertiesService.getScriptProperties().getProperty("CODIGOS_VALIDOS_COLEGIO") || "{}");
 var HORAS_PLAZO_VERIFICACION = 72;
 
 // MODO_PRUEBAS (2 oct 2026, pedido de Leonardo): mientras esto sea true,
@@ -710,10 +744,21 @@ function verificarCodigo(sheet, body) {
   if (found.values[COLS.verificacion_ts]) {
     return respond({ ok: true, yaVerificado: true });
   }
-  if (!codigo || CODIGOS_VALIDOS_COLEGIO.indexOf(codigo) === -1) {
+  // Mapa vacío = la propiedad CODIGOS_VALIDOS_COLEGIO no está configurada en
+  // PropertiesService. Es un problema de configuración, no un código mal
+  // escrito: se distingue a propósito para no mandar al padre a pelear con su
+  // colegio por algo que está roto de nuestro lado.
+  if (Object.keys(CODIGOS_VALIDOS_COLEGIO).length === 0) {
+    return respond({ ok: false, error: "verificación no disponible en este momento — escríbenos" }, 503);
+  }
+  if (!codigo || !CODIGOS_VALIDOS_COLEGIO.hasOwnProperty(codigo)) {
     return respond({ ok: false, error: "código inválido — verifica con tu colegio" }, 400);
   }
-  sheet.getRange(found.row, COLS.codigo_colegio + 1).setValue(codigo);
+  // Se guarda el ID DEL COLEGIO (el valor del mapa), no el código que escribió
+  // la familia — ver la nota junto a CODIGOS_VALIDOS_COLEGIO. Es ese id el que
+  // usa resumenColegio para agrupar, y el que va en la URL del panel del
+  // colegio; el código de la familia nunca se persiste.
+  sheet.getRange(found.row, COLS.codigo_colegio + 1).setValue(CODIGOS_VALIDOS_COLEGIO[codigo]);
   sheet.getRange(found.row, COLS.verificacion_ts + 1).setValue(new Date().toISOString());
   SpreadsheetApp.flush();
   return respond({ ok: true });
@@ -722,7 +767,16 @@ function verificarCodigo(sheet, body) {
 // Manda el correo pidiendo el código, apenas el borrador queda listo — no
 // antes (no tiene sentido pedir verificación de algo que todavía no existe
 // como caso). No bloquea el flujo si falla (igual que notificarEscalamiento).
+//
+// NO SE MANDA EN MODO_PRUEBAS (21 oct 2026, decisión de Leonardo): durante la
+// validación no hay colegio que haya entregado códigos, así que pedirle un
+// código a un tester es pedirle algo que no tiene — friccion pura que hace que
+// se caiga del proceso, que es el único riesgo real de esta etapa. Lo que
+// controla el acceso ahora es que Peter revisa cada caso a mano, no un código.
+// Cuando MODO_PRUEBAS pase a false (primer colegio con cobro real), el correo
+// se reactiva solo, sin tocar código.
 function enviarSolicitudVerificacion(sheet, row, idPlan) {
+  if (MODO_PRUEBAS) return;
   try {
     var rowValues = sheet.getRange(row, 1, 1, sheet.getLastColumn()).getValues()[0];
     var nombreNino = rowValues[COLS.nombre_nino] || "";
@@ -756,6 +810,13 @@ function enviarSolicitudVerificacion(sheet, row, idPlan) {
 // no tuvieron ni siquiera la oportunidad de verificar, ver nota en
 // purgarInactivos sobre no ser más agresivo de lo que pide la política).
 function purgarNoVerificados(sheet) {
+  // OBLIGATORIO que esto acompañe al skip del correo en MODO_PRUEBAS (21 oct
+  // 2026): si no se manda el correo pidiendo el código, nadie puede verificar,
+  // y esta purga borraría TODOS los casos de la ronda de validación a las 72
+  // horas — destrucción silenciosa de datos que nadie pidió. Las dos cosas van
+  // atadas al mismo flag a propósito: o se pide el código y se purga a quien no
+  // responde, o no se pide y no se purga por eso. Nunca una sin la otra.
+  if (MODO_PRUEBAS) return [];
   var data = sheet.getDataRange().getValues();
   var purgados = [];
   for (var r = data.length - 1; r >= 1; r--) {
