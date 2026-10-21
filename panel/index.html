@@ -16,6 +16,16 @@
   *{box-sizing:border-box}
   .rise{animation:rise .22s cubic-bezier(.2,.8,.2,1)}
   @keyframes rise{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+  /* Vista dividida del detalle (21 oct 2026, pedido de Peter en vivo):
+     formulario de referencia a la izquierda, borrador a la derecha, para
+     comparar sin tener que abrir/cerrar nada. En pantallas angostas (menos
+     de 860px) cae a una sola columna, formulario primero. */
+  .panel-split{display:grid; grid-template-columns:1fr 1fr; gap:20px; align-items:start}
+  @media (max-width:860px){.panel-split{grid-template-columns:1fr}}
+  /* Columna del formulario: se queda fija mientras se hace scroll del
+     borrador al lado, para poder comparar un hábito contra el dato que lo
+     respalda sin perder de vista ninguno de los dos. */
+  @media (min-width:861px){.panel-split-ref{position:sticky; top:28px; max-height:calc(100vh - 56px); overflow-y:auto}}
 </style>
 </head>
 <body>
@@ -79,6 +89,17 @@ const camposParaDetalle = (detalle) =>
 const Shell = (props) => (
   <div style={{minHeight:"100vh", background:P.bg, fontFamily:"'Nunito',sans-serif", color:P.ink, display:"flex", justifyContent:"center", padding:"28px 14px 56px"}}>
     <div style={{width:"100%", maxWidth:560, display:"flex", flexDirection:"column", gap:18}}>{props.children}</div>
+  </div>
+);
+
+// Shell ancho, SOLO para el detalle de un caso (21 oct 2026, pedido de
+// Peter en vivo) — el formulario de referencia y el borrador necesitan ir
+// lado a lado para poder compararlos, y a 560px no cabe ninguno de los dos
+// con comodidad. 1180px dejado a propósito más ancho que ShellConBarra
+// (760px, para listados) porque acá no compite con ninguna barra lateral.
+const ShellDetalle = (props) => (
+  <div style={{minHeight:"100vh", background:P.bg, fontFamily:"'Nunito',sans-serif", color:P.ink, display:"flex", justifyContent:"center", padding:"28px 14px 56px"}}>
+    <div style={{width:"100%", maxWidth:1180, display:"flex", flexDirection:"column", gap:18}}>{props.children}</div>
   </div>
 );
 
@@ -154,7 +175,6 @@ function App() {
   const [soloLectura, setSoloLectura] = useState(false); // true = viene del historial, sin edición
   const [habitos, setHabitos] = useState([]); // [{titulo, texto, incluido}]
   const [mensaje, setMensaje] = useState("");
-  const [showFormulario, setShowFormulario] = useState(false);
   const [guardando, setGuardando] = useState(false);
   const [guardadoOk, setGuardadoOk] = useState(false);
   const [confirmando, setConfirmando] = useState(false);
@@ -397,7 +417,7 @@ function App() {
     const habitosIncluidos = habitos.filter(h=>h.incluido);
     const inclCount = habitosIncluidos.length;
     return (
-      <Shell>
+      <ShellDetalle>
         <button onClick={volverALista} style={{...btnGhost, alignSelf:"flex-start"}}>← {soloLectura?"Aprobados":"Pendientes"}</button>
 
         <div>
@@ -415,12 +435,15 @@ function App() {
           {soloLectura && <div style={{display:"inline-block", marginTop:8, background:P.sageSoft, color:P.sageDeep, fontSize:11.5, fontWeight:800, padding:"4px 10px", borderRadius:999}}>✓ Aprobado</div>}
         </div>
 
-        <div style={{background:P.panel, border:"1px solid "+P.line, borderRadius:16, padding:"4px 16px"}}>
-          <div onClick={()=>setShowFormulario(s=>!s)} style={{padding:"12px 0", cursor:"pointer", display:"flex", justifyContent:"space-between", alignItems:"center", fontSize:13.5, fontWeight:800, color:P.sageDeep}}>
-            <span>Ver formulario completo (contexto clínico)</span><span>{showFormulario?"▲":"▼"}</span>
-          </div>
-          {showFormulario && (
-            <div style={{paddingBottom:14, display:"flex", flexDirection:"column", gap:10}}>
+        {/* Vista dividida (21 oct 2026, pedido de Peter): formulario de
+            referencia a la izquierda, borrador a la derecha, siempre
+            visibles los dos — ya no hace falta desplegar el formulario,
+            de eso se trataba la comparación que pidió. En pantallas
+            angostas cae a una columna (ver .panel-split en el <style>). */}
+        <div className="panel-split">
+          <div className="panel-split-ref" style={{background:P.panel, border:"1px solid "+P.line, borderRadius:16, padding:"16px 18px"}}>
+            <div style={{fontSize:13.5, fontWeight:800, color:P.sageDeep, marginBottom:12}}>Formulario completo (contexto clínico)</div>
+            <div style={{display:"flex", flexDirection:"column", gap:10}}>
               {camposParaDetalle(detalle).map(f => detalle[f.key] ? (
                 <div key={f.key}>
                   <div style={{fontSize:11, fontWeight:800, color:P.muted, textTransform:"uppercase", letterSpacing:.3}}>{f.label}</div>
@@ -429,17 +452,17 @@ function App() {
                 </div>
               ) : null)}
             </div>
-          )}
-        </div>
+          </div>
 
-        <div>
-          <div style={{fontSize:13, fontWeight:800, color:P.sageDeep, marginBottom:6}}>Mensaje al padre/madre</div>
-          {soloLectura ? (
-            <div style={{background:P.panelRaised, border:"1px solid "+P.line, borderRadius:14, padding:"12px 14px", fontSize:14, color:P.ink, lineHeight:1.5, whiteSpace:"pre-wrap"}}>{mensaje || "—"}</div>
-          ) : (
-            <textarea value={mensaje} onChange={e=>setMensaje(e.target.value)} rows={6}
-              style={{width:"100%", border:"1px solid "+P.line, borderRadius:14, padding:"12px 14px", fontSize:14, fontFamily:"'Nunito',sans-serif", background:P.panelRaised, color:P.ink, outline:"none", resize:"vertical", lineHeight:1.5}}/>
-          )}
+          <div>
+            <div style={{fontSize:13, fontWeight:800, color:P.sageDeep, marginBottom:6}}>Mensaje al padre/madre</div>
+            {soloLectura ? (
+              <div style={{background:P.panelRaised, border:"1px solid "+P.line, borderRadius:14, padding:"12px 14px", fontSize:14, color:P.ink, lineHeight:1.5, whiteSpace:"pre-wrap"}}>{mensaje || "—"}</div>
+            ) : (
+              <textarea value={mensaje} onChange={e=>setMensaje(e.target.value)} rows={28}
+                style={{width:"100%", border:"1px solid "+P.line, borderRadius:14, padding:"12px 14px", fontSize:14, fontFamily:"'Nunito',sans-serif", background:P.panelRaised, color:P.ink, outline:"none", resize:"vertical", lineHeight:1.5}}/>
+            )}
+          </div>
         </div>
 
         <div>
@@ -512,7 +535,7 @@ function App() {
             )}
           </div>
         )}
-      </Shell>
+      </ShellDetalle>
     );
   }
 
