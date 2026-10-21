@@ -244,7 +244,7 @@ function App() {
   };
 
   const abrirDetalle = async (idPlan, desde) => {
-    setStage("detalle"); setDetalle(null); setAccionError(null); setConfirmando(false); setGuardadoOk(false); setShowFormulario(false); setConfirmandoDescarte(false);
+    setStage("detalle"); setDetalle(null); setAccionError(null); setConfirmando(false); setGuardadoOk(false); setConfirmandoDescarte(false);
     setSoloLectura(desde === "historial");
     try {
       const data = await llamarPanel("detalle", { idPlan });
