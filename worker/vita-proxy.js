@@ -133,6 +133,41 @@ export class RateLimiter {
   }
 }
 
+// Genera el borrador en una ALARMA de Durable Object, no en ctx.waitUntil
+// (21 oct 2026). Razón medida: ctx.waitUntil se cancela ~30s después de que el
+// Worker responde, y el prompt pediátrico v4 tarda ~70s en generar. La alarma
+// de un Durable Object no tiene ese tope, así que la generación termina.
+//
+// El trabajo se guarda en el storage del DO antes de programar la alarma: si
+// la alarma falla, Cloudflare la reintenta sola y el trabajo sigue ahí. El DO
+// se direcciona por el "ts" de la fila, así que cada captura tiene su propia
+// instancia y dos padres que envían al mismo tiempo no se pisan.
+export class GeneradorBorradores {
+  constructor(state, env) {
+    this.state = state;
+    this.env = env;
+  }
+
+  async fetch(request) {
+    const trabajo = await request.json();
+    await this.state.storage.put("trabajo", trabajo);
+    await this.state.storage.setAlarm(Date.now() + 1000);
+    return new Response(JSON.stringify({ ok: true, encolado: true }), {
+      headers: { "Content-Type": "application/json" },
+    });
+  }
+
+  async alarm() {
+    const trabajo = await this.state.storage.get("trabajo");
+    if (!trabajo) return;
+    // Se borra ANTES de generar: si la generación falla, no queremos que la
+    // alarma se reintente en bucle llamando a Claude una y otra vez. La fila
+    // se queda "pendiente" y se puede regenerar a mano, igual que antes.
+    await this.state.storage.delete("trabajo");
+    await generarBorradorAutomatico(trabajo.dx, trabajo.ts, this.env, trabajo.producto);
+  }
+}
+
 // Devuelve true si hay que bloquear la petición, false si puede seguir.
 // DISEÑO A PRUEBA DE FALLOS: si el binding no existe todavía, o el Durable
 // Object falla por lo que sea, se salta el chequeo en vez de romper el
@@ -347,8 +382,36 @@ async function handleLog(request, env, cors, ctx) {
     }
     // Dispara la generación automática del borrador EN SEGUNDO PLANO — el
     // padre ya recibió su "ok:true" y sigue con lo suyo, no espera a Claude.
-    if (esFormulario && ctx && typeof ctx.waitUntil === "function") {
-      ctx.waitUntil(generarBorradorAutomatico(dx, tsFinal, env, producto));
+    //
+    // Hay DOS caminos, y la diferencia es el límite de tiempo (21 oct 2026):
+    // ctx.waitUntil() se cancela ~30s después de que el Worker responde. El
+    // prompt de producción genera en ~23s y cabe; el pediátrico v4 tarda ~70s
+    // y NO cabe — medido. Por eso el pediátrico se delega a un Durable Object
+    // con alarma, que no tiene ese tope. Encontrado probando el enlace de
+    // validación en producción: la fila se escribía en el Sheet pero el
+    // borrador nunca se guardaba, y como esto falla en silencio por diseño,
+    // el caso quedaba invisible en el panel de Peter para siempre. Explica por
+    // qué todos los borradores pediátricos hasta ahora se generaron a mano.
+    if (esFormulario) {
+      if (producto === "formulario_pediatrico_v2" && env.GENERADOR_BORRADORES) {
+        try {
+          const id = env.GENERADOR_BORRADORES.idFromName(tsFinal);
+          const stub = env.GENERADOR_BORRADORES.get(id);
+          await stub.fetch("https://generador/encolar", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ dx, ts: tsFinal, producto }),
+          });
+        } catch (e) {
+          // Si el Durable Object falla, se intenta por el camino viejo — puede
+          // que no alcance a terminar, pero es mejor que no intentarlo.
+          if (ctx && typeof ctx.waitUntil === "function") {
+            ctx.waitUntil(generarBorradorAutomatico(dx, tsFinal, env, producto));
+          }
+        }
+      } else if (ctx && typeof ctx.waitUntil === "function") {
+        ctx.waitUntil(generarBorradorAutomatico(dx, tsFinal, env, producto));
+      }
     }
 
     return new Response(JSON.stringify({ ok: true, lastRow: sheetData.lastRow }), { status: 200, headers: jsonHeaders });
