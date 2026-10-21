@@ -23,9 +23,23 @@ enabled = true
 name = "RATE_LIMITER"
 class_name = "RateLimiter"
 
+# Generación de borradores pediátricos (21 oct 2026) — NO es rate limiting, es
+# una cola de un solo trabajo con alarma. Existe porque ctx.waitUntil() se
+# cancela ~30s después de que el Worker responde, y el prompt pediátrico v4
+# tarda ~70s en generar (medido): el borrador nunca se guardaba y el caso
+# quedaba invisible en el panel de Peter. La alarma de un Durable Object no
+# tiene ese tope. Ver la clase GeneradorBorradores en vita-proxy.js.
+[[durable_objects.bindings]]
+name = "GENERADOR_BORRADORES"
+class_name = "GeneradorBorradores"
+
 [[migrations]]
 tag = "v1"
 new_sqlite_classes = ["RateLimiter"]
+
+[[migrations]]
+tag = "v2"
+new_sqlite_classes = ["GeneradorBorradores"]
 
 # Secrets (no van en este archivo, se cargan con `wrangler secret put <nombre>`):
 #   wrangler secret put ANTHROPIC_API_KEY      (ya debería existir si se importa el worker actual)
