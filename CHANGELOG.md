@@ -248,13 +248,13 @@ Cinco códigos distintos de `BIS2026` a propósito: esas personas no eran necesa
 - **PR #67 — Casilla separada y opcional para investigación.** Desmarcada por defecto, no condiciona el acceso al plan, nunca menciona IA ni tecnología.
 - **PR #68 — Los 3 secretos salen del código a PropertiesService.** `PANEL_SECRET`, `SHARED_SECRET` y `PANEL_COLEGIO_SECRETS` estaban en texto plano en un repo público, expuestos desde que existían. Efecto colateral bueno: pegar una versión nueva del Apps Script ya no puede pisar el PIN real por accidente. **Nota para el futuro:** `CODIGOS_VALIDOS_COLEGIO` se quedó por fuera de esta migración y siguió expuesto dos meses más — se corrigió recién el 21 oct (PR #91).
 
-> **⟡ Pausa de 16 días (23 ago → 8 sep).** El registro no dice por qué. Lo que sí consta: el trabajo que siguió (PR #69) responde a un pedido que Peter hizo en la reunión del **19 de agosto**, o sea que la petición existía desde antes de la pausa. *Leonardo: completar el motivo real.*
+> **Pausa de 16 días (23 ago → 8 sep).** El trabajo que siguió (PR #69) responde a un pedido que Peter hizo en la reunión del **19 de agosto**: la petición existía desde antes de la pausa, o sea que no se estaba esperando a Peter.
 
 ### 8 sep 2026 — Horarios de verdad, no solo menciones (PR #69)
 
 Responde al pedido explícito de Peter en la reunión del 19 de agosto: las recomendaciones le llegaban demasiado genéricas porque el formulario solo garantizaba que se mencionara cada momento del día, no que trajera la hora. `coberturaDia()` pasa a exigir un patrón de hora cerca de cada mención, y distingue "no mencionado" de "mencionado sin hora" — el padre ve la diferencia antes de enviar.
 
-> **⟡ Pausa de 8 días (8 sep → 16 sep).** Motivo no registrado. *Leonardo: completar.*
+> **Pausa de 8 días (8 sep → 16 sep).** Mismo motivo que las demás pausas de este período, según Leonardo (22 oct): atención jalada a monetización, no falta de disponibilidad de Peter.
 
 ### 16 sep 2026 — Transparencia con el colegio y el primer intento contra lo genérico (PRs #70, #71)
 
@@ -265,13 +265,13 @@ Responde al pedido explícito de Peter en la reunión del 19 de agosto: las reco
 
 El bloque de investigación repetía casi la misma frase en la caja y en la etiqueta de la casilla. Se condensa.
 
-> **⟡ Pausa de 6 días (18 sep → 24 sep).** Motivo no registrado. *Leonardo: completar.*
+> **Pausa de 6 días (18 sep → 24 sep).** Mismo motivo (ver arriba).
 
 ### 24 sep 2026 — La lonchera que la familia no controla (PR #73)
 
 Pedido de Peter en la reunión del 16 sept: la merienda escolar es el punto real de fricción, porque la familia no controla lo que vende la cafetería del colegio. La captura ahora pregunta si la lonchera se manda de casa o se compra, y el prompt deja de asumir control directo cuando se compra.
 
-> **⟡ Pausa de 8 días (24 sep → 2 oct).** Motivo no registrado. *Leonardo: completar.*
+> **Pausa de 8 días (24 sep → 2 oct).** Mismo motivo (ver arriba).
 
 ### 2 oct 2026 — Sesión larga con Peter: 12 PRs en un día (PRs #74 a #86)
 
@@ -291,7 +291,7 @@ El día más denso del proyecto. Casi todo salió de pedidos en vivo durante la 
 - **PR #85 — `FIELDS` se unifica en `shared/formulario-fields.js`**, para que formulario y panel no se desincronicen.
 - **PR #86 — Cada caso guarda su propio snapshot de preguntas.** Así, si mañana cambia un texto del formulario, los casos ya generados siguen mostrando la pregunta que el padre realmente respondió.
 
-> **⟡ Pausa de 19 días (2 oct → 21 oct) — la más larga del proyecto.** Lo que consta: el trabajo se retoma con una reunión grabada con Peter, en dos partes, donde él revisa borradores generados y da retroalimentación clínica. La pausa termina cuando llega esa revisión. *Leonardo: completar si hubo otra razón además de esperar la sesión.*
+> **Pausa de 19 días (2 oct → 21 oct) — la más larga del proyecto.** Motivo, según Leonardo (22 oct): su atención estuvo jalada a temas de monetización. No fue falta de disponibilidad de Peter. El trabajo se retoma con una reunión grabada con Peter, en dos partes, donde revisa borradores generados y da retroalimentación clínica.
 
 ### 21 oct 2026 — Reunión con Peter, parte 1: el panel y la estructura del plan (PRs #87, #88)
 
@@ -309,7 +309,15 @@ Peter encontró que Vita afirmaba cosas clínicas **que no existen en el SRB** �
 - **PR #93 — El correo de contacto pasa a `leonardo@ledelab.group`.** El dominio `bienestar360.co` está bloqueado por facturas vencidas, y esa dirección aparecía en el consentimiento como el canal para **pedir borrado de datos**, con promesa de responder en 30 días. Un compromiso sobre datos de menores que no se podía cumplir.
 - **PR #94 — Revisión de textos pantalla por pantalla + guardado en el dispositivo.** El recorrido toma unos 20 minutos en el celular y no guardaba nada: una recarga o un cambio de app borraba todo. Además, la pantalla de bienvenida seguía con el copy original del 5 de agosto, que le pedía algo al padre antes de presentarse.
 - **PR #95 — "Ayuno" se coló en un plan pediátrico.** El borrador de Samuel decía "el ayuno nocturno no es opcional", copiado literal de la fuente embebida en el #89: **el arreglo de las alucinaciones creó esta fuga.** También: el modelo le narraba sus propias reglas al padre ("corrección de ventana: queda por debajo del mínimo de 12 horas").
-- **PRs #96 y #97 — Revisión automática antes de que el borrador llegue al panel.** Dos capas: reglas duras por código (palabras prohibidas, reglas narradas, formato interno, cifras de adulto) que regeneran una vez indicando qué corregir, y un verificador que compara el borrador contra la fuente SRB y señala afirmaciones sin respaldo. Lo que falla se guarda igual, marcado, nunca se descarta. El #97 corrige un error del #96: el verificador marcaba como inventos los 2 g de sal y la ventana de 12h, que son adaptaciones pediátricas deliberadas — habría puesto dos avisos falsos en cada plan y Peter habría dejado de leerlos. En la misma prueba el verificador encontró una invención real: un plan recetaba "pantallas apagadas 45 minutos antes de dormir", y el SRB no menciona pantallas ni sueño en ningún apartado.
+- **PRs #96 y #97 — Revisión automática antes de que el borrador llegue al panel.** Dos capas: reglas duras por código (palabras prohibidas, reglas narradas, formato interno, cifras de adulto) que regeneran una vez indicando qué corregir, y un verificador que compara el borrador contra la fuente SRB y señala afirmaciones sin respaldo. Lo que falla se guarda igual, marcado, nunca se descarta. El #97 corrige un error del #96: el verificador marcaba como inventos los 2 g de sal y la ventana de 12h, que son adaptaciones pediátricas deliberadas — habría puesto dos avisos falsos en cada plan y Peter habría dejado de leerlos. En la misma prueba el verificador encontró una invención real: un plan recetaba "pantallas apagadas 45 minutos antes de dormir", y el SRB no menciona pantallas ni sueño en ningún apartado. *(Matiz encontrado al leer las reglas duras firmadas el 22 oct: la sección A.3 lista el manejo de pantallas como territorio siempre seguro. El tema sí está permitido; lo inventado es el número. El verificador no conoce las reglas firmadas, solo el extracto del SRB — ver "Pendientes conocidos".)*
+
+### 22 oct 2026 — Se corrige el encuadre de las pausas (PR #99)
+
+Al registrar los 43 PRs faltantes, el agente infirió de las fechas que las pausas del proyecto eran los intervalos entre sesiones clínicas con Peter, y lo escribió como hallazgo. **Era falso.** Leonardo lo corrigió al entregar la reconstrucción del chat de estrategia: Peter está disponible normalmente una sesión por semana o más, y los huecos recientes se debieron sobre todo a que la atención de Leonardo estuvo jalada a temas de monetización.
+
+Importa porque esa conclusión cambia qué hay que destrabar: no la agenda de Peter, sino sostener el foco en la validación. Y porque este archivo alimenta material para grants e inversionistas.
+
+Se corrigen los cinco marcadores de pausa (los cuatro que pedían completar el motivo ya lo tienen) y el patrón 1 de la sección de cierre. Queda como recordatorio de método: **una correlación leída de fechas no es una causa, y no debía presentarse como hallazgo sin confirmarla con quien vivió el período.**
 
 ---
 
@@ -317,7 +325,7 @@ Peter encontró que Vita afirmaba cosas clínicas **que no existen en el SRB** �
 
 Tres patrones que se repiten y conviene tener presentes:
 
-1. **Las pausas no son inactividad: son los intervalos entre sesiones clínicas con Peter.** El desarrollo avanza en ráfagas después de cada reunión (19 ago → 8 sep, 16 sept → 24 sept, 2 oct, 21 oct). El cuello de botella del proyecto no ha sido escribir código.
+1. **El desarrollo avanza en ráfagas después de cada sesión clínica, pero las pausas no las causa Peter.** Esa correlación la infirió el agente mirando fechas, y Leonardo la corrigió (22 oct): Peter está disponible normalmente una sesión por semana o más. Los huecos recientes se debieron sobre todo a que la atención de Leonardo estuvo jalada a temas de monetización. El riesgo a gestionar, entonces, no es la agenda de Peter — es sostener el foco en la validación.
 
 2. **Esta parte del sistema falla en silencio por diseño**, y por eso sus errores tardan semanas en verse. La generación del borrador no alerta a nadie si falla: la fila simplemente se queda sin plan. Así pasaron desapercibidos el truncamiento de Sonnet 5 (16 sept → 2 oct) y la cancelación por `waitUntil` (desde que existe el enlace pediátrico hasta el 21 oct). **Cada vez que se toque la generación, hay que probar el camino real de punta a punta, no solo el prompt.**
 
@@ -364,6 +372,8 @@ Tres patrones que se repiten y conviene tener presentes:
 15. **`MODO_PRUEBAS = true` — el control de elegibilidad está apagado (desde el 2 oct, PR #76; ampliado el 21 oct, PR #91).** Mientras el flag siga activo: Peter puede aprobar un plan para **cualquier** correo que se haya escrito en el formulario, verificado o no; no se manda el correo pidiendo el código de colegio; y no corre la purga de 72 h por falta de verificación. Es deliberado para la ronda de validación —las familias invitadas no entran por ningún colegio y pedirles un código sería pedirles algo que no tienen— y el control que sí opera es que **nada se entrega hasta que el equipo apruebe** (`doGet` responde 403 para cualquier caso sin aprobar). **Hay que volverlo a `false` antes del primer colegio con cobro real**, y ese día hay que configurar primero la propiedad `CODIGOS_VALIDOS_COLEGIO` con códigos nuevos (si se pega el script sin configurarla, el mapa queda vacío y nadie puede verificar — falla cerrado, con error propio).
 
 16. **La generación automática del borrador falló en silencio durante semanas, dos veces.** Primero por el cambio de modelo (16 sept → 2 oct, PR #75) y después por el techo de `ctx.waitUntil` en el enlace pediátrico, que nunca generó nada hasta el 21 oct (PR #90). Las dos veces el síntoma fue el mismo: la fila se escribe en el Sheet, el borrador nunca se guarda, el caso queda invisible en el panel y **nadie se entera**, porque `generarBorradorAutomatico` falla en silencio por diseño para no afectar al padre. Hoy la generación corre en una alarma de Durable Object (sin techo de tiempo) y pasa por una revisión automática antes de guardarse (PRs #96, #97), pero **sigue sin existir una alerta cuando un caso se queda sin borrador.** Es el hueco de observabilidad más importante que queda.
+
+18. **El verificador de grounding no conoce las reglas duras firmadas** (encontrado el 22 oct al leer `reglas_duras_srb`). Solo compara el borrador contra el extracto del SRB embebido, así que marca como "sin respaldo" temas que la sección A.3 lista explícitamente como siempre seguros: sueño y ritmo circadiano, hidratación, comida real, movimiento y juego, y manejo de pantallas. Ya produjo un falso positivo parcial — señaló "pantallas apagadas 45 minutos antes de dormir", cuando lo inventado era el número, no el tema. Mientras no vea las reglas firmadas, va a marcar de más en esas áreas. Darle esa fuente es una decisión de producto pendiente, no un arreglo que este repo deba tomar por su cuenta.
 
 17. **Validación con familias reales: todavía no ha empezado.** Todo lo probado hasta hoy son casos de prueba o datos reales de las familias del equipo (los hijos de Leonardo y el caso de Nelly). El flujo completo —formulario en móvil, generación, revisión en el panel, aprobación, correo y página del plan— sí se recorrió de punta a punta el 21-22 oct, encontrando y corrigiendo en el camino los problemas de los PRs #90 a #97. Falta ejecutar la ronda con las familias invitadas. Sigue siendo el gap principal hacia TRL 5, y no es técnico.
 
