@@ -537,60 +537,12 @@ Entre 2 y 4 objetos en "habitos". El campo "mensaje" y la lista "habitos" deben 
 entre sí — son la misma información en dos formatos (uno para el texto corrido, otro para mostrar
 como checklist en una página aparte).`;
 
-// ============================================================
-// SRB PEDIÁTRICO v4 — EXPERIMENTAL, NO APROBADO AÚN COMO SRB DE PRODUCCIÓN.
-// Es, sin embargo, el prompt que genera los borradores del enlace de
-// validación (vita-demo-formulario-v2/) que Peter está usando para revisar
-// casos reales — o sea: lo que ven las familias que entran por ese enlace.
-//
-// Historia de las correcciones (todas salidas de sesiones de revisión en vivo
-// con Peter Álvarez, grabadas y transcritas):
-//   v2 (2 oct 2026) — primera versión pediátrica: filosofía completa del SRB,
-//     estructura fija tipo Notebook (Paso 0 + pilares), semáforo personalizado,
-//     trazabilidad por hábito.
-//   v3 (21 oct 2026, parte 1 de la reunión) — estructura en DOS bloques
-//     (resumen cronológico actual + propuesta, para comparar de un vistazo);
-//     "ventana de alimentación" reemplaza por completo la idea de ayuno, con
-//     piso de 12h en niños; Paso 0 pasa a ser solo consultivo (nunca mediciones
-//     en casa); nivel de lenguaje bajado a familiar/adolescente sin jerga.
-//   v4 (21 oct 2026, parte 2 de la reunión) — el cambio de fondo: Peter
-//     encontró afirmaciones clínicas INVENTADAS en los borradores (una dosis de
-//     sal, una sugerencia de magnesio y vitamina D) que no existen en el SRB.
-//     Causa real: el prompt solo tenía MI paráfrasis del SRB, así que el modelo
-//     rellenaba los huecos con su conocimiento general de nutrición. El Worker
-//     nunca tuvo búsqueda web — el problema no era que saliera a buscar, era que
-//     no tenía la fuente. Arreglo: va embebido el TEXTO VERBATIM del SRB
-//     (secciones 6.2, 6.4, 7, 7.1, 8 y 10.1 de SRB_v0_42) y la regla de que
-//     nada se puede afirmar si no está en ese texto. Encima de la fuente van
-//     las ADAPTACIONES PEDIÁTRICAS, que la pisan donde hace falta (el SRB es un
-//     documento para adultos: suero a 2g/L y no 5-7g, sin metas numéricas de
-//     carbohidratos ni de insulina, sin porcentajes de macros, sin el pilar de
-//     ayuno, sin fuerza estructurada, sin los 6 pasos de microbiota).
-//     Además, de la misma reunión: el ROJO del semáforo ahora es firme
-//     ("eliminar por completo mientras equilibramos su organismo", sin
-//     suavizarlo); silencio TOTAL sobre cualquier medicamento o remedio que el
-//     padre reporte (Peter: eso lo decide quien lo recetó, no nosotros); y
-//     prohibido celebrar o reforzar lo que ya está bien — el plan dice qué
-//     cambia y por qué, no felicita.
-//
-// SOLO se usa cuando producto === "formulario_pediatrico_v2" — el camino de
-// producción normal sigue intacto con SRB_DRAFT_PROMPT. Cuando Peter lo
-// apruebe formalmente, esto se vuelve el SRB_DRAFT_PROMPT real.
-// ============================================================
-const SRB_DRAFT_PROMPT_PEDIATRICO_V2 = `Eres el generador de planes pediátricos de be360, bajo el Sistema de Reversión Biológica (SRB) de
-Peter Álvarez. Tu borrador NO llega directo a la familia — lo revisa Peter Álvarez antes de aprobarlo.
-
-REGLA MÁS IMPORTANTE DE TODAS (encontrada en revisión en vivo, 21 oct 2026 — Peter encontró
-afirmaciones inventadas que no están en el SRB): CADA afirmación que hagas tiene que poder
-rastrearse a algo EXPLÍCITAMENTE dicho en la FUENTE SRB de abajo. Si algo no está ahí — aunque
-suene plausible, aunque sea conocimiento nutricional razonable — NO LO DIGAS. No completes huecos
-con tu propio conocimiento general de nutrición/salud. Prefiere decir menos y que sea 100% fiel a
-la fuente, a decir más y que sea una invención. Esta regla pisa a cualquier otra instrucción.
-
-================================================================
-FUENTE SRB (texto original de Peter Álvarez — cita o parafrasea SOLO esto)
-================================================================
-6.2 Exceso de carbohidratos
+// Texto VERBATIM del SRB (sección 6.2, 6.4, 7, 7.1, 8 y 10.1 de SRB_v0_42).
+// Vive en su propia constante —y no pegado dentro del prompt— porque lo usan
+// DOS cosas: el prompt que genera el borrador y el verificador de grounding
+// que lo revisa después. Si se duplicara, el verificador podría estar
+// comparando contra una fuente distinta de la que se usó para escribir.
+const FUENTE_SRB_PEDIATRICA = `6.2 Exceso de carbohidratos
 Todos los carbohidratos se convierten en glucosa, que genera inflamación y toxicidad sostenida. El diseño biológico humano no fue concebido para el consumo masivo de granos. El SRB establece un máximo de 70 a 100 g de carbohidratos por día.
 Indicador clave: insulina en ayunas (no glucosa). El objetivo terapéutico del SRB es alcanzar 2.5 unidades (óptimo biológico). Por debajo de 8 es aceptable para iniciar el protocolo. Entre 8 y 12 hay deterioro silencioso activo — el paciente ya está en nivel 3 del espectro aunque los exámenes rutinarios salgan normales. Por encima de 12 hay resistencia a la insulina instalada. La glucosa en sangre no detecta este deterioro — la insulina en ayunas sí.
 Una dieta rica en carbohidratos genera digestión ácida, disbiosis intestinal y permeabilidad intestinal — el caldo de cultivo para enfermedades autoinmunes. El 70% del sistema inmune reside en el intestino.
@@ -690,7 +642,62 @@ Progresión gradual — un paciente de 78 años que nunca hizo ejercicio puede e
 El movimiento debe sentirse como un acto de cuidado, no como un castigo.
 Al menos 10,000 pasos diarios activan el sistema linfático, venoso y digestivo.
 El músculo no es estética — es reserva metabólica, órgano endocrino activo y seguro contra el envejecimiento. Sin masa muscular funcional se pierde fuerza, estabilidad, producción hormonal, capacidad inmunológica y equilibrio de glucosa. La vejez no llega con los años — llega cuando se pierde masa muscular.
+`;
 
+// ============================================================
+// SRB PEDIÁTRICO v4 — EXPERIMENTAL, NO APROBADO AÚN COMO SRB DE PRODUCCIÓN.
+// Es, sin embargo, el prompt que genera los borradores del enlace de
+// validación (vita-demo-formulario-v2/) que Peter está usando para revisar
+// casos reales — o sea: lo que ven las familias que entran por ese enlace.
+//
+// Historia de las correcciones (todas salidas de sesiones de revisión en vivo
+// con Peter Álvarez, grabadas y transcritas):
+//   v2 (2 oct 2026) — primera versión pediátrica: filosofía completa del SRB,
+//     estructura fija tipo Notebook (Paso 0 + pilares), semáforo personalizado,
+//     trazabilidad por hábito.
+//   v3 (21 oct 2026, parte 1 de la reunión) — estructura en DOS bloques
+//     (resumen cronológico actual + propuesta, para comparar de un vistazo);
+//     "ventana de alimentación" reemplaza por completo la idea de ayuno, con
+//     piso de 12h en niños; Paso 0 pasa a ser solo consultivo (nunca mediciones
+//     en casa); nivel de lenguaje bajado a familiar/adolescente sin jerga.
+//   v4 (21 oct 2026, parte 2 de la reunión) — el cambio de fondo: Peter
+//     encontró afirmaciones clínicas INVENTADAS en los borradores (una dosis de
+//     sal, una sugerencia de magnesio y vitamina D) que no existen en el SRB.
+//     Causa real: el prompt solo tenía MI paráfrasis del SRB, así que el modelo
+//     rellenaba los huecos con su conocimiento general de nutrición. El Worker
+//     nunca tuvo búsqueda web — el problema no era que saliera a buscar, era que
+//     no tenía la fuente. Arreglo: va embebido el TEXTO VERBATIM del SRB
+//     (secciones 6.2, 6.4, 7, 7.1, 8 y 10.1 de SRB_v0_42) y la regla de que
+//     nada se puede afirmar si no está en ese texto. Encima de la fuente van
+//     las ADAPTACIONES PEDIÁTRICAS, que la pisan donde hace falta (el SRB es un
+//     documento para adultos: suero a 2g/L y no 5-7g, sin metas numéricas de
+//     carbohidratos ni de insulina, sin porcentajes de macros, sin el pilar de
+//     ayuno, sin fuerza estructurada, sin los 6 pasos de microbiota).
+//     Además, de la misma reunión: el ROJO del semáforo ahora es firme
+//     ("eliminar por completo mientras equilibramos su organismo", sin
+//     suavizarlo); silencio TOTAL sobre cualquier medicamento o remedio que el
+//     padre reporte (Peter: eso lo decide quien lo recetó, no nosotros); y
+//     prohibido celebrar o reforzar lo que ya está bien — el plan dice qué
+//     cambia y por qué, no felicita.
+//
+// SOLO se usa cuando producto === "formulario_pediatrico_v2" — el camino de
+// producción normal sigue intacto con SRB_DRAFT_PROMPT. Cuando Peter lo
+// apruebe formalmente, esto se vuelve el SRB_DRAFT_PROMPT real.
+// ============================================================
+const SRB_DRAFT_PROMPT_PEDIATRICO_V2 = `Eres el generador de planes pediátricos de be360, bajo el Sistema de Reversión Biológica (SRB) de
+Peter Álvarez. Tu borrador NO llega directo a la familia — lo revisa Peter Álvarez antes de aprobarlo.
+
+REGLA MÁS IMPORTANTE DE TODAS (encontrada en revisión en vivo, 21 oct 2026 — Peter encontró
+afirmaciones inventadas que no están en el SRB): CADA afirmación que hagas tiene que poder
+rastrearse a algo EXPLÍCITAMENTE dicho en la FUENTE SRB de abajo. Si algo no está ahí — aunque
+suene plausible, aunque sea conocimiento nutricional razonable — NO LO DIGAS. No completes huecos
+con tu propio conocimiento general de nutrición/salud. Prefiere decir menos y que sea 100% fiel a
+la fuente, a decir más y que sea una invención. Esta regla pisa a cualquier otra instrucción.
+
+================================================================
+FUENTE SRB (texto original de Peter Álvarez — cita o parafrasea SOLO esto)
+================================================================
+${FUENTE_SRB_PEDIATRICA}
 ================================================================
 FIN DE LA FUENTE SRB
 ================================================================
@@ -875,6 +882,71 @@ function horasDeVentana(ventana) {
   return diff / 60;
 }
 
+// REVISIÓN AUTOMÁTICA DEL BORRADOR (21 oct 2026, pedido de Leonardo) — corre
+// entre generar y guardar, para que los errores no lleguen al panel de Peter.
+// Antes esto no era posible: la generación vivía en ctx.waitUntil, con ~30s de
+// techo. Ahora corre en la alarma del Durable Object y hay tiempo de sobra.
+//
+// Son reglas que YA se violaron en borradores reales, no hipótesis. Cada una
+// nombra el caso donde se encontró, para que no se borren por parecer
+// paranoia. Devuelve la lista de problemas (vacía = limpio).
+function revisarBorradorPediatrico(parsed) {
+  const texto = [parsed.resumenCronologico || "", parsed.mensaje || "",
+    (parsed.habitos || []).map(h => (h.titulo || "") + " " + (h.texto || "")).join(" ")].join("\n");
+  const problemas = [];
+  const revisar = (re, descripcion) => { const m = texto.match(re); if (m) problemas.push(descripcion + " → \"" + String(m[0]).trim().slice(0, 70) + "\""); };
+
+  // "El ayuno nocturno no es opcional" salió en el borrador de Samuel, copiado
+  // literal del Pilar 3 de la fuente. OJO: "en ayunas" es legítimo (el Paso 0
+  // pregunta por insulina en ayunas), por eso no se usa \bayun para todo.
+  revisar(/\bayunos?\b|\bayunar\b|\bautofagia\b/i, "palabra prohibida en pediatría");
+  // El modelo narró su propia regla de la ventana dentro del plan del padre.
+  revisar(/mínimo de 12 horas|por debajo del mínimo|corrección de ventana|propuesta final|margen seguro|margen mínimo/i, "le narra al padre una regla interna");
+  // "primera comida 06:00, última comida 19:00 → 13 horas" (caso de Sofía):
+  // formato de campo interno, no lenguaje de padre. Se detectan las horas que
+  // solo existen en reloj de 24h —00:00 a 09:59 con cero adelante, y 13:00 en
+  // adelante— porque una hora como "7:00 pm" es la forma correcta y no debe
+  // dispararse. El primer intento de esta regla buscaba la flecha ENTRE dos
+  // horas y se le escapó el caso real, donde la flecha iba después.
+  revisar(/\b(?:0\d|1[3-9]|2[0-3]):\d{2}\b/, "hora en formato de reloj de 24h (el padre lee 7:00 pm, no 19:00)");
+  revisar(/\bexcelente\b|sigue así|base sólida|qué bueno que|felicit/i, "lenguaje celebratorio (prohibido)");
+  // Cifras del SRB de adultos que nunca van en un plan de niños.
+  revisar(/1[.,]5 ?g|70 ?a ?100 ?g|60-80 ?%|2[.,]5 unidades|5 ?a ?7 ?g/i, "cifra del SRB de adultos");
+  revisar(/medicament|jarabe|pomada|vaporub|suplement/i, "menciona un medicamento o remedio");
+  return problemas;
+}
+
+// Segunda capa: el código no puede ver si una afirmación clínica está
+// inventada. Esta llamada le pasa al modelo la MISMA fuente SRB del prompt y el
+// borrador, y le pide señalar lo que no tenga respaldo. Es ADVISORY — si
+// encuentra algo, se anota para Peter pero no se descarta el borrador: un
+// crítico equivocado no debe botar un plan bueno. Nace de que Peter encontró
+// una dosis de sal y una sugerencia de magnesio y vitamina D que no existen en
+// el SRB (reunión del 21 oct 2026).
+async function revisarGroundingConModelo(parsed, env) {
+  try {
+    const borrador = (parsed.mensaje || "") + "\n\n" + (parsed.habitos || []).map(h => h.texto || "").join("\n");
+    const upstream = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "x-api-key": env.ANTHROPIC_API_KEY, "anthropic-version": "2023-06-01" },
+      body: JSON.stringify({
+        model: "claude-sonnet-4-6",
+        max_tokens: 900,
+        system: "Eres un verificador. Recibes (A) el texto fuente del SRB y (B) un borrador de plan. Tu única tarea es listar afirmaciones concretas del borrador que NO estén respaldadas por la fuente: dosis, cantidades, frecuencias, cifras, duraciones o mecanismos clínicos que la fuente no diga. Ignora el estilo, el tono y la estructura. Ignora datos que vengan del formulario de la familia (horarios, nombres, lo que come). Si todo está respaldado, devuelve una lista vacía. Responde SOLO este JSON crudo, sin backticks: {\"sinRespaldo\":[\"afirmación 1\",\"afirmación 2\"]}",
+        messages: [{ role: "user", content: "FUENTE SRB:\n" + FUENTE_SRB_PEDIATRICA + "\n\n---\n\nBORRADOR A VERIFICAR:\n" + borrador }],
+      }),
+    });
+    const data = await upstream.json();
+    const t = (data.content || []).filter(b => b.type === "text").map(b => b.text).join("\n");
+    const m = t.match(/\{[\s\S]*\}/);
+    if (!m) return [];
+    const r = JSON.parse(m[0]);
+    return Array.isArray(r.sinRespaldo) ? r.sinRespaldo.slice(0, 6) : [];
+  } catch (e) {
+    return []; // si el verificador falla, no bloquea nada — el borrador sigue su camino
+  }
+}
+
 // Genera el borrador automáticamente (Claude + Prompt Maestro embebido) y lo
 // guarda solo, vía la misma acción "guardar_borrador" del Apps Script. Corre
 // en segundo plano (ctx.waitUntil) — si falla por lo que sea, no revienta
@@ -896,7 +968,9 @@ async function generarBorradorAutomatico(dx, ts, env, producto) {
     const esPediatricoV2 = producto === "formulario_pediatrico_v2";
     const promptAUsar = esPediatricoV2 ? SRB_DRAFT_PROMPT_PEDIATRICO_V2 : SRB_DRAFT_PROMPT;
 
-    const pedirBorrador = async () => {
+    // "correcciones" se usa en el reintento: se le dice al modelo qué estuvo
+    // mal en su intento anterior, en vez de pedirle lo mismo y esperar suerte.
+    const pedirBorrador = async (correcciones) => {
       const upstream = await fetch("https://api.anthropic.com/v1/messages", {
         method: "POST",
         headers: {
@@ -914,7 +988,10 @@ async function generarBorradorAutomatico(dx, ts, env, producto) {
           model: "claude-sonnet-4-6",
           max_tokens: esPediatricoV2 ? 5000 : 2000,
           system: promptAUsar,
-          messages: [{ role: "user", content: "Formulario capturado (JSON):\n" + JSON.stringify(dx) }],
+          messages: [{ role: "user", content: "Formulario capturado (JSON):\n" + JSON.stringify(dx) +
+            ((correcciones && correcciones.length)
+              ? "\n\nTu intento anterior tuvo estos problemas. Vuelve a escribir el plan completo sin ellos:\n- " + correcciones.join("\n- ")
+              : "") }],
         }),
       });
 
@@ -936,31 +1013,50 @@ async function generarBorradorAutomatico(dx, ts, env, producto) {
     let avisoVerificacion = "";
 
     if (esPediatricoV2) {
-      // Verificación objetiva de la ventana de alimentación: hasta 2 intentos.
-      // Si el segundo también incumple, NO se descarta el borrador — se guarda
-      // con un aviso al principio del texto, para que Peter lo vea en el panel
-      // y lo corrija. Decisión de Leonardo (21 oct 2026): mejor un borrador
-      // defectuoso y marcado que un caso vacío.
-      // horasDeVentana devuelve null cuando NO HAY DATO (el formulario no traía
-      // horas, y el prompt manda "00:00" para decirlo). Eso no es un error del
-      // borrador y no se reintenta ni se marca: el propio texto le explica al
-      // padre qué hora falta. Solo se reintenta y se marca cuando sí había una
-      // ventana calculable y quedó por debajo del mínimo.
-      const horasPrimerIntento = parsed ? horasDeVentana(parsed.ventanaPropuesta) : null;
-      if (!parsed || (horasPrimerIntento !== null && horasPrimerIntento < MIN_VENTANA_HORAS)) {
-        const reintento = await pedirBorrador();
-        const horasReintento = reintento ? horasDeVentana(reintento.ventanaPropuesta) : null;
-        // Se queda con el reintento si cumple la regla (o si no aplica por falta
-        // de datos), o si el primer intento no produjo nada utilizable. Si
-        // ninguno sirve, se conserva el primero y abajo se marca para Peter.
-        if (reintento && (horasReintento === null || horasReintento >= MIN_VENTANA_HORAS || !parsed)) parsed = reintento;
+      // REVISIÓN ANTES DE GUARDAR (21 oct 2026, pedido de Leonardo): el
+      // borrador no llega al panel sin pasar por acá. Dos capas —
+      //   (a) reglas duras por código: palabras prohibidas, reglas narradas al
+      //       padre, formato interno filtrado, cifras de adulto, ventana corta.
+      //       Si algo falla, se regenera UNA vez diciéndole qué corregir.
+      //   (b) verificador de grounding contra la fuente SRB: es advisory, se
+      //       anota para Peter pero nunca descarta el borrador.
+      // Lo que sobreviva con problemas se guarda igual, con la lista arriba.
+      // Mejor un borrador marcado que un caso vacío — y la alarma solo aparece
+      // cuando de verdad hay algo, para que Peter no aprenda a ignorarla.
+      const evaluar = (p) => {
+        if (!p) return [];
+        const fallos = revisarBorradorPediatrico(p);
+        // horasDeVentana devuelve null cuando NO HAY DATO (el formulario no
+        // traía horas y el prompt manda "00:00" para decirlo). Eso no es un
+        // error: el propio texto le explica al padre qué hora falta.
+        const h = horasDeVentana(p.ventanaPropuesta);
+        if (h !== null && h < MIN_VENTANA_HORAS) {
+          const hh = Math.floor(h), mm = Math.round((h - hh) * 60);
+          fallos.push("la ventana propuesta queda en " + hh + "h" + String(mm).padStart(2, "0") +
+            " (de " + p.ventanaPropuesta.primeraComida + " a " + p.ventanaPropuesta.ultimaComida +
+            "), por debajo del mínimo de " + MIN_VENTANA_HORAS + " horas para niños");
+        }
+        return fallos;
+      };
+
+      let fallos = evaluar(parsed);
+      if (!parsed || fallos.length > 0) {
+        const reintento = await pedirBorrador(fallos);
+        const fallosReintento = evaluar(reintento);
+        // Se queda con el reintento si no produjo nada el primero, o si salió
+        // igual o mejor. Nunca se empeora a propósito.
+        if (reintento && (!parsed || fallosReintento.length <= fallos.length)) {
+          parsed = reintento;
+          fallos = fallosReintento;
+        }
       }
+
       if (parsed) {
-        const horasFinal = horasDeVentana(parsed.ventanaPropuesta);
-        if (horasFinal !== null && horasFinal < MIN_VENTANA_HORAS) {
-          const h = Math.floor(horasFinal);
-          const min = Math.round((horasFinal - h) * 60);
-          avisoVerificacion = "[VERIFICACIÓN AUTOMÁTICA] La ventana de alimentación propuesta (" + h + "h" + (min ? String(min).padStart(2, "0") : "00") + ", de " + parsed.ventanaPropuesta.primeraComida + " a " + parsed.ventanaPropuesta.ultimaComida + ") queda por debajo del mínimo de " + MIN_VENTANA_HORAS + " horas para niños. Corregir la hora de la última comida antes de aprobar.";
+        const sinRespaldo = await revisarGroundingConModelo(parsed, env);
+        for (const s of sinRespaldo) fallos.push("posible afirmación sin respaldo en el SRB: " + s);
+        if (fallos.length > 0) {
+          avisoVerificacion = "[REVISIÓN AUTOMÁTICA — " + fallos.length + " punto(s) a mirar antes de aprobar]\n" +
+            fallos.map(f => "· " + f).join("\n");
         }
       }
     }
