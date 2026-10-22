@@ -707,7 +707,14 @@ arriba cuando hay conflicto (el texto de arriba fue escrito para adultos):
   eso no se menciona; en cambio, "prioriza proteína de calidad en cada comida", sin número).
 - PROHIBIDO el Pilar 4 de la fuente (ayuno intermitente 12-24h) completo. En su lugar: "ventana de
   alimentación" — el tiempo entre primera y última comida, que en niños NUNCA debe bajar de 12
-  horas. Nunca uses la palabra "ayuno".
+  horas.
+- PALABRAS PROHIBIDAS, aunque aparezcan en la FUENTE: "ayuno", "ayunar", "ayuno nocturno",
+  "autofagia". La fuente las usa porque fue escrita para adultos — tú NO las reproduces, ni
+  citando, ni entre comillas, ni explicando que el SRB las usa. En particular, la frase de la
+  fuente "el ayuno nocturno no es opcional" NUNCA se escribe: lo que se dice en su lugar es que
+  cerrar la alimentación temprano le da al cuerpo la noche para recuperarse. Esto ya se coló en un
+  plan real (21 oct 2026) — el texto literal de la fuente le ganó a esta regla, así que acá queda
+  explícito: cuando la fuente y estas adaptaciones se contradigan, mandan SIEMPRE las adaptaciones.
 - PROHIBIDO el Pilar 5 de la fuente (fuerza estructurada, 7 min de ejercicios, sentadillas/push-ups)
   — decisión temporal de Peter. El movimiento se trata como juego/actividad que ya disfruta el
   niño/a, nunca como rutina de ejercicios con minutos o repeticiones.
@@ -791,6 +798,19 @@ CÁLCULO DE LA VENTANA DE ALIMENTACIÓN — esto se ha calculado mal antes, hazl
 4. Antes de escribir el número final de cualquiera de las dos ventanas (actual o propuesta),
    recalcula la resta una segunda vez y confirma que el número que vas a escribir coincide con las
    horas que tú mismo enumeraste en las viñetas — no copies un número de un ejemplo ni de memoria.
+5. TODO ESTE CÁLCULO ES INTERNO Y NO SE NARRA. El padre nunca ve la regla ni tu razonamiento:
+   prohibido escribir "el mínimo de 12 horas", "queda por debajo del mínimo", "corrección de
+   ventana", "la propuesta final es", "margen seguro", o cualquier frase donde te corrijas a ti
+   mismo a la vista. Si al calcular te das cuenta de que la hora que ibas a proponer no sirve,
+   CAMBIA la hora antes de escribir y escribe una sola versión, ya correcta. Que no queden dos
+   horas distintas para la cena en el mismo plan. Esto se coló en un plan real (21 oct 2026).
+6. Las horas se escriben como se las dirías a un padre — "6:45 am", "7:00 pm" — nunca en formato
+   de reloj de 24 horas ni con flechas tipo "06:00 → 19:00". Eso es el formato de los campos de
+   abajo, que son internos; en el texto va lenguaje normal.
+7. Si el formulario NO trae horas suficientes para calcular la ventana, dilo en una línea y pide
+   el dato que falta — NO inventes horas ni propongas una ventana a ciegas. En ese caso, en los
+   campos de reloj de abajo pon exactamente "00:00" en las cuatro posiciones: eso le dice al
+   sistema que no había datos, que es distinto de una ventana mal calculada.
 
 SEMÁFORO PERSONALIZADO — encabezados EXACTOS (encontrado en revisión en vivo: el rojo debe sonar
 firme, no "reducir poco a poco"):
@@ -845,6 +865,13 @@ function horasDeVentana(ventana) {
   if (a === null || b === null) return null;
   let diff = b - a;
   if (diff < 0) diff += 24 * 60; // por si la última comida cruza medianoche
+  // Duración cero = el prompt manda "00:00" en las cuatro posiciones cuando el
+  // formulario no trae horas suficientes para calcular nada. No es una ventana
+  // mala, es la ausencia de dato — y una ventana real de 0 horas no existe.
+  // Encontrado con el caso de Samuel (21 oct 2026): sus datos no traen hora de
+  // desayuno ni de cena, el modelo dijo correctamente "no se puede calcular", y
+  // el borrador salía igual encabezado por una alarma roja que no correspondía.
+  if (diff === 0) return null;
   return diff / 60;
 }
 
@@ -914,20 +941,23 @@ async function generarBorradorAutomatico(dx, ts, env, producto) {
       // con un aviso al principio del texto, para que Peter lo vea en el panel
       // y lo corrija. Decisión de Leonardo (21 oct 2026): mejor un borrador
       // defectuoso y marcado que un caso vacío.
+      // horasDeVentana devuelve null cuando NO HAY DATO (el formulario no traía
+      // horas, y el prompt manda "00:00" para decirlo). Eso no es un error del
+      // borrador y no se reintenta ni se marca: el propio texto le explica al
+      // padre qué hora falta. Solo se reintenta y se marca cuando sí había una
+      // ventana calculable y quedó por debajo del mínimo.
       const horasPrimerIntento = parsed ? horasDeVentana(parsed.ventanaPropuesta) : null;
-      if (horasPrimerIntento === null || horasPrimerIntento < MIN_VENTANA_HORAS) {
+      if (!parsed || (horasPrimerIntento !== null && horasPrimerIntento < MIN_VENTANA_HORAS)) {
         const reintento = await pedirBorrador();
         const horasReintento = reintento ? horasDeVentana(reintento.ventanaPropuesta) : null;
-        // Se queda con el reintento si cumple la regla, o si el primer intento
-        // no produjo nada utilizable. Si ninguno cumple, se conserva el primero
-        // y más abajo se marca con el aviso para Peter.
-        if (reintento && (horasReintento >= MIN_VENTANA_HORAS || !parsed)) parsed = reintento;
+        // Se queda con el reintento si cumple la regla (o si no aplica por falta
+        // de datos), o si el primer intento no produjo nada utilizable. Si
+        // ninguno sirve, se conserva el primero y abajo se marca para Peter.
+        if (reintento && (horasReintento === null || horasReintento >= MIN_VENTANA_HORAS || !parsed)) parsed = reintento;
       }
       if (parsed) {
         const horasFinal = horasDeVentana(parsed.ventanaPropuesta);
-        if (horasFinal === null) {
-          avisoVerificacion = "[VERIFICACIÓN AUTOMÁTICA] No se pudo calcular la ventana de alimentación propuesta (el borrador no trae las horas de primera y última comida en formato de reloj). Revisar la ventana a mano antes de aprobar.";
-        } else if (horasFinal < MIN_VENTANA_HORAS) {
+        if (horasFinal !== null && horasFinal < MIN_VENTANA_HORAS) {
           const h = Math.floor(horasFinal);
           const min = Math.round((horasFinal - h) * 60);
           avisoVerificacion = "[VERIFICACIÓN AUTOMÁTICA] La ventana de alimentación propuesta (" + h + "h" + (min ? String(min).padStart(2, "0") : "00") + ", de " + parsed.ventanaPropuesta.primeraComida + " a " + parsed.ventanaPropuesta.ultimaComida + ") queda por debajo del mínimo de " + MIN_VENTANA_HORAS + " horas para niños. Corregir la hora de la última comida antes de aprobar.";
