@@ -330,12 +330,13 @@ const PanelRevisionFinal=({dx,onCambiarEmail,faltantes,onCompletarDia,onConfirma
 
         {faltantes && faltantes.length>0 && (<React.Fragment>
           <div style={{height:1,background:P.line,margin:"4px 0 14px"}}/>
-          <p style={{fontSize:13.5,color:P.ink,lineHeight:1.55,marginBottom:8}}>Parece que falta la hora en estos momentos del día de {dx.nombre_nino||"tu hijo/a"}:</p>
+          <p style={{fontSize:13.5,color:P.ink,lineHeight:1.55,marginBottom:8}}>Falta la hora en estos momentos del día de {dx.nombre_nino||"tu hijo o hija"}:</p>
           <ul style={{fontSize:13,color:P.sageDeep,fontWeight:700,marginBottom:12,paddingLeft:18}}>
             {faltantes.map(f=><li key={f.label}>{f.label}{f.motivo==="sin_hora"?<span style={{fontWeight:400,color:P.muted}}> — falta la hora exacta</span>:null}</li>)}
           </ul>
-          <p style={{fontSize:12.5,color:P.muted,lineHeight:1.5,marginBottom:8}}>Está bien si no los sabes o prefieres no compartirlos todavía — solo queremos que sea una decisión tuya, no un olvido nuestro.</p>
-          <p style={{fontSize:12.5,color:P.muted,lineHeight:1.5,marginBottom:16}}>Eso sí: mientras menos sepamos del día completo, el primer plan que arme el equipo será más general, y puede tomar más tiempo encontrar qué le está afectando de verdad. Si puedes completarlo, el plan sale más preciso desde el primer intento.</p>
+          {/* Dos párrafos reducidos a uno (21 oct 2026): decían lo mismo en
+              mucho más espacio, y el segundo sonaba a reproche. */}
+          <p style={{fontSize:12.5,color:P.muted,lineHeight:1.5,marginBottom:16}}>Está bien si no las sabes. Pero con el día completo, el plan sale más preciso desde el primer intento.</p>
           <button onClick={onCompletarDia} style={{...btnPrimary,width:"100%",marginBottom:8}}>Quiero completar el día</button>
         </React.Fragment>)}
 
@@ -345,12 +346,27 @@ const PanelRevisionFinal=({dx,onCambiarEmail,faltantes,onCompletarDia,onConfirma
   );
 };
 
+// GUARDADO EN EL DISPOSITIVO (21 oct 2026, pedido de Leonardo) — el recorrido
+// toma unos 20 minutos en el celular y hasta hoy no guardaba NADA: si el padre
+// recargaba, cambiaba de app o el navegador descartaba la pestaña (cosa muy
+// común en móvil), perdía todo y tenía que empezar de cero. Se guarda en el
+// navegador del propio padre, nunca viaja a ningún lado, y se borra apenas el
+// envío sale bien. Todo entre try/catch porque en navegación privada o con las
+// cookies bloqueadas, localStorage lanza excepción al tocarlo.
+//
+// La clave es distinta en cada una de las dos páginas: ambas viven en
+// be360.app y comparten localStorage, así que con una sola clave el borrador
+// empezado en una reaparecería dentro de la otra.
+const GUARDADO_KEY="vita_formulario_borrador";
+const leerGuardado=()=>{ try{ const s=localStorage.getItem(GUARDADO_KEY); return s?JSON.parse(s):null; }catch(e){ return null; } };
+const borrarGuardado=()=>{ try{ localStorage.removeItem(GUARDADO_KEY); }catch(e){} };
+
 function App(){
-  const [stage,setStage]=useState("welcome");
-  const [messages,setMessages]=useState([]);
+  const [stage,setStage]=useState(()=>{ const g=leerGuardado(); return (g&&g.stage)?g.stage:"welcome"; });
+  const [messages,setMessages]=useState(()=>{ const g=leerGuardado(); return (g&&g.messages)?g.messages:[]; });
   const [input,setInput]=useState("");
   const [loading,setLoading]=useState(false);
-  const [dx,setDx]=useState(emptyDx);
+  const [dx,setDx]=useState(()=>{ const g=leerGuardado(); return (g&&g.dx)?g.dx:emptyDx; });
   const [dxAlPausar,setDxAlPausar]=useState(null); // snapshot de dx al salir del chat, para detectar si el formulario cambió algo mientras tanto
   const [consentChecked,setConsentChecked]=useState(false); // checkbox de la pantalla de consentimiento
   const [consentInvestigacionChecked,setConsentInvestigacionChecked]=useState(false); // casilla SEPARADA y opcional (19 ago 2026) — investigación/mejora de otros planes, nunca condiciona el servicio
@@ -364,6 +380,14 @@ function App(){
   const [mostrarRevisionFinal,setMostrarRevisionFinal]=useState(false); // panel de revisión (correo + cobertura del día) antes de enviar de verdad
   const scrollRef=useRef(null);
   useEffect(()=>{ if(scrollRef.current) scrollRef.current.scrollTop=scrollRef.current.scrollHeight; },[messages,loading]);
+
+  // Guarda el avance apenas cambia algo. No guarda en "welcome" (no hay nada
+  // que guardar) ni en "sent" (ya se envió y el guardado se borra ahí mismo).
+  useEffect(()=>{
+    if(stage==="welcome"||stage==="sent") return;
+    try{ localStorage.setItem(GUARDADO_KEY, JSON.stringify({stage,messages,dx})); }catch(e){}
+  },[stage,messages,dx]);
+
   const filled=FIELDS.filter(f=>dx[f.key]&&dx[f.key].trim()).length;
 
   // Qué falta, en palabras — para mostrarle al padre algo más útil que un
@@ -590,6 +614,7 @@ function App(){
         body:JSON.stringify({ producto:"formulario", mode:MODE, dx:dxFinal, ts:new Date().toISOString(), camposSnapshot:FIELDS }) });
       const data=await res.json().catch(()=>({}));
       if(!res.ok || data.ok===false) throw new Error("log failed");
+      borrarGuardado(); // ya está en manos del equipo: no tiene sentido seguir guardándolo en el dispositivo
       setStage("sent");
     }catch(e){ setSendError("No se pudo enviar. Reintenta."); }
     finally{ setSending(false); }
@@ -627,12 +652,19 @@ function App(){
   if(stage==="welcome") return (
     <Shell><div style={{flex:1,display:"flex",flexDirection:"column",justifyContent:"center",alignItems:"center",padding:"32px 26px",textAlign:"center"}}>
       <div style={{fontSize:52,marginBottom:14}}>🌱</div>
+      {/* Reescrita (21 oct 2026, revisión de Leonardo pantalla por pantalla).
+          El texto anterior venía del commit original del demo (5 ago) y nunca
+          se revisó: le pedía algo al padre antes de presentarse. Ahora dice
+          quién es Vita y para qué estamos acá. Se quitó "al final tu
+          información queda registrada…" porque lo mismo se decía cuatro veces
+          en el flujo, y mejor dicho, en el consentimiento. La nota del
+          pediatra sube para que se lea ANTES de decidir empezar, no después
+          del botón en gris pequeño. El acceso al formulario directo se movió a
+          la pantalla de intro, para dejar una sola decisión acá. */}
       <div style={{fontFamily:"'Fraunces',serif",fontSize:27,color:P.sageDeep,lineHeight:1.15,marginBottom:14}}>Hola, soy Vita</div>
-      <p style={{fontSize:15,color:P.ink,lineHeight:1.6,maxWidth:360,marginBottom:8}}>Cuéntame del día a día de tu hijo o hija — cómo come, duerme y se mueve.</p>
-      <p style={{fontSize:13.5,color:P.muted,lineHeight:1.6,maxWidth:360,marginBottom:24}}>Al final, tu información queda registrada para que la revisemos y preparemos el primer paso.</p>
+      <p style={{fontSize:15,color:P.ink,lineHeight:1.6,maxWidth:360,marginBottom:16}}>Acompaño a las familias de Bienestar 360. Te pregunto por la rutina diaria de tu hijo o hija, y con eso el equipo clínico le prepara un plan de hábitos.</p>
+      <p style={{fontSize:13,color:P.muted,lineHeight:1.6,maxWidth:340,marginBottom:26}}>Esto acompaña y suma con su pediatra — no lo reemplaza.</p>
       <button onClick={()=>irCon("intro")} style={btnPrimary}>Comenzar →</button>
-      <button onClick={()=>irCon("form")} style={{background:"none",border:"none",color:P.sageDeep,fontSize:12.5,fontWeight:700,marginTop:16,cursor:"pointer",textDecoration:"underline",fontFamily:"'Nunito',sans-serif"}}>Prefiero llenar el formulario directo →</button>
-      <p style={{fontSize:11.5,color:P.muted,marginTop:18,maxWidth:320}}>Esto acompaña y suma con su pediatra — no lo reemplaza.</p>
     </div></Shell>
   );
 
@@ -640,23 +672,28 @@ function App(){
     <Shell><div className="rise scroll" style={{flex:1,overflowY:"auto",display:"flex",flexDirection:"column",justifyContent:"center",padding:"30px 26px"}}>
       <div style={{fontSize:40,marginBottom:12,textAlign:"center"}}>🌱</div>
       <div style={{fontFamily:"'Fraunces',serif",fontSize:23,color:P.sageDeep,lineHeight:1.2,marginBottom:16,textAlign:"center"}}>Antes de empezar</div>
-      <p style={{fontSize:14.5,color:P.ink,lineHeight:1.65,marginBottom:14}}>Vamos a pedirte que nos cuentes sobre el día a día de tu hijo/a — cómo come, duerme, se mueve y qué te preocupa. Esto es lo que hacemos con esa información:</p>
+      <p style={{fontSize:14.5,color:P.ink,lineHeight:1.65,marginBottom:14}}>Esto es lo que hacemos con lo que nos cuentes:</p>
       <div style={{background:P.sageSoft,borderRadius:16,padding:"16px",marginBottom:18}}>
         <div style={{display:"flex",gap:11,marginBottom:12}}><div style={{fontSize:18,flexShrink:0}}>🩺</div><div style={{fontSize:13.5,color:P.ink,lineHeight:1.5}}>Un humano del equipo clínico revisa todo antes de que te llegue.</div></div>
-        <div style={{display:"flex",gap:11,marginBottom:12}}><div style={{fontSize:18,flexShrink:0}}>🔒</div><div style={{fontSize:13.5,color:P.ink,lineHeight:1.5}}>La usamos solo para preparar el plan de tu hijo/a.</div></div>
+        <div style={{display:"flex",gap:11,marginBottom:12}}><div style={{fontSize:18,flexShrink:0}}>🔒</div><div style={{fontSize:13.5,color:P.ink,lineHeight:1.5}}>La usamos solo para preparar el plan de tu hijo o hija.</div></div>
         {/* NUEVO (16 sept 2026, pedido de Leonardo): esto ya pasaba en panel-colegio
             (agregados con umbral de privacidad, nunca datos individuales) pero no
             estaba dicho en esta pantalla, y la frase de arriba ("no la compartimos
             con nadie más") lo contradecía. No es opt-in: es parte del servicio que
             el colegio ya contrató (ver propuestas BIS/Royal), igual que el punto de
             arriba — por eso va en esta caja, no en la de investigación de abajo. */}
-        <div style={{display:"flex",gap:11,marginBottom:12}}><div style={{fontSize:18,flexShrink:0}}>🏫</div><div style={{fontSize:13.5,color:P.ink,lineHeight:1.5}}>También compartimos con tu colegio reportes agregados y anónimos del programa — nunca datos de tu hijo/a en particular.</div></div>
+        {/* Redactado en genérico (21 oct 2026, pedido de Leonardo): antes decía
+            "tu colegio" como un hecho, y en la ronda de validación las familias
+            no entran por ningún colegio — les sonaba a un dato que nosotros
+            dábamos por cierto sobre ellas. Ahora la frase es condicional y vale
+            igual para quien entra por un colegio y para quien no. */}
+        <div style={{display:"flex",gap:11,marginBottom:12}}><div style={{fontSize:18,flexShrink:0}}>🏫</div><div style={{fontSize:13.5,color:P.ink,lineHeight:1.5}}>Cuando el programa llega a través de un colegio, con el colegio compartimos solo reportes agregados y anónimos — nunca datos de tu hijo o hija.</div></div>
         <div style={{display:"flex",gap:11}}><div style={{fontSize:18,flexShrink:0}}>✉️</div><div style={{fontSize:13.5,color:P.ink,lineHeight:1.5}}>Puedes pedirnos que la borremos cuando quieras, escribiendo a leonardo@ledelab.group.</div></div>
       </div>
       <p style={{fontSize:12,color:P.muted,marginTop:-10,marginBottom:18,textAlign:"center"}}><a href="/terminos" target="_blank" rel="noopener" style={{color:P.sageDeep,fontWeight:700,textDecoration:"underline"}}>Lee la política completa →</a></p>
       <label style={{display:"flex",gap:10,alignItems:"flex-start",marginBottom:20,cursor:"pointer"}}>
         <input type="checkbox" checked={consentChecked} onChange={e=>setConsentChecked(e.target.checked)} style={{marginTop:3,width:17,height:17,flexShrink:0,accentColor:P.sage}}/>
-        <span style={{fontSize:13,color:P.ink,lineHeight:1.5}}>He leído esto y acepto que se use para preparar el plan de mi hijo/a.</span>
+        <span style={{fontSize:13,color:P.ink,lineHeight:1.5}}>He leído esto y acepto que se use para preparar el plan de mi hijo o hija.</span>
       </label>
 
       {/* NUEVO (19 ago 2026, pedido de Leonardo): casilla de investigación —
@@ -668,12 +705,11 @@ function App(){
           estilo ícono+frase que los 3 puntos de arriba, para que no se
           sienta pegado con cinta. Nunca menciona IA/modelo/tecnología —
           misma regla dura que el resto de cara al padre. */}
-      <div style={{background:P.sageSoft,borderRadius:16,padding:"16px",marginBottom:14}}>
-        <div style={{display:"flex",gap:11}}><div style={{fontSize:18,flexShrink:0}}>📊</div><div style={{fontSize:13.5,color:P.ink,lineHeight:1.5}}>También podemos usar esta información, sin nombres, para investigación y para mejorar los planes de otras familias.</div></div>
-      </div>
+      {/* Se juntó el recuadro explicativo con el texto de la casilla (21 oct
+          2026): estaban separados y decían casi lo mismo dos veces seguidas. */}
       <label style={{display:"flex",gap:10,alignItems:"flex-start",marginBottom:20,cursor:"pointer"}}>
         <input type="checkbox" checked={consentInvestigacionChecked} onChange={e=>setConsentInvestigacionChecked(e.target.checked)} style={{marginTop:3,width:17,height:17,flexShrink:0,accentColor:P.sage}}/>
-        <span style={{fontSize:13,color:P.ink,lineHeight:1.5}}>Acepto que se use así. Es opcional — si no la marco, igual recibo el plan de mi hijo/a.</span>
+        <span style={{fontSize:13,color:P.ink,lineHeight:1.5}}>Opcional: también podemos usarla, sin nombres, para investigación y para mejorar los planes de otras familias. Si no marcas esto, igual recibes el plan.</span>
       </label>
 
       <button onClick={aceptarConsentimiento} disabled={!consentChecked} style={{...btnPrimary,alignSelf:"center",opacity:consentChecked?1:.5,cursor:consentChecked?"pointer":"default"}}>Acepto y continúo →</button>
@@ -686,7 +722,7 @@ function App(){
       <div style={{textAlign:"center",marginBottom:2}}>
         <div style={{fontSize:36,marginBottom:8}}>🌱</div>
         <div style={{fontFamily:"'Fraunces',serif",fontSize:21,color:P.sageDeep,marginBottom:6}}>Formulario de Hábitos</div>
-        <p style={{fontSize:12.5,color:P.muted,lineHeight:1.5,maxWidth:340,margin:"0 auto"}}>Llena lo que sepas — no hace falta que sea perfecto ni completo, el equipo lo revisa igual. Si prefieres, también puedes <span onClick={goToChat} style={{color:P.sageDeep,fontWeight:700,textDecoration:"underline",cursor:"pointer"}}>conversar con Vita</span> — lo que ya llenaste aquí no se pierde.</p>
+        <p style={{fontSize:12.5,color:P.muted,lineHeight:1.5,maxWidth:340,margin:"0 auto"}}>Llena lo que sepas — no tiene que quedar perfecto, el equipo lo revisa igual. ¿Prefieres <span onClick={goToChat} style={{color:P.sageDeep,fontWeight:700,textDecoration:"underline",cursor:"pointer"}}>conversar con Vita</span>? Lo que ya llenaste no se pierde.</p>
       </div>
       {FIELDS.map(f=>(
         <div key={f.key} style={{display:"flex",flexDirection:"column",gap:5}}>
@@ -707,9 +743,8 @@ function App(){
   if(stage==="sent") return (
     <Shell><div style={{flex:1,display:"flex",flexDirection:"column",justifyContent:"center",alignItems:"center",padding:"32px 26px",textAlign:"center"}}>
       <div style={{fontSize:52,marginBottom:14}}>🌱</div>
-      <div style={{fontFamily:"'Fraunces',serif",fontSize:25,color:P.sageDeep,lineHeight:1.2,marginBottom:14}}>Listo, ya quedó registrado</div>
-      <p style={{fontSize:15,color:P.ink,lineHeight:1.6,maxWidth:360,marginBottom:10}}>La información de {dx.nombre_nino?dx.nombre_nino:"tu hijo/a"} queda en manos del equipo. La revisamos y preparamos el primer paso — te contactamos pronto.</p>
-      <p style={{fontSize:13,color:P.muted,lineHeight:1.6,maxWidth:340}}>Esto acompaña y suma con su pediatra — no lo reemplaza.</p>
+      <div style={{fontFamily:"'Fraunces',serif",fontSize:25,color:P.sageDeep,lineHeight:1.2,marginBottom:14}}>Listo, ya está en manos del equipo</div>
+      <p style={{fontSize:15,color:P.ink,lineHeight:1.6,maxWidth:360}}>Lo revisamos y te escribimos a tu correo con el primer paso para {dx.nombre_nino?dx.nombre_nino:"tu hijo o hija"}.</p>
     </div></Shell>
   );
 
@@ -717,13 +752,19 @@ function App(){
     <Shell><div className="rise scroll" style={{flex:1,overflowY:"auto",display:"flex",flexDirection:"column",justifyContent:"center",padding:"30px 26px"}}>
       <div style={{fontSize:40,marginBottom:12,textAlign:"center"}}>🌱</div>
       <div style={{fontFamily:"'Fraunces',serif",fontSize:23,color:P.sageDeep,lineHeight:1.2,marginBottom:16,textAlign:"center"}}>Cómo vamos a hacerlo</div>
-      <p style={{fontSize:14.5,color:P.ink,lineHeight:1.65,marginBottom:14}}>La atención, el ánimo y la energía de un niño se apoyan mucho en los hábitos del hogar: lo que come y bebe, a qué hora, cuánto se mueve y cómo duerme. Tú eres el puente.</p>
+      {/* Revisión de Leonardo (21 oct 2026): se quitó "al final tu información
+          queda registrada…" —ya lo dice el consentimiento, y la pantalla final
+          lo repite— y acá baja el acceso al formulario directo, que antes
+          estaba en la bienvenida. El tiempo se queda a propósito: el recorrido
+          ya guarda el avance en el dispositivo, pero igual conviene que el
+          padre sepa en qué se está metiendo antes de empezar. */}
+      <p style={{fontSize:14.5,color:P.ink,lineHeight:1.65,marginBottom:14}}>La energía, el ánimo y la atención de un niño dependen mucho de los hábitos de la casa: qué come, a qué hora, cuánto se mueve y cómo duerme.</p>
       <div style={{background:P.sageSoft,borderRadius:16,padding:"16px",marginBottom:18}}>
-        <div style={{display:"flex",gap:11,marginBottom:12}}><div style={{fontSize:18,flexShrink:0}}>🕊️</div><div style={{fontSize:13.5,color:P.ink,lineHeight:1.5}}>Reconstruimos un día normal de tu hijo/a, desde que despierta hasta que se duerme. Con calma, sin juzgar.</div></div>
-        <div style={{display:"flex",gap:11,marginBottom:12}}><div style={{fontSize:18,flexShrink:0}}>💬</div><div style={{fontSize:13.5,color:P.ink,lineHeight:1.5}}>Es una conversación tranquila, sin afán — puede tomar entre 20 y 30 minutos.</div></div>
-        <div style={{display:"flex",gap:11}}><div style={{fontSize:18,flexShrink:0}}>🌿</div><div style={{fontSize:13.5,color:P.ink,lineHeight:1.5}}>Al final, tu información queda registrada — la revisamos y te contactamos con el primer paso.</div></div>
+        <div style={{display:"flex",gap:11,marginBottom:12}}><div style={{fontSize:18,flexShrink:0}}>🕊️</div><div style={{fontSize:13.5,color:P.ink,lineHeight:1.5}}>Reconstruimos un día normal de tu hijo o hija, desde que despierta hasta que se duerme. Con calma, sin juzgar.</div></div>
+        <div style={{display:"flex",gap:11}}><div style={{fontSize:18,flexShrink:0}}>💬</div><div style={{fontSize:13.5,color:P.ink,lineHeight:1.5}}>Toma unos 20 minutos. Si te interrumpen, tu avance queda guardado en este dispositivo y puedes seguir después.</div></div>
       </div>
       <button onClick={startOrResumeChat} style={{...btnPrimary,alignSelf:"center"}}>Empezar la conversación →</button>
+      <button onClick={()=>irCon("form")} style={{background:"none",border:"none",color:P.sageDeep,fontSize:12.5,fontWeight:700,marginTop:16,cursor:"pointer",textDecoration:"underline",alignSelf:"center",fontFamily:"'Nunito',sans-serif"}}>¿Prefieres llenarlo tú mismo? Ves todas las preguntas de una vez →</button>
       <button onClick={()=>setStage("welcome")} style={{background:"none",border:"none",color:P.muted,fontSize:12.5,fontWeight:700,marginTop:14,cursor:"pointer",alignSelf:"center",fontFamily:"'Nunito',sans-serif"}}>← Volver</button>
     </div></Shell>
   );
