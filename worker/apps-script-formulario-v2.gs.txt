@@ -581,18 +581,37 @@ function enviarPlanAprobado(sheet, row) {
     return { error: "sin emailPadre" };
   }
 
+  // Convierte el markdown del borrador a texto plano legible, para los correos
+  // (MailApp manda texto plano, no renderiza nada). Quita los ** de negrita,
+  // los * de énfasis y las líneas que son solo guiones o signos de igual.
+  function aTextoPlano(t) {
+    return String(t || "")
+      .replace(/\*\*(.+?)\*\*/g, "$1")
+      .replace(/(^|\s)\*(\S[^*]*?)\*(?=\s|$|[.,;:])/g, "$1$2")
+      .split("\n")
+      .filter(function (linea) { return !/^\s*[-=_─═]{3,}\s*$/.test(linea); })
+      .join("\n")
+      .replace(/\n{3,}/g, "\n\n")
+      .trim();
+  }
+
   // A partir del 13 ago 2026, el correo ya trae el plan adentro (mensaje +
   // hábitos), no solo el link — encontrado en la prueba en vivo con Peter:
   // un correo con solo un link se sentía como que "no llegaba el plan".
   // Los hábitos excluidos por Peter en el panel NUNCA se muestran acá —
   // mismo filtro que ya usa doGet para lo que ve el padre en /plan.
-  var mensaje = String(rowValues[COLS.borrador_texto] || "").trim();
+  // El borrador viene con markdown (**negrita**, separadores ---) porque el
+  // panel y la página /plan sí lo renderizan. El correo es texto plano, así
+  // que sin limpiarlo el padre recibía literalmente "**DIAGNÓSTICO BREVE**" y
+  // renglones de guiones sueltos (21 oct 2026, encontrado aprobando un caso de
+  // prueba y leyendo el correo que llega de verdad).
+  var mensaje = aTextoPlano(String(rowValues[COLS.borrador_texto] || "").trim());
   var habitosTexto = "";
   try {
     var planData = JSON.parse(rowValues[COLS.plan_json] || "{}");
     var habitosIncluidos = (planData.habitos || []).filter(function (h) { return h.incluido !== false; });
     habitosTexto = habitosIncluidos.map(function (h, i) {
-      return (i + 1) + ". " + h.titulo + ": " + h.texto;
+      return (i + 1) + ". " + aTextoPlano(h.titulo) + ": " + aTextoPlano(h.texto);
     }).join("\n\n");
   } catch (ex) {}
 
@@ -611,13 +630,20 @@ function enviarPlanAprobado(sheet, row) {
       "— El equipo de Bienestar 360",
   });
 
-  // A partir del 11 ago 2026, esta confirmación también le llega a Peter
-  // (sus dos correos: peter.alvarez.mora@gmail.com y peter@bienestar360.co),
-  // no solo a Leonardo — Peter es quien aprueba cada caso y hasta ahora no
-  // tenía forma de ver qué le llegó de verdad al padre/madre después de su
+  // A partir del 11 ago 2026, esta confirmación también le llega a Peter, no
+  // solo a Leonardo — Peter es quien aprueba cada caso y hasta ahora no tenía
+  // forma de ver qué le llegó de verdad al padre/madre después de su
   // aprobación, salvo pedirlo aparte.
+  //
+  // SE QUITA peter@bienestar360.co (21 oct 2026): ese buzón REBOTA. Cada
+  // aprobación generaba un "Delivery Status Notification (Failure) — 550 5.1.1
+  // The address was not found", encontrado aprobando un caso de prueba y
+  // revisando el correo real. El dominio bienestar360.co está en Google
+  // Workspace con facturas vencidas y el acceso bloqueado. Su Gmail
+  // (peter.alvarez.mora@gmail.com) sí recibe, así que Peter no se queda sin la
+  // notificación. Volver a agregarlo solo cuando ese buzón esté operativo.
   MailApp.sendEmail({
-    to: "leonardo@ledelab.group,peter.alvarez.mora@gmail.com,peter@bienestar360.co",
+    to: "leonardo@ledelab.group,peter.alvarez.mora@gmail.com",
     subject: "✅ Plan enviado automáticamente — " + (nombreNino || "sin nombre"),
     body: "Se envió el plan de " + (nombreNino || "(sin nombre)") + " directo a " + emailPadre + ".\n\nLink: " + planUrl,
   });

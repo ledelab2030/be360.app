@@ -316,9 +316,16 @@ function App() {
         <div style={{fontSize:13, color:P.muted}}>Revisado y aprobado por <b style={{color:P.ink}}>Peter Álvarez</b></div>
       </div>
 
+      {/* whiteSpace pre-wrap + renderRich (21 oct 2026): sin esto el padre veía
+          el plan en un solo bloque corrido —el CSS colapsaba cada salto de
+          línea, así que las viñetas por hora quedaban pegadas en un párrafo— y
+          con los asteriscos de markdown crudos a la vista (**DIAGNÓSTICO
+          BREVE** en vez de negrita). Encontrado abriendo un plan aprobado de
+          verdad en el navegador, antes de mandarle el enlace a padres reales.
+          renderRich ya existía y se usaba solo en las burbujas del chat. */}
       {data.mensaje && (
-        <div style={{fontSize:14.5, lineHeight:1.6, background:P.panel, border:"1px solid "+P.line, borderRadius:18, padding:"16px 18px"}}>
-          {data.mensaje}
+        <div style={{fontSize:14.5, lineHeight:1.6, background:P.panel, border:"1px solid "+P.line, borderRadius:18, padding:"16px 18px", whiteSpace:"pre-wrap"}}>
+          {renderRich(data.mensaje)}
         </div>
       )}
 
