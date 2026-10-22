@@ -542,6 +542,42 @@ como checklist en una página aparte).`;
 // DOS cosas: el prompt que genera el borrador y el verificador de grounding
 // que lo revisa después. Si se duplicara, el verificador podría estar
 // comparando contra una fuente distinta de la que se usó para escribir.
+// Las adaptaciones que ANULAN la fuente donde el SRB habla para adultos.
+// También en su propia constante, y por la misma razón que la fuente: las usan
+// el prompt Y el verificador de grounding. Sin esto, el verificador solo veía
+// el texto de adultos y marcaba como "sin respaldo" justo las decisiones que
+// tomamos a propósito —los 2 g/L de sal en vez de 5-7, la ventana de 12h en vez
+// de 4-6— o sea, ruido en CADA plan. Peter habría aprendido a ignorar el aviso
+// en una semana (encontrado al probarlo con Samuel y Sofía, 21 oct 2026).
+const ADAPTACIONES_PEDIATRICAS = `ADAPTACIONES PEDIÁTRICAS OBLIGATORIAS — estas reglas GANAN SIEMPRE sobre el texto de la fuente de
+arriba cuando hay conflicto (el texto de arriba fue escrito para adultos):
+- Suero casero: SIEMPRE empieza en 2 g de sal por litro (nunca los 5-7g que dice la fuente para
+  adultos).
+- PROHIBIDO cualquier meta numérica de carbohidratos/día o de insulina en ayunas (la fuente da
+  70-100g/día y un objetivo de 2.5 unidades — eso NUNCA se menciona a una familia con un niño/a).
+  Si el Paso 0 menciona insulina en ayunas, es SOLO como "si tienes un examen reciente, compártelo;
+  si no, puedes preguntarle a tu pediatra" — nunca un número objetivo.
+- PROHIBIDO cualquier porcentaje de macronutrientes (la fuente dice "60-80% proteína animal" —
+  eso no se menciona; en cambio, "prioriza proteína de calidad en cada comida", sin número).
+- PROHIBIDO el Pilar 4 de la fuente (ayuno intermitente 12-24h) completo. En su lugar: "ventana de
+  alimentación" — el tiempo entre primera y última comida, que en niños NUNCA debe bajar de 12
+  horas.
+- PALABRAS PROHIBIDAS, aunque aparezcan en la FUENTE: "ayuno", "ayunar", "ayuno nocturno",
+  "autofagia". La fuente las usa porque fue escrita para adultos — tú NO las reproduces, ni
+  citando, ni entre comillas, ni explicando que el SRB las usa. En particular, la frase de la
+  fuente "el ayuno nocturno no es opcional" NUNCA se escribe: lo que se dice en su lugar es que
+  cerrar la alimentación temprano le da al cuerpo la noche para recuperarse. Esto ya se coló en un
+  plan real (21 oct 2026) — el texto literal de la fuente le ganó a esta regla, así que acá queda
+  explícito: cuando la fuente y estas adaptaciones se contradigan, mandan SIEMPRE las adaptaciones.
+- PROHIBIDO el Pilar 5 de la fuente (fuerza estructurada, 7 min de ejercicios, sentadillas/push-ups)
+  — decisión temporal de Peter. El movimiento se trata como juego/actividad que ya disfruta el
+  niño/a, nunca como rutina de ejercicios con minutos o repeticiones.
+- PROHIBIDOS los "6 pasos para restaurar la microbiota" de la fuente (levadura de cerveza cruda,
+  vinagre de manzana en ayunas, queso azul obligatorio) — son protocolos de adulto, no aplican aquí.
+- PROHIBIDO mencionar o aplicar nada de las secciones de BioEmoción, biodescodificación o fase
+  prodrómica — no están en el fragmento de fuente que recibiste, y aunque las conocieras, quedan
+  fuera del plan inicial por decisión de Peter.`;
+
 const FUENTE_SRB_PEDIATRICA = `6.2 Exceso de carbohidratos
 Todos los carbohidratos se convierten en glucosa, que genera inflamación y toxicidad sostenida. El diseño biológico humano no fue concebido para el consumo masivo de granos. El SRB establece un máximo de 70 a 100 g de carbohidratos por día.
 Indicador clave: insulina en ayunas (no glucosa). El objetivo terapéutico del SRB es alcanzar 2.5 unidades (óptimo biológico). Por debajo de 8 es aceptable para iniciar el protocolo. Entre 8 y 12 hay deterioro silencioso activo — el paciente ya está en nivel 3 del espectro aunque los exámenes rutinarios salgan normales. Por encima de 12 hay resistencia a la insulina instalada. La glucosa en sangre no detecta este deterioro — la insulina en ayunas sí.
@@ -702,34 +738,7 @@ ${FUENTE_SRB_PEDIATRICA}
 FIN DE LA FUENTE SRB
 ================================================================
 
-ADAPTACIONES PEDIÁTRICAS OBLIGATORIAS — estas reglas GANAN SIEMPRE sobre el texto de la fuente de
-arriba cuando hay conflicto (el texto de arriba fue escrito para adultos):
-- Suero casero: SIEMPRE empieza en 2 g de sal por litro (nunca los 5-7g que dice la fuente para
-  adultos).
-- PROHIBIDO cualquier meta numérica de carbohidratos/día o de insulina en ayunas (la fuente da
-  70-100g/día y un objetivo de 2.5 unidades — eso NUNCA se menciona a una familia con un niño/a).
-  Si el Paso 0 menciona insulina en ayunas, es SOLO como "si tienes un examen reciente, compártelo;
-  si no, puedes preguntarle a tu pediatra" — nunca un número objetivo.
-- PROHIBIDO cualquier porcentaje de macronutrientes (la fuente dice "60-80% proteína animal" —
-  eso no se menciona; en cambio, "prioriza proteína de calidad en cada comida", sin número).
-- PROHIBIDO el Pilar 4 de la fuente (ayuno intermitente 12-24h) completo. En su lugar: "ventana de
-  alimentación" — el tiempo entre primera y última comida, que en niños NUNCA debe bajar de 12
-  horas.
-- PALABRAS PROHIBIDAS, aunque aparezcan en la FUENTE: "ayuno", "ayunar", "ayuno nocturno",
-  "autofagia". La fuente las usa porque fue escrita para adultos — tú NO las reproduces, ni
-  citando, ni entre comillas, ni explicando que el SRB las usa. En particular, la frase de la
-  fuente "el ayuno nocturno no es opcional" NUNCA se escribe: lo que se dice en su lugar es que
-  cerrar la alimentación temprano le da al cuerpo la noche para recuperarse. Esto ya se coló en un
-  plan real (21 oct 2026) — el texto literal de la fuente le ganó a esta regla, así que acá queda
-  explícito: cuando la fuente y estas adaptaciones se contradigan, mandan SIEMPRE las adaptaciones.
-- PROHIBIDO el Pilar 5 de la fuente (fuerza estructurada, 7 min de ejercicios, sentadillas/push-ups)
-  — decisión temporal de Peter. El movimiento se trata como juego/actividad que ya disfruta el
-  niño/a, nunca como rutina de ejercicios con minutos o repeticiones.
-- PROHIBIDOS los "6 pasos para restaurar la microbiota" de la fuente (levadura de cerveza cruda,
-  vinagre de manzana en ayunas, queso azul obligatorio) — son protocolos de adulto, no aplican aquí.
-- PROHIBIDO mencionar o aplicar nada de las secciones de BioEmoción, biodescodificación o fase
-  prodrómica — no están en el fragmento de fuente que recibiste, y aunque las conocieras, quedan
-  fuera del plan inicial por decisión de Peter.
+${ADAPTACIONES_PEDIATRICAS}
 
 REGLA DE SILENCIO SOBRE MEDICAMENTOS Y REMEDIOS (encontrada en revisión en vivo, 21 oct 2026): si
 el formulario menciona que el niño/a usa o depende de algo que alguien le recetó, recomendó o que
@@ -932,8 +941,8 @@ async function revisarGroundingConModelo(parsed, env) {
       body: JSON.stringify({
         model: "claude-sonnet-4-6",
         max_tokens: 900,
-        system: "Eres un verificador. Recibes (A) el texto fuente del SRB y (B) un borrador de plan. Tu única tarea es listar afirmaciones concretas del borrador que NO estén respaldadas por la fuente: dosis, cantidades, frecuencias, cifras, duraciones o mecanismos clínicos que la fuente no diga. Ignora el estilo, el tono y la estructura. Ignora datos que vengan del formulario de la familia (horarios, nombres, lo que come). Si todo está respaldado, devuelve una lista vacía. Responde SOLO este JSON crudo, sin backticks: {\"sinRespaldo\":[\"afirmación 1\",\"afirmación 2\"]}",
-        messages: [{ role: "user", content: "FUENTE SRB:\n" + FUENTE_SRB_PEDIATRICA + "\n\n---\n\nBORRADOR A VERIFICAR:\n" + borrador }],
+        system: "Eres un verificador. Recibes (A) el texto fuente del SRB, (B) las adaptaciones pediátricas que ANULAN la fuente donde esta habla para adultos, y (C) un borrador de plan. Tu única tarea es listar afirmaciones concretas del borrador que no estén respaldadas NI por la fuente NI por las adaptaciones: dosis, cantidades, frecuencias, cifras, duraciones o mecanismos clínicos que ninguna de las dos diga. REGLA CLAVE: si el borrador sigue una adaptación pediátrica en vez de la fuente, eso es CORRECTO y NO se reporta — por ejemplo 2 g de sal por litro en lugar de 5 a 7, o una ventana de alimentación de 12 horas o más en lugar de 4 a 6. Ignora el estilo, el tono y la estructura. Ignora datos que vengan del formulario de la familia (horarios, nombres, lo que come, lo que el padre reportó). Si todo está respaldado, devuelve una lista vacía. Responde SOLO este JSON crudo, sin backticks: {\"sinRespaldo\":[\"afirmación 1\",\"afirmación 2\"]}",
+        messages: [{ role: "user", content: "(A) FUENTE SRB:\n" + FUENTE_SRB_PEDIATRICA + "\n\n---\n\n(B) ADAPTACIONES PEDIÁTRICAS QUE ANULAN LA FUENTE:\n" + ADAPTACIONES_PEDIATRICAS + "\n\n---\n\n(C) BORRADOR A VERIFICAR:\n" + borrador }],
       }),
     });
     const data = await upstream.json();
