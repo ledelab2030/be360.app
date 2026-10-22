@@ -155,7 +155,7 @@ No hay base de datos propia ni backend con estado — el Sheet **es** la base de
   - **Historial de aprobados**, de solo lectura, con acceso directo al link del plan tal como lo ve el padre — separado de pendientes en una barra lateral, para que Peter no tenga que buscar entre las dos listas mezcladas.
 - **Apps Script extendido** con seis acciones nuevas protegidas por un secreto de panel propio (`PANEL_SECRET`, **distinto** del secreto de escritura del Sheet — el Worker jamás ve ni necesita este último para las rutas de panel): `listar_pendientes`, `listar_historial`, `detalle_plan`, `guardar_edicion_plan`, `aprobar_plan`, `descartar_pendiente`.
 - **Worker extendido** con seis rutas (`/panel/pendientes`, `/panel/historial`, `/panel/detalle`, `/panel/guardar`, `/panel/aprobar`, `/panel/descartar`), cada una un passthrough genérico hacia la acción correspondiente del Apps Script — no requirió ningún secreto nuevo de Cloudflare.
-- **Bug de configuración encontrado y corregido:** la plantilla original tenía un valor de `PANEL_SECRET` de relleno (tipo "CAMBIA-ESTO-por-un-pin...") pensado como instrucción, no como valor real — pero cada vez que se volvía a pegar el archivo completo para desplegar una versión nueva, ese relleno pisaba el PIN real ya configurado por Peter, rompiendo el acceso en silencio. **Decisión permanente:** el código generado desde ahora usa `"1990-I"` como valor por defecto real de `PANEL_SECRET`, documentado en el propio archivo para que nadie vuelva a poner un placeholder ahí.
+- **Bug de configuración encontrado y corregido:** la plantilla original tenía un valor de `PANEL_SECRET` de relleno (tipo "CAMBIA-ESTO-por-un-pin...") pensado como instrucción, no como valor real — pero cada vez que se volvía a pegar el archivo completo para desplegar una versión nueva, ese relleno pisaba el PIN real ya configurado por Peter, rompiendo el acceso en silencio. **Decisión de entonces:** fijar el PIN real como valor por defecto dentro del archivo, para que nadie volviera a poner un placeholder ahí. *(Superada el 23 ago por el PR #68: los secretos salieron del código a PropertiesService, que resuelve el mismo problema sin publicar nada. El PIN que se usaba entonces estuvo escrito en este CHANGELOG —repo público— hasta el 22 oct, y ya fue rotado.)*
 - **Verificación con un panel sintético de 9 personas críticas** (generadas para representar perfiles adversos: desconfianza, apuro, exigencia de un consejo directo saltándose al bot, una señal de riesgo real de trastorno alimentario/autolesión, y una crítica directa del tono) — encontró en la práctica la falla del marcador de escalamiento no confiable (arriba) y sirvió para poblar y probar el panel con casos variados antes de dárselo a Peter. Se limpiaron 3 duplicados generados por un timeout del lado de las pruebas (no del producto) usando la función de descarte recién construida.
 
 ### 9 ago 2026 — Consentimiento formalizado en el producto (PR #34)
@@ -221,6 +221,108 @@ No hay base de datos propia ni backend con estado — el Sheet **es** la base de
 - Si no se confirma en 72 horas, la información capturada se purga automáticamente (`purgarNoVerificados` + trigger programado) — mismo patrón "nunca silencioso" que la purga por inactividad (punto 13 de pendientes), con aviso al equipo por correo.
 - Ruta nueva `/verificar` en el Worker, reutiliza `handlePanelAction` sin secreto nuevo de Cloudflare. **Pendiente antes de operar con familias reales:** reemplazar el código de ejemplo (`BIS2026`) en `CODIGOS_VALIDOS_COLEGIO` por el código real del colegio.
 
+### 13 ago 2026 — Tres correcciones salidas de la primera prueba en vivo con Peter (PRs #55, #56, #57)
+
+- **PR #55 — Hotfix: el panel bloqueaba aprobar TODOS los casos.** Bug en producción encontrado por Leonardo con el caso de Lucas. El panel asumía que el backend siempre manda `verificacionTs`; como el Apps Script nuevo todavía no estaba desplegado, el campo no existía, y `undefined` es falsy igual que `''`. El panel lo leyó como "no verificado" y escondió el botón de aprobar para todos los pendientes, incluidos casos reales. Se arregla distinguiendo "el campo no existe todavía" de "existe y está vacío". **Lección que se repite en este proyecto:** el frontend se publica solo al hacer merge, el Apps Script no — entre los dos hay una ventana donde el sistema corre con mitad nueva y mitad vieja.
+- **PR #56 — El panel escondía el error real.** Peter intentó aprobar el caso de Lucas varias veces y siempre vio "No se pudo aprobar. Reintenta.". El motivo real era correcto y esperado (ese caso nunca pasó por verificación de código), pero el panel descartaba el mensaje del backend en 5 lugares a favor de un texto genérico. Ahora muestra el mensaje real y deja el genérico solo como respaldo.
+- **PR #57 — El correo de plan aprobado ahora trae el plan, no solo el link.** Encontrado en la misma prueba: un correo con solo un enlace se sentía como que "no llegaba el plan". El cuerpo pasa a incluir el mensaje de Vita y los hábitos numerados, respetando los que Peter excluyó.
+
+### 14 ago 2026 — Retos de bienestar, apagados por defecto (PR #58)
+
+Primera porción del add-on de gamificación, diseñado explícitamente para no chocar con los principios del producto: sin ranking, sin racha rota, sin comparación entre familias. Doble opt-in — la sección solo se renderiza si el enlace trae `?retos=1`, y además hay un interruptor interno. Sin la bandera React ni siquiera lo monta, así que un padre curioso mirando el HTML no vería nada.
+
+### 15 ago 2026 — Panel de colegio y los bugs que destapó construirlo (PRs #59, #60, #61, #62, #63, #64)
+
+- **PR #59 — Dashboard de solo agregados para el rector o delegado.** Nunca un caso individual, con umbral de privacidad n≥5 antes de mostrar cualquier desagregado. **El porqué del umbral importa:** en varios colegios el rector también es padre de una familia inscrita y conoce personalmente a las demás. Un agregado de "1 de 3" no es anónimo para esa persona aunque no tenga nombres.
+- **PR #60 — PIN real para el panel de colegio**, reemplazando el placeholder del #59.
+- **PR #61 — Unifica el 401 entre ambos paneles.** El Worker decidía el código HTTP comparando el texto exacto del error, hardcodeado solo para el panel de Peter; cualquier acción nueva con su propio mensaje caía en 400. Se reemplaza por un campo estructurado `unauthorized:true`.
+- **PR #62 — `guardarBorrador` ya no pisa un `id_plan` existente.** Bug real, no cosmético: al crear casos de prueba se llamó `guardar_borrador` mientras la generación automática todavía corría para el mismo `ts`. La segunda llamada generó un `id_plan` nuevo y reseteó `decision`, **borrando en silencio una aprobación ya hecha**.
+- **PRs #63 y #64 — Proyección del panel de colegio (mockup).** Cómo se vería el panel al cabo de un año completo, con las piezas que hoy faltan: adherencia, medido-vs-reportado, kit, feedback de médico externo. Vive en una carpeta aparte, sin ningún `fetch`, imposible de confundir con datos reales. El #64 lo rediseña a una interacción con scrubber de mes en vez de scroll plano.
+
+### 19 ago 2026 — Códigos para la ronda de validación (PRs #65, #66)
+
+Cinco códigos distintos de `BIS2026` a propósito: esas personas no eran necesariamente familias del BIS y no debían contaminar el agregado real del colegio. El #66 agrega `DSB2026` y corrige un error propio — un intento de poner el nombre real de la primera validadora en un comentario. **El repo es público; eso no puede pasar.**
+
+### 23 ago 2026 — Consentimiento de investigación y secretos fuera del código (PRs #67, #68)
+
+- **PR #67 — Casilla separada y opcional para investigación.** Desmarcada por defecto, no condiciona el acceso al plan, nunca menciona IA ni tecnología.
+- **PR #68 — Los 3 secretos salen del código a PropertiesService.** `PANEL_SECRET`, `SHARED_SECRET` y `PANEL_COLEGIO_SECRETS` estaban en texto plano en un repo público, expuestos desde que existían. Efecto colateral bueno: pegar una versión nueva del Apps Script ya no puede pisar el PIN real por accidente. **Nota para el futuro:** `CODIGOS_VALIDOS_COLEGIO` se quedó por fuera de esta migración y siguió expuesto dos meses más — se corrigió recién el 21 oct (PR #91).
+
+> **⟡ Pausa de 16 días (23 ago → 8 sep).** El registro no dice por qué. Lo que sí consta: el trabajo que siguió (PR #69) responde a un pedido que Peter hizo en la reunión del **19 de agosto**, o sea que la petición existía desde antes de la pausa. *Leonardo: completar el motivo real.*
+
+### 8 sep 2026 — Horarios de verdad, no solo menciones (PR #69)
+
+Responde al pedido explícito de Peter en la reunión del 19 de agosto: las recomendaciones le llegaban demasiado genéricas porque el formulario solo garantizaba que se mencionara cada momento del día, no que trajera la hora. `coberturaDia()` pasa a exigir un patrón de hora cerca de cada mención, y distingue "no mencionado" de "mencionado sin hora" — el padre ve la diferencia antes de enviar.
+
+> **⟡ Pausa de 8 días (8 sep → 16 sep).** Motivo no registrado. *Leonardo: completar.*
+
+### 16 sep 2026 — Transparencia con el colegio y el primer intento contra lo genérico (PRs #70, #71)
+
+- **PR #70 — El consentimiento decía algo que ya no era cierto.** Decía "no la compartimos con nadie más", pero desde que existe el panel de colegio sí se comparten agregados anónimos. Se agrega ese punto explícito y se publica `/terminos`.
+- **PR #71 — Bloque de ESPECIFICIDAD en el prompt + modelo a Sonnet 5.** Ataca la queja de Peter de que las recomendaciones salen "muy genéricas", retomada de la reunión del 19 ago. **Este PR causó un daño que tardó dos semanas en descubrirse** — ver PR #75.
+
+### 18 sep 2026 — Menos repetición en el consentimiento (PR #72)
+
+El bloque de investigación repetía casi la misma frase en la caja y en la etiqueta de la casilla. Se condensa.
+
+> **⟡ Pausa de 6 días (18 sep → 24 sep).** Motivo no registrado. *Leonardo: completar.*
+
+### 24 sep 2026 — La lonchera que la familia no controla (PR #73)
+
+Pedido de Peter en la reunión del 16 sept: la merienda escolar es el punto real de fricción, porque la familia no controla lo que vende la cafetería del colegio. La captura ahora pregunta si la lonchera se manda de casa o se compra, y el prompt deja de asumir control directo cuando se compra.
+
+> **⟡ Pausa de 8 días (24 sep → 2 oct).** Motivo no registrado. *Leonardo: completar.*
+
+### 2 oct 2026 — Sesión larga con Peter: 12 PRs en un día (PRs #74 a #86)
+
+El día más denso del proyecto. Casi todo salió de pedidos en vivo durante la sesión.
+
+- **PR #74 — Marcador discreto de versión** (`PR#n · AAMMDD`) en la esquina, para saber qué versión se está probando sin mirar el código.
+- **PR #75 — Se revierte el modelo a `claude-sonnet-4-6`.** Causa raíz encontrada y reproducida: Sonnet 5 gastaba buena parte del límite de 2000 tokens razonando antes de escribir, la respuesta salía truncada, el JSON se rompía y **el borrador nunca se guardaba — el caso quedaba invisible en el panel de Peter, sin ninguna alerta.** Introducido sin querer el 16 sept en el PR #71. Es la primera aparición de un patrón que se repite: *esta parte del sistema falla en silencio por diseño, y por eso los errores aquí tardan semanas en verse.*
+- **PR #76 — `MODO_PRUEBAS`.** Permite a Peter aprobar sin que la familia haya verificado el código de colegio. Pensado para que la sesión en vivo no se trabe esperando a que alguien revise su correo. **Sigue activo.**
+- **PR #77 — El panel tenía su propio bloqueo, además del backend.** Aunque el backend ya no exigía verificación, el frontend ni siquiera mostraba el botón. El backend queda como única fuente de verdad.
+- **PR #78 — Español latinoamericano estándar y mensajes concisos.** Pedido de Peter en vivo.
+- **PR #79 — `coberturaDia` revisaba solo la primera mención.** Encontrado en vivo con el caso de Samuel.
+- **PR #80 — `SRB_PROMPT_VERSION`.** Trazabilidad de los cambios al prompt, distinguiendo los clínicos (que Peter debe ratificar) de los de voz.
+- **PR #81 — Se quita el tope de 20 años.** Investigado y confirmado contra la realidad de extraedad y CLEI en Colombia, donde hay estudiantes matriculados bien entrados los 20.
+- **PR #82 — Se oculta el aviso de código sin verificar** mientras dure `MODO_PRUEBAS`.
+- **PR #83 — Enlace de prueba aparte para el SRB pediátrico v2.** Decisión importante de arquitectura: en vez de cambiar el prompt de producción (que Peter no había aprobado), se crea `vita-demo-formulario-v2/` con el mismo formulario y un `producto` distinto, que selecciona otro prompt. Producción sigue intacta.
+- **PR #84 — El panel muestra la pregunta exacta que vio el padre**, no solo la etiqueta corta.
+- **PR #85 — `FIELDS` se unifica en `shared/formulario-fields.js`**, para que formulario y panel no se desincronicen.
+- **PR #86 — Cada caso guarda su propio snapshot de preguntas.** Así, si mañana cambia un texto del formulario, los casos ya generados siguen mostrando la pregunta que el padre realmente respondió.
+
+> **⟡ Pausa de 19 días (2 oct → 21 oct) — la más larga del proyecto.** Lo que consta: el trabajo se retoma con una reunión grabada con Peter, en dos partes, donde él revisa borradores generados y da retroalimentación clínica. La pausa termina cuando llega esa revisión. *Leonardo: completar si hubo otra razón además de esperar la sesión.*
+
+### 21 oct 2026 — Reunión con Peter, parte 1: el panel y la estructura del plan (PRs #87, #88)
+
+- **PR #87 — Vista dividida en el panel**, formulario a la izquierda y borrador a la derecha, con la ventana de texto más grande. Pedido de Peter en vivo: revisar un caso obligaba a recordar lo que decía el formulario mientras se editaba el plan.
+- **PR #88 — HOTFIX.** El #87 quitó un estado del componente pero dejó una referencia suelta, y **abrir cualquier caso reventaba en producción**. Encontrado leyendo la consola del navegador después de desplegar, corregido en el mismo turno.
+
+### 21-22 oct 2026 — Reunión con Peter, parte 2: el problema de fondo (PRs #89 a #97)
+
+Peter encontró que Vita afirmaba cosas clínicas **que no existen en el SRB** — una dosis de sal, una sugerencia de magnesio y vitamina D. La causa no era que el sistema "buscara en internet" (nunca tuvo esa capacidad): el prompt solo llevaba una paráfrasis del SRB, así que el modelo rellenaba los huecos con su conocimiento general de nutrición, y las citas tipo "(SRB §3)" solo señalaban un tema, no una fuente.
+
+- **PR #89 — SRB pediátrico v4: fuente verbatim.** El texto literal del SRB (secciones 6.2, 6.4, 7, 7.1, 8 y 10.1) pasa a vivir dentro del prompt, con la regla de que nada se afirma si no está ahí, y las adaptaciones pediátricas encima (suero a 2 g/L y no 5-7, sin metas numéricas de carbohidratos ni insulina, sin el pilar de ayuno, sin fuerza estructurada). También: el ROJO del semáforo pasa a ser firme, silencio total sobre medicamentos que reporte el padre, y prohibido celebrar lo que ya está bien. Y la ventana de alimentación deja de confiarse al modelo — escribió "aproximadamente 12 horas" sobre una ventana real de 11h45, redondeando justo para parecer que cumplía.
+- **PR #90 — La generación se muda a una alarma de Durable Object.** Al probar el camino real se descubrió que **el enlace pediátrico nunca generó borradores automáticamente.** Cloudflare cancela las tareas de `ctx.waitUntil` ~30s después de responder, y la generación pediátrica tardaba 38.7s antes y 70.8s con el v4 (medido). La fila se escribía en el Sheet, el borrador nunca se guardaba, y el caso quedaba invisible en el panel. Estuvo tapado porque todos los borradores pediátricos hasta entonces se habían generado con scripts locales.
+- **PR #91 — Se quita la fricción del código de colegio durante `MODO_PRUEBAS`.** Leonardo había pedido quitar esos códigos dos meses antes; reaparecieron al pasar a producción lo que corría local, sin volver a preguntarse si debían existir en esta etapa. El control que sí sirve ya existía: nada se entrega hasta que el equipo apruebe. De paso, los códigos salen del repo público a PropertiesService y se desacoplan del identificador del colegio.
+- **PR #92 — La página del plan era casi ilegible.** El CSS colapsaba los saltos de línea y el markdown salía crudo: 24 asteriscos visibles y cero negritas en la página que abre el padre. El correo llevaba el mismo problema. También se quita `peter@bienestar360.co`, que rebotaba en cada aprobación.
+- **PR #93 — El correo de contacto pasa a `leonardo@ledelab.group`.** El dominio `bienestar360.co` está bloqueado por facturas vencidas, y esa dirección aparecía en el consentimiento como el canal para **pedir borrado de datos**, con promesa de responder en 30 días. Un compromiso sobre datos de menores que no se podía cumplir.
+- **PR #94 — Revisión de textos pantalla por pantalla + guardado en el dispositivo.** El recorrido toma unos 20 minutos en el celular y no guardaba nada: una recarga o un cambio de app borraba todo. Además, la pantalla de bienvenida seguía con el copy original del 5 de agosto, que le pedía algo al padre antes de presentarse.
+- **PR #95 — "Ayuno" se coló en un plan pediátrico.** El borrador de Samuel decía "el ayuno nocturno no es opcional", copiado literal de la fuente embebida en el #89: **el arreglo de las alucinaciones creó esta fuga.** También: el modelo le narraba sus propias reglas al padre ("corrección de ventana: queda por debajo del mínimo de 12 horas").
+- **PRs #96 y #97 — Revisión automática antes de que el borrador llegue al panel.** Dos capas: reglas duras por código (palabras prohibidas, reglas narradas, formato interno, cifras de adulto) que regeneran una vez indicando qué corregir, y un verificador que compara el borrador contra la fuente SRB y señala afirmaciones sin respaldo. Lo que falla se guarda igual, marcado, nunca se descarta. El #97 corrige un error del #96: el verificador marcaba como inventos los 2 g de sal y la ventana de 12h, que son adaptaciones pediátricas deliberadas — habría puesto dos avisos falsos en cada plan y Peter habría dejado de leerlos. En la misma prueba el verificador encontró una invención real: un plan recetaba "pantallas apagadas 45 minutos antes de dormir", y el SRB no menciona pantallas ni sueño en ningún apartado.
+
+---
+
+## Lo que enseña este historial
+
+Tres patrones que se repiten y conviene tener presentes:
+
+1. **Las pausas no son inactividad: son los intervalos entre sesiones clínicas con Peter.** El desarrollo avanza en ráfagas después de cada reunión (19 ago → 8 sep, 16 sept → 24 sept, 2 oct, 21 oct). El cuello de botella del proyecto no ha sido escribir código.
+
+2. **Esta parte del sistema falla en silencio por diseño**, y por eso sus errores tardan semanas en verse. La generación del borrador no alerta a nadie si falla: la fila simplemente se queda sin plan. Así pasaron desapercibidos el truncamiento de Sonnet 5 (16 sept → 2 oct) y la cancelación por `waitUntil` (desde que existe el enlace pediátrico hasta el 21 oct). **Cada vez que se toque la generación, hay que probar el camino real de punta a punta, no solo el prompt.**
+
+3. **El Apps Script se despliega a mano, el resto solo.** Entre un merge y el pegado manual hay una ventana donde el sistema corre con mitad nueva y mitad vieja — eso causó el PR #55 y reapareció varias veces. Cuando un PR toque `worker/apps-script-formulario-v2.gs.txt`, no está terminado hasta que alguien lo pegue y publique una versión nueva.
+
 ---
 
 ## Medidas de seguridad y privacidad (para compliance/auditoría)
@@ -257,7 +359,13 @@ No hay base de datos propia ni backend con estado — el Sheet **es** la base de
     - Borrado total pedido por la familia → se borra todo, sin guardar un stub de auditoría interno salvo autorización explícita.
     - Es una recomendación operativa razonable, no asesoría legal — antes del piloto de 100 familias conviene una revisión rápida con un abogado colombiano (Ley 1581, Habeas Data), dado que son datos de menores.
     - ~~Falta implementar en código~~ **Resuelto 10 ago:** `purgarInactivos`/`purgarInactivosProgramado` en `apps-script-formulario-v2.gs.txt` — borra casos aprobados con 24+ meses sin actividad conocida, manda resumen al equipo por correo. Es un trigger instalable de tiempo (igual patrón que `onAprobado`) — no corre solo hasta que se instale a mano en Activadores, cero riesgo de borrado accidental. El flujo de borrado **por solicitud explícita** de una familia sigue siendo manual (alguien del equipo borra la fila al recibir la solicitud) — no automatizado todavía, pero no es tan urgente como el backstop de inactividad. Detalle: Notion "[be360 — Camino a TRL 9](https://app.notion.com/p/3b77dac3d7cc81928514d61dc2ca1fe9)".
-14. **Verificación de código de colegio construida pero no operativa todavía (PR #53, 10 ago):** el bloqueo, el correo, la purga a 72h y el badge del panel están en `main` y el Worker ya tiene la ruta `/verificar` desplegada — pero el Apps Script sigue corriendo la versión anterior (falta el pegado manual + "Nueva versión", ver convenciones abajo) y `CODIGOS_VALIDOS_COLEGIO` todavía tiene el código de ejemplo `BIS2026`, no el real del colegio. Ninguno de los dos pasos es automatizable por diseño (evita que un agente de IA pueda tocar el código de acceso real de una familia sin que un humano lo revise primero).
+14. ~~Verificación de código de colegio construida pero no operativa todavía (PR #53, 10 ago)~~ **Desactivada a propósito desde el 21 oct (PR #91), ver punto 15.** El Apps Script sí se desplegó, y `CODIGOS_VALIDOS_COLEGIO` ya no vive en el código: salió a PropertiesService y los seis códigos que estuvieron expuestos en el repo público quedaron quemados.
+
+15. **`MODO_PRUEBAS = true` — el control de elegibilidad está apagado (desde el 2 oct, PR #76; ampliado el 21 oct, PR #91).** Mientras el flag siga activo: Peter puede aprobar un plan para **cualquier** correo que se haya escrito en el formulario, verificado o no; no se manda el correo pidiendo el código de colegio; y no corre la purga de 72 h por falta de verificación. Es deliberado para la ronda de validación —las familias invitadas no entran por ningún colegio y pedirles un código sería pedirles algo que no tienen— y el control que sí opera es que **nada se entrega hasta que el equipo apruebe** (`doGet` responde 403 para cualquier caso sin aprobar). **Hay que volverlo a `false` antes del primer colegio con cobro real**, y ese día hay que configurar primero la propiedad `CODIGOS_VALIDOS_COLEGIO` con códigos nuevos (si se pega el script sin configurarla, el mapa queda vacío y nadie puede verificar — falla cerrado, con error propio).
+
+16. **La generación automática del borrador falló en silencio durante semanas, dos veces.** Primero por el cambio de modelo (16 sept → 2 oct, PR #75) y después por el techo de `ctx.waitUntil` en el enlace pediátrico, que nunca generó nada hasta el 21 oct (PR #90). Las dos veces el síntoma fue el mismo: la fila se escribe en el Sheet, el borrador nunca se guarda, el caso queda invisible en el panel y **nadie se entera**, porque `generarBorradorAutomatico` falla en silencio por diseño para no afectar al padre. Hoy la generación corre en una alarma de Durable Object (sin techo de tiempo) y pasa por una revisión automática antes de guardarse (PRs #96, #97), pero **sigue sin existir una alerta cuando un caso se queda sin borrador.** Es el hueco de observabilidad más importante que queda.
+
+17. **Validación con familias reales: todavía no ha empezado.** Todo lo probado hasta hoy son casos de prueba o datos reales de las familias del equipo (los hijos de Leonardo y el caso de Nelly). El flujo completo —formulario en móvil, generación, revisión en el panel, aprobación, correo y página del plan— sí se recorrió de punta a punta el 21-22 oct, encontrando y corrigiendo en el camino los problemas de los PRs #90 a #97. Falta ejecutar la ronda con las familias invitadas. Sigue siendo el gap principal hacia TRL 5, y no es técnico.
 
 ---
 
@@ -268,4 +376,5 @@ No hay base de datos propia ni backend con estado — el Sheet **es** la base de
 - Cambios al Apps Script que agreguen funciones nuevas (como `doGet`) requieren desplegar una **nueva versión** de la implementación, no solo guardar el código — las versiones viejas no ven código agregado después de su despliegue.
 - No compartir la cuenta de Cloudflare completa con un agente de IA — usar tokens de alcance mínimo (Workers Scripts: Edit) y rotarlos después de cada sesión de trabajo si quedaron expuestos en una conversación.
 - **Antes de publicar cualquier archivo con JS embebido, verificar la sintaxis con una herramienta real, no solo revisión visual** — `node --check` para JS plano/Apps Script, transformación con `@babel/standalone` para JSX. Nace de un apagón real de producción (un backtick de estilo markdown dentro de un template literal del prompt rompió el parseo y dejó la página en blanco); desde entonces es un paso obligatorio antes de cada despliegue.
-- **`PANEL_SECRET` en `apps-script-formulario-v2.gs.txt` debe generarse siempre como `"1990-I"`** (el PIN real de Peter), nunca como un placeholder de relleno — un placeholder ahí rompe el acceso al panel en silencio cada vez que se vuelve a pegar el archivo completo para una versión nueva.
+- **Ningún secreto va en este repo, que es público** — ni PINs, ni códigos de colegio, ni tokens, ni siquiera "de ejemplo" ni dentro de un comentario del CHANGELOG. Todos viven en Script Properties del Apps Script o en los secrets de Cloudflare, y los valores se pasan por fuera del repo. (Esta convención antes decía lo contrario: indicaba generar `PANEL_SECRET` con un PIN concreto escrito aquí. Quedó obsoleta con el PR #68, que movió los secretos a PropertiesService, y el PIN que nombraba ya fue rotado — pero estuvo publicado en GitHub mientras tanto, y sigue en el historial de git aunque hoy no aparezca en el archivo.)
+- **Cada PR se registra en este CHANGELOG, en el mismo PR que hace el cambio** — no "después", porque el después no llega: entre el 10 de agosto y el 22 de octubre se acumularon 43 PRs sin registrar y reconstruirlos costó una sesión entera. Una entrada por PR, con qué cambió y **por qué** (qué lo motivó: un bug en producción, un pedido de Peter en tal reunión, una decisión de Leonardo). Si hubo una pausa larga desde el PR anterior, anotarla y decir a qué se debió — las pausas son parte de la historia del proyecto y son lo primero que se olvida.
