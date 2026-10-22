@@ -319,6 +319,16 @@ Importa porque esa conclusión cambia qué hay que destrabar: no la agenda de Pe
 
 Se corrigen los cinco marcadores de pausa (los cuatro que pedían completar el motivo ya lo tienen) y el patrón 1 de la sección de cierre. Queda como recordatorio de método: **una correlación leída de fechas no es una causa, y no debía presentarse como hallazgo sin confirmarla con quien vivió el período.**
 
+### 22 oct 2026 — CLAUDE.md reconciliado con el producto real (PR #100)
+
+El archivo de instrucciones de desarrollo describía un producto que ya no era el que se está construyendo. Apuntaba a `vita-demo-srb-3` como el demo activo, daba el HITL como "en construcción" (lleva meses funcionando), conservaba el rango de 2 a 20 años que se quitó en el PR #81, y hablaba de entrega por WhatsApp y de una arquitectura anterior. Quien llegara nuevo al repo y lo leyera, empezaría en el lugar equivocado.
+
+Lo señaló la reconstrucción del sprint del 22 oct como tarea explícita de este repo. Ahora describe el producto del piloto —formulario, panel, plan, correo—, la arquitectura real incluida la alarma del Durable Object, las reglas duras firmadas con su origen, las convenciones de trabajo, la tabla de despliegue con sus trampas, y el estado con los pendientes que condicionan cómo se trabaja hoy.
+
+Cada afirmación técnica se verificó contra el código antes de escribirla: el modelo en uso, la clase del Durable Object, el 403 de `doGet`, `MODO_PRUEBAS`, el suero a 2 g/L, el v4 marcado experimental, el rango de edad, y que producción y el enlace de validación siguen difiriendo en exactamente cuatro lugares.
+
+---
+
 ---
 
 ## Lo que enseña este historial
