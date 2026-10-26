@@ -576,7 +576,48 @@ arriba cuando hay conflicto (el texto de arriba fue escrito para adultos):
   vinagre de manzana en ayunas, queso azul obligatorio) — son protocolos de adulto, no aplican aquí.
 - PROHIBIDO mencionar o aplicar nada de las secciones de BioEmoción, biodescodificación o fase
   prodrómica — no están en el fragmento de fuente que recibiste, y aunque las conocieras, quedan
-  fuera del plan inicial por decisión de Peter.`;
+  fuera del plan inicial por decisión de Peter.
+- VERDURAS (26 oct 2026, pedido explícito de Peter en reunión con Leo — minuta "Regla de Ensaladas
+  y Verduras"): la fuente NO menciona verduras en la tabla INCLUIR/ELIMINAR, y eso venía generando
+  variación sin criterio. Ahora es explícito: verdura CRUDA o en forma de ensalada — incluyendo
+  pepino, tomate, lechuga, cualquier vegetal fresco — va SIEMPRE en ROJO (por su celulosa
+  indigerible y por residuos de pesticidas, especialmente la "Docena Sucia"; las solanáceas crudas
+  — papa, tomate, pimentón, berenjena — también son ROJO por ser inflamatorias crudas). Verdura BIEN
+  COCIDA, usada EXCLUSIVAMENTE como adobo o para dar sabor a la proteína (nunca como plato aparte ni
+  como base), va en AMARILLO. Las verduras NUNCA van en VERDE.
+- QUESOS — LA EXCEPCIÓN SE ESTRECHA (26 oct 2026, pedido de Peter): la fuente dice "Quesos
+  envejecidos (excepción láctea)" de forma genérica — ESO YA NO APLICA ASÍ. La única excepción real
+  es el queso azul o roquefort (por el Penicillium roqueforti que predigiere los antígenos). NO
+  digas "queso madurado" ni "queso envejecido" como categoría — nombra SIEMPRE "queso azul" o
+  "roquefort" específicamente. Cualquier otro queso (incluidos parmesano, manchego u otros
+  "envejecidos" que la fuente mencionaba) se trata como lácteo no madurado: ROJO. El resto de
+  lácteos no madurados (leche, queso fresco, yogur, lácteos comerciales) sigue ROJO firme — nunca
+  "se reducen poco a poco", se eliminan.
+- CARBOHIDRATOS — SIEMPRE ACOMPAÑANTE (26 oct 2026, pedido de Peter): arroz, lentejas, patacones,
+  arepa y alimentos similares (semáforo AMARILLO) se presentan SIEMPRE como acompañante de la
+  proteína y la grasa — NUNCA como base ni centro del plato, y NUNCA solos ni como merienda aparte.
+  Si un hábito propone uno de estos alimentos, tiene que incluir explícitamente que va "de
+  acompañante", no como plato principal.
+- CHATARRA EXPLÍCITA EN ROJO (26 oct 2026, pedido de Peter): aunque no estén en la tabla original de
+  la fuente, helados y salchipapas van SIEMPRE en ROJO si el formulario los menciona — nunca en
+  amarillo.
+- LONCHERA — REGLA DE ORO (26 oct 2026, pedido de Peter, afina la regla de "lonchera comprada en el
+  colegio" ya vigente): si el niño/a hace sus 3 comidas principales completas, la recomendación por
+  defecto es NO merendar entre comidas — la merienda no es necesaria. Si el formulario deja claro
+  que SÍ hace falta una lonchera o merienda (por horario escolar largo, por ejemplo), la única
+  propuesta válida es nueces (pistacho, marañón) con hidratación de electrolitos — CERO
+  carbohidratos y CERO galletas dulces en la lonchera, sin excepción, por el pico de insulina y el
+  riesgo de generar un hábito de antojo.
+- RITMO Y SUEÑO — REGLA DURA NUEVA, MISMA CIFRA SIN IMPORTAR EDAD (26 oct 2026, decisión explícita de
+  Peter en reunión con Leo, minuta "Horario de Cena y Sueño"): tiene que haber un MÍNIMO DE 3 HORAS
+  entre la hora de la última comida (normalmente la cena) y la hora en que el niño/a se duerme — esta
+  regla NO depende de la edad, es la misma cifra que para adultos. "No comer después de las 6pm" de
+  la fuente es solo el resultado práctico cuando el niño/a se duerme a las 9pm — NO es un horario de
+  reloj fijo para todos los casos: la hora de la última comida se calcula siempre a partir de la hora
+  real de dormir que reportó el formulario (campo "sueno_y_movimiento"), restando 3 horas, nunca
+  menos. Si el formulario no trae una hora de dormir real, no inventes una — usa el campo
+  "horaDormir" en "00:00" para decírselo al sistema, igual que ya haces con la ventana cuando faltan
+  horas (ver más abajo).`;
 
 const FUENTE_SRB_PEDIATRICA = `6.2 Exceso de carbohidratos
 Todos los carbohidratos se convierten en glucosa, que genera inflamación y toxicidad sostenida. El diseño biológico humano no fue concebido para el consumo masivo de granos. El SRB establece un máximo de 70 a 100 g de carbohidratos por día.
@@ -715,6 +756,23 @@ El músculo no es estética — es reserva metabólica, órgano endocrino activo
 //     padre reporte (Peter: eso lo decide quien lo recetó, no nosotros); y
 //     prohibido celebrar o reforzar lo que ya está bien — el plan dice qué
 //     cambia y por qué, no felicita.
+//   v5 (26 oct 2026, reunión de Leo con Peter, revisando el caso de Sofía) —
+//     seis reglas clínicas nuevas, todas en ADAPTACIONES_PEDIATRICAS: verduras
+//     crudas/ensalada SIEMPRE rojo, cocidas-como-adobo amarillo, nunca verde
+//     (antes no estaban ni mencionadas, y se habían colado en verde sin
+//     base); la excepción láctea se estrecha a queso azul/roquefort
+//     específicamente (ya no "queso madurado/envejecido" genérico); los
+//     carbohidratos del semáforo amarillo van SIEMPRE de acompañante, nunca
+//     como base ni solos; helados y salchipapas pasan a rojo explícito;
+//     regla de oro de lonchera (no merendar si hay 3 comidas buenas; si hace
+//     falta, solo nueces + electrolitos, cero carbohidratos); y la regla
+//     dura nueva de mínimo 3 horas entre la última comida y la hora de
+//     dormir, misma cifra sin importar la edad — con su propio campo
+//     "horaDormir" y verificación por código (MIN_HORAS_CENA_DORMIR,
+//     horasAntesDeDormir()), igual que ya existía para la ventana de 12h.
+//     Encontrado en la misma revisión: el plan real de Sofía recomendaba
+//     ensalada/pepino crudo en el mismo documento que los ponía en rojo —
+//     de ahí el chequeo nuevo de "ensalada" en revisarBorradorPediatrico().
 //
 // SOLO se usa cuando producto === "formulario_pediatrico_v2" — el camino de
 // producción normal sigue intacto con SRB_DRAFT_PROMPT. Cuando Peter lo
@@ -828,6 +886,23 @@ CÁLCULO DE LA VENTANA DE ALIMENTACIÓN — esto se ha calculado mal antes, hazl
    campos de reloj de abajo pon exactamente "00:00" en las cuatro posiciones: eso le dice al
    sistema que no había datos, que es distinto de una ventana mal calculada.
 
+HORA DE DORMIR Y LAS 3 HORAS MÍNIMAS ANTES DE DORMIR (26 oct 2026, regla nueva — ver ADAPTACIONES
+PEDIÁTRICAS arriba, "RITMO Y SUEÑO"). Misma lógica de cuidado que el cálculo de la ventana:
+1. Identifica la hora real de dormir que reportó el formulario (viene en el campo que resume sueño y
+   movimiento) — no la confundas con la hora de levantarse.
+2. La hora de la ÚLTIMA COMIDA PROPUESTA tiene que quedar AL MENOS 3 horas antes de esa hora de
+   dormir. Si la hora de la última comida que ibas a proponer por la ventana (punto 3 de arriba)
+   deja menos de 3 horas, muévela más temprano hasta que la diferencia sea de 3 horas o más — sin
+   narrar el ajuste, escribe directamente la versión ya correcta.
+3. Esta regla es independiente de la ventana de 12 horas: cumplir las 12 horas de ventana NO
+   garantiza las 3 horas antes de dormir — verifica las dos por separado.
+4. TAMPOCO SE NARRA: nunca escribas "mínimo de 3 horas", "para cumplir la regla de sueño", ni nada
+   que le explique al padre el cálculo interno — la hora de la cena que escribas en el texto ya debe
+   ser la correcta, sin comentario.
+5. Si el formulario NO trae una hora de dormir real, no la inventes: en el campo "horaDormir" de
+   abajo pon exactamente "00:00" — igual que con la ventana, eso le dice al sistema que faltó el
+   dato, no que el cálculo salió en cero.
+
 SEMÁFORO PERSONALIZADO — encabezados EXACTOS (encontrado en revisión en vivo: el rojo debe sonar
 firme, no "reducir poco a poco"):
 - "🔴 ROJO (eliminar por completo mientras equilibramos tu organismo)"
@@ -853,8 +928,11 @@ Recibirás el formulario capturado en JSON. RESPONDE ÚNICAMENTE con este JSON:
 "mensaje":"<Bloque 2 completo: diagnóstico + Paso 0 si aplica + TE DEJO EL MAPA + pilares + cierre>",
 "habitos":[{"titulo":"<3 a 5 palabras>","texto":"<1-2 frases + referencia SRB entre paréntesis>"}],
 "ventanaActual":{"primeraComida":"<HH:MM>","ultimaComida":"<HH:MM>"},
-"ventanaPropuesta":{"primeraComida":"<HH:MM>","ultimaComida":"<HH:MM>"}}
-Entre 2 y 4 objetos en "habitos".
+"ventanaPropuesta":{"primeraComida":"<HH:MM>","ultimaComida":"<HH:MM>"},
+"horaDormir":"<HH:MM>"}
+Entre 2 y 4 objetos en "habitos". "horaDormir" es la hora real de dormir reportada por el
+formulario (o "00:00" si no hay dato) — se usa para verificar por fuera, con código, que la última
+comida propuesta queda al menos 3 horas antes.
 `;
 
 // Mínimo de horas de la ventana de alimentación en niños (regla pediátrica
@@ -891,6 +969,50 @@ function horasDeVentana(ventana) {
   return diff / 60;
 }
 
+// Mínimo de horas entre la última comida y la hora de dormir — regla dura
+// nueva (26 oct 2026, reunión de Leo con Peter, misma cifra para adultos y
+// niños, ver ADAPTACIONES_PEDIATRICAS "RITMO Y SUEÑO"). Es una regla DISTINTA
+// de MIN_VENTANA_HORAS: esa mide cuánto dura el período comiendo (primera a
+// última comida); esta mide cuánto descansa el cuerpo ANTES de dormir.
+const MIN_HORAS_CENA_DORMIR = 3;
+
+// Calcula las horas entre la última comida propuesta y la hora de dormir, con
+// el mismo criterio que horasDeVentana(): nunca se confía en la resta del
+// modelo, se recalcula acá con los campos de reloj. Devuelve null si falta
+// algún dato (ausencia de dato, no un cálculo real de 0).
+//
+// OJO (encontrado probando esta función antes de desplegarla): a diferencia
+// de la ventana —donde "00:00" en las CUATRO posiciones es el centinela de
+// "sin dato"—, acá "horaDormir" es UN campo independiente que el modelo manda
+// en "00:00" cuando no hay hora de dormir real, sin importar si
+// "ultimaComida" sí tiene un valor real. Comprobar solo "si la resta da 0" no
+// alcanza: "18:00" (comida real) menos "00:00" (sin dato) da 6 horas, no
+// cero, y el chequeo lo tomaría como una hora de dormir real a medianoche.
+// Por eso el centinela se compara explícito contra "00:00", no por el
+// resultado de la resta.
+function horasAntesDeDormir(ventanaPropuesta, horaDormir) {
+  // Centinela explícito de "sin dato" en cualquiera de los dos campos — no
+  // alcanza con comprobar solo horaDormir, el mismo problema aplica al revés
+  // si algún día ventanaPropuesta trae "00:00" con una hora de dormir real.
+  if (horaDormir === "00:00") return null;
+  if (!ventanaPropuesta || ventanaPropuesta.ultimaComida === "00:00") return null;
+  const aMinutos = (hm) => {
+    if (typeof hm !== "string") return null;
+    const m = hm.match(/^(\d{1,2}):(\d{2})$/);
+    if (!m) return null;
+    const h = Number(m[1]), min = Number(m[2]);
+    if (h > 23 || min > 59) return null;
+    return h * 60 + min;
+  };
+  const ultimaComida = aMinutos(ventanaPropuesta && ventanaPropuesta.ultimaComida);
+  const dormir = aMinutos(horaDormir);
+  if (ultimaComida === null || dormir === null) return null;
+  let diff = dormir - ultimaComida;
+  if (diff < 0) diff += 24 * 60; // la hora de dormir cae "después" de medianoche en el reloj de 24h
+  if (diff === 0) return null; // ultimaComida también en "00:00" = sin dato, no una resta real de 0
+  return diff / 60;
+}
+
 // REVISIÓN AUTOMÁTICA DEL BORRADOR (21 oct 2026, pedido de Leonardo) — corre
 // entre generar y guardar, para que los errores no lleguen al panel de Peter.
 // Antes esto no era posible: la generación vivía en ctx.waitUntil, con ~30s de
@@ -922,6 +1044,17 @@ function revisarBorradorPediatrico(parsed) {
   // Cifras del SRB de adultos que nunca van en un plan de niños.
   revisar(/1[.,]5 ?g|70 ?a ?100 ?g|60-80 ?%|2[.,]5 unidades|5 ?a ?7 ?g/i, "cifra del SRB de adultos");
   revisar(/medicament|jarabe|pomada|vaporub|suplement/i, "menciona un medicamento o remedio");
+  // Reglas nuevas de la reunión del 26 oct 2026 (minuta de Leo con Peter).
+  // "Queso madurado/envejecido" como categoría genérica ya no es la excepción
+  // láctea — solo queso azul/roquefort lo es (ver ADAPTACIONES_PEDIATRICAS,
+  // "QUESOS — LA EXCEPCIÓN SE ESTRECHA"). Si el borrador usa el término
+  // genérico, probablemente heredó la frase vieja de la FUENTE SRB tal cual.
+  revisar(/queso\s+madurad[oa]|quesos?\s+envejecid[oa]s?/i, "usa \"queso madurado/envejecido\" genérico — la excepción ya es solo queso azul/roquefort");
+  // "Ensalada" es, por definición, verdura cruda — con la regla nueva de
+  // verduras (SIEMPRE rojo en crudo) no debería aparecer como recomendación en
+  // un plan pediátrico. Encontrado en el plan real de Sofía (26 oct 2026,
+  // corregido a mano por Leo porque se le había colado).
+  revisar(/\bensalada\b/i, "menciona ensalada (verdura cruda — la regla nueva la pone en rojo)");
   return problemas;
 }
 
@@ -1044,6 +1177,17 @@ async function generarBorradorAutomatico(dx, ts, env, producto) {
           fallos.push("la ventana propuesta queda en " + hh + "h" + String(mm).padStart(2, "0") +
             " (de " + p.ventanaPropuesta.primeraComida + " a " + p.ventanaPropuesta.ultimaComida +
             "), por debajo del mínimo de " + MIN_VENTANA_HORAS + " horas para niños");
+        }
+        // Regla nueva (26 oct 2026): mínimo 3 horas entre la última comida y
+        // la hora de dormir — independiente de la ventana de arriba. Igual
+        // que horasDeVentana, null = sin dato (no se reporta como fallo, el
+        // propio texto ya le dice al padre qué falta).
+        const hd = horasAntesDeDormir(p.ventanaPropuesta, p.horaDormir);
+        if (hd !== null && hd < MIN_HORAS_CENA_DORMIR) {
+          const hh = Math.floor(hd), mm = Math.round((hd - hh) * 60);
+          fallos.push("quedan " + hh + "h" + String(mm).padStart(2, "0") + " entre la última comida (" +
+            p.ventanaPropuesta.ultimaComida + ") y la hora de dormir (" + p.horaDormir +
+            "), por debajo del mínimo de " + MIN_HORAS_CENA_DORMIR + " horas");
         }
         return fallos;
       };
