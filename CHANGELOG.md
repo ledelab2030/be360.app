@@ -361,6 +361,28 @@ Minuta completa de la reunión en `pruebas/` (repo privado). Peter revisó el bo
 
 **Pendiente tras el merge:** desplegar el Worker (`wrangler deploy` desde `worker/`, parado en `main` actualizado) — el frontend publica solo vía GitHub Pages, pero el Worker no, y las reglas nuevas no toman efecto en producción hasta ese paso manual.
 
+### 26 oct 2026 — El PR #102 se desplegó, se probó con un caso real, y la prueba encontró un error real de dirección en la ventana de alimentación que llevaba viva desde el 21 de octubre (PR #103)
+
+**Despliegue y prueba real.** Tras mergear el #102, se corrió `wrangler deploy` (Version ID `b3cc882e-2ae7-4b40-919b-12dd8647aa3c`) y, a pedido de Leonardo, se llenó un caso de prueba real en `vita-demo-formulario-v2/` (producción, no local) diseñado para disparar cada regla nueva: ensalada cruda, queso parmesano, helado, lonchera con galletas, y una cena a 1h30 de la hora de dormir. Leonardo revisó el resultado en `panel/index.html` (el agente no tiene el PIN) y confirmó las seis reglas funcionando — incluida la autocorrección en vivo: el borrador movió la cena de 7:30pm a 6:00pm para cumplir las 3 horas antes de dormir (9pm). La revisión automática marcó además "la ventana queda en 11h30, por debajo del mínimo de 12 horas" — un aviso que resultó ser el síntoma de un bug, no un caso real a resolver (ver más abajo).
+
+**El bug: la ventana de alimentación estaba al revés desde el 21 de octubre (PR #89).** Leonardo lo detectó al revisar ese aviso: la ventana de alimentación (primera a última comida) **es un máximo de 12 horas, no un mínimo** — el código y el prompt decían justo lo contrario desde hace cinco días, sin que nadie lo hubiera notado porque ningún caso de prueba anterior había quedado tan cerca del límite. Dicho desde el otro extremo del día (es la misma regla): el espacio entre la última comida de hoy y la primera de mañana debe ser de al menos 12 horas — si el día se repite, ventana ≤ 12h equivale exactamente a espacio nocturno ≥ 12h. Con la dirección corregida, la tensión que parecía existir entre esta regla y la de las 3 horas antes de dormir (PR #102) desaparece por completo: las dos reglas limitan la última comida por el mismo lado (que no sea tarde), nunca pueden pedir cosas incompatibles.
+
+**Cambios en `worker/vita-proxy.js`:**
+- `MIN_VENTANA_HORAS` (rechazaba ventanas *cortas*) se renombra a `MAX_VENTANA_HORAS` y el chequeo en `evaluar()` se invierte: ahora rechaza ventanas que *superan* las 12 horas, no las que quedan por debajo.
+- El párrafo de `ADAPTACIONES_PEDIATRICAS` que introdujo la regla originalmente (21 oct) y toda la sección "CÁLCULO DE LA VENTANA DE ALIMENTACIÓN" del prompt (instrucciones de redondeo, de hacia qué lado mover la última comida, y las frases prohibidas de narración) se reescriben con la dirección correcta.
+- El verificador de grounding (el que compara el borrador contra la fuente) también decía "ventana de 12 horas o más es correcto" — se corrige a "o menos", si no habría empezado a marcar como invención justo los borradores que ahora sí cumplen la regla real.
+- `revisarBorradorPediatrico()`: el regex que detecta narración interna ("mínimo de 12 horas", "por debajo del mínimo"...) se amplía con las variantes "máximo"/"por encima del máximo", porque ahora el riesgo de narración corre en la otra dirección.
+
+**Los 5 pendientes del punto 1 de la minuta del 26 oct ("Ajustes al prompt de Vita"), que se habían quedado sin implementar en el PR #102 — encontrado porque Leonardo volvió a preguntar por ellos, no porque el agente los recordara solo:**
+- **Ocultar referencias internas / eliminar muletillas "Según el SRB":** la sección TRAZABILIDAD del prompt pedía literalmente lo contrario — citar "(SRB — ...)" al final de cada hábito. Se invierte: la trazabilidad sigue siendo un chequeo interno obligatorio (nada se escribe sin poder señalar de dónde sale), pero la cita nunca llega al texto que ve el padre. Se agrega un chequeo nuevo en `revisarBorradorPediatrico()` que detecta "(SRB —", "según el SRB" o la palabra "SRB" sola en el texto visible.
+- **Instrucciones prácticas de medición:** nueva regla en `ADAPTACIONES_PEDIATRICAS` pidiendo formas concretas de explicar los 2 g de sal por litro (sobre de 1g de Makro, cuchara medidora, gramera de cocina) en vez de "una pizca generosa".
+- **Limón "al gusto":** nueva regla explícita — a diferencia de la sal (siempre medida), el limón del suero casero no lleva cantidad fija.
+- **Tono consultivo en el seguimiento (`plan/index.html`):** el mensaje que abre la conversación de seguimiento preguntaba directamente "cómo les ha ido con alguno de los hábitos" — exactamente el tono proactivo/invasivo que la minuta pidió evitar. Se cambia a un saludo consultivo ("¿en qué te puedo ayudar?"), dejando que el padre/madre lleve la conversación. Se refuerza también en la sección `# TONO` del prompt de seguimiento.
+
+**Verificación:** `node --check worker/vita-proxy.js`; `plan/index.html` verificado vía Babel en navegador real (servidor local) sin errores de sintaxis; pruebas unitarias standalone de `horasDeVentana()`/`MAX_VENTANA_HORAS` con los números reales del caso de prueba (11h30 ahora cumple, antes violaba) y del regex nuevo de referencias al SRB (sin falsos positivos contra "Sistema de Reversión Biológica" escrito completo).
+
+**También corregido (no es código):** `design-sprint/docs/reglas_duras_srb.md` (addendum I) y el borrador local del documento de referencia pediátrico (`pruebas/2026.10.26-srb-pediatrico-v6-borrador-local.md`, repo privado, todavía sin publicar a Drive) — ambos tenían la misma dirección equivocada de la ventana y la misma omisión del limón, y se corrigen igual.
+
 ---
 
 ---
