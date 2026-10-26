@@ -560,8 +560,14 @@ arriba cuando hay conflicto (el texto de arriba fue escrito para adultos):
 - PROHIBIDO cualquier porcentaje de macronutrientes (la fuente dice "60-80% proteína animal" —
   eso no se menciona; en cambio, "prioriza proteína de calidad en cada comida", sin número).
 - PROHIBIDO el Pilar 4 de la fuente (ayuno intermitente 12-24h) completo. En su lugar: "ventana de
-  alimentación" — el tiempo entre primera y última comida, que en niños NUNCA debe bajar de 12
-  horas.
+  alimentación" — el tiempo entre primera y última comida, que en niños NUNCA debe superar las 12
+  horas. CORREGIDO (26 oct 2026, Leonardo detectó que esto estaba al revés desde el 21 oct): no es
+  un mínimo, es un MÁXIMO — la ventana de alimentación larga es lo que el SRB de adultos restringe
+  con el ayuno; en niños no se restringe la ventana hacia abajo, se limita hacia arriba, igual que
+  para adultos. Dicho desde el otro extremo del día (son la misma regla): el espacio entre la última
+  comida de hoy y la primera comida de mañana debe ser de AL MENOS 12 horas — si el patrón del día se
+  repite, ventana ≤ 12h equivale exactamente a espacio nocturno ≥ 12h (son complementarias dentro de
+  las 24h). Ver MAX_VENTANA_HORAS en el código más abajo.
 - PALABRAS PROHIBIDAS, aunque aparezcan en la FUENTE: "ayuno", "ayunar", "ayuno nocturno",
   "autofagia". La fuente las usa porque fue escrita para adultos — tú NO las reproduces, ni
   citando, ni entre comillas, ni explicando que el SRB las usa. En particular, la frase de la
@@ -617,7 +623,16 @@ arriba cuando hay conflicto (el texto de arriba fue escrito para adultos):
   real de dormir que reportó el formulario (campo "sueno_y_movimiento"), restando 3 horas, nunca
   menos. Si el formulario no trae una hora de dormir real, no inventes una — usa el campo
   "horaDormir" en "00:00" para decírselo al sistema, igual que ya haces con la ventana cuando faltan
-  horas (ver más abajo).`;
+  horas (ver más abajo).
+- MEDICIÓN CONCRETA DE LA SAL (26 oct 2026, pedido de Peter — minuta "Instrucciones prácticas de
+  medición"): nunca expliques los 2 g de sal por litro con frases ambiguas como "una pizca generosa".
+  Da una forma concreta y aterrizada a la cultura local de medirlo — elige la que mejor encaje en la
+  frase, no hace falta mencionar las tres siempre: un sobre de 1 gramo (se consiguen en Makro), una
+  cuchara medidora, o una gramera de cocina (1 litro de agua x 2 gramos de sal).
+- LIMÓN "AL GUSTO" (26 oct 2026, pedido de Peter — minuta "Aclaración sobre el limón"): a diferencia
+  de la sal, que siempre es una cantidad medida (2 g/L), el jugo de limón del suero casero NO lleva
+  cantidad fija. Nunca escribas "1 unidad de limón" ni ningún número para el limón — es al gusto de
+  cada quien.`;
 
 const FUENTE_SRB_PEDIATRICA = `6.2 Exceso de carbohidratos
 Todos los carbohidratos se convierten en glucosa, que genera inflamación y toxicidad sostenida. El diseño biológico humano no fue concebido para el consumo masivo de granos. El SRB establece un máximo de 70 a 100 g de carbohidratos por día.
@@ -856,24 +871,27 @@ BLOQUE 2 — PROPUESTA:
 4. Cierre: "Hábitos y ventana nutricional propuesta" — mismo formato de viñetas del Bloque 1, con
    los ajustes ya incorporados.
 
-CÁLCULO DE LA VENTANA DE ALIMENTACIÓN — esto se ha calculado mal antes, hazlo con cuidado:
+CÁLCULO DE LA VENTANA DE ALIMENTACIÓN — esto se ha calculado mal antes, hazlo con cuidado. CORREGIDO
+(26 oct 2026, Leonardo detectó que esta sección llevaba la dirección al revés desde el 21 oct): la
+ventana de alimentación (primera a última comida) es un MÁXIMO de 12 horas, no un mínimo — dicho
+desde el otro extremo del día, el espacio entre la última comida de hoy y la primera de mañana debe
+ser de AL MENOS 12 horas (misma regla, los dos extremos del día son complementarios dentro de 24h):
 1. Identifica la hora de la PRIMERA comida y la hora de la ÚLTIMA comida, usando las horas que el
    propio formulario reporta (no inventes ni redondees antes de restar).
 2. Resta en horas y minutos reales. Ejemplo de cómo hacerlo: primera comida 6:45 am, última comida
    6:30 pm → de 6:45 am a 6:45 pm son 12h00, y de 6:45 pm a 6:30 pm se restan 15 min más → la
-   ventana real es 11h45, NO "aproximadamente 12 horas". Redondear hacia arriba para que el número
-   parezca cumplir la regla de abajo está PROHIBIDO — si el cálculo da 11h45, escribe 11h45.
-3. La ventana PROPUESTA nunca puede quedar por debajo de 12 horas. Para no quedar justo en el
-   límite por un error de redondeo, apunta a que la ventana propuesta quede entre 12 y 13 horas, no
-   exactamente en 12. Si mover la última comida más temprano haría que la ventana bajara de 12
-   horas, NO la muevas más temprano — deja la hora de la última comida donde ya estaba (o incluso
-   más tarde que la hora de la primera comida más 12h) y ajusta solo el contenido (qué se come), no
-   el horario, para ganar margen de sobra.
+   ventana real es 11h45, NO "aproximadamente 12 horas". Redondear hacia abajo para que el número
+   parezca cumplir la regla de abajo está PROHIBIDO — si el cálculo da 12h15, escribe 12h15 (y eso
+   SÍ es una violación, ver punto 3).
+3. La ventana PROPUESTA nunca puede SUPERAR las 12 horas. Para no quedar justo en el límite por un
+   error de redondeo, apunta a que la ventana propuesta quede entre 11 y 12 horas, no exactamente en
+   12. Si la ventana actual ya supera las 12 horas, mueve la última comida MÁS TEMPRANO (nunca más
+   tarde) hasta que quede en 12 horas o menos, y ajusta el contenido si hace falta.
 4. Antes de escribir el número final de cualquiera de las dos ventanas (actual o propuesta),
    recalcula la resta una segunda vez y confirma que el número que vas a escribir coincide con las
    horas que tú mismo enumeraste en las viñetas — no copies un número de un ejemplo ni de memoria.
 5. TODO ESTE CÁLCULO ES INTERNO Y NO SE NARRA. El padre nunca ve la regla ni tu razonamiento:
-   prohibido escribir "el mínimo de 12 horas", "queda por debajo del mínimo", "corrección de
+   prohibido escribir "el máximo de 12 horas", "queda por encima del máximo", "corrección de
    ventana", "la propuesta final es", "margen seguro", o cualquier frase donde te corrijas a ti
    mismo a la vista. Si al calcular te das cuenta de que la hora que ibas a proponer no sirve,
    CAMBIA la hora antes de escribir y escribe una sola versión, ya correcta. Que no queden dos
@@ -891,11 +909,14 @@ PEDIÁTRICAS arriba, "RITMO Y SUEÑO"). Misma lógica de cuidado que el cálculo
 1. Identifica la hora real de dormir que reportó el formulario (viene en el campo que resume sueño y
    movimiento) — no la confundas con la hora de levantarse.
 2. La hora de la ÚLTIMA COMIDA PROPUESTA tiene que quedar AL MENOS 3 horas antes de esa hora de
-   dormir. Si la hora de la última comida que ibas a proponer por la ventana (punto 3 de arriba)
-   deja menos de 3 horas, muévela más temprano hasta que la diferencia sea de 3 horas o más — sin
-   narrar el ajuste, escribe directamente la versión ya correcta.
-3. Esta regla es independiente de la ventana de 12 horas: cumplir las 12 horas de ventana NO
-   garantiza las 3 horas antes de dormir — verifica las dos por separado.
+   dormir. Si la hora de la última comida que ibas a proponer deja menos de 3 horas, muévela más
+   temprano hasta que la diferencia sea de 3 horas o más — sin narrar el ajuste, escribe directamente
+   la versión ya correcta. Como la ventana ahora es un MÁXIMO (punto anterior), mover la última
+   comida más temprano para cumplir esta regla nunca entra en conflicto con la ventana: las dos
+   reglas limitan la última comida por el mismo lado (que no sea demasiado tarde), así que basta con
+   la hora más temprana que exijan las dos juntas.
+3. Verifica las dos reglas por separado aunque limiten en el mismo sentido — cumplir una no garantiza
+   la otra automáticamente para cualquier combinación de horas.
 4. TAMPOCO SE NARRA: nunca escribas "mínimo de 3 horas", "para cumplir la regla de sueño", ni nada
    que le explique al padre el cálculo interno — la hora de la cena que escribas en el texto ya debe
    ser la correcta, sin comentario.
@@ -911,9 +932,15 @@ firme, no "reducir poco a poco"):
 Debajo de cada uno, ancla los alimentos de la FUENTE SRB a la señal concreta que el padre reportó —
 nunca "no eliminar de golpe" ni ninguna otra frase que suavice el rojo.
 
-TRAZABILIDAD — cada hábito trae, entre paréntesis al final, de qué parte específica de la FUENTE
-SRB sale (ej. "(SRB — hidratación, suero casero isotónico)"). Si no puedes señalar de dónde sale
-una frase, bórrala — no la incluyas "porque suena bien".
+TRAZABILIDAD — SOLO PARA TI, NUNCA VISIBLE AL PADRE (26 oct 2026, pedido de Peter — minuta "Ocultar
+referencias internas" y "Eliminar muletillas del SRB"): cada hábito que escribas tiene que poder
+rastrearse a algo explícito de la FUENTE SRB o de las ADAPTACIONES de arriba — si no puedes señalar
+de dónde sale una frase, bórrala, no la incluyas "porque suena bien". Esa trazabilidad es un chequeo
+INTERNO tuyo, para que nada se invente — el padre NUNCA debe ver la cita. PROHIBIDO escribir
+"(SRB — ...)", "según el SRB", "el SRB dice", "la fuente indica", "el SRB establece" ni ninguna otra
+forma de nombrar al SRB, "la fuente" o un documento dentro del "mensaje" o el texto de los
+"habitos". En vez de citar, abre la frase con la idea misma — "Una dieta con exceso de carbohidratos
+genera..." en lugar de "Según el SRB, una dieta con exceso de carbohidratos genera...".
 
 IMPORTANTE: responde SOLO el JSON crudo, sin backticks ni la palabra json alrededor. Dentro de los
 textos, nunca uses comillas dobles para citar o enfatizar algo (usa comillas simples o ninguna).
@@ -926,7 +953,7 @@ eso tienen que coincidir exactamente con las horas que escribiste en las viñeta
 Recibirás el formulario capturado en JSON. RESPONDE ÚNICAMENTE con este JSON:
 {"resumenCronologico":"<Bloque 1>",
 "mensaje":"<Bloque 2 completo: diagnóstico + Paso 0 si aplica + TE DEJO EL MAPA + pilares + cierre>",
-"habitos":[{"titulo":"<3 a 5 palabras>","texto":"<1-2 frases + referencia SRB entre paréntesis>"}],
+"habitos":[{"titulo":"<3 a 5 palabras>","texto":"<1-2 frases, SIN cita ni mención del SRB/la fuente — ver TRAZABILIDAD arriba>"}],
 "ventanaActual":{"primeraComida":"<HH:MM>","ultimaComida":"<HH:MM>"},
 "ventanaPropuesta":{"primeraComida":"<HH:MM>","ultimaComida":"<HH:MM>"},
 "horaDormir":"<HH:MM>"}
@@ -935,9 +962,16 @@ formulario (o "00:00" si no hay dato) — se usa para verificar por fuera, con c
 comida propuesta queda al menos 3 horas antes.
 `;
 
-// Mínimo de horas de la ventana de alimentación en niños (regla pediátrica
-// dura: la ventana propuesta nunca puede quedar por debajo de esto).
-const MIN_VENTANA_HORAS = 12;
+// Máximo de horas de la ventana de alimentación en niños (regla pediátrica
+// dura: la ventana propuesta nunca puede superar esto). CORREGIDO (26 oct
+// 2026, Leonardo): esta constante se llamaba MIN_VENTANA_HORAS y el chequeo
+// de abajo rechazaba ventanas CORTAS — exactamente al revés. La ventana de
+// alimentación (primera a última comida) es un máximo, no un mínimo; dicho
+// desde el otro extremo del día, el espacio entre la última comida de hoy y
+// la primera de mañana es el que debe ser de al menos 12 horas — misma regla,
+// vista desde el otro lado (ventana ≤ 12h equivale a espacio nocturno ≥ 12h
+// si el día se repite). Estuvo así desde el 21 oct sin que nadie lo notara.
+const MAX_VENTANA_HORAS = 12;
 
 // Calcula la ventana en horas a partir de los campos "HH:MM" que el prompt v4
 // pide aparte del texto. Existe porque el modelo se equivocó restando horas
@@ -972,8 +1006,12 @@ function horasDeVentana(ventana) {
 // Mínimo de horas entre la última comida y la hora de dormir — regla dura
 // nueva (26 oct 2026, reunión de Leo con Peter, misma cifra para adultos y
 // niños, ver ADAPTACIONES_PEDIATRICAS "RITMO Y SUEÑO"). Es una regla DISTINTA
-// de MIN_VENTANA_HORAS: esa mide cuánto dura el período comiendo (primera a
-// última comida); esta mide cuánto descansa el cuerpo ANTES de dormir.
+// de MAX_VENTANA_HORAS: esa mide cuánto dura el período comiendo (primera a
+// última comida); esta mide cuánto descansa el cuerpo ANTES de dormir. Las
+// dos limitan la última comida por el mismo lado (que no sea tarde), así que
+// nunca entran en conflicto entre sí — a diferencia de como estaba antes de
+// corregir MAX_VENTANA_HORAS, cuando una pedía un mínimo y la otra un máximo
+// y podían pedir cosas incompatibles para un desayuno temprano.
 const MIN_HORAS_CENA_DORMIR = 3;
 
 // Calcula las horas entre la última comida propuesta y la hora de dormir, con
@@ -1032,7 +1070,15 @@ function revisarBorradorPediatrico(parsed) {
   // pregunta por insulina en ayunas), por eso no se usa \bayun para todo.
   revisar(/\bayunos?\b|\bayunar\b|\bautofagia\b/i, "palabra prohibida en pediatría");
   // El modelo narró su propia regla de la ventana dentro del plan del padre.
-  revisar(/mínimo de 12 horas|por debajo del mínimo|corrección de ventana|propuesta final|margen seguro|margen mínimo/i, "le narra al padre una regla interna");
+  // Incluye las variantes "máximo" (26 oct 2026, desde que la ventana pasó de
+  // mínimo a máximo de 12h) junto a las de "mínimo" que ya existían.
+  revisar(/mínimo de 12 horas|máximo de 12 horas|por debajo del mínimo|por encima del máximo|corrección de ventana|propuesta final|margen seguro|margen mínimo|margen máximo/i, "le narra al padre una regla interna");
+  // Referencias internas al SRB visibles al padre — prohibido desde el 26 oct
+  // 2026 (minuta "Ocultar referencias internas" / "Eliminar muletillas del
+  // SRB"). Antes el prompt pedía justo lo contrario (citar "(SRB — ...)" al
+  // final de cada hábito), así que es fácil que un borrador viejo o un
+  // reintento herede la cita.
+  revisar(/\(srb\s*[—-]|según el srb|el srb dice|el srb establece|la fuente indica|\bsrb\b/i, "menciona el SRB o cita la fuente en el texto visible al padre");
   // "primera comida 06:00, última comida 19:00 → 13 horas" (caso de Sofía):
   // formato de campo interno, no lenguaje de padre. Se detectan las horas que
   // solo existen en reloj de 24h —00:00 a 09:59 con cero adelante, y 13:00 en
@@ -1074,7 +1120,7 @@ async function revisarGroundingConModelo(parsed, env) {
       body: JSON.stringify({
         model: "claude-sonnet-4-6",
         max_tokens: 900,
-        system: "Eres un verificador. Recibes (A) el texto fuente del SRB, (B) las adaptaciones pediátricas que ANULAN la fuente donde esta habla para adultos, y (C) un borrador de plan. Tu única tarea es listar afirmaciones concretas del borrador que no estén respaldadas NI por la fuente NI por las adaptaciones: dosis, cantidades, frecuencias, cifras, duraciones o mecanismos clínicos que ninguna de las dos diga. REGLA CLAVE: si el borrador sigue una adaptación pediátrica en vez de la fuente, eso es CORRECTO y NO se reporta — por ejemplo 2 g de sal por litro en lugar de 5 a 7, o una ventana de alimentación de 12 horas o más en lugar de 4 a 6. Ignora el estilo, el tono y la estructura. Ignora datos que vengan del formulario de la familia (horarios, nombres, lo que come, lo que el padre reportó). Si todo está respaldado, devuelve una lista vacía. Responde SOLO este JSON crudo, sin backticks: {\"sinRespaldo\":[\"afirmación 1\",\"afirmación 2\"]}",
+        system: "Eres un verificador. Recibes (A) el texto fuente del SRB, (B) las adaptaciones pediátricas que ANULAN la fuente donde esta habla para adultos, y (C) un borrador de plan. Tu única tarea es listar afirmaciones concretas del borrador que no estén respaldadas NI por la fuente NI por las adaptaciones: dosis, cantidades, frecuencias, cifras, duraciones o mecanismos clínicos que ninguna de las dos diga. REGLA CLAVE: si el borrador sigue una adaptación pediátrica en vez de la fuente, eso es CORRECTO y NO se reporta — por ejemplo 2 g de sal por litro en lugar de 5 a 7, o una ventana de alimentación de 12 horas o menos en lugar de 4 a 6. Ignora el estilo, el tono y la estructura. Ignora datos que vengan del formulario de la familia (horarios, nombres, lo que come, lo que el padre reportó). Si todo está respaldado, devuelve una lista vacía. Responde SOLO este JSON crudo, sin backticks: {\"sinRespaldo\":[\"afirmación 1\",\"afirmación 2\"]}",
         messages: [{ role: "user", content: "(A) FUENTE SRB:\n" + FUENTE_SRB_PEDIATRICA + "\n\n---\n\n(B) ADAPTACIONES PEDIÁTRICAS QUE ANULAN LA FUENTE:\n" + ADAPTACIONES_PEDIATRICAS + "\n\n---\n\n(C) BORRADOR A VERIFICAR:\n" + borrador }],
       }),
     });
@@ -1172,11 +1218,11 @@ async function generarBorradorAutomatico(dx, ts, env, producto) {
         // traía horas y el prompt manda "00:00" para decirlo). Eso no es un
         // error: el propio texto le explica al padre qué hora falta.
         const h = horasDeVentana(p.ventanaPropuesta);
-        if (h !== null && h < MIN_VENTANA_HORAS) {
+        if (h !== null && h > MAX_VENTANA_HORAS) {
           const hh = Math.floor(h), mm = Math.round((h - hh) * 60);
           fallos.push("la ventana propuesta queda en " + hh + "h" + String(mm).padStart(2, "0") +
             " (de " + p.ventanaPropuesta.primeraComida + " a " + p.ventanaPropuesta.ultimaComida +
-            "), por debajo del mínimo de " + MIN_VENTANA_HORAS + " horas para niños");
+            "), por encima del máximo de " + MAX_VENTANA_HORAS + " horas para niños");
         }
         // Regla nueva (26 oct 2026): mínimo 3 horas entre la última comida y
         // la hora de dormir — independiente de la ventana de arriba. Igual

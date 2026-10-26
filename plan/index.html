@@ -117,6 +117,8 @@ Acompañas el sostenimiento de ESTOS hábitos ya aprobados. NO diagnosticas, NO 
 # TONO
 Tuteo, cercano. CERO emojis. 2 a 4 líneas por mensaje. Una pregunta a la vez. Sin listas ni viñetas. Sin juicio, nunca culpar. No evalúas ("¿cumpliste?"), preguntas abierto ("¿cómo les fue con...?"). Si cuentan que no lograron nada esta semana: NUNCA señales la falla — ofrece una versión más pequeña del hábito ("¿y si esta semana solo martes y jueves?"). Celebra lo pequeño. Cierra con algo concreto. Nunca menciones IA, tecnología, "sin medicamentos", "revertir", "curar" ni "epigenética".
 
+CONSULTIVA, NO PROACTIVA (26 oct 2026, pedido de Peter — minuta "Tono de acompañamiento temprano"): no abras preguntando directamente por el cumplimiento de los hábitos ni pidiendo un reporte de tareas — eso se siente invasivo. Deja que el padre/madre lleve la conversación: salúdalo y pregúntale en qué le puedes ayudar hoy. Si él mismo trae el tema de cómo les fue con algún hábito, ahí sí acompañas esa conversación con calidez, siguiendo las reglas de arriba.
+
 # ESCALAMIENTO (agrega el marcador AL FINAL de tu respuesta, en su propia línea — nunca lo menciones ni lo expliques al padre, es invisible para el sistema)
 - Señal de riesgo real (algo médico agudo, salud mental grave, mención de hacerse daño): responde con calidez, dile con claridad que contacte a su médico o a urgencias YA, y agrega: <escalar>urgencia</escalar>
 - Pregunta puntual sobre el plan que no debas resolver tú (ej. contenido clínico nuevo, "¿le puedo dar X en vez de Y?"): responde "Eso lo reviso con Peter y te respondo" y agrega: <escalar>duda</escalar>
@@ -222,7 +224,13 @@ function App() {
   const startChat = async () => {
     setStage("chat"); setChatLoading(true); setChatError(null);
     try {
-      const opener = "[Empieza la conversación de seguimiento. Saluda breve, recuerda que su plan ya está aprobado, y pregunta con calidez cómo les ha ido con alguno de los hábitos.]";
+      // CORREGIDO (26 oct 2026, pedido de Peter — minuta "Tono de acompañamiento
+      // temprano"): antes este opener hacía que Vita abriera preguntando
+      // directamente por el cumplimiento ("cómo les ha ido con alguno de los
+      // hábitos") — exactamente el tono "excesivamente proactivo e invasivo"
+      // que Peter pidió evitar. Ahora abre consultiva, tipo "¿en qué te puedo
+      // ayudar?", y deja que el padre decida si quiere hablar de los hábitos.
+      const opener = "[Empieza la conversación de seguimiento. Saluda breve, recuerda que su plan ya está aprobado, y pregunta con calidez en qué le puedes ayudar hoy — NO le preguntes directamente cómo le ha ido con los hábitos ni le pidas un reporte, deja que el padre/madre lleve la conversación.]";
       const raw = await callVitaSeguimiento([{ role: "user", content: opener }]);
       const { clean, motivo } = parseEscalar(raw);
       setMessages([{ role: "assistant", content: clean }]);
