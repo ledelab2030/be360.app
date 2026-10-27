@@ -244,7 +244,7 @@ function descargarPdf(nombreNino, mensaje, habitos) {
   let y = PDF_MARGIN;
 
   doc.setFont(undefined, "bold"); doc.setFontSize(16);
-  doc.text("Plan de hábitos de " + (nombreNino || "este niño/a"), PDF_MARGIN, y);
+  doc.text("Plan de hábitos de " + sanearTextoPdf(nombreNino || "este niño/a"), PDF_MARGIN, y);
   y += 22;
   doc.setFont(undefined, "normal"); doc.setFontSize(10.5);
   doc.setTextColor(140, 132, 115);
