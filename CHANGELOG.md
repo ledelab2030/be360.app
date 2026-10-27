@@ -464,7 +464,36 @@ Encontrado en vivo por Leonardo, probando el chat de seguimiento real después d
 - **Por qué el resumen va dentro del marcador y no se reenvía el último mensaje del padre tal cual (como antes):** en el caso real de Samuel, el dato completo se armó en dos turnos — "se duerme 9pm" en un mensaje, la excepción de martes/viernes en el siguiente. Reenviar solo el último mensaje habría mandado "sí, excepto martes y viernes..." sin el "9pm" que le da sentido. Pidiéndole a Vita el resumen, que sí tiene el historial completo de la conversación, se evita ese problema sin rediseñar cómo se arma el correo.
 - No se tocó `worker/vita-proxy.js` ni Apps Script — `handleEscalar`/`notificarEscalamiento` ya aceptaban cualquier texto libre en `motivo`, así que el correo real a `leonardo@ledelab.group` ya queda con el resumen completo sin cambios ahí. Despliegue: solo GitHub Pages (frontend), nada de `wrangler deploy` ni pegado manual de Apps Script.
 
-**Verificación:** `parseEscalar()` probado en navegador real contra 3 casos (categoría simple sin pipe, categoría con resumen largo, sin marcador) — los tres separan correctamente. Pendiente: no se pudo probar el flujo completo con una llamada real a Claude generando el marcador (requeriría otra conversación real de prueba) — la verificación cubre el parseo y el enrutamiento, no si el modelo decide usar la categoría nueva en la práctica; vale la pena confirmarlo con una conversación de seguimiento real antes de darlo por cerrado del todo.
+**Verificación:** `parseEscalar()` probado en navegador real contra 3 casos (categoría simple sin pipe, categoría con resumen largo, sin marcador) — los tres separan correctamente. **Actualizado el mismo día, confirmado con el flujo completo real** (ver entrada siguiente): sí, el modelo usa la categoría nueva en la práctica.
+
+### 27 oct 2026 — Confirmado en vivo + fix de seguimiento: consolidar "dato_nuevo" en un solo correo por conversación
+
+Leonardo pidió probar el fix anterior siguiendo chateando con Vita. Se reprodujo su conversación real (misma secuencia: hora de dormir → excepción de fútbol → hora de salida) contra el link real de producción del plan de Samuel, con el `fetch` real interceptado para ver qué salía sin depender de revisar la bandeja. **Confirmado: el modelo sí usa `<escalar>dato_nuevo|RESUMEN</escalar>` en la práctica**, con un resumen completo y acumulativo en cada turno. Leonardo confirmó por su lado que los correos reales llegaron a `leonardo@ledelab.group` (compartió capturas de pantalla).
+
+**Hallazgo nuevo:** como cada turno de la negociación generó su propio `<escalar>`, la prueba mandó **5 correos reales** por una sola conversación — el modelo no sabe cuándo "terminó" el tema, así que escala cada vez que hay algo nuevo que decir. Leonardo pidió consolidar en un solo correo por conversación y preguntó, con razón, cómo se sabe cuándo una conversación de chat web "se completa" — no hay tal señal.
+
+**Fix en `plan/index.html` (`manejarEscalar`, `flushDatoNuevoPendiente`, nuevos refs `datoNuevoPendienteRef`/`datoNuevoTimerRef`):**
+- Los `<escalar>dato_nuevo|...>` ya no se mandan de inmediato — se guardan como "pendiente" y se arma un temporizador de 45 segundos (`DATO_NUEVO_ESPERA_MS`). Si llega OTRO `dato_nuevo` antes de que se cumpla, se reemplaza el pendiente (con el resumen más nuevo, que ya es acumulativo) y el temporizador se reinicia. Solo se manda cuando pasan 45s sin un `dato_nuevo` nuevo — una aproximación de "la conversación sobre esto ya terminó", no una certeza.
+- Red de seguridad: si el padre cierra la pestaña antes de que se cumplan los 45s, se manda de inmediato en los eventos `pagehide`/`visibilitychange`, con `fetch(..., {keepalive:true})` para que el navegador no mate la petición al descargar la página.
+- Las otras 3 categorías (urgencia, duda, solicitud_humano) se mandan igual que antes, de inmediato — consolidarlas habría sido peor que el problema original (una urgencia real demorada 45s).
+- `notificarEscalar()` ahora acepta un tercer parámetro opcional `keepalive`.
+
+**Verificación:** la prueba contra producción real confirmó que el marcador se genera, pero no probaba el tiempo de debounce (consolidar 5 llamadas en 1 también hubiera mandado 5 correos esa vez). Se aisló la lógica exacta de `manejarEscalar`/`flushDatoNuevoPendiente` en una prueba sin red ni React (mismo código, temporizador acortado a 300ms solo para la prueba) — confirmado: 3 disparos rápidos de `dato_nuevo` → 0 correos hasta cumplirse el período de calma → exactamente 1 correo, con el resumen más completo (el último, no el primero); una categoría normal (`urgencia`) se manda de inmediato sin esperar; el flush manual (simulando cierre de pestaña) manda con `keepalive` sin esperar el temporizador. El valor real (45000ms) se restauró antes de este commit — la prueba se corrió con un valor acortado aparte, nunca llegó a `main` con el valor de prueba.
+
+### 27 oct 2026 — Mejor señal que el temporizador: Vita pregunta "¿algo más?" antes de escalar
+
+Leonardo propuso algo mejor que adivinar con un temporizador: que Vita le pregunte directamente al padre/madre si tiene algo más que agregar, y solo escale cuando confirme que no. Una señal real de "terminé", no una aproximación por tiempo.
+
+**Cambio en `buildSeguimientoPrompt` (`plan/index.html`):** la regla de `dato_nuevo` se parte en dos pasos. Cuando el padre comparte un dato nuevo, Vita agradece y pregunta si hay algo más — **sin marcador todavía**. Solo cuando el padre confirma explícitamente que ya no hay más ("no", "eso es todo", "nada más"), Vita agrega `<escalar>dato_nuevo|RESUMEN</escalar>`, con el RESUMEN juntando TODO lo compartido sobre el tema en la conversación, no solo el último mensaje.
+
+El temporizador de 45s de la entrada anterior **no se quitó** — queda como red de seguridad para cuando el padre comparte un dato y se va sin confirmar, o el modelo no sigue la instrucción al pie de la letra. Son dos capas distintas: la pregunta explícita es la señal real cuando ocurre; el temporizador cubre cuando no ocurre.
+
+**Verificación:** probado contra la API real de Claude (mismo prompt exacto que ahora corre en `buildSeguimientoPrompt`, mismos hábitos reales del plan de Samuel), reproduciendo la conversación real de horario en 3 turnos:
+1. "Samuel se duerme a las 9pm" → Vita agradece y pregunta "¿Hay algo más que quieras agregar...?" — sin marcador.
+2. "sí, excepto martes y viernes..." → Vita agradece, señala por su cuenta que ese margen (1.5h) queda corto contra el mínimo de 3h del plan, y vuelve a preguntar "¿algo más?" — sin marcador.
+3. "no, eso es todo" → **ahí sí** `<escalar>dato_nuevo|Samuel se duerme a las 9pm en general. Los martes y viernes llega de fútbol a las 8pm y se duerme máximo a las 9:30pm, lo que deja solo 1.5 horas entre la cena y el momento de dormir — menos del margen de 3 horas establecido en el hábito de cierre de alimentación.</escalar>` — un solo marcador, con los dos datos juntos y la observación clínica que Vita armó sola.
+
+Confirma lo que el temporizador por sí solo no podía garantizar: con la pregunta explícita, la conversación completa de Samuel manda **un solo correo**, no cinco — sin tener que esperar 45 segundos de silencio para saberlo.
 
 ---
 

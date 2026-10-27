@@ -128,7 +128,8 @@ CONSULTIVA, NO PROACTIVA (26 oct 2026, pedido de Peter — minuta "Tono de acomp
 - Pregunta puntual sobre el plan que no debas resolver tú (ej. contenido clínico nuevo, "¿le puedo dar X en vez de Y?"): responde "Eso lo reviso con Peter y te respondo" y agrega: <escalar>duda</escalar>
 - Pide hablar con una persona directamente: responde con honestidad que le avisas al equipo, y agrega: <escalar>solicitud_humano</escalar>
 - Pregunta sobre medicación: "Eso es de tu equipo médico. Lo anoto para que Peter lo tenga presente." y agrega: <escalar>duda</escalar>
-- El padre/madre comparte un dato nuevo relevante para el plan (ej. la hora real de dormir, una excepción recurrente de horario, una restricción nueva — lo que haga falta para ajustar el plan más adelante) y aceptó que se lo cuentes al equipo: agradece el dato con calidez, dile que lo registras para que el equipo lo tenga en cuenta, y agrega, en la misma línea: <escalar>dato_nuevo|RESUMEN</escalar> — donde RESUMEN es 1-2 frases concretas con el dato exacto, completo por sí solo (no asumas que quien lo lea vio el resto de la conversación: si el dato se armó en varios mensajes, inclúyelo todo junto).
+- El padre/madre comparte un dato nuevo relevante para el plan (ej. la hora real de dormir, una excepción recurrente de horario, una restricción nueva — lo que haga falta para ajustar el plan más adelante): agradece el dato con calidez y pregúntale si hay algo más que quiera agregar o actualizar antes de pasárselo al equipo — NO agregues el marcador todavía en este turno, falta confirmar que no hay más.
+- El padre/madre confirma que eso es todo (dice algo como "no", "eso es todo", "nada más", "ya", o responde a tu pregunta de arriba sin agregar nada nuevo): dile que lo registras para que el equipo lo tenga en cuenta, y agrega, en la misma línea: <escalar>dato_nuevo|RESUMEN</escalar> — donde RESUMEN junta TODO lo que compartió sobre el tema en la conversación (no solo este último mensaje), completo por sí solo (no asumas que quien lo lea vio el resto de la conversación).
 - Si preguntan quién está detrás: "Bienestar 360 lo lidera Peter Álvarez, con un equipo de bienestar."
 - Para todo lo demás (check-ins normales, contar cómo les fue, dudas que sí puedes responder con el plan de arriba): NO agregues ningún marcador.`;
 };
@@ -292,6 +293,22 @@ function App() {
   const id = getIdFromUrl();
   const retosFlag = getRetosFlag();
 
+  // Consolidación de "dato_nuevo" (27 oct 2026, encontrado probando esto en
+  // vivo con un caso real): cada turno donde Vita detecta que el padre
+  // compartió o confirmó un dato manda un RESUMEN COMPLETO de lo compartido
+  // hasta ese punto (no incremental — necesario porque el dato puede armarse
+  // en varios mensajes, ver buildSeguimientoPrompt). Pero eso significa que
+  // escalar de inmediato en cada turno manda varios correos casi iguales por
+  // la misma conversación — se probó en vivo y mandó 5 correos reales por
+  // una sola negociación de horario. Un chat web no tiene una señal real de
+  // "la conversación terminó", así que se aproxima con un período de calma:
+  // se espera sin nuevos "dato_nuevo" antes de mandar, y solo se manda el
+  // último resumen (el más completo). Si el padre cierra la pestaña antes de
+  // que pase ese tiempo, se manda de inmediato al salir, para no perder el
+  // dato por esperar una señal que nunca llega.
+  const datoNuevoPendienteRef = React.useRef(null);
+  const datoNuevoTimerRef = React.useRef(null);
+
   useEffect(() => { if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight; }, [messages, chatLoading]);
 
   useEffect(() => {
@@ -330,12 +347,66 @@ function App() {
   };
 
   // Notifica una señal real al equipo — sin bloquear el chat si falla.
-  const notificarEscalar = (motivo, mensajePadre) => {
+  // keepalive=true (al cerrar la pestaña, ver flushDatoNuevoPendiente): el
+  // navegador puede matar peticiones fetch normales apenas la página se
+  // descarga; keepalive deja que esta termine de todas formas, igual que
+  // navigator.sendBeacon pero reusando el mismo fetch de siempre.
+  const notificarEscalar = (motivo, mensajePadre, keepalive) => {
     fetch(WORKER_URL + "/escalar", {
       method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ idPlan: id, nombreNino: data && data.nombreNino, motivo, mensajePadre }),
+      ...(keepalive ? { keepalive: true } : {}),
     }).catch(() => {});
   };
+
+  // Dispara el "dato_nuevo" pendiente ya mismo — por el período de calma que
+  // se cumplió solo, o porque el padre está cerrando la pestaña antes de eso.
+  const flushDatoNuevoPendiente = (keepalive) => {
+    if (datoNuevoTimerRef.current) { clearTimeout(datoNuevoTimerRef.current); datoNuevoTimerRef.current = null; }
+    const pendiente = datoNuevoPendienteRef.current;
+    if (!pendiente) return;
+    datoNuevoPendienteRef.current = null;
+    notificarEscalar(pendiente.motivo, pendiente.detalle, keepalive);
+  };
+
+  // Período de calma antes de mandar un "dato_nuevo" consolidado — largo
+  // para dar tiempo a que una negociación de horario termine (como la de
+  // Samuel: hora de dormir → excepción de fútbol → hora de salida, 3 turnos
+  // reales), corto para no quedarse esperando si el padre ya se fue.
+  const DATO_NUEVO_ESPERA_MS = 45000;
+
+  // Único punto de entrada para reaccionar al <escalar> del modelo (ambos
+  // call sites, abrir chat y enviar mensaje, pasan por acá). "dato_nuevo" se
+  // consolida (ver arriba); el resto de categorías (urgencia, duda,
+  // solicitud_humano) se mandan de inmediato, como siempre — demorar una
+  // urgencia real para "consolidarla" sería peor que el problema que se
+  // arregló arriba.
+  const manejarEscalar = (motivo, detalle, mensajeFallback) => {
+    if (!motivo) return;
+    if (motivo === "dato_nuevo") {
+      datoNuevoPendienteRef.current = { motivo, detalle: detalle || mensajeFallback };
+      if (datoNuevoTimerRef.current) clearTimeout(datoNuevoTimerRef.current);
+      datoNuevoTimerRef.current = setTimeout(flushDatoNuevoPendiente, DATO_NUEVO_ESPERA_MS);
+      return;
+    }
+    notificarEscalar(motivo, detalle || mensajeFallback);
+  };
+
+  // Red de seguridad: si el padre cierra o cambia de pestaña con un
+  // "dato_nuevo" todavía esperando su período de calma, se manda de
+  // inmediato en vez de perderlo. pagehide cubre cerrar la pestaña y
+  // navegar afuera; visibilitychange cubre minimizar o cambiar de pestaña
+  // sin cerrar (en iOS Safari, pagehide no siempre llega a tiempo).
+  useEffect(() => {
+    const onHide = () => flushDatoNuevoPendiente(true);
+    const onVisibility = () => { if (document.visibilityState === "hidden") onHide(); };
+    window.addEventListener("pagehide", onHide);
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => {
+      window.removeEventListener("pagehide", onHide);
+      document.removeEventListener("visibilitychange", onVisibility);
+    };
+  }, []);
 
   const callVitaSeguimiento = async (msgs) => {
     const res = await fetch(WORKER_URL, {
@@ -359,7 +430,7 @@ function App() {
       const raw = await callVitaSeguimiento([{ role: "user", content: opener }]);
       const { clean, motivo, detalle } = parseEscalar(raw);
       setMessages([{ role: "assistant", content: clean }]);
-      if (motivo) notificarEscalar(motivo, detalle || "(inicio de conversación)");
+      manejarEscalar(motivo, detalle, "(inicio de conversación)");
     } catch (e) { setChatError("No se pudo conectar. Reintenta."); }
     finally { setChatLoading(false); }
   };
@@ -374,7 +445,7 @@ function App() {
       const raw = await callVitaSeguimiento(next);
       const { clean, motivo, detalle } = parseEscalar(raw);
       setMessages(m => [...m, { role: "assistant", content: clean }]);
-      if (motivo) notificarEscalar(motivo, detalle || content);
+      manejarEscalar(motivo, detalle, content);
     } catch (e) { setChatError("No se pudo conectar. Reintenta."); }
     finally { setChatLoading(false); }
   };
