@@ -549,6 +549,23 @@ Leonardo pidió borrar la novedad de prueba que quedó en el caso de Samuel (de 
 
 **Verificación de punta a punta (27 oct 2026, después del pegado manual de Apps Script):** probado el flujo real, no un curl — en `panel/index.html` contra el caso real de Samuel (aprobado, con dos novedades: una real de la familia y la de prueba que motivó este cambio). Clic en "Borrar" → "¿Seguro?" / "Cancelar" → confirmar → "Borrando..." → la lista pasó de (2) a (1) sin recargar la página, dejando solo la novedad real. Acción `eliminar_novedad` confirmada funcionando en producción, en los tres componentes (Apps Script, Worker, panel). Con esto se cierra también el pedido original: la novedad de prueba del caso de Samuel ya no existe.
 
+### 27 oct 2026 — Fix: queso azul/roquefort en amarillo (debía ir en verde) y lonchera reducida a solo nueces
+
+Leonardo pidió comparar cómo está generando el sistema el plan de Sofía ahora mismo contra el "Borrador Revisado" del 26 oct (Google Doc, caso real, el mismo que Peter aprobó ese día) — no para probar una funcionalidad, sino para verificar que la regeneración con el SRB promovido (ver dos entradas arriba) sí refleja fielmente lo que se acordó en la reunión. La estructura grande coincidía (suero, cierre nocturno, la mayoría del semáforo), pero aparecieron dos divergencias reales, comparando texto contra texto en el panel real.
+
+**Causa:** tanto `ADAPTACIONES_PEDIATRICAS` (`worker/vita-proxy.js`) como el addendum I de `reglas_duras_srb.md` (v1.3, sin firmar) se escribieron el mismo 26 oct, a partir de la minuta de la reunión — pero no capturaron el mismo nivel de detalle que terminó en el borrador que Peter revisó y aprobó para el caso real de Sofía ese día. Dos registros del mismo día, desalineados entre sí.
+
+1. **Queso azul/roquefort:** la adaptación de "QUESOS" nombraba la excepción pero nunca fijaba en qué color del semáforo iba — el modelo lo estaba generando en 🟡 amarillo ("con moderación"). El borrador aprobado lo pone en 🟢 verde ("prioridad en cada comida"): es la única excepción láctea, no una concesión.
+2. **Lonchera y merienda de la tarde:** la regla vigente limitaba la lonchera a solo nueces, y no distinguía la lonchera escolar de la merienda de la tarde — el sistema había dejado de generar esta última por completo. El borrador aprobado da un set más amplio para cuando sí hace falta merienda (huevo duro, tiras de pollo frío, queso azul/roquefort, aguacate, aceitunas y nueces) y mantiene la merienda de la tarde como opción válida "si tiene hambre real".
+
+**Cambios en `worker/vita-proxy.js` (`ADAPTACIONES_PEDIATRICAS`):** sección QUESOS ahora fija el color verde explícitamente; sección LONCHERA (renombrada LONCHERA Y MERIENDAS) amplía las opciones válidas y reintroduce la merienda de la tarde condicionada a hambre real, usando siempre "queso azul o roquefort" — nunca "queso envejecido" genérico, para no reabrir la ambigüedad que el addendum I ya había cerrado.
+
+**Cambio en `design-sprint/docs/reglas_duras_srb.md`** (repo privado `be360-workspace`): mismo par de correcciones, dentro del addendum I (v1.3, sigue sin firma de Peter) — se corrigió en el mismo bloque en vez de abrir un addendum nuevo, igual que ya se hizo ahí con la corrección de dirección de la ventana de alimentación.
+
+**Un solo despliegue, no dos:** a diferencia del cambio anterior, este solo toca `worker/vita-proxy.js` — `SRB_DRAFT_PROMPT` y sus adaptaciones viven en el Worker, no en Apps Script. `wrangler deploy` basta.
+
+**Verificación:** `node --check worker/vita-proxy.js` — sintaxis válida. Pendiente: regenerar el caso de Sofía otra vez después del deploy y confirmar en el panel que el queso azul/roquefort sale en verde y la lonchera/merienda ya trae el set completo.
+
 ---
 
 ---
