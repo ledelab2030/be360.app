@@ -383,6 +383,18 @@ Minuta completa de la reunión en `pruebas/` (repo privado). Peter revisó el bo
 
 **También corregido (no es código):** `design-sprint/docs/reglas_duras_srb.md` (addendum I) y el borrador local del documento de referencia pediátrico (`pruebas/2026.10.26-srb-pediatrico-v6-borrador-local.md`, repo privado, todavía sin publicar a Drive) — ambos tenían la misma dirección equivocada de la ventana y la misma omisión del limón, y se corrigen igual.
 
+### 27 oct 2026 — Descargar el plan en PDF, desde `plan/` y desde `panel/` (PR #105)
+
+Pedido de Leonardo. Tres decisiones de alcance confirmadas antes de escribir código (dónde, qué contenido, cómo se genera): los dos lugares (familia y Peter), todo lo que se ve en pantalla (mensaje completo + checklist, no solo el checklist), y en el navegador con jsPDF — sin tocar el Worker ni agregar infraestructura nueva, consistente con "páginas estáticas sin build".
+
+- **`plan/index.html`:** botón "Descargar PDF" junto al encabezado del plan ya aprobado. Genera el PDF a partir de `data.mensaje` + `habitos` (ya vienen filtrados a solo los incluidos, por `doGet` en Apps Script).
+- **`panel/index.html`:** mismo botón en el detalle de un caso. A diferencia de `plan/`, acá `habitos` incluye también los excluidos (para que Peter pueda reconsiderar antes de aprobar) — el PDF filtra a `incluido !== false` para reflejar lo que de verdad recibiría la familia, no el estado de edición interno del panel.
+- El código de generación (`pdfEscribirParrafo`, `descargarPdf`) está duplicado en los dos archivos a propósito, no compartido — son para audiencias distintas y no se mantienen sincronizados como `vita-demo-formulario`/`-v2`.
+
+**Bug real encontrado probando esto antes de desplegarlo:** la primera versión escribía cada palabra con su propia llamada a `doc.text()` (un bloque de texto por palabra). Con una frase corta de prueba aislada esto funcionaba perfecto — pero con un párrafo real y largo del plan, palabras sueltas desaparecían del PDF generado (un "2", la palabra "sostienen", y el final de una frase quedaba cortado), sin ningún error en consola. No era reproducible con pruebas cortas, solo con el mensaje completo real, así que no era obvio hasta no probarlo con contenido real. Arreglado agrupando las palabras consecutivas del mismo estilo (negrita u normal) en una sola llamada a `doc.text()` por grupo, en vez de una por palabra — mismo resultado visual, y el problema no volvió a aparecer en las mismas pruebas que antes lo mostraban.
+
+**Verificación:** generación probada en navegador real (no solo revisión de código) con el PDF resultante decodificado y leído de vuelta para confirmar el texto completo, incluidos acentos (á, é, í, ó, ú, ñ — confirmado que WinAnsiEncoding de Helvetica los soporta sin problema), negrita inline, y paginación con `addPage()` en un párrafo forzado a cruzar de página (confirmado que no se pierde contenido en el salto). `node --check` no aplica (sin cambios al Worker) — verificado vía Babel en navegador real en los dos archivos.
+
 ---
 
 ---

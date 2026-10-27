@@ -10,6 +10,10 @@
 <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
 <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
 <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<!-- Descarga de PDF (27 oct 2026, pedido de Leonardo) — en el navegador, sin
+     tocar el Worker: jsPDF arma el PDF a partir de lo mismo que ya está en
+     pantalla (mensaje + checklist de hábitos). -->
+<script src="https://unpkg.com/jspdf@2.5.2/dist/jspdf.umd.min.js"></script>
 <style>
   html,body{margin:0;height:100%}
   *{box-sizing:border-box}
@@ -140,6 +144,106 @@ const renderRich = (text) => (text||"").split(/(\*\*[^*]+\*\*)/g).map((part,i)=>
     ? <strong key={i} style={{fontWeight:800}}>{part.slice(2,-2)}</strong>
     : <React.Fragment key={i}>{part}</React.Fragment>
 );
+
+// ============================================================
+// PDF (27 oct 2026, pedido de Leonardo) — "todo lo que se ve en pantalla":
+// el mensaje completo (con negrita, igual que renderRich) + el checklist de
+// hábitos, en un PDF descargable. Se genera en el navegador con jsPDF, sin
+// tocar el Worker ni agregar infraestructura nueva — encaja con el resto del
+// repo (páginas estáticas, sin build). Reusa el mismo parser de **negrita**
+// que renderRich, pero dibujando texto en vez de JSX: jsPDF no tiene wrap de
+// texto con negrita inline, así que se arma a mano palabra por palabra.
+const PDF_MARGIN = 40;
+const PDF_LINE_HEIGHT = 15;
+
+// Escribe un párrafo con wrap manual y **negrita** inline, avanzando "y" y
+// agregando páginas nuevas cuando hace falta. Devuelve el "y" final.
+function pdfEscribirParrafo(doc, texto, x, y, maxWidth, fontSize) {
+  const pageHeight = doc.internal.pageSize.getHeight();
+  doc.setFontSize(fontSize);
+  const segmentos = (texto || "").split(/(\*\*[^*]+\*\*)/g).filter(s => s !== "");
+  const palabras = [];
+  for (const seg of segmentos) {
+    const negrita = seg.startsWith("**") && seg.endsWith("**");
+    const contenido = negrita ? seg.slice(2, -2) : seg;
+    contenido.split(" ").forEach(w => { if (w !== "") palabras.push({ texto: w, negrita }); });
+  }
+  let linea = [];
+  let anchoLinea = 0;
+  const anchoEspacio = doc.getTextWidth(" ");
+  // FIX (27 oct 2026, encontrado probando esto antes de desplegarlo): escribir
+  // CADA palabra con su propio doc.text() (un bloque BT/Tj/ET por palabra)
+  // hacía que palabras sueltas desaparecieran en párrafos largos con varias
+  // líneas — reproducible con un párrafo real del plan, no con una frase
+  // corta de prueba aislada, así que no era obvio hasta probar con el
+  // mensaje completo. Ahora se agrupan las palabras consecutivas del MISMO
+  // estilo (negrita u normal) en una sola llamada a doc.text() por grupo —
+  // mismo resultado visual, menos bloques de texto, y el problema no
+  // reaparece en las mismas pruebas que antes lo mostraban.
+  const escribirLinea = () => {
+    if (linea.length === 0) return;
+    let cx = x;
+    let i = 0;
+    while (i < linea.length) {
+      const negrita = linea[i].negrita;
+      const grupo = [];
+      while (i < linea.length && linea[i].negrita === negrita) { grupo.push(linea[i].texto); i++; }
+      const textoGrupo = grupo.join(" ");
+      doc.setFont(undefined, negrita ? "bold" : "normal");
+      doc.text(textoGrupo, cx, y);
+      cx += doc.getTextWidth(textoGrupo) + anchoEspacio;
+    }
+    y += PDF_LINE_HEIGHT;
+    if (y > pageHeight - PDF_MARGIN) { doc.addPage(); y = PDF_MARGIN; }
+    linea = []; anchoLinea = 0;
+  };
+  for (const p of palabras) {
+    doc.setFont(undefined, p.negrita ? "bold" : "normal");
+    const anchoPalabra = doc.getTextWidth(p.texto);
+    if (linea.length && anchoLinea + anchoEspacio + anchoPalabra > maxWidth) escribirLinea();
+    linea.push(p);
+    anchoLinea += (linea.length > 1 ? anchoEspacio : 0) + anchoPalabra;
+  }
+  escribirLinea();
+  doc.setFont(undefined, "normal");
+  return y;
+}
+
+function descargarPdf(nombreNino, mensaje, habitos) {
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ unit: "pt", format: "a4" });
+  const maxWidth = doc.internal.pageSize.getWidth() - PDF_MARGIN * 2;
+  let y = PDF_MARGIN;
+
+  doc.setFont(undefined, "bold"); doc.setFontSize(16);
+  doc.text("Plan de hábitos de " + (nombreNino || "tu hijo/a"), PDF_MARGIN, y);
+  y += 22;
+  doc.setFont(undefined, "normal"); doc.setFontSize(10.5);
+  doc.setTextColor(140, 132, 115);
+  doc.text("Revisado y aprobado por Peter Álvarez — Bienestar 360", PDF_MARGIN, y);
+  doc.setTextColor(44, 42, 36);
+  y += 26;
+
+  (mensaje || "").split("\n").forEach(parrafo => {
+    if (parrafo.trim() === "") { y += PDF_LINE_HEIGHT * 0.6; return; }
+    y = pdfEscribirParrafo(doc, parrafo, PDF_MARGIN, y, maxWidth, 11);
+  });
+
+  if (habitos.length) {
+    y += 10;
+    if (y > doc.internal.pageSize.getHeight() - PDF_MARGIN - 30) { doc.addPage(); y = PDF_MARGIN; }
+    doc.setFont(undefined, "bold"); doc.setFontSize(13);
+    doc.text("Hábitos", PDF_MARGIN, y);
+    y += 20;
+    habitos.forEach((h, i) => {
+      y = pdfEscribirParrafo(doc, "**" + (i + 1) + ". " + (h.titulo || "") + "**", PDF_MARGIN, y, maxWidth, 11.5);
+      y = pdfEscribirParrafo(doc, h.texto || "", PDF_MARGIN, y, maxWidth, 10.5);
+      y += 8;
+    });
+  }
+
+  doc.save("plan-" + (nombreNino || "bienestar360").trim().replace(/\s+/g, "-").toLowerCase() + ".pdf");
+}
 
 function App() {
   const [stage, setStage] = useState("cargando"); // cargando | ok | no_disponible | chat
@@ -321,7 +425,13 @@ function App() {
         <h1 style={{fontFamily:"'Fraunces',serif", fontWeight:600, fontSize:"clamp(26px,7vw,32px)", lineHeight:1.1, margin:0, color:P.sageDeep}}>
           El plan de {data.nombreNino || "tu hijo/a"}
         </h1>
-        <div style={{fontSize:13, color:P.muted}}>Revisado y aprobado por <b style={{color:P.ink}}>Peter Álvarez</b></div>
+        <div style={{display:"flex", alignItems:"center", justifyContent:"space-between", gap:10, flexWrap:"wrap"}}>
+          <div style={{fontSize:13, color:P.muted}}>Revisado y aprobado por <b style={{color:P.ink}}>Peter Álvarez</b></div>
+          <button onClick={() => descargarPdf(data.nombreNino, data.mensaje, habitos)} style={{display:"inline-flex", alignItems:"center", gap:6, background:"none", border:"1.5px solid "+P.line, borderRadius:999, padding:"7px 14px", fontSize:12.5, fontWeight:800, color:P.sageDeep, cursor:"pointer", fontFamily:"'Nunito',sans-serif"}}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" width="14" height="14"><path d="M12 3v12m0 0l-4-4m4 4l4-4M4 17v2a2 2 0 002 2h12a2 2 0 002-2v-2"/></svg>
+            Descargar PDF
+          </button>
+        </div>
       </div>
 
       {/* whiteSpace pre-wrap + renderRich (21 oct 2026): sin esto el padre veía

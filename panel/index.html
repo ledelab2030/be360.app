@@ -11,6 +11,9 @@
 <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
 <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 <script src="/shared/formulario-fields.js"></script>
+<!-- Descarga de PDF (27 oct 2026, pedido de Leonardo) — mismo mecanismo que
+     plan/index.html: en el navegador, sin tocar el Worker. -->
+<script src="https://unpkg.com/jspdf@2.5.2/dist/jspdf.umd.min.js"></script>
 <style>
   html,body{margin:0;height:100%}
   *{box-sizing:border-box}
@@ -155,6 +158,103 @@ function formatEdad(edad) {
   if (!edad && edad !== 0) return "";
   const s = String(edad).trim();
   return " · " + s + (/años?\b/i.test(s) ? "" : " años");
+}
+
+// ============================================================
+// PDF (27 oct 2026, pedido de Leonardo) — "todo lo que se ve en pantalla":
+// el mensaje completo + el checklist de hábitos (solo los incluidos, igual
+// que verá la familia), descargable desde el panel. Idéntico al mecanismo
+// de plan/index.html (en el navegador, con jsPDF, sin tocar el Worker) —
+// mismo código, copiado a propósito en vez de compartido: estas dos páginas
+// no se mantienen sincronizadas como vita-demo-formulario/-v2 (son para
+// audiencias distintas, no una copia de validación de la otra).
+const PDF_MARGIN = 40;
+const PDF_LINE_HEIGHT = 15;
+
+// Escribe un párrafo con wrap manual y **negrita** inline, avanzando "y" y
+// agregando páginas nuevas cuando hace falta. Devuelve el "y" final.
+function pdfEscribirParrafo(doc, texto, x, y, maxWidth, fontSize) {
+  const pageHeight = doc.internal.pageSize.getHeight();
+  doc.setFontSize(fontSize);
+  const segmentos = (texto || "").split(/(\*\*[^*]+\*\*)/g).filter(s => s !== "");
+  const palabras = [];
+  for (const seg of segmentos) {
+    const negrita = seg.startsWith("**") && seg.endsWith("**");
+    const contenido = negrita ? seg.slice(2, -2) : seg;
+    contenido.split(" ").forEach(w => { if (w !== "") palabras.push({ texto: w, negrita }); });
+  }
+  let linea = [];
+  let anchoLinea = 0;
+  const anchoEspacio = doc.getTextWidth(" ");
+  // Agrupa palabras consecutivas del MISMO estilo en una sola llamada a
+  // doc.text() por grupo (en vez de una por palabra) — ver el comentario
+  // completo del porqué en plan/index.html, mismo fix encontrado ahí.
+  const escribirLinea = () => {
+    if (linea.length === 0) return;
+    let cx = x;
+    let i = 0;
+    while (i < linea.length) {
+      const negrita = linea[i].negrita;
+      const grupo = [];
+      while (i < linea.length && linea[i].negrita === negrita) { grupo.push(linea[i].texto); i++; }
+      const textoGrupo = grupo.join(" ");
+      doc.setFont(undefined, negrita ? "bold" : "normal");
+      doc.text(textoGrupo, cx, y);
+      cx += doc.getTextWidth(textoGrupo) + anchoEspacio;
+    }
+    y += PDF_LINE_HEIGHT;
+    if (y > pageHeight - PDF_MARGIN) { doc.addPage(); y = PDF_MARGIN; }
+    linea = []; anchoLinea = 0;
+  };
+  for (const p of palabras) {
+    doc.setFont(undefined, p.negrita ? "bold" : "normal");
+    const anchoPalabra = doc.getTextWidth(p.texto);
+    if (linea.length && anchoLinea + anchoEspacio + anchoPalabra > maxWidth) escribirLinea();
+    linea.push(p);
+    anchoLinea += (linea.length > 1 ? anchoEspacio : 0) + anchoPalabra;
+  }
+  escribirLinea();
+  doc.setFont(undefined, "normal");
+  return y;
+}
+
+function descargarPdf(nombreNino, mensaje, habitos) {
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ unit: "pt", format: "a4" });
+  const maxWidth = doc.internal.pageSize.getWidth() - PDF_MARGIN * 2;
+  let y = PDF_MARGIN;
+
+  doc.setFont(undefined, "bold"); doc.setFontSize(16);
+  doc.text("Plan de hábitos de " + (nombreNino || "este niño/a"), PDF_MARGIN, y);
+  y += 22;
+  doc.setFont(undefined, "normal"); doc.setFontSize(10.5);
+  doc.setTextColor(140, 132, 115);
+  doc.text("Bienestar 360 — panel de revisión", PDF_MARGIN, y);
+  doc.setTextColor(44, 42, 36);
+  y += 26;
+
+  (mensaje || "").split("\n").forEach(parrafo => {
+    if (parrafo.trim() === "") { y += PDF_LINE_HEIGHT * 0.6; return; }
+    y = pdfEscribirParrafo(doc, parrafo, PDF_MARGIN, y, maxWidth, 11);
+  });
+
+  // Solo los hábitos incluidos — el PDF refleja lo que recibiría la familia,
+  // no el estado de edición interno del panel (los excluidos no cuentan).
+  const incluidos = (habitos || []).filter(h => h.incluido !== false);
+  if (incluidos.length) {
+    y += 10;
+    if (y > doc.internal.pageSize.getHeight() - PDF_MARGIN - 30) { doc.addPage(); y = PDF_MARGIN; }
+    doc.setFont(undefined, "bold"); doc.setFontSize(13);
+    doc.text("Hábitos", PDF_MARGIN, y);
+    y += 20;
+    incluidos.forEach((h, i) => {
+      y = pdfEscribirParrafo(doc, "**" + (i + 1) + ". " + (h.titulo || "") + "**", PDF_MARGIN, y, maxWidth, 11.5);
+      y = pdfEscribirParrafo(doc, h.texto || "", PDF_MARGIN, y, maxWidth, 10.5);
+      y += 8;
+    });
+  }
+
+  doc.save("plan-" + (nombreNino || "bienestar360").trim().replace(/\s+/g, "-").toLowerCase() + ".pdf");
 }
 
 function App() {
@@ -418,7 +518,13 @@ function App() {
     const inclCount = habitosIncluidos.length;
     return (
       <ShellDetalle>
-        <button onClick={volverALista} style={{...btnGhost, alignSelf:"flex-start"}}>← {soloLectura?"Aprobados":"Pendientes"}</button>
+        <div style={{display:"flex", justifyContent:"space-between", alignItems:"center", gap:10}}>
+          <button onClick={volverALista} style={btnGhost}>← {soloLectura?"Aprobados":"Pendientes"}</button>
+          <button onClick={() => descargarPdf(detalle.nombreNino, mensaje, habitos)} style={{...btnGhost, display:"inline-flex", alignItems:"center", gap:6}}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" width="14" height="14"><path d="M12 3v12m0 0l-4-4m4 4l4-4M4 17v2a2 2 0 002 2h12a2 2 0 002-2v-2"/></svg>
+            Descargar PDF
+          </button>
+        </div>
 
         <div>
           <h1 style={{fontFamily:"'Fraunces',serif", fontWeight:600, fontSize:24, margin:0, color:P.sageDeep}}>{detalle.nombreNino || "(sin nombre)"}{formatEdad(detalle.edad)}</h1>
