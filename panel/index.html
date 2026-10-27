@@ -301,6 +301,11 @@ function App() {
   const [accionError, setAccionError] = useState(null);
   const [descartando, setDescartando] = useState(false);
   const [confirmandoDescarte, setConfirmandoDescarte] = useState(false);
+  // Novedad puntual a borrar (27 oct 2026) — guarda el índice en el array
+  // ORIGINAL (orden de llegada), no en el orden invertido en que se
+  // muestran (más reciente primero). null = ninguna en confirmación.
+  const [confirmandoNovedadIdx, setConfirmandoNovedadIdx] = useState(null);
+  const [borrandoNovedad, setBorrandoNovedad] = useState(false);
 
   const llamarPanel = async (ruta, extra) => {
     const res = await fetch(WORKER_URL + "/panel/" + ruta, {
@@ -423,6 +428,22 @@ function App() {
       volverALista();
     } catch (e) { setAccionError(e.message === "PIN incorrecto" ? null : (e.message || "No se pudo descartar. Reintenta.")); setConfirmandoDescarte(false); }
     finally { setDescartando(false); }
+  };
+
+  // Borra UNA novedad del caso por índice (27 oct 2026) — para quitar una
+  // entrada de prueba o ya atendida sin editar el Sheet a mano. Actualiza
+  // "detalle" en el momento con lo que devuelve el servidor (la lista ya
+  // sin esa entrada), en vez de volver a pedir todo el caso.
+  const borrarNovedad = async (index) => {
+    if (borrandoNovedad) return;
+    setBorrandoNovedad(true); setAccionError(null);
+    try {
+      const data = await llamarPanel("eliminar-novedad", { idPlan: detalle.idPlan, index });
+      if (!data.ok) throw new Error(data.error || "error");
+      setDetalle(d => ({ ...d, novedades: data.novedades }));
+      setConfirmandoNovedadIdx(null);
+    } catch (e) { setAccionError(e.message === "PIN incorrecto" ? null : (e.message || "No se pudo borrar. Reintenta.")); }
+    finally { setBorrandoNovedad(false); }
   };
 
   const salir = () => { try{localStorage.removeItem(PIN_KEY);}catch(e){} setPin(""); };
@@ -584,9 +605,19 @@ function App() {
         {novedades.length > 0 && (
           <div style={{background:P.claySoft, border:"1px solid "+P.clay, borderRadius:16, padding:"14px 16px", display:"flex", flexDirection:"column", gap:10}}>
             <div style={{fontSize:13, fontWeight:800, color:P.clay}}>Novedades reportadas por la familia ({novedades.length})</div>
-            {novedades.slice().reverse().map((n, i) => (
-              <div key={i} style={{background:P.panelRaised, border:"1px solid "+P.line, borderRadius:12, padding:"10px 12px"}}>
-                <div style={{fontSize:11, color:P.muted, marginBottom:4}}>{relativeDate(n.ts)}{n.motivo ? " · " + n.motivo : ""}</div>
+            {novedades.map((n, idxOriginal) => ({ n, idxOriginal })).reverse().map(({ n, idxOriginal }) => (
+              <div key={idxOriginal} style={{background:P.panelRaised, border:"1px solid "+P.line, borderRadius:12, padding:"10px 12px"}}>
+                <div style={{display:"flex", justifyContent:"space-between", alignItems:"flex-start", gap:8, marginBottom:4}}>
+                  <div style={{fontSize:11, color:P.muted}}>{relativeDate(n.ts)}{n.motivo ? " · " + n.motivo : ""}</div>
+                  {confirmandoNovedadIdx !== idxOriginal ? (
+                    <span onClick={()=>setConfirmandoNovedadIdx(idxOriginal)} style={{fontSize:11, color:P.muted, textDecoration:"underline", cursor:"pointer", flexShrink:0}}>Borrar</span>
+                  ) : (
+                    <span style={{display:"flex", gap:6, flexShrink:0}}>
+                      <span onClick={()=>!borrandoNovedad && borrarNovedad(idxOriginal)} style={{fontSize:11, color:P.clay, fontWeight:800, textDecoration:"underline", cursor:"pointer"}}>{borrandoNovedad?"Borrando…":"¿Seguro?"}</span>
+                      <span onClick={()=>setConfirmandoNovedadIdx(null)} style={{fontSize:11, color:P.muted, textDecoration:"underline", cursor:"pointer"}}>Cancelar</span>
+                    </span>
+                  )}
+                </div>
                 <div style={{fontSize:13.5, color:P.ink, lineHeight:1.5}}>{n.resumen || "(sin resumen)"}</div>
               </div>
             ))}

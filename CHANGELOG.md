@@ -533,6 +533,20 @@ Leonardo encontró, en el mismo caso real de Samuel usado para las pruebas de ar
 
 **Verificación:** verificado vía Babel en navegador real, sin errores de sintaxis.
 
+### 27 oct 2026 — Botón para borrar una novedad puntual (pedido de Leonardo)
+
+Leonardo pidió borrar la novedad de prueba que quedó en el caso de Samuel (de las pruebas de los PRs anteriores). No existía ninguna acción para eso — todas las que tocan `novedades_json` solo agregan (`registrarNovedad`). La alternativa obvia (editar la celda del Sheet a mano) es exactamente lo que el panel existe para evitar — "antes Peter aprobaba/editaba escribiendo directo en la hoja de cálculo — cualquiera con acceso puede dañarla sin querer" (nota al inicio de `apps-script-formulario-v2.gs.txt`). En vez de eso, una acción nueva, con el mismo patrón de seguridad que el resto del panel.
+
+**Cambios en `worker/apps-script-formulario-v2.gs.txt`:** nueva acción `eliminar_novedad` (`{idPlan, index}`) → `eliminarNovedad()`, que quita una entrada del array por posición y reescribe `novedades_json`. 7ª acción del panel, mismo patrón de `conPanelSecret` que las otras 6.
+
+**Cambios en `worker/vita-proxy.js`:** nueva ruta `/panel/eliminar-novedad` → `handlePanelAction(..., "eliminar_novedad")`, mismo patrón que `/panel/descartar` y el resto.
+
+**Cambios en `panel/index.html`:** cada novedad en el detalle del caso tiene un link "Borrar" discreto, con confirmación en el mismo lugar ("¿Seguro?" / "Cancelar", mismo patrón que "Descartar este caso" más abajo en la misma página) — nunca un solo clic. Al confirmar, actualiza la lista en el momento con lo que devuelve el servidor, sin recargar todo el caso.
+
+**Dos despliegues, no uno:** este cambio toca tanto el Worker (`wrangler deploy`, automático) como Apps Script (manual, de nuevo) — la ruta nueva del Worker ya está en producción, pero hasta que Apps Script se vuelva a pegar, `eliminar_novedad` no existe ahí y la llamada falla con "secret inválido" (cae al chequeo genérico de `SHARED_SECRET` en vez de reconocerse como acción del panel) — confirmado en vivo contra producción real antes de este commit.
+
+**Verificación:** `node --check` sobre una copia temporal `.js` del Apps Script — sintaxis válida; `node --check` sobre `vita-proxy.js` — sintaxis válida; `panel/index.html` verificado vía Babel en navegador real, sin errores; llamada real a `/panel/eliminar-novedad` contra producción, confirmando el fallo esperado mientras Apps Script no se actualice (prueba negativa correcta, no un bug).
+
 ---
 
 ---

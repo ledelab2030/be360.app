@@ -258,7 +258,7 @@ export default {
     // NUEVO (8 ago 2026): panel de revisión de Peter (panel/index.html) —
     // reemplaza editar la hoja de cálculo directo, que cualquiera con acceso
     // puede dañar sin querer (borrar una fila, mover una columna, escribir
-    // "aprobado" donde no era). Estas 4 rutas usan PANEL_SECRET, un secreto
+    // "aprobado" donde no era). Estas rutas usan PANEL_SECRET, un secreto
     // DISTINTO de SHEET_WEBHOOK_SECRET_FORMULARIO — el panel nunca ve el
     // secreto real que este Worker usa para escribir en el Sheet, solo el
     // PIN de Peter, que igual nunca sale del cuerpo de la petición (no se
@@ -269,6 +269,10 @@ export default {
     if (url.pathname === "/panel/guardar") return handlePanelAction(request, env, cors, "guardar_edicion_plan");
     if (url.pathname === "/panel/aprobar") return handlePanelAction(request, env, cors, "aprobar_plan");
     if (url.pathname === "/panel/descartar") return handlePanelAction(request, env, cors, "descartar_pendiente");
+    // NUEVO (27 oct 2026, pedido de Leonardo): borrar una novedad puntual
+    // del chat de seguimiento sin tener que editar el Sheet a mano — mismo
+    // principio que las rutas de arriba.
+    if (url.pathname === "/panel/eliminar-novedad") return handlePanelAction(request, env, cors, "eliminar_novedad");
 
     // NUEVO (10 ago 2026): verificación del código de colegio — ver nota grande arriba.
     if (url.pathname === "/verificar") return handlePanelAction(request, env, cors, "verificar_codigo");
