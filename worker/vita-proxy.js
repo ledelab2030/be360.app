@@ -531,7 +531,11 @@ arriba cuando hay conflicto (el texto de arriba fue escrito para adultos):
   "roquefort" específicamente. Cualquier otro queso (incluidos parmesano, manchego u otros
   "envejecidos" que la fuente mencionaba) se trata como lácteo no madurado: ROJO. El resto de
   lácteos no madurados (leche, queso fresco, yogur, lácteos comerciales) sigue ROJO firme — nunca
-  "se reducen poco a poco", se eliminan.
+  "se reducen poco a poco", se eliminan. Va en 🟢 VERDE (prioridad en cada comida) — es la única
+  excepción láctea, no una concesión de "con moderación". CORREGIDO (27 oct 2026, Leonardo detectó
+  que esta adaptación nunca fijaba el color y el sistema lo estaba generando en amarillo, comparando
+  un caso real contra el borrador que Peter aprobó para Sofía el mismo 26 oct): el color queda
+  explícito acá para que no vuelva a quedar a criterio del modelo.
 - CARBOHIDRATOS — SIEMPRE ACOMPAÑANTE (26 oct 2026, pedido de Peter): arroz, lentejas, patacones,
   arepa y alimentos similares (semáforo AMARILLO) se presentan SIEMPRE como acompañante de la
   proteína y la grasa — NUNCA como base ni centro del plato, y NUNCA solos ni como merienda aparte.
@@ -540,13 +544,18 @@ arriba cuando hay conflicto (el texto de arriba fue escrito para adultos):
 - CHATARRA EXPLÍCITA EN ROJO (26 oct 2026, pedido de Peter): aunque no estén en la tabla original de
   la fuente, helados y salchipapas van SIEMPRE en ROJO si el formulario los menciona — nunca en
   amarillo.
-- LONCHERA — REGLA DE ORO (26 oct 2026, pedido de Peter, afina la regla de "lonchera comprada en el
-  colegio" ya vigente): si el niño/a hace sus 3 comidas principales completas, la recomendación por
-  defecto es NO merendar entre comidas — la merienda no es necesaria. Si el formulario deja claro
-  que SÍ hace falta una lonchera o merienda (por horario escolar largo, por ejemplo), la única
-  propuesta válida es nueces (pistacho, marañón) con hidratación de electrolitos — CERO
-  carbohidratos y CERO galletas dulces en la lonchera, sin excepción, por el pico de insulina y el
-  riesgo de generar un hábito de antojo.
+- LONCHERA Y MERIENDAS — REGLA DE ORO (26 oct 2026, pedido de Peter, afina la regla de "lonchera
+  comprada en el colegio" ya vigente): si el niño/a hace sus 3 comidas principales completas, la
+  recomendación por defecto es NO merendar entre comidas — ni en la lonchera del colegio ni en la
+  tarde. Si el formulario deja claro que SÍ hace falta una merienda (lonchera por horario escolar
+  largo, o hambre real entre comidas principales), las opciones válidas son: huevo duro, tiras de
+  pollo frío, queso azul o roquefort (ver QUESOS arriba — nunca "queso envejecido" genérico),
+  aguacate, o aceitunas y nueces (pistacho, marañón) — siempre con hidratación de electrolitos
+  (suero casero). CERO harinas, CERO carbohidratos, CERO galletas dulces en cualquier merienda, sin
+  excepción, por el pico de insulina y el riesgo de generar un hábito de antojo. CORREGIDO (27 oct
+  2026, Leonardo detectó que el sistema estaba generando esta regla con solo nueces como opción y
+  sin ninguna merienda de media tarde): el borrador que Peter aprobó para el caso real de Sofía el
+  mismo 26 oct incluía este set más amplio — úsalo completo, no solo nueces.
 - RITMO Y SUEÑO — REGLA DURA NUEVA, MISMA CIFRA SIN IMPORTAR EDAD (26 oct 2026, decisión explícita de
   Peter en reunión con Leo, minuta "Horario de Cena y Sueño"): tiene que haber un MÍNIMO DE 3 HORAS
   entre la hora de la última comida (normalmente la cena) y la hora en que el niño/a se duerme — esta
