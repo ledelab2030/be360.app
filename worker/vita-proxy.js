@@ -753,6 +753,18 @@ El músculo no es estética — es reserva metabólica, órgano endocrino activo
 const SRB_DRAFT_PROMPT = `Eres el generador de planes pediátricos de be360, bajo el Sistema de Reversión Biológica (SRB) de
 Peter Álvarez. Tu borrador NO llega directo a la familia — lo revisa Peter Álvarez antes de aprobarlo.
 
+PROHIBIDO ESCRIBIR NADA ANTES DEL JSON (27 oct 2026, Leonardo encontró el fallo en vivo — ver más
+abajo "IMPORTANTE: responde SOLO el JSON crudo"): tu primer carácter de respuesta tiene que ser "{".
+NUNCA escribas un preámbulo de análisis, cálculos mostrados como texto corrido, ni frases como "voy a
+analizar", "primero calculo", "key data from the form" o cualquier razonamiento en prosa — ni en
+español ni en inglés — antes de abrir el JSON. Todos los cálculos que este prompt te pide más abajo
+(ventana de alimentación, hora de cierre) los haces EN SILENCIO, sin escribirlos como texto de
+respuesta — el resultado va directo en los campos del JSON. Esto no es una preferencia de estilo: un
+preámbulo largo agota el límite de tokens de salida antes de llegar al JSON, y la fila se queda sin
+borrador, sin que nadie se entere (encontrado en vivo: dos intentos consecutivos de regenerar el caso
+de Sofía cortados por "stop_reason: max_tokens" después de 3700+ tokens de razonamiento en inglés,
+cero JSON producido).
+
 REGLA MÁS IMPORTANTE DE TODAS (encontrada en revisión en vivo, 21 oct 2026 — Peter encontró
 afirmaciones inventadas que no están en el SRB): CADA afirmación que hagas tiene que poder
 rastrearse a algo EXPLÍCITAMENTE dicho en la FUENTE SRB de abajo. Si algo no está ahí — aunque
@@ -899,8 +911,11 @@ forma de nombrar al SRB, "la fuente" o un documento dentro del "mensaje" o el te
 "habitos". En vez de citar, abre la frase con la idea misma — "Una dieta con exceso de carbohidratos
 genera..." en lugar de "Según el SRB, una dieta con exceso de carbohidratos genera...".
 
-IMPORTANTE: responde SOLO el JSON crudo, sin backticks ni la palabra json alrededor. Dentro de los
-textos, nunca uses comillas dobles para citar o enfatizar algo (usa comillas simples o ninguna).
+IMPORTANTE: responde SOLO el JSON crudo, sin backticks ni la palabra json alrededor — tu respuesta
+completa empieza en "{" y termina en "}", sin una sola palabra antes ni después (ver arriba
+"PROHIBIDO ESCRIBIR NADA ANTES DEL JSON" — esto es ese mismo límite, repetido acá porque es el punto
+donde más falla). Dentro de los textos, nunca uses comillas dobles para citar o enfatizar algo (usa
+comillas simples o ninguna).
 
 VENTANAS EN FORMATO DE RELOJ (24h, "HH:MM") — además del texto, da las horas exactas de primera y
 última comida por separado, en los 4 campos de abajo. Estos 4 campos son los que se usan para
@@ -1130,8 +1145,19 @@ async function generarBorradorAutomatico(dx, ts, env) {
           // respuesta salía cortada, el JSON se rompía y la fila quedaba
           // huérfana sin que nadie se enterara (encontrado con el caso de
           // Samuel). Decisión de Leonardo: no asumir ese riesgo todavía.
+          //
+          // max_tokens subido de 5000 a 7000 (27 oct 2026, Leonardo detectó el
+          // mismo fallo que el comentario de arriba describe para sonnet-5,
+          // esta vez con sonnet-4-6: dos intentos consecutivos de regenerar el
+          // caso de Sofía cortados por "stop_reason: max_tokens" después de
+          // 3700+ tokens de puro razonamiento en inglés antes del JSON, cero
+          // borradores guardados). No es solo un problema de sonnet-5 — el
+          // margen de tokens importa igual. El fix principal es la regla
+          // "PROHIBIDO ESCRIBIR NADA ANTES DEL JSON" al inicio de
+          // SRB_DRAFT_PROMPT; este margen más ancho es la red de seguridad
+          // para cuando esa regla no baste.
           model: "claude-sonnet-4-6",
-          max_tokens: 5000,
+          max_tokens: 7000,
           system: SRB_DRAFT_PROMPT,
           messages: [{ role: "user", content: "Formulario capturado (JSON):\n" + JSON.stringify(dx) +
             ((correcciones && correcciones.length)
