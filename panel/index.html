@@ -513,9 +513,12 @@ function App() {
       )}
       <div style={{display:"flex", flexDirection:"column", gap:10}}>
         {(historial||[]).map(p => (
-          <div key={p.idPlan} className="rise" onClick={()=>abrirDetalle(p.idPlan,"historial")} style={{background:P.panel, border:"1px solid "+P.line, borderRadius:16, padding:"14px 16px", cursor:"pointer", display:"flex", justifyContent:"space-between", alignItems:"center", gap:12}}>
+          <div key={p.idPlan} className="rise" onClick={()=>abrirDetalle(p.idPlan,"historial")} style={{background:P.panel, border:"1px solid "+(p.tieneNovedades?P.clay:P.line), borderRadius:16, padding:"14px 16px", cursor:"pointer", display:"flex", justifyContent:"space-between", alignItems:"center", gap:12}}>
             <div style={{minWidth:0}}>
-              <div style={{fontSize:15, fontWeight:800, color:P.ink}}>{p.nombreNino || "(sin nombre)"}{formatEdad(p.edad)}</div>
+              <div style={{fontSize:15, fontWeight:800, color:P.ink, display:"flex", alignItems:"center", gap:8}}>
+                {p.nombreNino || "(sin nombre)"}{formatEdad(p.edad)}
+                {p.tieneNovedades && <span style={{background:P.claySoft, color:P.clay, fontSize:10.5, fontWeight:800, padding:"2px 8px", borderRadius:999, letterSpacing:".03em"}}>NOVEDAD</span>}
+              </div>
               <div style={{fontSize:12.5, color:P.muted, marginTop:2}}>Padre/madre: {p.nombrePadre || "—"} · aprobado {relativeDate(p.correoEnviadoTs || p.timestamp)}</div>
             </div>
             <div style={{color:P.sageDeep, fontSize:20, flexShrink:0}}>→</div>
@@ -535,6 +538,7 @@ function App() {
     );
     const habitosIncluidos = habitos.filter(h=>h.incluido);
     const inclCount = habitosIncluidos.length;
+    const novedades = detalle.novedades || [];
     return (
       <ShellDetalle>
         <div style={{display:"flex", justifyContent:"space-between", alignItems:"center", gap:10}}>
@@ -559,6 +563,25 @@ function App() {
           )}
           {soloLectura && <div style={{display:"inline-block", marginTop:8, background:P.sageSoft, color:P.sageDeep, fontSize:11.5, fontWeight:800, padding:"4px 10px", borderRadius:999}}>✓ Aprobado</div>}
         </div>
+
+        {/* Novedades del chat de seguimiento (27 oct 2026, pedido de
+            Leonardo): antes esto SOLO mandaba un correo — se perdía entre
+            miles de otros y no quedaba rastro al revisar el caso más
+            tarde. Ver registrarNovedad() en Apps Script. Se muestra arriba
+            de todo, junto al encabezado, para que sea lo primero que se vea
+            al volver a un caso aprobado — es justo el momento de
+            "revisar el seguimiento" que motivó el pedido. */}
+        {novedades.length > 0 && (
+          <div style={{background:P.claySoft, border:"1px solid "+P.clay, borderRadius:16, padding:"14px 16px", display:"flex", flexDirection:"column", gap:10}}>
+            <div style={{fontSize:13, fontWeight:800, color:P.clay}}>Novedades reportadas por la familia ({novedades.length})</div>
+            {novedades.slice().reverse().map((n, i) => (
+              <div key={i} style={{background:P.panelRaised, border:"1px solid "+P.line, borderRadius:12, padding:"10px 12px"}}>
+                <div style={{fontSize:11, color:P.muted, marginBottom:4}}>{relativeDate(n.ts)}{n.motivo ? " · " + n.motivo : ""}</div>
+                <div style={{fontSize:13.5, color:P.ink, lineHeight:1.5}}>{n.resumen || "(sin resumen)"}</div>
+              </div>
+            ))}
+          </div>
+        )}
 
         {/* Vista dividida (21 oct 2026, pedido de Peter): formulario de
             referencia a la izquierda, borrador a la derecha, siempre
