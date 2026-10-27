@@ -480,6 +480,21 @@ Leonardo pidió probar el fix anterior siguiendo chateando con Vita. Se reproduj
 
 **Verificación:** la prueba contra producción real confirmó que el marcador se genera, pero no probaba el tiempo de debounce (consolidar 5 llamadas en 1 también hubiera mandado 5 correos esa vez). Se aisló la lógica exacta de `manejarEscalar`/`flushDatoNuevoPendiente` en una prueba sin red ni React (mismo código, temporizador acortado a 300ms solo para la prueba) — confirmado: 3 disparos rápidos de `dato_nuevo` → 0 correos hasta cumplirse el período de calma → exactamente 1 correo, con el resumen más completo (el último, no el primero); una categoría normal (`urgencia`) se manda de inmediato sin esperar; el flush manual (simulando cierre de pestaña) manda con `keepalive` sin esperar el temporizador. El valor real (45000ms) se restauró antes de este commit — la prueba se corrió con un valor acortado aparte, nunca llegó a `main` con el valor de prueba.
 
+### 27 oct 2026 — Mejor señal que el temporizador: Vita pregunta "¿algo más?" antes de escalar
+
+Leonardo propuso algo mejor que adivinar con un temporizador: que Vita le pregunte directamente al padre/madre si tiene algo más que agregar, y solo escale cuando confirme que no. Una señal real de "terminé", no una aproximación por tiempo.
+
+**Cambio en `buildSeguimientoPrompt` (`plan/index.html`):** la regla de `dato_nuevo` se parte en dos pasos. Cuando el padre comparte un dato nuevo, Vita agradece y pregunta si hay algo más — **sin marcador todavía**. Solo cuando el padre confirma explícitamente que ya no hay más ("no", "eso es todo", "nada más"), Vita agrega `<escalar>dato_nuevo|RESUMEN</escalar>`, con el RESUMEN juntando TODO lo compartido sobre el tema en la conversación, no solo el último mensaje.
+
+El temporizador de 45s de la entrada anterior **no se quitó** — queda como red de seguridad para cuando el padre comparte un dato y se va sin confirmar, o el modelo no sigue la instrucción al pie de la letra. Son dos capas distintas: la pregunta explícita es la señal real cuando ocurre; el temporizador cubre cuando no ocurre.
+
+**Verificación:** probado contra la API real de Claude (mismo prompt exacto que ahora corre en `buildSeguimientoPrompt`, mismos hábitos reales del plan de Samuel), reproduciendo la conversación real de horario en 3 turnos:
+1. "Samuel se duerme a las 9pm" → Vita agradece y pregunta "¿Hay algo más que quieras agregar...?" — sin marcador.
+2. "sí, excepto martes y viernes..." → Vita agradece, señala por su cuenta que ese margen (1.5h) queda corto contra el mínimo de 3h del plan, y vuelve a preguntar "¿algo más?" — sin marcador.
+3. "no, eso es todo" → **ahí sí** `<escalar>dato_nuevo|Samuel se duerme a las 9pm en general. Los martes y viernes llega de fútbol a las 8pm y se duerme máximo a las 9:30pm, lo que deja solo 1.5 horas entre la cena y el momento de dormir — menos del margen de 3 horas establecido en el hábito de cierre de alimentación.</escalar>` — un solo marcador, con los dos datos juntos y la observación clínica que Vita armó sola.
+
+Confirma lo que el temporizador por sí solo no podía garantizar: con la pregunta explícita, la conversación completa de Samuel manda **un solo correo**, no cinco — sin tener que esperar 45 segundos de silencio para saberlo.
+
 ---
 
 ---
