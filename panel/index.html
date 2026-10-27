@@ -171,9 +171,28 @@ function formatEdad(edad) {
 const PDF_MARGIN = 40;
 const PDF_LINE_HEIGHT = 15;
 
+// jsPDF (fuentes estándar, WinAnsiEncoding de un byte) corrompe el doc.text()
+// ENTERO si el string tiene un solo carácter fuera de Windows-1252 — emoji,
+// separadores Unicode como "═" — no solo ese carácter: la llamada completa
+// sale con huecos o ilegible. Encontrado probando el PDF real en producción
+// (27 oct 2026): la línea de corrección de la ventana de alimentación —el
+// dato clínico que más costó cerrar hoy— salió corrompida por un emoji que
+// el modelo agregó al inicio del párrafo. El contenido es generado por IA,
+// así que no se puede predecir ni prohibir cada símbolo; se sanea antes de
+// escribir.
+function sanearTextoPdf(texto) {
+  if (!texto) return texto;
+  return texto
+    .replace(/═+/g, m => "-".repeat(m.length))
+    .replace(/[\u{1F000}-\u{1FFFF}]/gu, "")
+    .replace(/[←-⯿]/g, "")
+    .replace(/[️‍]/g, "");
+}
+
 // Escribe un párrafo con wrap manual y **negrita** inline, avanzando "y" y
 // agregando páginas nuevas cuando hace falta. Devuelve el "y" final.
 function pdfEscribirParrafo(doc, texto, x, y, maxWidth, fontSize) {
+  texto = sanearTextoPdf(texto);
   const pageHeight = doc.internal.pageSize.getHeight();
   doc.setFontSize(fontSize);
   const segmentos = (texto || "").split(/(\*\*[^*]+\*\*)/g).filter(s => s !== "");
@@ -225,7 +244,7 @@ function descargarPdf(nombreNino, mensaje, habitos) {
   let y = PDF_MARGIN;
 
   doc.setFont(undefined, "bold"); doc.setFontSize(16);
-  doc.text("Plan de hábitos de " + (nombreNino || "este niño/a"), PDF_MARGIN, y);
+  doc.text("Plan de hábitos de " + sanearTextoPdf(nombreNino || "este niño/a"), PDF_MARGIN, y);
   y += 22;
   doc.setFont(undefined, "normal"); doc.setFontSize(10.5);
   doc.setTextColor(140, 132, 115);
