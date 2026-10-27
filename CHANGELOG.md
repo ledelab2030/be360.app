@@ -547,6 +547,8 @@ Leonardo pidió borrar la novedad de prueba que quedó en el caso de Samuel (de 
 
 **Verificación:** `node --check` sobre una copia temporal `.js` del Apps Script — sintaxis válida; `node --check` sobre `vita-proxy.js` — sintaxis válida; `panel/index.html` verificado vía Babel en navegador real, sin errores; llamada real a `/panel/eliminar-novedad` contra producción, confirmando el fallo esperado mientras Apps Script no se actualice (prueba negativa correcta, no un bug).
 
+**Verificación de punta a punta (27 oct 2026, después del pegado manual de Apps Script):** probado el flujo real, no un curl — en `panel/index.html` contra el caso real de Samuel (aprobado, con dos novedades: una real de la familia y la de prueba que motivó este cambio). Clic en "Borrar" → "¿Seguro?" / "Cancelar" → confirmar → "Borrando..." → la lista pasó de (2) a (1) sin recargar la página, dejando solo la novedad real. Acción `eliminar_novedad` confirmada funcionando en producción, en los tres componentes (Apps Script, Worker, panel). Con esto se cierra también el pedido original: la novedad de prueba del caso de Samuel ya no existe.
+
 ---
 
 ---
