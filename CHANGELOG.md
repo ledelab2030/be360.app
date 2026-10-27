@@ -564,7 +564,24 @@ Leonardo pidió comparar cómo está generando el sistema el plan de Sofía ahor
 
 **Un solo despliegue, no dos:** a diferencia del cambio anterior, este solo toca `worker/vita-proxy.js` — `SRB_DRAFT_PROMPT` y sus adaptaciones viven en el Worker, no en Apps Script. `wrangler deploy` basta.
 
-**Verificación:** `node --check worker/vita-proxy.js` — sintaxis válida. Pendiente: regenerar el caso de Sofía otra vez después del deploy y confirmar en el panel que el queso azul/roquefort sale en verde y la lonchera/merienda ya trae el set completo.
+**Verificación:** `node --check worker/vita-proxy.js` — sintaxis válida. Verificación de punta a punta: ver entrada siguiente — se cruzó con un hallazgo aparte (el prompt dejó de generar por completo) que hubo que resolver primero para poder confirmar esto en un caso real.
+
+### 27 oct 2026 — Fix: la generación pediátrica se estaba quedando sin JSON por un preámbulo de razonamiento en inglés
+
+Intentando regenerar el caso de Sofía para verificar el fix de arriba, 4 intentos seguidos se quedaron huérfanos — ninguno llegó al panel. Se agregó logging temporal (`console.log`, revertido después de diagnosticar — nunca llegó a `main`, mismo método ya usado para este tipo de problema) y se repitió la prueba dos veces más con `wrangler tail` en vivo.
+
+**Causa confirmada en los logs, 2 de 2:** el modelo (`claude-sonnet-4-6`) estaba abriendo su respuesta con un preámbulo de razonamiento en prosa — en inglés, pese a que el prompt pide español — tipo *"I need to carefully analyze this form and build the plan step by step... INTERNAL CALCULATIONS (never shown to father)..."* — y agotaba los `max_tokens: 5000` antes de llegar a escribir el JSON (`stop_reason: max_tokens`, 14.683 y 15.300 caracteres de puro preámbulo, cero JSON parseable, en los dos intentos logueados). El comentario del código ya documentaba este mismo fallo para `claude-sonnet-5` (por eso se había revertido a `sonnet-4-6` el 2 oct) — resulta que no era exclusivo de ese modelo: el prompt le pide al modelo hacer varios cálculos con cuidado (ventana de alimentación, hora de cierre) sin prohibirle explícitamente mostrar ese razonamiento como texto antes del JSON, y el modelo lo estaba mostrando igual.
+
+**Riesgo real:** esta falla es silenciosa por diseño (la fila simplemente se queda sin `decision`, invisible en Pendientes) — pudo estar afectando casos reales, no solo las pruebas de hoy, sin que nadie se enterara. Es el mismo hueco de observabilidad ya anotado como el más importante pendiente del repo.
+
+**Cambios en `worker/vita-proxy.js` (`SRB_DRAFT_PROMPT`):**
+- Nueva regla al inicio del prompt, "PROHIBIDO ESCRIBIR NADA ANTES DEL JSON": el primer carácter de la respuesta tiene que ser `{`, nada de preámbulo de análisis ni cálculos narrados, en español o en inglés — todo el razonamiento se hace en silencio.
+- La instrucción "IMPORTANTE: responde SOLO el JSON crudo" (ya existía) se refuerza explícitamente como el mismo límite, remarcando que la respuesta completa empieza en `{` y termina en `}`.
+- `max_tokens` sube de 5000 a 7000 como red de seguridad adicional — el fix principal es la regla de arriba, esto es margen extra por si no basta.
+
+**Verificación de punta a punta:** desplegado (de prueba, antes del merge — redesplegado limpio desde `main` después), se regeneró el caso real de Sofía dos veces más. Ambas veces generó limpio, sin preámbulo, mensaje completo (6675 caracteres) con diagnóstico + pilares + cierre, confirmando también el fix de la entrada anterior: queso azul/roquefort en 🟢 verde, lonchera con el set completo de opciones (huevo duro, tiras de pollo frío, queso azul/roquefort, aguacate, aceitunas o nueces). Los dos casos de prueba generados se descartaron del panel (`descartar_pendiente`) — no son casos reales, no bloqueaban nada (sin correo enviado).
+
+**Hallazgo aparte, sin resolver todavía:** al intentar revisar uno de los casos regenerados desde `panel/index.html` (clic normal, no por API), la interfaz se cayó con un error de React ("Cannot read properties of undefined (reading 'replace')") — la respuesta cruda de `/panel/detalle` para ese caso se verificó completa y bien formada (todos los campos presentes, ningún `undefined`), así que no es un problema de los datos ni de este fix. Parece un bug de frontend aparte, no investigado a fondo todavía.
 
 ---
 
