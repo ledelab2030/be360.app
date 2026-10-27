@@ -72,7 +72,7 @@ No son negociables desde este repo. Si algo las contradice, se escala, no se dec
 Los pendientes con su detalle viven en `CHANGELOG.md`, sección "Pendientes conocidos". Los que condicionan cómo se trabaja hoy:
 
 - **`MODO_PRUEBAS = true`** en el Apps Script: Peter puede aprobar sin verificación de colegio, no se manda el correo del código y no corre la purga de 72 h. Correcto para la validación; hay que apagarlo antes del primer colegio que cobre, configurando primero `CODIGOS_VALIDOS_COLEGIO` en Script Properties.
-- **El SRB pediátrico v4 sigue marcado como experimental** — genera los borradores del enlace de validación, pero no reemplaza al prompt de producción hasta que Peter lo ratifique.
+- **El SRB pediátrico (antes "v4"/"experimental") se promovió a producción el 27 oct 2026** — decisión de Leonardo, al encontrar que las reglas de la reunión del 26 oct con Peter (limón al gusto, sal en 2 g/L, quesos en el semáforo) solo vivían en el prompt del enlace de validación. Ahora es `SRB_DRAFT_PROMPT`, el único prompt de generación, usado por `vita-demo-formulario/` y `vita-demo-formulario-v2/` por igual. **Pendiente:** el addendum I de `reglas_duras_srb.md` (las reglas del 26 oct) sigue sin firma de Peter.
 - **Falta la alerta** cuando un caso se queda sin borrador. Es el hueco de observabilidad más importante.
 
 ## 7. Enlaces

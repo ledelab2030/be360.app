@@ -416,6 +416,25 @@ Peter le dijo a Leonardo que, ahora que cambió el formato del plan generado (pr
 
 **Verificación:** verificado vía Babel en navegador real (servidor local) contra el caso real `PRUEBA v4`, sin errores de sintaxis; confirmado por lectura del texto renderizado que la sección de checklist ya no aparece y que el resto de la página (mensaje, botón de PDF, chat con Vita) sigue intacto.
 
+### 27 oct 2026 — El SRB pediátrico se promueve a producción: un solo prompt para todo formulario real (decisión de Leonardo)
+
+Leonardo pidió regenerar el plan real de Sofía con las reglas de la reunión del 26 oct (limón al gusto, sal medida en 2 g/L, quesos en el semáforo). Al revisar el código para hacerlo, apareció el problema real: esas reglas —y toda la línea de trabajo del SRB pediátrico desde el 2 oct (v2 a v5)— solo vivían en `SRB_DRAFT_PROMPT_PEDIATRICO_V2`, el prompt que solo usa el enlace de validación (`producto === "formulario_pediatrico_v2"`). El camino de producción real (`vita-demo-formulario/`, el que generó el plan actual de Sofía) seguía en `SRB_DRAFT_PROMPT`, el prompt simple v1.0-v1.4, **sin tocar**. Regenerar con el código tal cual estaba habría usado el prompt viejo — ninguna mejora de ayer habría aparecido.
+
+Se preguntó explícitamente a Leonardo cómo proceder (dos opciones: probar la regeneración solo contra el caso de Sofía con el prompt nuevo, sin afectar producción; o promover el prompt nuevo a producción primero). Eligió la segunda.
+
+**Cambios en `worker/vita-proxy.js`:**
+- `SRB_DRAFT_PROMPT` (el prompt viejo, v1.0-v1.4) se retira por completo. `SRB_DRAFT_PROMPT_PEDIATRICO_V2` se renombra a `SRB_DRAFT_PROMPT` — es, desde hoy, el único prompt de generación.
+- `generarBorradorAutomatico()`: se quita la rama `esPediatricoV2` — el pipeline completo (reglas duras por código, verificación de ventana de 12h y de las 3h antes de dormir, reintento con correcciones, verificador de grounding contra la fuente SRB, `max_tokens: 5000`) corre siempre, ya no depende de `producto`. La función deja de recibir ese parámetro.
+- `handleLog()`: el enrutamiento por Durable Object con alarma (`GeneradorBorradores`) — necesario porque este prompt tarda ~70s y `ctx.waitUntil()` se cancela a los ~30s — pasa de aplicar solo a `"formulario_pediatrico_v2"` a aplicar a **cualquier** formulario real. Sin este cambio, promover el prompt sin promover también el enrutamiento habría reproducido la falla silenciosa ya conocida (fila escrita en el Sheet, borrador que nunca llega, caso invisible en el panel para siempre) — esta vez en producción real, no en el enlace de validación.
+- Se conserva como comentario el historial de versiones del prompt retirado (v1.0-v1.4), porque dos de sus cambios clínicos habían quedado "pendientes de ratificar formalmente en `reglas_duras_srb.md`" y esa firma sigue sin existir — retirar el prompt no resuelve ese pendiente. Se anota ahí mismo que la regla de lonchera sigue viva (afinada, 26 oct) y que el tope de edad nunca existió en el prompt nuevo.
+- Historial de versiones del SRB pediátrico (v2-v5, ya documentado en el código) se extiende con v6: la promoción misma, con nota de gobernanza explícita — **el addendum I de `reglas_duras_srb.md` (las reglas del 26 oct) sigue sin firma de Peter** al momento de esta promoción. El contenido salió directo de la reunión en vivo con él, pero la ratificación formal del documento está pendiente.
+
+**Costo/latencia:** todo formulario real pasa de 1 llamada a Claude (~2000 tokens, ~23s) a hasta 3 llamadas (generación + posible reintento + verificación de grounding, ~5000 tokens, ~70s) por caso. Es el mismo costo que ya se pagaba en el enlace de validación, ahora también en producción real.
+
+**No cambia:** `vita-demo-formulario/index.html` y `-v2/index.html` (el campo `producto` que mandan no cambió); Apps Script (ningún campo nuevo, `producto` sigue guardándose igual, solo deja de condicionar qué prompt se usa); el HITL (ningún plan llega a una familia sin que Peter apruebe, eso no depende del prompt).
+
+**Verificación:** `node --check worker/vita-proxy.js`. Pendiente antes de desplegar: `wrangler deploy` desde `main` actualizado, y probar el camino real de punta a punta (regenerar el caso de Sofía con sus datos reales, vía el mecanismo de Durable Object, y confirmar que el borrador nuevo aparece en el panel con las reglas del 26 oct) — ver entrada siguiente.
+
 ---
 
 ---

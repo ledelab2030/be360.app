@@ -164,7 +164,7 @@ export class GeneradorBorradores {
     // alarma se reintente en bucle llamando a Claude una y otra vez. La fila
     // se queda "pendiente" y se puede regenerar a mano, igual que antes.
     await this.state.storage.delete("trabajo");
-    await generarBorradorAutomatico(trabajo.dx, trabajo.ts, this.env, trabajo.producto);
+    await generarBorradorAutomatico(trabajo.dx, trabajo.ts, this.env);
   }
 }
 
@@ -328,10 +328,11 @@ async function handleLog(request, env, cors, ctx) {
     }
 
     // "formulario_pediatrico_v2" (2 oct 2026) = vita-demo-formulario-v2/, el
-    // enlace de prueba aparte para el SRB pediátrico nuevo (ver comentario
-    // junto a SRB_DRAFT_PROMPT_PEDIATRICO_V2 más abajo). Mismo Sheet y mismo
-    // schema que "formulario" — solo cambia qué prompt usa
-    // generarBorradorAutomatico, nunca el camino de producción real.
+    // enlace de validación aparte. Mismo Sheet y mismo schema que
+    // "formulario" (producción real, vita-demo-formulario/) — desde el 27
+    // oct 2026 ambos generan con el mismo prompt (ver SRB_DRAFT_PROMPT); el
+    // valor de "producto" ya no cambia el camino de generación, solo sigue
+    // distinguiendo de dónde vino la captura.
     const esFormulario = producto === "formulario" || producto === "formulario_pediatrico_v2";
     const webhookUrl = esFormulario ? env.SHEET_WEBHOOK_URL_FORMULARIO : env.SHEET_WEBHOOK_URL;
     const webhookSecret = esFormulario ? env.SHEET_WEBHOOK_SECRET_FORMULARIO : env.SHEET_WEBHOOK_SECRET;
@@ -383,34 +384,38 @@ async function handleLog(request, env, cors, ctx) {
     // Dispara la generación automática del borrador EN SEGUNDO PLANO — el
     // padre ya recibió su "ok:true" y sigue con lo suyo, no espera a Claude.
     //
-    // Hay DOS caminos, y la diferencia es el límite de tiempo (21 oct 2026):
-    // ctx.waitUntil() se cancela ~30s después de que el Worker responde. El
-    // prompt de producción genera en ~23s y cabe; el pediátrico v4 tarda ~70s
-    // y NO cabe — medido. Por eso el pediátrico se delega a un Durable Object
-    // con alarma, que no tiene ese tope. Encontrado probando el enlace de
-    // validación en producción: la fila se escribía en el Sheet pero el
-    // borrador nunca se guardaba, y como esto falla en silencio por diseño,
-    // el caso quedaba invisible en el panel de Peter para siempre. Explica por
-    // qué todos los borradores pediátricos hasta ahora se generaron a mano.
+    // Hay DOS caminos, y la diferencia es el límite de tiempo (21 oct 2026,
+    // actualizado 27 oct 2026): ctx.waitUntil() se cancela ~30s después de
+    // que el Worker responde; el prompt pediátrico (fuente SRB verbatim +
+    // verificación + reintento + grounding) tarda ~70s y NO cabe — medido.
+    // Por eso se delega a un Durable Object con alarma, que no tiene ese
+    // tope. Hasta el 27 oct esto solo aplicaba a "formulario_pediatrico_v2"
+    // (el enlace de validación); desde que ese prompt se promovió a
+    // producción (ver SRB_DRAFT_PROMPT), CUALQUIER formulario real tarda lo
+    // mismo, así que ambos productos van por el Durable Object ahora —
+    // dejar "formulario" en el camino viejo habría vuelto a reproducir la
+    // falla silenciosa que ya se vio una vez: la fila se escribía en el
+    // Sheet pero el borrador nunca se guardaba, y el caso quedaba invisible
+    // en el panel de Peter para siempre.
     if (esFormulario) {
-      if (producto === "formulario_pediatrico_v2" && env.GENERADOR_BORRADORES) {
+      if (env.GENERADOR_BORRADORES) {
         try {
           const id = env.GENERADOR_BORRADORES.idFromName(tsFinal);
           const stub = env.GENERADOR_BORRADORES.get(id);
           await stub.fetch("https://generador/encolar", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ dx, ts: tsFinal, producto }),
+            body: JSON.stringify({ dx, ts: tsFinal }),
           });
         } catch (e) {
           // Si el Durable Object falla, se intenta por el camino viejo — puede
           // que no alcance a terminar, pero es mejor que no intentarlo.
           if (ctx && typeof ctx.waitUntil === "function") {
-            ctx.waitUntil(generarBorradorAutomatico(dx, tsFinal, env, producto));
+            ctx.waitUntil(generarBorradorAutomatico(dx, tsFinal, env));
           }
         }
       } else if (ctx && typeof ctx.waitUntil === "function") {
-        ctx.waitUntil(generarBorradorAutomatico(dx, tsFinal, env, producto));
+        ctx.waitUntil(generarBorradorAutomatico(dx, tsFinal, env));
       }
     }
 
@@ -424,118 +429,42 @@ async function handleLog(request, env, cors, ctx) {
 }
 
 // ============================================================
-// PROMPT MAESTRO embebido — versión condensada de
-// design-sprint/src/prompts/srb_draft_generator.txt (repo del sprint),
-// adaptada para responder JSON estricto (no texto libre con "Parte A/B"),
-// para poder guardarse sola sin intervención humana. Si algún día se edita
-// el Prompt Maestro del sprint, replicar el cambio aquí también.
+// PROMPT MAESTRO — histórico, RETIRADO el 27 oct 2026.
 //
-// TRAZABILIDAD (2 oct 2026, pedido de Leonardo en vivo con Peter) — desde que
-// este prompt vive embebido aquí, se ha seguido ajustando DIRECTO en este
-// archivo sin reflejar los cambios de vuelta en el repo de documentación del
-// sprint (design-sprint/docs/reglas_duras_srb.md, el SRB clínico firmado por
-// Peter el 28 jul 2026). SRB_PROMPT_VERSION de abajo registra cada cambio, y
-// marca cuáles son contenido CLÍNICO (requieren una versión nueva del SRB
-// documentado, con firma de Peter) vs. cuáles son solo voz/comunicación (no
-// cambian qué se permite o prohíbe, no requieren SRB nuevo):
+// Hasta el 27 oct 2026 este bloque definía SRB_DRAFT_PROMPT (v1.0-v1.4), el
+// prompt simple de producción real — condensado de
+// design-sprint/src/prompts/srb_draft_generator.txt — usado por
+// vita-demo-formulario/ (producto "formulario"). Se retira y se promueve en
+// su lugar el motor pediátrico que hasta hoy solo corría en el enlace de
+// validación (ver "SRB PEDIÁTRICO — PROMOVIDO A PRODUCCIÓN" más abajo para
+// el porqué y la historia completa de ESE prompt).
+//
+// Se conserva el changelog de versiones de este prompt retirado porque dos
+// de sus cambios habían quedado "pendientes de ratificar formalmente en
+// reglas_duras_srb.md" y esa firma sigue sin existir — retirar el prompt no
+// resuelve ese pendiente, así que queda anotado acá qué pasó con cada uno:
 //   v1.0 · 31 jul 2026            · origen: srb_draft_generator.txt v1
 //                                    (carve-out pediátrico firmado 28 jul).
 //   v1.1 · 16 sept 2026 · PR #71  · ESPECIFICIDAD (pedido de Peter) — voz/
 //                                    comunicación, NO clínico.
 //   v1.2 · 16 sept 2026 · PR #73  · lonchera comprada en el colegio (pedido
-//                                    de Peter) — ⚠ SÍ ES CLÍNICO, pendiente
-//                                    de ratificar formalmente en
+//                                    de Peter) — ⚠ ERA CLÍNICO, quedó
+//                                    pendiente de ratificar formalmente en
 //                                    reglas_duras_srb.md (ver addendum ahí).
+//                                    Sigue viva y afinada en
+//                                    ADAPTACIONES_PEDIATRICAS, regla "LONCHERA
+//                                    — REGLA DE ORO" (26 oct 2026).
 //   v1.3 · 2 oct 2026   · PR #78  · idioma latinoamericano estándar +
 //                                    concisión (pedido de Peter en vivo) —
 //                                    voz/comunicación, NO clínico.
 //   v1.4 · 2 oct 2026   · PR #81  · quita el tope de 20 años (pedido de
-//                                    Peter y Leonardo en vivo) — ⚠ SÍ ES
-//                                    CLÍNICO, pendiente de ratificar
+//                                    Peter y Leonardo en vivo) — ⚠ ERA
+//                                    CLÍNICO, quedó pendiente de ratificar
 //                                    formalmente en reglas_duras_srb.md (ver
-//                                    addendum ahí). Un tope fijo excluía
-//                                    estudiantes reales de colegio público en
-//                                    extraedad/CLEI (Colombia permite seguir
-//                                    matriculado bien entrados los 20).
-// Al generar un borrador, esta versión queda disponible para quien llame al
-// Worker (ver generarBorradorAutomatico) — no se persiste todavía por caso
-// individual en el Sheet (requeriría una columna nueva + cambio en Apps
-// Script, pendiente de que Leonardo lo despliegue a mano).
+//                                    addendum ahí). El prompt que lo reemplaza
+//                                    nunca introdujo un tope de edad, así que
+//                                    no hay nada que quitar ahí.
 // ============================================================
-const SRB_PROMPT_VERSION = "1.4";
-const SRB_DRAFT_PROMPT = `Eres el generador de borradores de plan de hábitos de be360, a partir del
-Formulario de Hábitos que llenó un padre/madre sobre su hijo/a (2 años en adelante, sin límite
-superior). Tu borrador NO
-llega directo a la familia — lo revisa Peter Álvarez (autoridad clínica) antes de aprobarlo.
-
-FUENTE ÚNICA — reglas duras, nunca las cruces:
-- IDIOMA (2 oct 2026, pedido de Peter en vivo — nunca español rioplatense/argentino): escribe
-  SIEMPRE en español latinoamericano estándar, con tuteo neutro ("tú cuentas", "tú puedes",
-  "empecemos"). PROHIBIDO el voseo argentino/uruguayo ("vos contás", "vos querés", "fijate",
-  "tenés") y cualquier otro modismo marcadamente regional (che, boludo, pibe, vale como muletilla
-  española, etc.). Si dudas entre dos formas, usa la más neutra posible para toda Latinoamérica.
-- PROHIBIDO SIEMPRE: ayuno intermitente o ventanas de ingesta restrictivas, restricción agresiva
-  de carbohidratos, dietas cetogénicas/carnívoras, déficit calórico agresivo. "No comer de noche"
-  se enmarca como higiene de sueño/hígado — NUNCA como ayuno, nunca uses esa palabra.
-- PESO: nunca es un objetivo salvo que el padre lo plantee explícitamente o venga de un
-  diagnóstico médico ya recibido. Nunca hables de "dieta" ni imagen corporal.
-- ALIMENTACIÓN: carbohidratos complejos SIN TRIGO (yuca, papa, ahuyama, ñame, plátano) — arroz
-  permitido (excepción cultural). Trigo y lácteo de herbívoro (leche/queso/yogur de vaca o
-  cabra — NUNCA las bebidas vegetales tipo "leche" de almendra/avena/soya, esas NO son lácteo):
-  se REDUCEN, nunca se eliminan de golpe salvo que el formulario reporte una intolerancia o
-  indicación puntual.
-- HIDRATACIÓN: si hace falta sugerirlo, suero casero SIEMPRE empezando en 2 g/L — nunca sugieras
-  una concentración mayor directamente.
-- SUEÑO, PANTALLAS Y MOVIMIENTO: siempre seguros de recomendar si el formulario muestra la señal.
-- Si el formulario muestra señales de posible trastorno de conducta alimentaria, salud mental
-  grave o algo médico agudo: NO des un paso concreto en esa área — en su lugar, ese hábito debe
-  decir que el equipo lo va a conversar directamente, sin detalle clínico.
-- Nunca inventes nada fuera de esto. Elige 2 a 4 hábitos, los de mayor impacto — no una lista
-  exhaustiva de todo lo capturado.
-
-ESPECIFICIDAD (16 sept 2026, pedido de Peter — "las recomendaciones salen muy genéricas") — cada
-hábito debe ser tuyo para ESTE niño/a, no un hábito genérico de SRB que serviría para cualquiera:
-- Cada "texto" de hábito debe citar o parafrasear el dato concreto del formulario que lo motiva
-  (ej. "porque cuentas que cena como a las 8:30 y se acuesta a las 9" — nunca "es importante cenar
-  temprano" a secas). Si no puedes anclar un hábito a un dato específico capturado, no lo incluyas.
-- Si "cronologia_del_dia" trae horas concretas, conviértelas en la instrucción: proponé una hora
-  objetivo específica de cambio (ej. "prueben moverla a las 6:45"), nunca una frase vaga como "más
-  temprano" o "reducir un poco". Si un momento viene marcado "[Sin dato, sin hora exacta, o no
-  compartido aún: ...]", NO inventes una hora para ese momento — trabaja solo con lo reportado.
-- Prohibido el lenguaje de relleno que podría aplicar a cualquier niño/a sin cambiar una palabra
-  ("es importante comer sano", "cada niño es diferente", "poco a poco se logra"). Si una frase del
-  borrador serviría igual para otro niño/a con datos distintos, reescríbela o bórrala.
-
-MEDIA MAÑANA/LONCHERA COMPRADA EN EL COLEGIO (16 sept 2026, pedido de Peter — la merienda es el
-punto de menor control de la familia, a diferencia del desayuno o la cena en casa): si el
-formulario indica que la lonchera se compra en el colegio (cafetería/casino/tienda escolar) en vez
-de llevarse de casa, NO propongas un hábito que asuma que la familia elige directamente qué come
-el niño/a en ese momento. En su lugar: (a) si es viable, sugiere enviar lonchera de casa como la
-alternativa concreta; o (b) si el padre ya contó qué suele vender/comprar el colegio, sugiere cuál
-de esas opciones ya disponibles es la menos mala, nunca una alternativa ideal que no existe ahí.
-
-Nivel de especificidad esperado (ejemplo de referencia, no copies el contenido — solo el nivel de
-detalle y el anclaje a un dato reportado):
-- Evitar (genérico): "Reduce el trigo poco a poco y trata de que duerma mejor."
-- Buscar (específico): "Contaste que desayuna pan casi todos los días — empecemos cambiándolo por
-  arepa o yuca 3 veces por semana, dejando el pan para el fin de semana."
-
-TONO del mensaje (voz de Vita, estilo WhatsApp): tuteo, cero emojis, cálido, sin culpa, dirigido
-SIEMPRE al padre/madre (nunca al niño/a). CONCISO — ve al grano (pedido de Peter en vivo, 2 oct
-2026): la intro + contexto no debe pasar de 2-3 frases cortas antes de "TE DEJO EL MAPA", y cada
-hábito en el campo "texto" va directo al punto accionable (1 frase corta, 2 como máximo) — nada de
-rodeos, nada de reafirmar dos veces la misma idea. Abre reconociendo algo que ya hacen bien, en una
-sola frase. Cierra invitando a elegir por dónde empezar — nunca lo presentes como orden fija. Nunca menciones IA,
-tecnología, "ayuno", "dieta" ni imagen corporal.
-
-Recibirás el formulario capturado en JSON. RESPONDE ÚNICAMENTE con este JSON — sin texto antes ni
-después, sin bloque de código markdown, sin explicación:
-{"mensaje":"<el mensaje completo dirigido al padre: intro cálida + 2-3 frases de contexto + 'TE
-DEJO EL MAPA' + los mismos hábitos enumerados dentro del texto + cierre invitando a elegir>",
-"habitos":[{"titulo":"<3 a 5 palabras>","texto":"<1 a 2 frases, accionable, en el mismo tono>"}]}
-Entre 2 y 4 objetos en "habitos". El campo "mensaje" y la lista "habitos" deben ser consistentes
-entre sí — son la misma información en dos formatos (uno para el texto corrido, otro para mostrar
-como checklist en una página aparte).`;
 
 // Texto VERBATIM del SRB (sección 6.2, 6.4, 7, 7.1, 8 y 10.1 de SRB_v0_42).
 // Vive en su propia constante —y no pegado dentro del prompt— porque lo usan
@@ -737,10 +666,11 @@ El músculo no es estética — es reserva metabólica, órgano endocrino activo
 `;
 
 // ============================================================
-// SRB PEDIÁTRICO v4 — EXPERIMENTAL, NO APROBADO AÚN COMO SRB DE PRODUCCIÓN.
-// Es, sin embargo, el prompt que genera los borradores del enlace de
-// validación (vita-demo-formulario-v2/) que Peter está usando para revisar
-// casos reales — o sea: lo que ven las familias que entran por ese enlace.
+// SRB PEDIÁTRICO — PROMOVIDO A PRODUCCIÓN el 27 oct 2026. Hasta ese día este
+// prompt (entonces llamado SRB_DRAFT_PROMPT_PEDIATRICO_V2) solo corría en el
+// enlace de validación (vita-demo-formulario-v2/); ahora es SRB_DRAFT_PROMPT,
+// el único prompt de generación, usado por producto "formulario" (producción
+// real, vita-demo-formulario/) y "formulario_pediatrico_v2" por igual.
 //
 // Historia de las correcciones (todas salidas de sesiones de revisión en vivo
 // con Peter Álvarez, grabadas y transcritas):
@@ -788,12 +718,26 @@ El músculo no es estética — es reserva metabólica, órgano endocrino activo
 //     Encontrado en la misma revisión: el plan real de Sofía recomendaba
 //     ensalada/pepino crudo en el mismo documento que los ponía en rojo —
 //     de ahí el chequeo nuevo de "ensalada" en revisarBorradorPediatrico().
-//
-// SOLO se usa cuando producto === "formulario_pediatrico_v2" — el camino de
-// producción normal sigue intacto con SRB_DRAFT_PROMPT. Cuando Peter lo
-// apruebe formalmente, esto se vuelve el SRB_DRAFT_PROMPT real.
+//   v6 (27 oct 2026, decisión de Leonardo) — PROMOCIÓN A PRODUCCIÓN: deja de
+//     ser "el prompt del enlace de validación" y pasa a usarse para TODO
+//     formulario real. Motivo: Leonardo pidió regenerar el plan real de
+//     Sofía con las reglas de la reunión del 26 oct (limón al gusto, sal
+//     medida en 2 g/L, quesos en el semáforo) y, al revisar el código, esas
+//     reglas solo vivían acá — el camino de producción seguía en el prompt
+//     viejo (ver el bloque "PROMPT MAESTRO — histórico, RETIRADO" arriba),
+//     así que ninguna mejora de ayer habría aparecido en un caso real. Ver
+//     generarBorradorAutomatico() y handleLog(): la verificación
+//     determinística (reglas duras, ventana, grounding) y el enrutamiento
+//     por Durable Object con alarma (antes solo para "formulario_pediatrico_
+//     v2", necesario porque este prompt no cabe en el límite de ~30s de
+//     ctx.waitUntil) ahora aplican a cualquier producto de formulario, no
+//     solo al de validación.
+//     NOTA DE GOBERNANZA: el addendum I de reglas_duras_srb.md (las reglas
+//     del 26 oct) sigue sin firma de Peter al momento de esta promoción —
+//     el contenido salió directo de la reunión en vivo con él, pero la
+//     ratificación formal del documento todavía está pendiente.
 // ============================================================
-const SRB_DRAFT_PROMPT_PEDIATRICO_V2 = `Eres el generador de planes pediátricos de be360, bajo el Sistema de Reversión Biológica (SRB) de
+const SRB_DRAFT_PROMPT = `Eres el generador de planes pediátricos de be360, bajo el Sistema de Reversión Biológica (SRB) de
 Peter Álvarez. Tu borrador NO llega directo a la familia — lo revisa Peter Álvarez antes de aprobarlo.
 
 REGLA MÁS IMPORTANTE DE TODAS (encontrada en revisión en vivo, 21 oct 2026 — Peter encontró
@@ -1140,21 +1084,21 @@ async function revisarGroundingConModelo(parsed, env) {
 // en segundo plano (ctx.waitUntil) — si falla por lo que sea, no revienta
 // nada: la fila simplemente se queda en "pendiente" para revisión manual,
 // igual que se comportaba el sistema antes de esta automatización.
-async function generarBorradorAutomatico(dx, ts, env, producto) {
+async function generarBorradorAutomatico(dx, ts, env) {
   try {
     if (!env.SHEET_WEBHOOK_URL_FORMULARIO) return;
 
-    // Elige el prompt según el producto — "formulario_pediatrico_v2" usa el SRB
-    // pediátrico v4 experimental (ver comentario junto a su definición);
-    // cualquier otro valor usa el prompt de producción normal.
+    // Un solo prompt para todo formulario real desde el 27 oct 2026 (ver
+    // comentario "SRB PEDIÁTRICO — PROMOVIDO A PRODUCCIÓN" junto a
+    // SRB_DRAFT_PROMPT) — ya no depende de "producto" (por eso esta función
+    // ya no lo recibe; handleLog sigue leyendo su propio "producto" del
+    // body para decidir el enrutamiento por Durable Object, ver más abajo).
     //
-    // max_tokens sube a 5000 para el v4 (21 oct 2026): el v4 trae la fuente SRB
-    // verbatim embebida y pide dos bloques (resumen cronológico + propuesta con
-    // semáforo y pilares). Generando el caso real de Josef con 2500 se truncaba
-    // y el JSON no parseaba, y como esta función falla en silencio (ver abajo)
-    // la fila se quedaba sin borrador y nadie se enteraba.
-    const esPediatricoV2 = producto === "formulario_pediatrico_v2";
-    const promptAUsar = esPediatricoV2 ? SRB_DRAFT_PROMPT_PEDIATRICO_V2 : SRB_DRAFT_PROMPT;
+    // max_tokens en 5000 (21 oct 2026): este prompt trae la fuente SRB
+    // verbatim embebida y pide dos bloques (resumen cronológico + propuesta
+    // con semáforo y pilares). Generando el caso real de Josef con 2500 se
+    // truncaba y el JSON no parseaba, y como esta función falla en silencio
+    // (ver abajo) la fila se quedaba sin borrador y nadie se enteraba.
 
     // "correcciones" se usa en el reintento: se le dice al modelo qué estuvo
     // mal en su intento anterior, en vez de pedirle lo mismo y esperar suerte.
@@ -1174,8 +1118,8 @@ async function generarBorradorAutomatico(dx, ts, env, producto) {
           // huérfana sin que nadie se enterara (encontrado con el caso de
           // Samuel). Decisión de Leonardo: no asumir ese riesgo todavía.
           model: "claude-sonnet-4-6",
-          max_tokens: esPediatricoV2 ? 5000 : 2000,
-          system: promptAUsar,
+          max_tokens: 5000,
+          system: SRB_DRAFT_PROMPT,
           messages: [{ role: "user", content: "Formulario capturado (JSON):\n" + JSON.stringify(dx) +
             ((correcciones && correcciones.length)
               ? "\n\nTu intento anterior tuvo estos problemas. Vuelve a escribir el plan completo sin ellos:\n- " + correcciones.join("\n- ")
@@ -1195,78 +1139,74 @@ async function generarBorradorAutomatico(dx, ts, env, producto) {
       return parsed && parsed.mensaje ? parsed : null;
     };
 
-    // Camino de producción (prompt normal): un intento, sin verificación de
-    // ventana — ese prompt no genera los campos de ventana ni el bloque 1.
     let parsed = await pedirBorrador();
     let avisoVerificacion = "";
 
-    if (esPediatricoV2) {
-      // REVISIÓN ANTES DE GUARDAR (21 oct 2026, pedido de Leonardo): el
-      // borrador no llega al panel sin pasar por acá. Dos capas —
-      //   (a) reglas duras por código: palabras prohibidas, reglas narradas al
-      //       padre, formato interno filtrado, cifras de adulto, ventana corta.
-      //       Si algo falla, se regenera UNA vez diciéndole qué corregir.
-      //   (b) verificador de grounding contra la fuente SRB: es advisory, se
-      //       anota para Peter pero nunca descarta el borrador.
-      // Lo que sobreviva con problemas se guarda igual, con la lista arriba.
-      // Mejor un borrador marcado que un caso vacío — y la alarma solo aparece
-      // cuando de verdad hay algo, para que Peter no aprenda a ignorarla.
-      const evaluar = (p) => {
-        if (!p) return [];
-        const fallos = revisarBorradorPediatrico(p);
-        // horasDeVentana devuelve null cuando NO HAY DATO (el formulario no
-        // traía horas y el prompt manda "00:00" para decirlo). Eso no es un
-        // error: el propio texto le explica al padre qué hora falta.
-        const h = horasDeVentana(p.ventanaPropuesta);
-        if (h !== null && h > MAX_VENTANA_HORAS) {
-          const hh = Math.floor(h), mm = Math.round((h - hh) * 60);
-          fallos.push("la ventana propuesta queda en " + hh + "h" + String(mm).padStart(2, "0") +
-            " (de " + p.ventanaPropuesta.primeraComida + " a " + p.ventanaPropuesta.ultimaComida +
-            "), por encima del máximo de " + MAX_VENTANA_HORAS + " horas para niños");
-        }
-        // Regla nueva (26 oct 2026): mínimo 3 horas entre la última comida y
-        // la hora de dormir — independiente de la ventana de arriba. Igual
-        // que horasDeVentana, null = sin dato (no se reporta como fallo, el
-        // propio texto ya le dice al padre qué falta).
-        const hd = horasAntesDeDormir(p.ventanaPropuesta, p.horaDormir);
-        if (hd !== null && hd < MIN_HORAS_CENA_DORMIR) {
-          const hh = Math.floor(hd), mm = Math.round((hd - hh) * 60);
-          fallos.push("quedan " + hh + "h" + String(mm).padStart(2, "0") + " entre la última comida (" +
-            p.ventanaPropuesta.ultimaComida + ") y la hora de dormir (" + p.horaDormir +
-            "), por debajo del mínimo de " + MIN_HORAS_CENA_DORMIR + " horas");
-        }
-        return fallos;
-      };
-
-      let fallos = evaluar(parsed);
-      if (!parsed || fallos.length > 0) {
-        const reintento = await pedirBorrador(fallos);
-        const fallosReintento = evaluar(reintento);
-        // Se queda con el reintento si no produjo nada el primero, o si salió
-        // igual o mejor. Nunca se empeora a propósito.
-        if (reintento && (!parsed || fallosReintento.length <= fallos.length)) {
-          parsed = reintento;
-          fallos = fallosReintento;
-        }
+    // REVISIÓN ANTES DE GUARDAR (21 oct 2026, pedido de Leonardo): el
+    // borrador no llega al panel sin pasar por acá. Dos capas —
+    //   (a) reglas duras por código: palabras prohibidas, reglas narradas al
+    //       padre, formato interno filtrado, cifras de adulto, ventana corta.
+    //       Si algo falla, se regenera UNA vez diciéndole qué corregir.
+    //   (b) verificador de grounding contra la fuente SRB: es advisory, se
+    //       anota para Peter pero nunca descarta el borrador.
+    // Lo que sobreviva con problemas se guarda igual, con la lista arriba.
+    // Mejor un borrador marcado que un caso vacío — y la alarma solo aparece
+    // cuando de verdad hay algo, para que Peter no aprenda a ignorarla.
+    const evaluar = (p) => {
+      if (!p) return [];
+      const fallos = revisarBorradorPediatrico(p);
+      // horasDeVentana devuelve null cuando NO HAY DATO (el formulario no
+      // traía horas y el prompt manda "00:00" para decirlo). Eso no es un
+      // error: el propio texto le explica al padre qué hora falta.
+      const h = horasDeVentana(p.ventanaPropuesta);
+      if (h !== null && h > MAX_VENTANA_HORAS) {
+        const hh = Math.floor(h), mm = Math.round((h - hh) * 60);
+        fallos.push("la ventana propuesta queda en " + hh + "h" + String(mm).padStart(2, "0") +
+          " (de " + p.ventanaPropuesta.primeraComida + " a " + p.ventanaPropuesta.ultimaComida +
+          "), por encima del máximo de " + MAX_VENTANA_HORAS + " horas para niños");
       }
+      // Regla nueva (26 oct 2026): mínimo 3 horas entre la última comida y
+      // la hora de dormir — independiente de la ventana de arriba. Igual
+      // que horasDeVentana, null = sin dato (no se reporta como fallo, el
+      // propio texto ya le dice al padre qué falta).
+      const hd = horasAntesDeDormir(p.ventanaPropuesta, p.horaDormir);
+      if (hd !== null && hd < MIN_HORAS_CENA_DORMIR) {
+        const hh = Math.floor(hd), mm = Math.round((hd - hh) * 60);
+        fallos.push("quedan " + hh + "h" + String(mm).padStart(2, "0") + " entre la última comida (" +
+          p.ventanaPropuesta.ultimaComida + ") y la hora de dormir (" + p.horaDormir +
+          "), por debajo del mínimo de " + MIN_HORAS_CENA_DORMIR + " horas");
+      }
+      return fallos;
+    };
 
-      if (parsed) {
-        const sinRespaldo = await revisarGroundingConModelo(parsed, env);
-        for (const s of sinRespaldo) fallos.push("posible afirmación sin respaldo en el SRB: " + s);
-        if (fallos.length > 0) {
-          avisoVerificacion = "[REVISIÓN AUTOMÁTICA — " + fallos.length + " punto(s) a mirar antes de aprobar]\n" +
-            fallos.map(f => "· " + f).join("\n");
-        }
+    let fallos = evaluar(parsed);
+    if (!parsed || fallos.length > 0) {
+      const reintento = await pedirBorrador(fallos);
+      const fallosReintento = evaluar(reintento);
+      // Se queda con el reintento si no produjo nada el primero, o si salió
+      // igual o mejor. Nunca se empeora a propósito.
+      if (reintento && (!parsed || fallosReintento.length <= fallos.length)) {
+        parsed = reintento;
+        fallos = fallosReintento;
+      }
+    }
+
+    if (parsed) {
+      const sinRespaldo = await revisarGroundingConModelo(parsed, env);
+      for (const s of sinRespaldo) fallos.push("posible afirmación sin respaldo en el SRB: " + s);
+      if (fallos.length > 0) {
+        avisoVerificacion = "[REVISIÓN AUTOMÁTICA — " + fallos.length + " punto(s) a mirar antes de aprobar]\n" +
+          fallos.map(f => "· " + f).join("\n");
       }
     }
 
     if (!parsed) return; // no se pudo generar limpio — se queda "pendiente"
 
-    // El prompt v4 devuelve el plan en dos bloques (resumen cronológico actual
-    // + propuesta). El panel tiene una sola ventana de texto, así que se
+    // El prompt devuelve el plan en dos bloques (resumen cronológico actual +
+    // propuesta). El panel tiene una sola ventana de texto, así que se
     // concatenan en orden, separados por una línea divisoria.
     let mensajeFinal = parsed.mensaje;
-    if (esPediatricoV2 && parsed.resumenCronologico) {
+    if (parsed.resumenCronologico) {
       mensajeFinal = parsed.resumenCronologico + "\n\n" + "═".repeat(40) + "\n\n" + parsed.mensaje;
     }
     if (avisoVerificacion) {
