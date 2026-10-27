@@ -403,7 +403,18 @@ Pedido de Leonardo: "pruébalo tú mismo en el enlace de validación" — proban
 
 **Fix:** nueva función `sanearTextoPdf()`, duplicada en `plan/index.html` y `panel/index.html` (mismo patrón que `pdfEscribirParrafo`/`descargarPdf`, a propósito no compartida), que se aplica a todo texto antes de escribirlo: reemplaza `═` por guiones ASCII, y quita emoji (rango `\u{1F000}-\u{1FFFF}`), símbolos/flechas/dibujo de caja (`←-⯿`) y modificadores de emoji (selector de variación, ZWJ). No se puede predecir ni prohibir qué símbolo va a usar el modelo en el mensaje generado, así que el saneo es general, no una lista de casos conocidos.
 
-**Verificación:** reproducido el bug exacto contra un string de prueba con los mismos símbolos del caso real (separador, 🔴🟡🟢, emoji antes de "CORRECCIÓN DE VENTANA"), capturando el PDF generado en el navegador (interceptando `jsPDF.save` para obtener el `datauristring` sin depender de una descarga real) y decodificando los bytes del content stream: antes del fix, el texto salía como UTF-16 con bytes nulos intercalados (confirmado byte a byte); después del fix, las mismas líneas salen como texto plano de un byte, completas y legibles. Verificado en los dos archivos (`plan/` y `panel/`) vía Babel en navegador real, sin errores de sintaxis.
+**Verificación:** reproducido el bug exacto contra un string de prueba con los mismos símbolos del caso real (separador, 🔴🟡🟢, emoji antes de "CORRECCIÓN DE VENTANA"), capturando el PDF generado en el navegador (interceptando `jsPDF.save` para obtener el `datauristring` sin depender de una descarga real) y decodificando los bytes del content stream: antes del fix, el texto salía como UTF-16 con bytes nulos intercalados (confirmado byte a byte); después del fix, las mismas líneas salen como texto plano de un byte, completas y legibles. Verificado en los dos archivos (`plan/` y `panel/`) vía Babel en navegador real, sin errores de sintaxis. Confirmado también en producción después del merge: PDF real de `PRUEBA v4` regenerado desde `https://be360.app/plan/`, decodificado, 0 bytes nulos en todo el archivo.
+
+### 27 oct 2026 — Oculta el checklist de hábitos en `plan/`, redundante con el nuevo formato del mensaje (pedido de Peter)
+
+Peter le dijo a Leonardo que, ahora que cambió el formato del plan generado (prompt v2, sprint del 26 oct), el resumen de hábitos con checkbox al final de `plan/index.html` quedó redundante con el mensaje narrativo que ya se genera arriba — la misma recomendación aparecía dos veces.
+
+- Se quita de `plan/index.html` la sección "ESTA SEMANA" (barra de progreso) y la lista de tarjetas de hábitos con checkbox (`habitos.map(...)` con `toggle`), junto con el estado que solo esa sección usaba: `checked`, la carga de `localStorage.plan_check_<id>`, la función `toggle()`, y `total`/`done`/`pct`.
+- `habitos` (el array en sí) se mantiene — lo sigue usando el botón "Descargar PDF" (PR #105).
+- No se toca `panel/index.html`: ahí el checkbox por hábito es para que Peter incluya/excluya hábitos antes de aprobar, una función distinta, no la que Peter pidió ocultar.
+- Sección "Retos de bienestar" (opt-in, `?retos=1`) intacta — es un feature aparte, no generado por IA, no relacionado con esta redundancia.
+
+**Verificación:** verificado vía Babel en navegador real (servidor local) contra el caso real `PRUEBA v4`, sin errores de sintaxis; confirmado por lectura del texto renderizado que la sección de checklist ya no aparece y que el resto de la página (mensaje, botón de PDF, chat con Vita) sigue intacto.
 
 ---
 
