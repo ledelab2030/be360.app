@@ -552,7 +552,17 @@ function App() {
         <div>
           <h1 style={{fontFamily:"'Fraunces',serif", fontWeight:600, fontSize:24, margin:0, color:P.sageDeep}}>{detalle.nombreNino || "(sin nombre)"}{formatEdad(detalle.edad)}</h1>
           <div style={{fontSize:13, color:P.muted, marginTop:4}}>Padre/madre: {detalle.nombrePadre || "—"} · {detalle.emailPadre || "sin correo"}</div>
-          <div style={{fontSize:11.5, color:detalle.consentimientoTs?P.sageDeep:P.clay, marginTop:4}}>{detalle.consentimientoTs ? ("✓ Consentimiento aceptado "+relativeDate(detalle.consentimientoTs)) : "⚠ Sin registro de consentimiento (caso previo al 9 ago, o pendiente actualizar Apps Script)"}</div>
+          {/* Texto del aviso corregido (27 oct 2026, encontrado por Leonardo
+              en un caso real del panel): decía "caso previo al 9 ago, o
+              pendiente actualizar Apps Script" — dos causas nada más, y
+              ninguna de las dos era la real en el caso que lo disparó (una
+              fila creada por una prueba directa a la API, que a propósito no
+              le pone una fecha de consentimiento falsa en vez de pasar por
+              la pantalla real de consentimiento). El aviso en sí se queda —
+              es una señal de cumplimiento real (todo caso real desde el 9
+              ago debería tener consentimiento_ts) — lo que estaba mal era
+              el texto, que no cubría esta tercera causa. */}
+          <div style={{fontSize:11.5, color:detalle.consentimientoTs?P.sageDeep:P.clay, marginTop:4}}>{detalle.consentimientoTs ? ("✓ Consentimiento aceptado "+relativeDate(detalle.consentimientoTs)) : "⚠ Sin registro de consentimiento (caso previo al 9 ago, creado por una prueba directa sin pasar por el formulario real, o un caso real que hay que revisar)"}</div>
           {/* Aviso de código de colegio DESACTIVADO mientras dure MODO_PRUEBAS (2 oct 2026,
               pedido de Leonardo en vivo) — ya no bloqueaba la aprobación desde el PR #77, pero
               seguía mostrándose como nota informativa y generaba confusión durante las pruebas

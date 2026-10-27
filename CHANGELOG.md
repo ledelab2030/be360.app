@@ -519,6 +519,20 @@ Leonardo preguntó si las novedades deberían quedar visibles en el panel al rev
 
 **Verificación:** `node --check` sobre una copia temporal en `.js` del Apps Script (sintaxis válida — Apps Script no corre con Node, así que no valida las llamadas a `SpreadsheetApp`/`MailApp`, pero si hubiera un error de sintaxis esto lo habría encontrado); `panel/index.html` verificado vía Babel en navegador real, sin errores. No se pudo probar el flujo completo en producción real porque requiere pegar el Apps Script a mano primero — queda pendiente para después de ese paso.
 
+### 27 oct 2026 — Confirmado: Apps Script desplegado, novedades funcionando de punta a punta
+
+Leonardo pegó el script completo y lo implementó como nueva versión. Verificado contra producción real: `detallePlan` ya devuelve `novedades` (antes del primer evento, vacío `[]` — el campo existe pero no hay entradas todavía, porque la novedad real de Samuel de la entrada anterior llegó antes de este deploy, solo quedó como correo). Se mandó un `<escalar>` de prueba contra el `idPlan` real de Samuel y se confirmó: `registrarNovedad()` escribe en el Sheet, `detallePlan` la devuelve de vuelta, y `listarHistorial` marca `tieneNovedades:true`. Leonardo confirmó visualmente en el panel real: la etiqueta "NOVEDAD" en Aprobados y la sección completa en el detalle del caso, tal como se diseñaron.
+
+### 27 oct 2026 — Fix: el texto del aviso de consentimiento no cubría la causa real
+
+Leonardo encontró, en el mismo caso real de Samuel usado para las pruebas de arriba, el aviso "⚠ Sin registro de consentimiento (caso previo al 9 ago, o pendiente actualizar Apps Script)" — y con razón no entendía por qué, si el caso es de hoy. Causa real: ese caso específico (el Samuel regenerado hoy para probar la promoción del SRB pediátrico, PR #108) se creó con una llamada directa a `/log` reconstruyendo su `dx` real campo por campo — a propósito **sin** fabricar un `consentimiento_ts`, porque no hubo ningún evento de consentimiento real que registrar; inventar uno habría sido peor que dejarlo vacío. El aviso estaba funcionando correctamente (ese caso de verdad no tiene consentimiento registrado) — lo que fallaba era que el texto solo contemplaba dos causas (caso viejo, o Apps Script desactualizado) y no la tercera, que es justo la que aplicaba: una fila creada por una prueba directa a la API, no por el formulario real.
+
+**Decisión:** mantener el chequeo (es una señal de cumplimiento real — todo caso real capturado desde el 9 ago debería tener `consentimiento_ts`), corregir el texto para que cubra las tres causas reales.
+
+**Cambio en `panel/index.html`:** el texto pasa de "(caso previo al 9 ago, o pendiente actualizar Apps Script)" a "(caso previo al 9 ago, creado por una prueba directa sin pasar por el formulario real, o un caso real que hay que revisar)".
+
+**Verificación:** verificado vía Babel en navegador real, sin errores de sintaxis.
+
 ---
 
 ---
