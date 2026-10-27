@@ -207,6 +207,13 @@ var COLS = {
   // Vacío en casos capturados antes de este cambio — el panel cae de vuelta
   // a los hints actuales para esos.
   campos_snapshot: 27,
+  // NUEVO (27 oct 2026, pedido de Leonardo): registro estructurado de lo que
+  // el chat de seguimiento (plan/index.html) escala sobre un caso — antes
+  // esto SOLO mandaba un correo (ver notificarEscalamiento) y no quedaba
+  // rastro visible al revisar el caso más tarde en el panel, ni para un
+  // caso ya aprobado. JSON, array de {ts, motivo, resumen}, más reciente al
+  // final — se añade, nunca se sobreescribe. Vacío = sin novedades todavía.
+  novedades_json: 28,
 };
 
 function doPost(e) {
@@ -239,7 +246,7 @@ function doPost(e) {
     }
 
     if (body.action === "guardar_borrador") return guardarBorrador(sheet, body);
-    if (body.action === "notificar_escalamiento") return notificarEscalamiento(body);
+    if (body.action === "notificar_escalamiento") return notificarEscalamiento(sheet, body);
 
     // Comportamiento original: agregar fila nueva capturada por Vita.
     if (!body.dx) {
@@ -337,6 +344,12 @@ function listarHistorial(sheet) {
         emailPadre: data[r][COLS.email_padre],
         timestamp: data[r][COLS.timestamp],
         correoEnviadoTs: data[r][COLS.correo_enviado_ts],
+        // NUEVO (27 oct 2026): para que el panel pueda marcar de un vistazo
+        // qué casos aprobados tienen novedades del chat de seguimiento sin
+        // tener que abrir cada uno. Solo tiene sentido acá — un caso
+        // pendiente todavía no se puede aprobar, así que la familia nunca
+        // llega a /plan/ ni al chat (doGet responde 403 hasta aprobar).
+        tieneNovedades: !!(data[r][COLS.novedades_json] && data[r][COLS.novedades_json] !== "[]"),
       });
     }
   }
@@ -367,6 +380,10 @@ function detallePlan(sheet, body) {
   // los hints actuales cuando recibe un array vacío.
   var camposSnapshot = [];
   try { camposSnapshot = JSON.parse(v[COLS.campos_snapshot] || "[]"); } catch (ex) {}
+  // NUEVO (27 oct 2026): lo que el chat de seguimiento escaló sobre este
+  // caso — ver registrarNovedad(). Vacío en casos sin novedades todavía.
+  var novedades = [];
+  try { novedades = JSON.parse(v[COLS.novedades_json] || "[]"); } catch (ex) {}
   return respond({
     ok: true,
     idPlan: idPlan,
@@ -384,6 +401,7 @@ function detallePlan(sheet, body) {
     consentimientoTs: v[COLS.consentimiento_ts],
     verificacionTs: v[COLS.verificacion_ts],
     camposSnapshot: camposSnapshot,
+    novedades: novedades,
   });
 }
 
@@ -488,7 +506,16 @@ function guardarBorrador(sheet, body) {
 // que escalar (urgencia, duda sobre el plan, pide hablar con una persona),
 // esto manda el aviso real por correo. Sin esto, el chat podría "decir" que
 // lo va a escalar sin que nadie del equipo lo vea de verdad.
-function notificarEscalamiento(body) {
+//
+// NUEVO (27 oct 2026, pedido de Leonardo): además del correo, que se puede
+// perder entre miles de otros, deja un registro estructurado en la fila del
+// caso (columna novedades_json) — para que una novedad real (ej. la hora de
+// dormir de Samuel) quede visible al revisar ese caso en el panel más
+// adelante, no solo en el momento en que llegó el correo. El registro se
+// intenta aparte del correo, con su propio try/catch: si falla guardarlo en
+// el Sheet, el correo real de todas formas sale — mejor avisar sin dejar
+// rastro que no avisar nada.
+function notificarEscalamiento(sheet, body) {
   try {
     MailApp.sendEmail({
       to: "leonardo@ledelab.group",
@@ -499,10 +526,25 @@ function notificarEscalamiento(body) {
         "id_plan: " + (body.idPlan || "(sin dato)") + "\n\n" +
         "Mensaje del padre/madre:\n" + (body.mensajePadre || "(sin mensaje)"),
     });
+    if (body.idPlan) {
+      try { registrarNovedad(sheet, body.idPlan, body.motivo, body.mensajePadre); } catch (exNovedad) {}
+    }
     return respond({ ok: true });
   } catch (err) {
     return respond({ ok: false, error: String(err) }, 500);
   }
+}
+
+// Agrega una entrada al historial de novedades del caso (nunca sobreescribe
+// las anteriores). Ver detallePlan() para cómo el panel las lee de vuelta.
+function registrarNovedad(sheet, idPlan, motivo, resumen) {
+  var found = encontrarFilaPorIdPlan(sheet, idPlan);
+  if (!found) return;
+  var actuales = [];
+  try { actuales = JSON.parse(found.values[COLS.novedades_json] || "[]"); } catch (ex) {}
+  actuales.push({ ts: new Date().toISOString(), motivo: motivo || "sin especificar", resumen: resumen || "" });
+  sheet.getRange(found.row, COLS.novedades_json + 1).setValue(JSON.stringify(actuales));
+  SpreadsheetApp.flush();
 }
 
 function doGet(e) {

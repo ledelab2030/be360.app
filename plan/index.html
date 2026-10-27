@@ -392,13 +392,28 @@ function App() {
     notificarEscalar(motivo, detalle || mensajeFallback);
   };
 
+  // BUG REAL encontrado en vivo (27 oct 2026, caso real de Samuel): el
+  // correo de escalamiento llegó con "Niño/a: (sin dato)" en vez de
+  // "Samuel". Causa: el useEffect de abajo tenía deps "[]" — se registra UNA
+  // vez al montar, y en ese momento "data" todavía es null (el fetch a
+  // /plan?id= es async y no ha resuelto). El cierre que queda guardado en el
+  // listener apunta para siempre a ESA versión de flushDatoNuevoPendiente,
+  // con nombreNino congelado en null — aunque React vuelva a renderizar con
+  // los datos reales después, el listener sigue llamando a la función vieja.
+  // Fix: un ref que SIEMPRE apunta a la versión más reciente de
+  // flushDatoNuevoPendiente (se actualiza en cada render), y el listener
+  // llama a través del ref en vez de cerrar sobre la función directamente —
+  // así el listener se registra una sola vez pero nunca queda desactualizado.
+  const flushDatoNuevoPendienteRef = React.useRef(flushDatoNuevoPendiente);
+  flushDatoNuevoPendienteRef.current = flushDatoNuevoPendiente;
+
   // Red de seguridad: si el padre cierra o cambia de pestaña con un
   // "dato_nuevo" todavía esperando su período de calma, se manda de
   // inmediato en vez de perderlo. pagehide cubre cerrar la pestaña y
   // navegar afuera; visibilitychange cubre minimizar o cambiar de pestaña
   // sin cerrar (en iOS Safari, pagehide no siempre llega a tiempo).
   useEffect(() => {
-    const onHide = () => flushDatoNuevoPendiente(true);
+    const onHide = () => flushDatoNuevoPendienteRef.current(true);
     const onVisibility = () => { if (document.visibilityState === "hidden") onHide(); };
     window.addEventListener("pagehide", onHide);
     document.addEventListener("visibilitychange", onVisibility);

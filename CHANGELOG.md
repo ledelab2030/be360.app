@@ -495,6 +495,30 @@ El temporizador de 45s de la entrada anterior **no se quitó** — queda como re
 
 Confirma lo que el temporizador por sí solo no podía garantizar: con la pregunta explícita, la conversación completa de Samuel manda **un solo correo**, no cinco — sin tener que esperar 45 segundos de silencio para saberlo.
 
+### 27 oct 2026 — Fix: el correo de escalamiento llegaba con "Niño/a: (sin dato)"
+
+Encontrado por Leonardo en su propia prueba real: el correo de la novedad de Samuel llegó con "Niño/a: (sin dato)" en vez de "Samuel". Causa: el `useEffect` que registra los listeners de `pagehide`/`visibilitychange` (PR #111, red de seguridad del temporizador) tiene `deps: []` — se registra UNA vez al montar, cuando `data` todavía es `null` (el fetch a `/plan?id=` es async y no ha resuelto). El cierre que queda guardado en el listener apunta para siempre a esa primera versión de `flushDatoNuevoPendiente`, con `nombreNino` congelado en `null` — aunque React vuelva a renderizar con los datos reales después, el listener sigue llamando a la función vieja. El caso real de Samuel disparó justo ese camino: probablemente cambió de pestaña para revisar el correo antes de que se cumplieran los 45s del temporizador normal, disparando `visibilitychange` con el cierre viejo.
+
+**Fix en `plan/index.html`:** un ref (`flushDatoNuevoPendienteRef`) que se actualiza en cada render para apuntar siempre a la versión más reciente de `flushDatoNuevoPendiente`; el listener (que sigue registrándose una sola vez) llama a través del ref en vez de cerrar sobre la función directamente — patrón estándar de React para evitar closures viejas en listeners de vida larga.
+
+### 27 oct 2026 — Las novedades del chat quedan registradas en el caso, no solo en un correo (pedido de Leonardo)
+
+Leonardo preguntó si las novedades deberían quedar visibles en el panel al revisar un caso, no solo como un correo que se pierde entre miles de otros — y no estaba seguro de dónde (¿en los aprobados?, ¿una sección nueva?). Como el chat de seguimiento (`plan/?id=`) solo es alcanzable después de aprobar (`doGet` responde 403 antes de eso), una novedad SOLO puede existir en un caso ya aprobado — así que el lugar natural es la vista de detalle de un caso aprobado en el panel, no una sección nueva separada.
+
+**Cambios en `worker/apps-script-formulario-v2.gs.txt`:**
+- Nueva columna `novedades_json` (índice 28) — JSON, array de `{ts, motivo, resumen}`, se añade, nunca se sobreescribe.
+- `notificarEscalamiento()` ahora recibe `sheet` (antes solo `body`) y, además de mandar el correo real, llama a la nueva función `registrarNovedad()` para dejar el registro estructurado — en su propio `try/catch`: si falla guardarlo en el Sheet, el correo real de todas formas sale.
+- `detallePlan()` devuelve `novedades` en su respuesta.
+- `listarHistorial()` devuelve `tieneNovedades` (booleano) por caso — para que el panel marque de un vistazo cuáles casos aprobados tienen novedades sin tener que abrir cada uno. Solo tiene sentido en el historial, nunca en pendientes (ver arriba, por qué).
+
+**Cambios en `panel/index.html`:**
+- La lista de Aprobados marca con una etiqueta "NOVEDAD" (y el borde del caso en color clay) los casos con `tieneNovedades`.
+- La vista de detalle de un caso muestra una sección "Novedades reportadas por la familia" arriba de todo, junto al encabezado — lo primero que se ve al volver a revisar un caso, que es justo el momento que motivó el pedido. Cada entrada muestra fecha relativa, motivo y el resumen completo. Más reciente primero.
+
+**Pendiente de desplegar (manual, como todo cambio a Apps Script):** pegar el script completo actualizado en Apps Script → Implementar → Nueva versión. Hasta que eso pase, `registrarNovedad()` no corre — el correo real sigue saliendo igual (no depende de este cambio), pero las novedades nuevas no quedarán guardadas en el Sheet ni visibles en el panel hasta el despliegue manual.
+
+**Verificación:** `node --check` sobre una copia temporal en `.js` del Apps Script (sintaxis válida — Apps Script no corre con Node, así que no valida las llamadas a `SpreadsheetApp`/`MailApp`, pero si hubiera un error de sintaxis esto lo habría encontrado); `panel/index.html` verificado vía Babel en navegador real, sin errores. No se pudo probar el flujo completo en producción real porque requiere pegar el Apps Script a mano primero — queda pendiente para después de ese paso.
+
 ---
 
 ---
