@@ -7,10 +7,11 @@
  * con acceso puede dañarla sin querer (borrar una fila, mover una columna,
  * escribir "aprobado" en la fila equivocada). El panel solo expone las
  * acciones seguras: ver pendientes, incluir/excluir hábitos uno por uno,
- * editar el mensaje, guardar, aprobar, descartar, y ver el historial de
- * aprobados (de solo lectura). 6 acciones en doPost: listar_pendientes,
- * listar_historial, detalle_plan, guardar_edicion_plan, aprobar_plan,
- * descartar_pendiente. Usan PANEL_SECRET (abajo), un secreto DISTINTO del
+ * editar el mensaje, guardar, aprobar, descartar, ver el historial de
+ * aprobados (de solo lectura), y borrar una novedad puntual del chat de
+ * seguimiento. 7 acciones en doPost: listar_pendientes, listar_historial,
+ * detalle_plan, guardar_edicion_plan, aprobar_plan, descartar_pendiente,
+ * eliminar_novedad. Usan PANEL_SECRET (abajo), un secreto DISTINTO del
  * que usa el Worker (SHARED_SECRET) — el panel nunca ve el secreto real que
  * escribe en la hoja.
  *
@@ -228,6 +229,7 @@ function doPost(e) {
     if (body.action === "guardar_edicion_plan") return conPanelSecret(body, function () { return guardarEdicionPlan(sheet, body); });
     if (body.action === "aprobar_plan") return conPanelSecret(body, function () { return aprobarPlan(sheet, body); });
     if (body.action === "descartar_pendiente") return conPanelSecret(body, function () { return descartarPendiente(sheet, body); });
+    if (body.action === "eliminar_novedad") return conPanelSecret(body, function () { return eliminarNovedad(sheet, body); });
 
     // Verificación de código de colegio — viene de verificar/index.html (una
     // página pública, el padre la abre desde el correo). NO usa SHARED_SECRET
@@ -545,6 +547,28 @@ function registrarNovedad(sheet, idPlan, motivo, resumen) {
   actuales.push({ ts: new Date().toISOString(), motivo: motivo || "sin especificar", resumen: resumen || "" });
   sheet.getRange(found.row, COLS.novedades_json + 1).setValue(JSON.stringify(actuales));
   SpreadsheetApp.flush();
+}
+
+// NUEVO (27 oct 2026, pedido de Leonardo): borra UNA novedad del caso, por
+// posición — para descartar una entrada de prueba o una ya atendida, sin
+// tener que editar el Sheet a mano. Es justo el tipo de edición directa que
+// el panel existe para evitar (ver la nota grande al inicio del archivo) —
+// de ahí que valga la pena esta acción en vez de pedirle a alguien que
+// abra la hoja de cálculo y borre una celda.
+function eliminarNovedad(sheet, body) {
+  var idPlan = body.idPlan;
+  var index = body.index;
+  if (!idPlan) return respond({ ok: false, error: "idPlan faltante" }, 400);
+  if (typeof index !== "number" || index < 0) return respond({ ok: false, error: "index faltante o inválido" }, 400);
+  var found = encontrarFilaPorIdPlan(sheet, idPlan);
+  if (!found) return respond({ ok: false, error: "no encontrado" }, 404);
+  var actuales = [];
+  try { actuales = JSON.parse(found.values[COLS.novedades_json] || "[]"); } catch (ex) {}
+  if (index >= actuales.length) return respond({ ok: false, error: "esa novedad ya no existe" }, 404);
+  actuales.splice(index, 1);
+  sheet.getRange(found.row, COLS.novedades_json + 1).setValue(JSON.stringify(actuales));
+  SpreadsheetApp.flush();
+  return respond({ ok: true, novedades: actuales });
 }
 
 function doGet(e) {
