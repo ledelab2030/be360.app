@@ -128,14 +128,29 @@ CONSULTIVA, NO PROACTIVA (26 oct 2026, pedido de Peter — minuta "Tono de acomp
 - Pregunta puntual sobre el plan que no debas resolver tú (ej. contenido clínico nuevo, "¿le puedo dar X en vez de Y?"): responde "Eso lo reviso con Peter y te respondo" y agrega: <escalar>duda</escalar>
 - Pide hablar con una persona directamente: responde con honestidad que le avisas al equipo, y agrega: <escalar>solicitud_humano</escalar>
 - Pregunta sobre medicación: "Eso es de tu equipo médico. Lo anoto para que Peter lo tenga presente." y agrega: <escalar>duda</escalar>
+- El padre/madre comparte un dato nuevo relevante para el plan (ej. la hora real de dormir, una excepción recurrente de horario, una restricción nueva — lo que haga falta para ajustar el plan más adelante) y aceptó que se lo cuentes al equipo: agradece el dato con calidez, dile que lo registras para que el equipo lo tenga en cuenta, y agrega, en la misma línea: <escalar>dato_nuevo|RESUMEN</escalar> — donde RESUMEN es 1-2 frases concretas con el dato exacto, completo por sí solo (no asumas que quien lo lea vio el resto de la conversación: si el dato se armó en varios mensajes, inclúyelo todo junto).
 - Si preguntan quién está detrás: "Bienestar 360 lo lidera Peter Álvarez, con un equipo de bienestar."
 - Para todo lo demás (check-ins normales, contar cómo les fue, dudas que sí puedes responder con el plan de arriba): NO agregues ningún marcador.`;
 };
 
+// parseEscalar (27 oct 2026): el marcador <escalar> ahora puede traer un
+// resumen propio separado por "|" (dato_nuevo|RESUMEN) — antes todas las
+// categorías eran una sola palabra fija y el mensaje que se reenviaba al
+// equipo era siempre el último mensaje del padre, aunque el dato real se
+// hubiera construido en varios turnos (encontrado en vivo: el padre dio la
+// hora de dormir en un mensaje y la excepción de martes/viernes en el
+// siguiente — reenviar solo el último habría perdido la mitad del dato).
+// Las categorías de una sola palabra (urgencia, duda, solicitud_humano)
+// siguen funcionando igual — "detalle" sale null y el llamador usa el
+// mensaje del padre como antes.
 const parseEscalar = (text) => {
   const m = text.match(/<escalar>([\s\S]*?)<\/escalar>/);
   const clean = text.replace(/<escalar>[\s\S]*?<\/escalar>/g, "").trim();
-  return { clean, motivo: m ? m[1].trim() : null };
+  if (!m) return { clean, motivo: null, detalle: null };
+  const raw = m[1].trim();
+  const i = raw.indexOf("|");
+  if (i === -1) return { clean, motivo: raw, detalle: null };
+  return { clean, motivo: raw.slice(0, i).trim(), detalle: raw.slice(i + 1).trim() };
 };
 
 // Renderiza **negrita** como <strong>.
@@ -342,9 +357,9 @@ function App() {
       // ayudar?", y deja que el padre decida si quiere hablar de los hábitos.
       const opener = "[Empieza la conversación de seguimiento. Saluda breve, recuerda que su plan ya está aprobado, y pregunta con calidez en qué le puedes ayudar hoy — NO le preguntes directamente cómo le ha ido con los hábitos ni le pidas un reporte, deja que el padre/madre lleve la conversación.]";
       const raw = await callVitaSeguimiento([{ role: "user", content: opener }]);
-      const { clean, motivo } = parseEscalar(raw);
+      const { clean, motivo, detalle } = parseEscalar(raw);
       setMessages([{ role: "assistant", content: clean }]);
-      if (motivo) notificarEscalar(motivo, "(inicio de conversación)");
+      if (motivo) notificarEscalar(motivo, detalle || "(inicio de conversación)");
     } catch (e) { setChatError("No se pudo conectar. Reintenta."); }
     finally { setChatLoading(false); }
   };
@@ -357,9 +372,9 @@ function App() {
     setMessages(next); setInput(""); setChatLoading(true);
     try {
       const raw = await callVitaSeguimiento(next);
-      const { clean, motivo } = parseEscalar(raw);
+      const { clean, motivo, detalle } = parseEscalar(raw);
       setMessages(m => [...m, { role: "assistant", content: clean }]);
-      if (motivo) notificarEscalar(motivo, content);
+      if (motivo) notificarEscalar(motivo, detalle || content);
     } catch (e) { setChatError("No se pudo conectar. Reintenta."); }
     finally { setChatLoading(false); }
   };

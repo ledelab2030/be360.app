@@ -446,6 +446,26 @@ Después del merge y `wrangler deploy` desde `main`, se probó el camino real co
 
 **Confirmado en el borrador regenerado de Sofía, contra su plan real:** limón al gusto (sin cantidad fija, a diferencia de la sal); sal marina medida en pasos concretos ("2 sobres de 1 g de Makro, o gramera de cocina"); quesos azul/roquefort como única excepción láctea en amarillo (ya no "madurado" genérico); verduras crudas siempre en rojo, cocidas en amarillo, nunca en verde; cero citas "(SRB — sección...)" visibles para el padre; ventana de alimentación correctamente topada en máximo 12h (11h45 en este caso); 3 horas exactas entre la última comida y dormir. Las seis reglas de la reunión del 26 oct, las tres del punto 1 de esa misma minuta, y la corrección de dirección de la ventana (PR #103) — todas presentes, en un caso real, por primera vez en producción.
 
+### 27 oct 2026 — Regenerados los pendientes reales de Samuel y Josef con el prompt promovido
+
+Mismo procedimiento que con Sofía: `dx` reconstruido campo por campo desde `detalle_plan`, enviado por `/log` con `producto: "formulario"`. Ambos ya tenían un borrador pendiente en el panel generado con una versión del prompt **anterior** a las correcciones del 26 oct — todavía con citas "(SRB — sección...)" visibles para el padre y, en el de Josef, la ventana con la dirección vieja ("que no quede por debajo de 12 horas"). Los borradores nuevos quedan al lado de los viejos en Pendientes, sin descartar los anteriores — decisión pendiente de Leonardo/Peter sobre cuál mantener.
+
+- El primer intento de ambos quedó huérfano otra vez (mismo hallazgo de la entrada anterior); el reintento sí generó los dos.
+- **Samuel:** su formulario real tiene varios campos vacíos (sueño, señales, diagnósticos; la cronología no trae horas de desayuno/cena/dormir). El borrador nuevo no inventa esos datos — los marca como pendientes y pide completarlos antes de poder fijar la hora de cierre y calcular la ventana. Confirmado: limón al gusto, sal medida, queso azul/roquefort, vegetales crudos en rojo.
+- **Josef:** ventana corregida a 11h (antes "que no quede por debajo de 12 horas"). Sobre el ritual de sueño — el tema real de la familia — el plan se mantiene fuera de su alcance a propósito: no da indicaciones sobre eso, dice que el equipo lo conversa directamente con la madre.
+
+### 27 oct 2026 — Fix: Vita prometía "anotarle a Peter" un dato nuevo y no pasaba nada
+
+Encontrado en vivo por Leonardo, probando el chat de seguimiento real después de aprobar el plan de Samuel: le contó a Vita la hora de dormir real de Samuel (9pm, con excepción martes/viernes por fútbol), Vita respondió "Perfecto, lo anoto para Peter" — y cuando Leonardo preguntó "¿cómo sabemos si le llegó la nota?", Vita contestó con honestidad que no tenía forma de confirmarlo. Revisando el código: no mentía por decir eso — literalmente no pasó nada. El sistema de escalamiento (`<escalar>motivo</escalar>` → correo real a `leonardo@ledelab.group`, ver `handleEscalar`) solo tiene 4 categorías (urgencia, duda clínica, pedir hablar con alguien, medicación); "el padre comparte un dato nuevo del horario" no es ninguna de esas, así que cae en el catch-all de "no agregues ningún marcador" — la promesa de Vita no disparaba nada real. Viola directamente la regla del producto: "no se promete ningún servicio inexistente".
+
+**Fix en `plan/index.html`:**
+- Nueva categoría de escalamiento en `buildSeguimientoPrompt`: cuando el padre comparte un dato nuevo relevante para el plan (horario, excepción recurrente, restricción) y acepta que se le cuente al equipo, Vita agrega `<escalar>dato_nuevo|RESUMEN</escalar>` — con el resumen completo dentro del marcador mismo, no solo la categoría.
+- `parseEscalar()` ahora separa motivo/detalle por el primer `|`. Las categorías de una sola palabra (urgencia, duda, solicitud_humano) siguen funcionando exactamente igual — sin pipe, `detalle` sale `null`.
+- **Por qué el resumen va dentro del marcador y no se reenvía el último mensaje del padre tal cual (como antes):** en el caso real de Samuel, el dato completo se armó en dos turnos — "se duerme 9pm" en un mensaje, la excepción de martes/viernes en el siguiente. Reenviar solo el último mensaje habría mandado "sí, excepto martes y viernes..." sin el "9pm" que le da sentido. Pidiéndole a Vita el resumen, que sí tiene el historial completo de la conversación, se evita ese problema sin rediseñar cómo se arma el correo.
+- No se tocó `worker/vita-proxy.js` ni Apps Script — `handleEscalar`/`notificarEscalamiento` ya aceptaban cualquier texto libre en `motivo`, así que el correo real a `leonardo@ledelab.group` ya queda con el resumen completo sin cambios ahí. Despliegue: solo GitHub Pages (frontend), nada de `wrangler deploy` ni pegado manual de Apps Script.
+
+**Verificación:** `parseEscalar()` probado en navegador real contra 3 casos (categoría simple sin pipe, categoría con resumen largo, sin marcador) — los tres separan correctamente. Pendiente: no se pudo probar el flujo completo con una llamada real a Claude generando el marcador (requeriría otra conversación real de prueba) — la verificación cubre el parseo y el enrutamiento, no si el modelo decide usar la categoría nueva en la práctica; vale la pena confirmarlo con una conversación de seguimiento real antes de darlo por cerrado del todo.
+
 ---
 
 ---
