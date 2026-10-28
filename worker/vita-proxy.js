@@ -1097,6 +1097,23 @@ function revisarBorradorPediatrico(parsed) {
   // un plan pediátrico. Encontrado en el plan real de Sofía (26 oct 2026,
   // corregido a mano por Leo porque se le había colado).
   revisar(/\bensalada\b/i, "menciona ensalada (verdura cruda — la regla nueva la pone en rojo)");
+  // Cierre repetido como checklist numerado (28 oct 2026, encontrado comparando
+  // dos casos reales): el prompt pide que el cierre sea la agenda por momento
+  // del día, en viñetas, igual que el Bloque 1 — pero a veces el modelo lo
+  // reemplaza por una lista numerada que repite, uno por uno, los mismos
+  // títulos del array "habitos", duplicando las tarjetas que ya se muestran
+  // aparte en la pestaña Hoy y en el panel del equipo. Ninguna parte del
+  // formato pedido (Paso 0, pilares, semáforo, cierre) usa "1.", "2." — esos
+  // van siempre en viñetas — así que dos o más apariciones en todo el mensaje
+  // son, en la práctica, siempre este mismo problema, no un falso positivo.
+  // Medido contra el caso real que lo mostró: el primer ítem queda a más de
+  // 1200 caracteres del final, por eso se revisa el mensaje completo y no
+  // solo la cola.
+  const itemsNumerados = (parsed.mensaje || "").match(/(?:^|\n)\s*\d+\.\s/g) || [];
+  if (itemsNumerados.length >= 2) {
+    const ultimo = (parsed.mensaje || "").lastIndexOf(itemsNumerados[itemsNumerados.length - 1].trim());
+    problemas.push("el cierre repite el checklist de hábitos como lista numerada en vez de la agenda por momento del día, en viñetas → \"" + (parsed.mensaje || "").slice(ultimo, ultimo + 70).trim() + "\"");
+  }
   return problemas;
 }
 

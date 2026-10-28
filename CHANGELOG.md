@@ -769,6 +769,16 @@ Esto es distinto de la decisión ya tomada a propósito de dejar el correo a las
 
 **Verificación:** `node --check` sobre `vita-proxy.js`; sintaxis de `app/index.html` validada con `@babel/preset-react`; probado en local contra el caso real de Samuel — Progreso carga de primera, con las 4 etapas en orden correcto. El cambio del prompt no se puede probar sin generar un borrador nuevo real (no se forzó una generación de prueba en este cambio).
 
+### 28 oct 2026 — El checklist redundante pasa a verificarse por código, no solo pedirse en el prompt (pedido de Leonardo: "debemos ser rigurosos")
+
+Leonardo pidió medidas inmediatas, no solo confiar en que el modelo cumpla la prohibición agregada en la entrada anterior — con razón: este prompt tiene historial de reglas que a veces no se cumplen pese a estar escritas (ver, por ejemplo, la entrada del 21 oct sobre la ventana de alimentación narrada al padre, o la de hoy mismo con el checklist). La respuesta es la misma que el repo ya usa para la ventana de alimentación y la hora de dormir: verificación determinística por código, no confianza en el texto.
+
+Se agregó una regla nueva a `revisarBorradorPediatrico()` (la misma función que ya detecta palabras prohibidas, cifras de adulto, lenguaje celebratorio, etc.): si el `mensaje` generado contiene dos o más apariciones de una lista numerada ("1. ", "2. ", …) en cualquier parte del texto, se marca como fallo. Ningún formato que el prompt pide —Paso 0, pilares, semáforo, cierre— usa listas numeradas, solo viñetas, así que esta señal no tiene falsos positivos conocidos. Al marcarse como fallo, entra automáticamente al mismo mecanismo que ya existe para los otros fallos: un reintento de generación con la corrección explícita, y si el reintento tampoco lo arregla, el borrador se guarda igual pero con la alarma `[REVISIÓN AUTOMÁTICA]` visible al inicio del plan en `equipo/` — nunca se borra el contenido en silencio ni se bloquea el caso.
+
+**Verificación:** `node --check` sobre `vita-proxy.js`; la regex se probó contra el `mensaje` real de los dos casos que motivaron el cambio, leído en vivo vía `/plan?id=` — detecta 3 coincidencias en el caso con el checklist (el primer ítem numerado queda a más de 1200 caracteres del final, por eso se revisa el mensaje completo y no solo la cola) y 0 en el caso sin el problema.
+
+**Pendiente, explícitamente fuera de este cambio:** (1) limpiar el texto ya guardado del caso que generó este hallazgo — la verificación nueva no reescribe lo que ya existe; (2) una revisión más profunda del prompt completo (`SRB_DRAFT_PROMPT` + `ADAPTACIONES_PEDIATRICAS`), pedida por Leonardo el mismo día, para reducir duplicación (la regla de la ventana de alimentación está descrita dos veces, con distinto nivel de detalle, en los dos bloques) y separar la narrativa histórica ("encontrado en vivo el...") de la instrucción que de verdad necesita leer el modelo — evaluada pero no ejecutada todavía, a la espera de confirmación por el riesgo de tocar un prompt en producción sin ambiente de pruebas.
+
 ---
 
 ---
