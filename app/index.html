@@ -136,19 +136,50 @@ const parseEscalar = (text) => {
   return { clean, motivo: raw.slice(0, i).trim(), detalle: raw.slice(i + 1).trim() };
 };
 
-const renderRichLine = (line) => line.split(/(\*\*[^*]+\*\*)/g).map((part,i)=>
+// Glosario con tooltip (28 oct 2026, pedido de Peter en reunión con Leo):
+// términos técnicos del plan que un padre no conoce, resaltados — al
+// tocarlos aparece la definición por encima, sin sacar al padre de la
+// lectura (decisión explícita de Peter: no mandar al chat de entrada, "no es
+// bueno que se salga de la lectura"). Solo se aplica al mensaje del plan
+// ("Mi plan"), no al chat de Vita — ahí Vita ya puede explicar en vivo.
+const GLOSARIO = {
+  "ventana de alimentación": "El tiempo que pasa entre la primera y la última comida del día. Entre más corta (sin pasarse), más horas tiene el cuerpo para descansar de digerir.",
+  "flora intestinal": "Las bacterias que viven en el intestino y ayudan a digerir la comida y a las defensas del cuerpo. Un exceso de carbohidratos puede desequilibrarla.",
+};
+const GLOSARIO_REGEX = new RegExp("(" + Object.keys(GLOSARIO).map(t => t.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|") + ")", "gi");
+
+function TerminoGlosario({ termino, definicion }) {
+  const [abierto, setAbierto] = useState(false);
+  return (
+    <span style={{position:"relative"}}>
+      <button onClick={(e)=>{ e.stopPropagation(); setAbierto(a=>!a); }} style={{background:"none", border:"none", padding:0, margin:0, font:"inherit", color:P.sageDeep, fontWeight:700, textDecoration:"underline", textDecorationStyle:"dotted", textDecorationColor:P.sage, textUnderlineOffset:3, cursor:"pointer"}}>{termino}</button>
+      {abierto && (
+        <span style={{position:"absolute", top:"calc(100% + 5px)", left:0, zIndex:20, background:P.sageDeep, color:"#fff", borderRadius:10, padding:"10px 13px", fontSize:12.5, lineHeight:1.45, width:230, maxWidth:"65vw", boxShadow:"0 6px 18px rgba(0,0,0,.2)"}}>
+          {definicion}
+        </span>
+      )}
+    </span>
+  );
+}
+
+const aplicarGlosario = (texto, keyBase) => texto.split(GLOSARIO_REGEX).map((p,j) => {
+  const t = Object.keys(GLOSARIO).find(k => k.toLowerCase() === p.toLowerCase());
+  return t ? <TerminoGlosario key={keyBase+"-"+j} termino={p} definicion={GLOSARIO[t]} /> : <React.Fragment key={keyBase+"-"+j}>{p}</React.Fragment>;
+});
+
+const renderRichLine = (line, conGlosario) => line.split(/(\*\*[^*]+\*\*)/g).map((part,i)=>
   part.startsWith("**")&&part.endsWith("**")
     ? <strong key={i} style={{fontWeight:800}}>{part.slice(2,-2)}</strong>
-    : <React.Fragment key={i}>{part}</React.Fragment>
+    : <React.Fragment key={i}>{conGlosario ? aplicarGlosario(part, i) : part}</React.Fragment>
 );
 
-const renderRich = (text) => {
+const renderRich = (text, conGlosario) => {
   const lines = (text||"").split("\n");
   return lines.map((line,li) => {
     if (/^═{3,}$/.test(line.trim())) {
       return <hr key={li} style={{border:"none", borderTop:"1px solid "+P.line, margin:"8px 0"}} />;
     }
-    return <React.Fragment key={li}>{renderRichLine(line)}{li < lines.length-1 ? "\n" : null}</React.Fragment>;
+    return <React.Fragment key={li}>{renderRichLine(line, conGlosario)}{li < lines.length-1 ? "\n" : null}</React.Fragment>;
   });
 };
 
@@ -583,12 +614,18 @@ function App() {
               </div>
               {data.mensaje && (
                 <div style={{fontSize:14.5, lineHeight:1.6, background:P.panel, border:"1px solid "+P.line, borderRadius:18, padding:"16px 18px", whiteSpace:"pre-wrap"}}>
-                  {renderRich(data.mensaje)}
+                  {renderRich(data.mensaje, true)}
                 </div>
               )}
               <p style={{fontSize:11.5, textAlign:"center", color:P.muted, lineHeight:1.6}}>
                 Esto acompaña y suma con su pediatra — no lo reemplaza.
               </p>
+              <div style={{display:"flex", flexDirection:"column", alignItems:"center", gap:8, padding:"14px 16px", background:P.sageSoft, borderRadius:16, textAlign:"center"}}>
+                <div style={{fontSize:13, color:P.ink}}>Cualquier inquietud sobre la terminología o sugerencias, pregúntale a Vita.</div>
+                <button onClick={()=>setTab("vita")} style={{display:"inline-flex", alignItems:"center", gap:6, background:P.sageDeep, border:"none", borderRadius:999, padding:"8px 16px", fontSize:12.5, fontWeight:800, color:"#fff", cursor:"pointer", fontFamily:"-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif"}}>
+                  Hablar con Vita
+                </button>
+              </div>
             </div>
           )}
 
