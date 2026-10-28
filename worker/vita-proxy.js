@@ -285,6 +285,11 @@ export default {
     // NUEVO (27 oct 2026, pedido de Leonardo): sección "Equipo" de
     // equipo/index.html — lista de solo lectura de quién tiene acceso.
     if (url.pathname === "/panel/equipo") return handlePanelAction(request, env, cors, "listar_equipo");
+    // NUEVO (28 oct 2026, pedido de Leonardo): login real por persona en
+    // equipo/index.html — prueba un PIN candidato y dice de quién es. Mismo
+    // passthrough genérico; esta acción no lleva panelSecret en el cuerpo,
+    // probar la credencial es su propio trabajo (ver login_equipo en Apps Script).
+    if (url.pathname === "/panel/login") return handlePanelAction(request, env, cors, "login_equipo");
 
     // NUEVO (10 ago 2026): verificación del código de colegio — ver nota grande arriba.
     if (url.pathname === "/verificar") return handlePanelAction(request, env, cors, "verificar_codigo");
