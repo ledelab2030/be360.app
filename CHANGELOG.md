@@ -877,6 +877,18 @@ Leonardo comparó el PDF del caso regenerado de Josef con lo acordado en la reun
 
 **Verificación:** `node --check` sobre `vita-proxy.js`; sintaxis JSX de `app/index.html` y `plan/index.html` validada con `@babel/preset-react`; la regex de detección del checklist probada de nuevo contra los casos de referencia (Sofía, Samuel) — mismo resultado que antes, sin regresión. El reordenamiento del prompt no se puede probar sin generar un borrador nuevo real.
 
+### 28 oct 2026 — Negrilla markdown reemplazada por MAYÚSCULAS (pedido de Leonardo, sobre los asteriscos del panel de edición)
+
+Explorando la opción de los asteriscos: el panel de edición de `equipo/` (textarea de `mensaje` y de cada hábito) muestra el texto plano del modelo sin interpretar markdown — cualquier `**negrilla**` que el modelo escriba aparece ahí con los dos asteriscos literales, aunque en "Mi plan" y en el PDF sí se vea bien (los dos sí interpretan el markdown). El prompt nunca pedía explícitamente `**negrilla**` — era un hábito que el modelo tomó por su cuenta, reproducido en prácticamente todos los casos generados hasta hoy.
+
+Entre las opciones evaluadas (dejarlo así, un editor WYSIWYG, una vista previa aparte, o cambiar la forma de dar énfasis), Leonardo eligió la última: reemplazar la negrilla markdown por MAYÚSCULAS para la palabra o frase corta que necesite destacarse — texto plano que se ve igual en cualquier lugar donde se lea (textarea, PDF, app), sin necesitar que nada lo interprete.
+
+**Cambio:** nueva regla explícita en `SRB_DRAFT_PROMPT` (sección IDIOMA Y NIVEL) — prohibido `**texto**` en cualquier campo; en su lugar, MAYÚSCULAS para 2-3 palabras como mucho, nunca una oración completa (se leería como gritar). Verificación por código agregada en `revisarBorradorPediatrico` — dado que el modelo usaba negrilla markdown en casi todos los casos sin que el prompt se lo pidiera, no conviene confiar solo en la instrucción.
+
+`renderRich` (app/plan) y `pdfEscribirParrafo` (el generador de PDF) se dejan tal cual — siguen interpretando `**negrilla**` si aparece, como respaldo para los casos ya generados antes de este cambio, que no se reescriben solos.
+
+**Verificación:** `node --check`; la regex nueva probada contra un fragmento con negrilla real (detecta) y contra los dos casos de referencia, que no usan negrilla (no se activa, sin falso positivo).
+
 ---
 
 ---
