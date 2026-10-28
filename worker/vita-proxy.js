@@ -273,6 +273,9 @@ export default {
     // del chat de seguimiento sin tener que editar el Sheet a mano — mismo
     // principio que las rutas de arriba.
     if (url.pathname === "/panel/eliminar-novedad") return handlePanelAction(request, env, cors, "eliminar_novedad");
+    // NUEVO (27 oct 2026, pedido de Leonardo): sección "Equipo" de
+    // equipo/index.html — lista de solo lectura de quién tiene acceso.
+    if (url.pathname === "/panel/equipo") return handlePanelAction(request, env, cors, "listar_equipo");
 
     // NUEVO (10 ago 2026): verificación del código de colegio — ver nota grande arriba.
     if (url.pathname === "/verificar") return handlePanelAction(request, env, cors, "verificar_codigo");

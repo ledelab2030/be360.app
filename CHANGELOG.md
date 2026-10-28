@@ -596,7 +596,21 @@ Primer paso de construir "la app de be360" (familias + equipo), en vez de seguir
 
 **Cambios en `CLAUDE.md`:** nueva entrada en §1 y en §7 (enlaces) para `equipo/`; se retira la nota de "separación de canales" (ver nota al inicio del archivo — Leonardo la eliminó el mismo día, este chat es ahora el único).
 
-**Verificación:** sin errores de Babel compilando el JSX en el navegador (`.claude/launch.json` nuevo, servidor estático local para probar antes de desplegar). El login contra el Worker real se probó en local y falló por CORS (`Origin: http://localhost` ≠ `https://be360.app`) — **correcto, no un bug**: confirma que el Worker sigue exigiendo el origen real. Pendiente verificar el flujo completo (login, pendientes, aprobar, hamburguesa en móvil) ya en `be360.app/equipo/` después del merge, igual que cualquier cambio de frontend puro.
+**Verificación:** sin errores de Babel compilando el JSX en el navegador (`.claude/launch.json` nuevo, servidor estático local para probar antes de desplegar). El login contra el Worker real se probó en local y falló por CORS (`Origin: http://localhost` ≠ `https://be360.app`) — **correcto, no un bug**: confirma que el Worker sigue exigiendo el origen real. **Verificado de punta a punta en vivo después del merge:** `be360.app/equipo/` entra directo con el PIN ya guardado por `panel/` (mismo `localStorage`, mismo dominio); Pendientes (5) muestra los mismos datos reales que `panel/`; un caso abre en el mismo split-view; Colegios → pantalla "Próximamente" correcta; en móvil, la barra superior con hamburguesa abre el cajón con las 6 secciones y las etiquetas "pronto". `panel/` se revisó aparte y sigue exactamente igual.
+
+### 27 oct 2026 — Sección "Equipo" de `equipo/`: quién tiene acceso, de solo lectura (pedido de Leonardo)
+
+Primera sección real de las 4 que quedaron "Próximamente". Antes de construir, se le preguntó a Leonardo qué tan lejos llevarla — opciones iban desde una lista de solo lectura hasta PIN individual por persona con atribución de acciones. Eligió lo más chico: **solo la lista, de solo lectura, el PIN compartido sigue igual.**
+
+**Cambios en `worker/apps-script-formulario-v2.gs.txt`:** nueva acción `listar_equipo` → `listarEquipo()`, 8ª acción del panel, mismo patrón de `conPanelSecret` que las otras 7. A diferencia de todas las demás, no toca la hoja de casos — lee (y crea si no existe, con encabezados) una pestaña nueva **"Equipo"** en el mismo Sheet, con columnas Nombre/Rol/Correo/Notas. Se edita a mano directo en esa pestaña — a propósito no hay acción de alta/baja en el panel: es una lista de referencia simple, no datos clínicos con lógica que se pueda romper.
+
+**Cambios en `worker/vita-proxy.js`:** nueva ruta `/panel/equipo` → `handlePanelAction(..., "listar_equipo")`, mismo patrón que el resto.
+
+**Cambios en `equipo/index.html`:** la sección "Equipo" del nav pasa de deshabilitada a activa; pantalla nueva que lista nombre, rol, correo y notas de cada fila de la pestaña "Equipo". Texto de la pantalla de PIN actualizado (decía que Equipo seguía en "Próximamente").
+
+**Dos despliegues, no uno:** esta vez sí toca Apps Script (`listarEquipo`) además del Worker — hasta que se pegue a mano, `/panel/equipo` responde con el mismo fallo de "secret inválido" que ya se documentó para `eliminar_novedad` en su momento (fallo esperado, no un bug).
+
+**Verificación:** `node --check` sobre una copia temporal `.js` del Apps Script — sintaxis válida; `node --check` sobre `vita-proxy.js` — sintaxis válida; `equipo/index.html` verificado vía Babel en navegador local, sin errores. Pendiente: Leonardo pega el Apps Script, llena la pestaña "Equipo" con el roster real, y se confirma la lista contra producción.
 
 ---
 
