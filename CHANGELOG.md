@@ -743,6 +743,14 @@ La conversación se fue afinando hasta un texto final, en varias rondas:
 
 **Verificación:** `node --check` sobre Apps Script y `vita-proxy.js` — sintaxis válida; `app/`, `equipo/` y `panel-colegio/` verificados vía Babel en navegador local, sin errores; Progreso v1 probado contra el caso real de Samuel en local (mostró la novedad real y la primera conversación, ordenadas correctamente — las etapas de fecha de aprobación/diagnóstico no aparecieron porque el backend de este cambio todavía no estaba desplegado en ese momento, comportamiento esperado). Pendiente: desplegar Apps Script, confirmar Progreso completo contra producción, y llamar `limpiar_chat` sobre el caso de Samuel.
 
+### 28 oct 2026 — La línea "═" del mensaje se salía de la tarjeta, en `app/` y `plan/` (reportado por Leonardo con captura)
+
+`renderRich` (usada para el mensaje del plan y el chat de Vita) imprimía el separador de bloques `════...` que manda el modelo como texto literal. Es una sola secuencia sin espacios — el navegador no tiene dónde partirla — así que con `whiteSpace: pre-wrap` quedaba como una línea que sobresalía del borde redondeado de la tarjeta en vez de respetar el padding. El PDF ya tenía este mismo problema resuelto (`sanearTextoPdf` reemplaza `═` por `-` por límites de encoding de jsPDF); la vista web nunca recibió el equivalente.
+
+Arreglo: `renderRich` ahora parte el texto por línea y, cuando una línea es solo `═` (3 o más), la dibuja como un `<hr>` real en vez de imprimir el carácter — un separador visual limpio que respeta el ancho de la tarjeta, en lugar de solo evitar el desborde con `overflow-wrap`. Mismo cambio en `app/index.html` y `plan/index.html` (comparten la función, y `plan/` ya la tenía desde antes de que `app/` existiera).
+
+**Verificación:** sintaxis validada con `@babel/preset-react` sobre el bloque JSX extraído de ambos archivos; render visual confirmado en una página de prueba aislada en local con un mensaje de ejemplo que incluye el separador — la línea ahora se ve como un divisor limpio dentro del borde de la tarjeta, no sobresale.
+
 ---
 
 ---

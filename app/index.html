@@ -136,11 +136,21 @@ const parseEscalar = (text) => {
   return { clean, motivo: raw.slice(0, i).trim(), detalle: raw.slice(i + 1).trim() };
 };
 
-const renderRich = (text) => (text||"").split(/(\*\*[^*]+\*\*)/g).map((part,i)=>
+const renderRichLine = (line) => line.split(/(\*\*[^*]+\*\*)/g).map((part,i)=>
   part.startsWith("**")&&part.endsWith("**")
     ? <strong key={i} style={{fontWeight:800}}>{part.slice(2,-2)}</strong>
     : <React.Fragment key={i}>{part}</React.Fragment>
 );
+
+const renderRich = (text) => {
+  const lines = (text||"").split("\n");
+  return lines.map((line,li) => {
+    if (/^═{3,}$/.test(line.trim())) {
+      return <hr key={li} style={{border:"none", borderTop:"1px solid "+P.line, margin:"8px 0"}} />;
+    }
+    return <React.Fragment key={li}>{renderRichLine(line)}{li < lines.length-1 ? "\n" : null}</React.Fragment>;
+  });
+};
 
 // ---- PDF: idéntico a plan/index.html — ver ese archivo para las notas
 // completas sobre el saneo de caracteres y el agrupado por estilo. ----
