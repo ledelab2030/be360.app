@@ -761,8 +761,6 @@ function App() {
         {accionError ? <div style={{textAlign:"center", padding:"40px 10px", color:P.clay}}>{accionError}</div> : <div style={{textAlign:"center", padding:"40px 10px", color:P.muted}}>Cargando…</div>}
       </Shell>
     );
-    const habitosIncluidos = habitos.filter(h=>h.incluido);
-    const inclCount = habitosIncluidos.length;
     const novedades = detalle.novedades || [];
     return (
       <ShellDetalle>
@@ -829,26 +827,29 @@ function App() {
         </div>
 
         <div>
-          <div style={{fontSize:13, fontWeight:800, color:P.sageDeep, marginBottom:8}}>Hábitos recomendados ({inclCount} de {habitos.length} incluidos)</div>
+          {/* Antes "Hábitos recomendados (X de Y incluidos)" — se leía como el
+              mismo checklist del mensaje, repetido (28 oct 2026, Leonardo).
+              La pestaña "Hoy" que mostraba esto a la familia se quitó el
+              mismo día; lo único que sigue leyendo esta lista es el chat de
+              Vita, como su referencia de qué se aprobó (ver
+              buildSeguimientoPrompt en app/ y plan/) — de ahí el nombre
+              nuevo. El toggle "incluido" se quita: nada lo filtra ya por
+              ese campo, Vita siempre usa la lista completa. */}
+          <div style={{fontSize:13, fontWeight:800, color:P.sageDeep, marginBottom:2}}>Referencia para Vita</div>
+          <div style={{fontSize:12, color:P.muted, marginBottom:8}}>Lo que Vita usa como fuente en el chat de seguimiento — no es un resumen aparte para el padre/madre, eso ya está en el mensaje de arriba.</div>
           <div style={{display:"flex", flexDirection:"column", gap:10}}>
-            {soloLectura ? habitosIncluidos.map((h, i) => (
+            {soloLectura ? habitos.map((h, i) => (
               <div key={i} style={{background:P.panelRaised, border:"1px solid "+P.line, borderRadius:14, padding:"12px 14px"}}>
                 <div style={{fontSize:13.5, fontWeight:800, color:P.ink, marginBottom:4}}>{h.titulo}</div>
                 <div style={{fontSize:13, color:P.muted, lineHeight:1.45}}>{h.texto}</div>
               </div>
             )) : habitos.map((h, i) => (
-              <div key={i} style={{background: h.incluido ? P.panelRaised : P.bg, border:"1px solid "+P.line, borderRadius:14, padding:"12px 14px", opacity:h.incluido?1:.55}}>
-                <div style={{display:"flex", alignItems:"flex-start", gap:10}}>
-                  <button onClick={()=>actualizarHabito(i,"incluido",!h.incluido)} title={h.incluido?"Excluir":"Incluir"}
-                    style={{flexShrink:0, marginTop:2, width:24, height:24, borderRadius:7, border:"1.5px solid "+(h.incluido?P.sage:P.line), background:h.incluido?P.sage:P.panelRaised, color:"#fff", cursor:"pointer", display:"grid", placeItems:"center"}}>
-                    {h.incluido && <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" width="13" height="13"><path d="M4 12l5 5L20 6"/></svg>}
-                  </button>
-                  <div style={{flex:1, minWidth:0, display:"flex", flexDirection:"column", gap:6}}>
-                    <input value={h.titulo} onChange={e=>actualizarHabito(i,"titulo",e.target.value)} placeholder="Título del hábito"
-                      style={{border:"1px solid "+P.line, borderRadius:9, padding:"7px 10px", fontSize:13.5, fontWeight:800, fontFamily:"-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif", color:P.ink, outline:"none"}}/>
-                    <textarea value={h.texto} onChange={e=>actualizarHabito(i,"texto",e.target.value)} rows={2} placeholder="Explicación para el padre/madre"
-                      style={{border:"1px solid "+P.line, borderRadius:9, padding:"7px 10px", fontSize:13, fontFamily:"-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif", color:P.ink, outline:"none", resize:"vertical", lineHeight:1.4}}/>
-                  </div>
+              <div key={i} style={{background:P.panelRaised, border:"1px solid "+P.line, borderRadius:14, padding:"12px 14px"}}>
+                <div style={{display:"flex", flexDirection:"column", gap:6}}>
+                  <input value={h.titulo} onChange={e=>actualizarHabito(i,"titulo",e.target.value)} placeholder="Título del hábito"
+                    style={{border:"1px solid "+P.line, borderRadius:9, padding:"7px 10px", fontSize:13.5, fontWeight:800, fontFamily:"-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif", color:P.ink, outline:"none"}}/>
+                  <textarea value={h.texto} onChange={e=>actualizarHabito(i,"texto",e.target.value)} rows={2} placeholder="Para el chat de Vita"
+                    style={{border:"1px solid "+P.line, borderRadius:9, padding:"7px 10px", fontSize:13, fontFamily:"-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif", color:P.ink, outline:"none", resize:"vertical", lineHeight:1.4}}/>
                 </div>
               </div>
             ))}
