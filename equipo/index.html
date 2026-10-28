@@ -204,6 +204,23 @@ function relativeDate(iso) {
   return "hace " + diffD + (diffD === 1 ? " día" : " días");
 }
 
+// Huella de regeneración (28 oct 2026, pedido de Leonardo: "para saber si se
+// hizo") — regeneracionEstado llega como "ok <iso>" / "iniciado <iso>" /
+// "error <iso>: <detalle>" (ver marcarRegeneracion en Apps Script). "fecha
+// local" (hora del navegador de quien revisa) viene gratis de relativeDate +
+// toLocaleString, no hace falta nada especial para eso.
+function huellaRegeneracion(estado) {
+  if (!estado) return null;
+  const m = estado.match(/^(ok|iniciado|error)\s+(\S+)(?:: ?([\s\S]*))?$/);
+  if (!m) return { texto: estado };
+  const tipo = m[1], iso = m[2], detalle = m[3];
+  const d = new Date(iso);
+  const cuando = isNaN(d) ? iso : (d.toLocaleString() + " · " + relativeDate(iso));
+  if (tipo === "ok") return { texto: "✓ Última regeneración: " + cuando };
+  if (tipo === "iniciado") return { texto: "⏳ Regeneración iniciada: " + cuando + " — si sigue así más de un par de minutos, algo falló", clay: true };
+  return { texto: "✗ Último intento falló (" + cuando + ")" + (detalle ? ": " + detalle : ""), clay: true };
+}
+
 function formatEdad(edad) {
   if (!edad && edad !== 0) return "";
   const s = String(edad).trim();
@@ -794,7 +811,10 @@ function App() {
           </div>
         )}
 
-        <div style={{borderTop:"1px solid "+P.line, paddingTop:14, marginTop:4}}>
+        <div style={{borderTop:"1px solid "+P.line, paddingTop:14, marginTop:4, display:"flex", flexDirection:"column", gap:8}}>
+          {!regeneradoOk && huellaRegeneracion(detalle.regeneracionEstado) && (
+            <div style={{fontSize:12, color: huellaRegeneracion(detalle.regeneracionEstado).clay ? P.clay : P.muted, lineHeight:1.5}}>{huellaRegeneracion(detalle.regeneracionEstado).texto}</div>
+          )}
           {regeneradoOk ? (
             <div style={{fontSize:13, color:P.sageDeep, lineHeight:1.5}}>✓ Regenerando con el prompt actual — tarda cerca de un minuto. Vuelve a esta sección después para revisar el resultado (quedó en "pendiente de aprobación").</div>
           ) : !confirmandoRegenerar ? (

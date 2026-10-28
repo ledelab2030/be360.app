@@ -837,6 +837,20 @@ Después de corregir el prompt tras la revisión con Peter (entradas de arriba),
 
 **Verificación:** `node --check` sobre `vita-proxy.js` y el Apps Script; sintaxis JSX de `equipo/index.html` validada con `@babel/preset-react`. No se pudo probar en vivo todavía — la acción nueva de Apps Script necesita el pegado manual de Leonardo antes de poder dispararse.
 
+### 28 oct 2026 — Huella de regeneración + logs de diagnóstico (el primer intento real no cambió nada, sin rastro de por qué)
+
+Leonardo pegó el Apps Script y pidió regenerar un caso real — el contenido no cambió, y no había ninguna forma de saber si el intento había llegado a algún lado. Dos problemas en uno: (1) confirmó por qué pidió la huella ("para saber si se hizo"), y (2) sin ella tampoco se podía diagnosticar la falla real.
+
+**Huella de regeneración:** nueva columna `regeneracion_estado` en el Sheet. El Worker marca `"iniciado <iso>"` en `handleRegenerar` antes de encolar (si se queda así más de un par de minutos, el problema está en el encolado o la alarma del Durable Object, no en la generación); `regenerarBorradorExistente` marca `"error <iso>: <detalle>"` en CUALQUIER salida que no sea éxito — incluida la que antes no dejaba rastro (`generarYVerificarBorrador` devolviendo `null`); el éxito lo marca `regenerarBorrador()` en Apps Script como parte de su propio guardado (`"ok <iso>"`). Nueva acción `marcar_regeneracion` (Apps Script) + campo `regeneracionEstado` en `detalle_plan` + render (`huellaRegeneracion()`) en `equipo/`, junto al botón.
+
+**Logs de diagnóstico:** `wrangler tail` no muestra las llamadas salientes a `api.anthropic.com` por defecto, solo el ciclo de vida de la petición entrante y los bindings internos (Durable Objects) — así que un fallo dentro de la llamada a Claude era invisible incluso mirando los logs en vivo. Se agregaron `console.log` en cada punto de decisión de `generarYVerificarBorrador` (antes de llamar a Claude, status HTTP de la respuesta, `stop_reason`, si el JSON parseó) y de `regenerarBorradorExistente` (arranque, resultado de la generación, resultado del guardado, excepción) — visibles en `wrangler tail` en el próximo intento.
+
+**Investigando en vivo con `wrangler tail` mientras se escribía este cambio:** se confirmó que el caso que Leonardo regeneró no era el mismo que se venía usando como referencia todo el día — el Sheet tiene filas duplicadas (mismo nombre, distinto `idPlan`, de reintentos de prueba viejos). El `alarm()` del Durable Object se disparó y terminó sin lanzar una excepción visible en la plataforma, pero sin rastro de haber llamado a Claude en la ventana observada — compatible con `generarYVerificarBorrador` fallando temprano, pero no concluyente sin los logs nuevos.
+
+**Pendiente, de inmediato:** pegar este Apps Script (de nuevo) y reintentar un caso con `wrangler tail` corriendo, para leer los `console.log` nuevos y encontrar la causa real.
+
+**Verificación:** `node --check` sobre `vita-proxy.js` y el Apps Script.
+
 ---
 
 ---
