@@ -727,6 +727,22 @@ La conversación se fue afinando hasta un texto final, en varias rondas:
 
 **Verificación:** ambas páginas son HTML estático sin JS de datos — se sirvieron en local y se revisó el contenido completo (texto de principio a fin) contra lo acordado; sin menciones de BIS, Barranquilla, piloto, Peter o SRB en ningún lado visible.
 
+### 28 oct 2026 — Progreso v1, logo unificado, panel/ borrado, panel-colegio/ a la nueva paleta (varios pedidos, misma conversación)
+
+**Progreso v1** (la idea de ayer, ahora construida): línea de etapas en `app/`, armada SOLO con datos que ya existen — nada de tracking nuevo, tal como se dejó indicado al final de la conversación de ayer. `doGet` (Apps Script) ahora también devuelve `timestamp` (captura original) y `correoEnviadoTs` (aprobación) — ninguno es dato nuevo para el padre, ya los conocía de otra forma. La pestaña arma hasta 4 etapas reales (diagnóstico recibido, plan aprobado y enviado, primera conversación con Vita, novedades compartidas — ordenadas por fecha), y debajo, **marcadas explícitamente "Próximamente"**, las tres que sí necesitan algo nuevo: ajustes al plan, hábito sostenido, logro.
+
+**Limpieza de los chats de prueba de Samuel:** nueva acción `limpiar_chat` (Apps Script + ruta `/panel/limpiar-chat`), `PANEL_SECRET`-gated — vacía `chat_json` por completo para un caso. Sin botón en ningún panel a propósito (es limpieza administrativa de datos de prueba, no algo que deba repetirse seguido); se llama a mano cuando hace falta, como se hizo hoy.
+
+**Login personal confirmado funcionando:** probado contra producción después del pegado de Apps Script de ayer — PIN falso rechaza con "PIN incorrecto", PIN maestro sigue entrando. Falta solo que Leonardo llene la pestaña "Equipo" con los PINes de verdad (ya los creó, pendiente confirmar en vivo).
+
+**Logo unificado:** `equipo/` y `app/` reemplazan el 🌱 + texto plano del rail/encabezado por el wordmark real del home — "be360" con "be" en navy, "3" en verde, "60" en azul claro, mismos colores exactos que `index.html`. Los 🌱 decorativos en pantallas vacías/de carga se quedan igual, solo se tocó la marca persistente del nav.
+
+**`panel/` borrado por completo** (pedido de Leonardo): Peter nunca lo usaba salvo reunido con Leonardo directamente, y la URL de `equipo/` se le comparte ahora. Sin referencias rotas — ningún otro archivo del repo enlazaba a `panel/`. `CLAUDE.md` actualizado: `equipo/` es ahora el único panel de revisión documentado.
+
+**`panel-colegio/` a la nueva paleta** (pedido de Leonardo — "hay que actualizar la apariencia en línea con el resto"): mismo mapeo mecánico que ayer (colores del objeto `P`, tipografía del sistema, sombra `rgba()` corregida) — sin tocar `panel-colegio-proyeccion/` (mockup explícito, no se pidió). Esta página no tiene un rail/nav con marca persistente como las otras, así que no se agregó wordmark — solo paleta y fuente.
+
+**Verificación:** `node --check` sobre Apps Script y `vita-proxy.js` — sintaxis válida; `app/`, `equipo/` y `panel-colegio/` verificados vía Babel en navegador local, sin errores; Progreso v1 probado contra el caso real de Samuel en local (mostró la novedad real y la primera conversación, ordenadas correctamente — las etapas de fecha de aprobación/diagnóstico no aparecieron porque el backend de este cambio todavía no estaba desplegado en ese momento, comportamiento esperado). Pendiente: desplegar Apps Script, confirmar Progreso completo contra producción, y llamar `limpiar_chat` sobre el caso de Samuel.
+
 ---
 
 ---

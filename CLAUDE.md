@@ -14,8 +14,8 @@ Capa de **ejecución** del producto. Léelo antes de tocar código.
 
 - Repo: `github.com/ledelab2030/be360.app`, rama `main`, desplegado por GitHub Pages.
 - Local: `iCloud/LedeLab/be360/be360.app/` (movido desde `~/Downloads` el 22 oct 2026, para que todo lo local de be360 viva bajo una carpeta). Es un repo aparte del privado que lo contiene, y está gitignored por este.
-- **Producto del piloto:** `vita-demo-formulario/` (captura) + `panel/` (revisión de Peter) + `plan/` (lo que ve la familia).
-- **`equipo/` (27 oct 2026, en construcción)** — panel nuevo, en paralelo a `panel/`, que NO toca ni reemplaza: pensado para que el equipo crezca más allá de un solo PIN. Mismo Worker, mismas rutas `/panel/*`, mismo `PANEL_SECRET` — a propósito, para que el SRB/prompt nunca se desincronice entre los dos (los dos leen el mismo Sheet). Hoy funcionan Pendientes, Aprobados y Equipo (solo lectura — lista en la pestaña "Equipo" del Sheet, se edita a mano ahí, no desde el panel); Comunidades (antes "Colegios" — un colegio es un tipo de comunidad, también habrá grupos de amigos/familias extendidas; ver CHANGELOG)/Familias/Reportes siguen marcados "Próximamente", sin backend. **Login por persona (28 oct 2026):** la pestaña "Equipo" del Sheet tiene una 5ª columna, PIN (se llena a mano) — `equipo/` saluda por nombre a quien entra con su PIN personal; el PIN maestro sigue funcionando igual, y `panel/` nunca se tocó.
+- **Producto del piloto:** `vita-demo-formulario/` (captura) + `equipo/` (revisión del equipo) + `plan/` (lo que ve la familia).
+- **`equipo/` (27 oct 2026)** — el panel de revisión, con espacio para que el equipo crezca más allá de un solo PIN. Reemplazó a `panel/` (borrado el 28 oct 2026 — Peter ya no lo usaba, solo cuando se reunía con Leonardo; la URL de `equipo/` se le compartió directo). Mismo Worker, mismas rutas `/panel/*`, mismo `PANEL_SECRET`. Hoy funcionan Pendientes, Aprobados y Equipo (solo lectura — lista en la pestaña "Equipo" del Sheet, se edita a mano ahí); Comunidades (antes "Colegios" — un colegio es un tipo de comunidad, también habrá grupos de amigos/familias extendidas; ver CHANGELOG)/Familias/Reportes siguen marcados "Próximamente", sin backend. **Login por persona (28 oct 2026):** la pestaña "Equipo" del Sheet tiene una 5ª columna, PIN (se llena a mano) — `equipo/` saluda por nombre a quien entra con su PIN personal; el PIN maestro sigue funcionando igual.
 - **`app/` (27 oct 2026, en construcción)** — la App Familia, en paralelo a `plan/`, que NO toca ni reemplaza: el link que ya reciben las familias por correo (`plan/?id=...`) sigue funcionando exactamente igual. Mismo backend (`GET /plan?id=`, `POST /escalar`, `POST /chat`, el passthrough de Claude), mismo `?id=` en la URL, mismos keys de `localStorage` para los Retos — toda la lógica de `plan/index.html` (prompt de seguimiento, consolidación de `dato_nuevo`, PDF, Retos de bienestar) está copiada, no reinventada. Lo que cambia es la forma: 4 pestañas persistentes (Hoy / Mi plan / Vita / Seguimiento) en vez de una página larga + chat como overlay. El chat de Vita se guarda completo en el Sheet (`chat_json`, mismo patrón que `novedades_json`) — la pestaña Vita recuerda la conversación entre sesiones. Seguimiento muestra la línea de tiempo de novedades (fecha + resumen) + los Retos si el piloto está activo; "Todavía no hay nada que mostrar" solo si no hay ninguna de las dos. **Renombrada de "Progreso" el 28 oct 2026** — "Progreso" queda reservado para una idea más grande (línea de etapas: aprobado → primera conversación → ajustes al plan → hábitos sostenidos → logros), todavía sin construir.
 - **Enlace de validación:** `vita-demo-formulario-v2/` — copia casi idéntica de producción; difieren en 3 lugares (marcador de versión, un comentario, y el campo `producto`) más la clave de guardado. **Todo cambio de copy va a las dos**, o divergen.
 - `worker/vita-proxy.js` — el Cloudflare Worker, en control de versiones. `worker/apps-script-formulario-v2.gs.txt` — el Apps Script, que se pega a mano.
@@ -31,8 +31,8 @@ Familia → vita-demo-formulario(-v2)/  [React + Babel en el navegador, sin buil
    → Apps Script escribe la fila en el Sheet
    → Durable Object GeneradorBorradores: alarma → genera el borrador
    → revisión automática (reglas por código + verificador de grounding)
-   → Apps Script guarda el borrador → el caso aparece en panel/
-Peter revisa en panel/ → aprueba → Apps Script le manda el correo a la familia
+   → Apps Script guarda el borrador → el caso aparece en equipo/
+El equipo revisa en equipo/ → aprueba → Apps Script le manda el correo a la familia
 Familia abre plan/?id=… → doGet responde 403 si el caso no está aprobado
 ```
 
@@ -80,7 +80,7 @@ Los pendientes con su detalle viven en `CHANGELOG.md`, sección "Pendientes cono
 ## 7. Enlaces
 
 - Captura (producción): `https://be360.app/vita-demo-formulario/` · Validación: `https://be360.app/vita-demo-formulario-v2/`
-- Panel de Peter: `https://be360.app/panel/` · Panel de colegio: `https://be360.app/panel-colegio/` · Panel Equipo (nuevo, en construcción): `https://be360.app/equipo/`
-- App Familia (nueva, en construcción): `https://be360.app/app/?id=...` — mismo `id` que `plan/?id=...`
+- Panel Equipo: `https://be360.app/equipo/` · Panel de colegio: `https://be360.app/panel-colegio/`
+- App Familia: `https://be360.app/app/?id=...` — mismo `id` que `plan/?id=...`
 - Worker: `vita-proxy.leonardo-751.workers.dev`
 - Historia técnica completa: `CHANGELOG.md` · Estado del proyecto: `CONTEXT.md` (repo privado) · Narrativa del sprint: `contexto-historico/bienestar360_sprint_diseno_reconstruccion_2026-10-22.md`

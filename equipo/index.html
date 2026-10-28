@@ -131,9 +131,11 @@ const NavItems = ({ seccion, onSeccion, pendientesCount, historialCount }) => (
 // panel/index.html, solo con más ítems.
 const SidebarDesktop = ({ seccion, onSeccion, pendientesCount, historialCount, onSalir, nombrePersona }) => (
   <div className="sidebar-desktop" style={{width:172, flexShrink:0, flexDirection:"column", gap:4, position:"sticky", top:28}}>
-    <div style={{display:"flex", alignItems:"center", gap:8, padding:"4px 4px 14px"}}>
-      <div style={{fontSize:22}}>🌱</div>
-      <div style={{fontFamily:"-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif", fontSize:15, color:P.sageDeep, lineHeight:1.1}}>Panel<br/>Equipo</div>
+    <div style={{padding:"4px 4px 18px"}}>
+      <div style={{fontFamily:"-apple-system, BlinkMacSystemFont, 'Helvetica Neue', Arial, sans-serif", fontWeight:800, fontSize:20, letterSpacing:"-0.02em"}}>
+        <span style={{color:"#0A1F44"}}>be</span><span style={{color:"#4A7045"}}>3</span><span style={{color:"#5D8AA8"}}>60</span>
+      </div>
+      <div style={{fontSize:11, fontWeight:700, color:P.muted, letterSpacing:".04em", textTransform:"uppercase", marginTop:2}}>Panel Equipo</div>
     </div>
     <NavItems seccion={seccion} onSeccion={onSeccion} pendientesCount={pendientesCount} historialCount={historialCount}/>
     <div style={{height:1, background:P.line, margin:"14px 4px"}}/>

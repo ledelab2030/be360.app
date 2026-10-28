@@ -290,6 +290,9 @@ export default {
     // passthrough genérico; esta acción no lleva panelSecret en el cuerpo,
     // probar la credencial es su propio trabajo (ver login_equipo en Apps Script).
     if (url.pathname === "/panel/login") return handlePanelAction(request, env, cors, "login_equipo");
+    // NUEVO (28 oct 2026, pedido de Leonardo): borra el chat completo de un
+    // caso — limpieza de mensajes de prueba, nunca disparado por la familia.
+    if (url.pathname === "/panel/limpiar-chat") return handlePanelAction(request, env, cors, "limpiar_chat");
 
     // NUEVO (10 ago 2026): verificación del código de colegio — ver nota grande arriba.
     if (url.pathname === "/verificar") return handlePanelAction(request, env, cors, "verificar_codigo");
