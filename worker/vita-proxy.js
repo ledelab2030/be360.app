@@ -1271,6 +1271,7 @@ async function generarYVerificarBorrador(dx, env) {
     // "correcciones" se usa en el reintento: se le dice al modelo qué estuvo
     // mal en su intento anterior, en vez de pedirle lo mismo y esperar suerte.
     const pedirBorrador = async (correcciones) => {
+      console.log("[generarYVerificarBorrador] llamando a Claude" + (correcciones && correcciones.length ? " (reintento, " + correcciones.length + " correcciones)" : " (primer intento)") + ", ANTHROPIC_API_KEY presente: " + !!env.ANTHROPIC_API_KEY);
       const upstream = await fetch("https://api.anthropic.com/v1/messages", {
         method: "POST",
         headers: {
@@ -1306,8 +1307,11 @@ async function generarYVerificarBorrador(dx, env) {
         }),
       });
 
+      console.log("[generarYVerificarBorrador] respuesta de Claude: HTTP " + upstream.status);
       const data = await upstream.json();
+      if (data.error) console.log("[generarYVerificarBorrador] Claude devolvió error: " + JSON.stringify(data.error));
       const text = (data.content || []).filter(b => b.type === "text").map(b => b.text).join("\n");
+      console.log("[generarYVerificarBorrador] stop_reason: " + data.stop_reason + ", texto recibido: " + text.length + " caracteres");
 
       let parsed = null;
       try { parsed = JSON.parse(text); }
@@ -1315,6 +1319,7 @@ async function generarYVerificarBorrador(dx, env) {
         const m = text.match(/\{[\s\S]*\}/); // por si el modelo mete texto extra alrededor
         if (m) { try { parsed = JSON.parse(m[0]); } catch (e2) {} }
       }
+      console.log("[generarYVerificarBorrador] JSON parseado: " + !!parsed + ", trae mensaje: " + !!(parsed && parsed.mensaje));
       return parsed && parsed.mensaje ? parsed : null;
     };
 
@@ -1441,11 +1446,33 @@ async function generarBorradorAutomatico(dx, ts, env) {
 // /panel/regenerar, por el mismo Durable Object que la generación normal
 // (toma ~70s, no cabe en ctx.waitUntil).
 async function regenerarBorradorExistente(idPlan, dx, env) {
-  if (!env.SHEET_WEBHOOK_URL_FORMULARIO) return;
-  const resultado = await generarYVerificarBorrador(dx, env);
-  if (!resultado) return;
+  console.log("[regenerarBorradorExistente] arrancando para idPlan=" + idPlan);
+  if (!env.SHEET_WEBHOOK_URL_FORMULARIO) { console.log("[regenerarBorradorExistente] SHEET_WEBHOOK_URL_FORMULARIO no configurado, abortando"); return; }
+  // Huella de regeneración (28 oct 2026, pedido de Leonardo — "para saber si
+  // se hizo"): a diferencia de generarBorradorAutomatico (que puede fallar
+  // en silencio porque el caso simplemente se queda "pendiente", visible por
+  // su propia ausencia en el panel), un caso que YA existe no muestra ningún
+  // cambio visible si la regeneración falla — por eso CADA salida de esta
+  // función, incluida la de generación fallida, deja marcada la hora y el
+  // motivo en regeneracion_estado. "ok <iso>" lo escribe regenerarBorrador()
+  // en Apps Script como parte de su propio guardado exitoso.
+  const marcar = async (estado) => {
+    try {
+      await fetch(env.SHEET_WEBHOOK_URL_FORMULARIO, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ secret: env.SHEET_WEBHOOK_SECRET_FORMULARIO || "", action: "marcar_regeneracion", idPlan, estado }),
+      });
+    } catch (e) { /* best-effort: si ni esto se puede escribir, no hay más que intentar */ }
+  };
   try {
-    await fetch(env.SHEET_WEBHOOK_URL_FORMULARIO, {
+    const resultado = await generarYVerificarBorrador(dx, env);
+    console.log("[regenerarBorradorExistente] generarYVerificarBorrador devolvió: " + (resultado ? "contenido (" + resultado.mensajeFinal.length + " caracteres)" : "null"));
+    if (!resultado) {
+      await marcar("error " + new Date().toISOString() + ": no se pudo generar un borrador limpio (ver logs del Worker)");
+      return;
+    }
+    const sheetRes = await fetch(env.SHEET_WEBHOOK_URL_FORMULARIO, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -1456,8 +1483,14 @@ async function regenerarBorradorExistente(idPlan, dx, env) {
         plan: { habitos: resultado.habitos },
       }),
     });
+    const sheetData = await sheetRes.json().catch(() => null);
+    console.log("[regenerarBorradorExistente] guardado en Sheet: " + JSON.stringify(sheetData));
+    if (!sheetData || sheetData.ok !== true) {
+      await marcar("error " + new Date().toISOString() + ": " + ((sheetData && sheetData.error) || ("HTTP " + sheetRes.status) || "respuesta inválida de Apps Script"));
+    }
   } catch (e) {
-    // Silencioso a propósito, mismo criterio que generarBorradorAutomatico.
+    console.log("[regenerarBorradorExistente] excepción: " + String(e));
+    await marcar("error " + new Date().toISOString() + ": " + String(e).slice(0, 200));
   }
 }
 
@@ -1686,6 +1719,20 @@ async function handleRegenerar(request, env, cors) {
     if (!env.GENERADOR_BORRADORES) {
       return new Response(JSON.stringify({ ok: false, error: "GENERADOR_BORRADORES no disponible" }), { status: 500, headers: jsonHeaders });
     }
+
+    // Huella de regeneración, parte 1 (28 oct 2026, pedido de Leonardo):
+    // marca "iniciado" ANTES de encolar — si esto nunca cambia a "ok" o
+    // "error", el problema está en el encolado o en la alarma del Durable
+    // Object, no en la generación. Best-effort, nunca bloquea el encolado
+    // real: si el marcado falla, igual se sigue.
+    try {
+      await fetch(env.SHEET_WEBHOOK_URL_FORMULARIO, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ secret: env.SHEET_WEBHOOK_SECRET_FORMULARIO || "", action: "marcar_regeneracion", idPlan, estado: "iniciado " + new Date().toISOString() }),
+      });
+    } catch (e) { /* best-effort */ }
+
     const id = env.GENERADOR_BORRADORES.idFromName("regenerar-" + idPlan);
     const stub = env.GENERADOR_BORRADORES.get(id);
     await stub.fetch("https://generador/encolar", {

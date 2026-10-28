@@ -236,6 +236,14 @@ var COLS = {
   // final — mismo patrón append-only que novedades_json, nunca se
   // sobreescribe. Vacío = sin conversación todavía.
   chat_json: 29,
+  // NUEVO (28 oct 2026, pedido de Leonardo — "huella de día y hora local de
+  // regeneración para saber si se hizo"): registro del último intento de
+  // regenerar_borrador, no solo el éxito — "iniciado <iso>" cuando arranca,
+  // "ok <iso>" cuando guarda, "error <iso>: <detalle>" si falla. Sin esto,
+  // una regeneración fallida es indistinguible de una que nunca se pidió —
+  // encontrado en vivo: Leonardo pidió regenerar un caso real y el contenido
+  // no cambió, sin ningún rastro de qué pasó.
+  regeneracion_estado: 30,
 };
 
 function doPost(e) {
@@ -285,8 +293,8 @@ function doPost(e) {
     }
 
     if (body.action === "guardar_borrador") return guardarBorrador(sheet, body);
-    // NUEVO (28 oct 2026, pedido de Leonardo: regenerar los planes de Sofía y
-    // Joseph con el prompt ya corregido tras la revisión con Peter) — ver
+    // NUEVO (28 oct 2026, pedido de Leonardo: regenerar casos reales con el
+    // prompt ya corregido tras la revisión con Peter) — ver
     // regenerarBorrador() más abajo, es guardarBorrador() pero por idPlan en
     // vez de ts, y a propósito SIN el bloqueo de idempotencia: ese bloqueo
     // existe para no pisar una aprobación por una llamada automática
@@ -294,6 +302,11 @@ function doPost(e) {
     // explícito. La llama el Worker, nunca equipo/ directo (el Worker valida
     // el panelSecret contra detalle_plan primero — ver /panel/regenerar).
     if (body.action === "regenerar_borrador") return regenerarBorrador(sheet, body);
+    // NUEVO (28 oct 2026, pedido de Leonardo — "huella de regeneración"): el
+    // Worker llama esto ANTES de encolar la regeneración real (marca
+    // "iniciado") y en su catch si algo falla (marca "error: ..."). El
+    // éxito lo marca regenerarBorrador() mismo, como parte de su guardado.
+    if (body.action === "marcar_regeneracion") return marcarRegeneracion(sheet, body);
     if (body.action === "notificar_escalamiento") return notificarEscalamiento(sheet, body);
     // NUEVO (27 oct 2026, pedido de Leonardo): guarda el chat completo de
     // seguimiento — ver guardarMensajesChat() y la nota junto a ella.
@@ -491,6 +504,7 @@ function detallePlan(sheet, body) {
     verificacionTs: v[COLS.verificacion_ts],
     camposSnapshot: camposSnapshot,
     novedades: novedades,
+    regeneracionEstado: v[COLS.regeneracion_estado],
   });
 }
 
@@ -611,8 +625,23 @@ function regenerarBorrador(sheet, body) {
   sheet.getRange(row, COLS.decision + 1).setValue("pendiente_aprobacion");
   sheet.getRange(row, COLS.borrador_texto + 1).setValue(body.mensaje || "");
   sheet.getRange(row, COLS.estado + 1).setValue("borrador_listo");
+  sheet.getRange(row, COLS.regeneracion_estado + 1).setValue("ok " + new Date().toISOString());
   SpreadsheetApp.flush();
   return respond({ ok: true, idPlan: idPlan, row: row });
+}
+
+// Huella de regeneración (28 oct 2026, pedido de Leonardo) — ver COLS.
+// "estado" acá es texto libre que arma el Worker ("iniciado <iso>" /
+// "error <iso>: <detalle>"); el "ok <iso>" lo escribe regenerarBorrador()
+// arriba, como parte de su propio guardado exitoso.
+function marcarRegeneracion(sheet, body) {
+  var idPlan = body.idPlan;
+  if (!idPlan) return respond({ ok: false, error: "idPlan faltante" }, 400);
+  var found = encontrarFilaPorIdPlan(sheet, idPlan);
+  if (!found) return respond({ ok: false, error: "no encontrado" }, 404);
+  sheet.getRange(found.row, COLS.regeneracion_estado + 1).setValue(String(body.estado || ""));
+  SpreadsheetApp.flush();
+  return respond({ ok: true });
 }
 
 // Chat de seguimiento (plan/index.html) — cuando el bot detecta algo que hay
