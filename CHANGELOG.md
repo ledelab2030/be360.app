@@ -889,6 +889,18 @@ Entre las opciones evaluadas (dejarlo así, un editor WYSIWYG, una vista previa 
 
 **Verificación:** `node --check`; la regex nueva probada contra un fragmento con negrilla real (detecta) y contra los dos casos de referencia, que no usan negrilla (no se activa, sin falso positivo).
 
+### 28 oct 2026 — Se quita la pestaña "Hoy" de app/ — su contenido era el mismo checklist, repetido otra vez
+
+Leonardo regeneró el caso real de Sofía y, en el panel de revisión de `equipo/`, debajo del mensaje (que ya no termina en checklist) seguía viendo "Hábitos recomendados" — 4 tarjetas repitiendo, palabra por palabra, el mismo suero/proteína-y-grasa/trigo/cena-6pm que el mensaje ya explica arriba. No era el mismo bug de antes (el mensaje está limpio) — era una sección APARTE, `habitos`, mostrada justo debajo sin ninguna indicación de que fuera algo distinto. Leonardo decidió: tanto la pestaña "Hoy" de `app/` (que mostraba esas mismas tarjetas a la familia) como ese contenido se podían eliminar.
+
+**Antes de borrar, se verificó qué dependía de `habitos`:** no solo la UI. `buildSeguimientoPrompt()` (en `app/` y `plan/`) lo usa como la fuente que Vita cita en el chat de seguimiento ("tu única fuente — no inventes nada fuera de esto") — eso sí tenía que quedarse intacto, es la razón de que el backend (el campo `habitos` del JSON que genera el modelo, su guardado en `plan_json`) no se tocó en este cambio.
+
+**`app/`:** se quita la pestaña "Hoy" completa — el nav pasa de 5 a 4 pestañas (Progreso, Mi plan, Vita, Seguimiento). El toggle de "Retos de bienestar" que vivía ahí (función aparte, solo visible con `?retos=1`, nunca el motivo de la queja) se movió a "Seguimiento", donde ya vivía su resumen semanal — sigue invisible por defecto, nada cambia para nadie que no use ese flag.
+
+**`equipo/`:** la sección "Hábitos recomendados (X de Y incluidos)" se renombra a "Referencia para Vita", con una línea que aclara qué es ("no es un resumen aparte para el padre/madre, eso ya está en el mensaje de arriba"). Se quita el toggle de incluir/excluir — ya no lo filtra nada (`buildSeguimientoPrompt` siempre manda la lista completa a Vita, nunca filtró por `incluido`), era un control sin efecto real.
+
+**Verificación:** sintaxis JSX de `app/index.html` y `equipo/index.html` validada con `@babel/preset-react`; probado en local contra el caso real de Samuel — el nav muestra 4 pestañas, sin "Hoy", sin errores de consola. La sección renombrada de `equipo/` no se pudo probar en vivo (necesita el PIN real), solo por lectura de código.
+
 ---
 
 ---
