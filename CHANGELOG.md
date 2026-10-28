@@ -815,6 +815,16 @@ Ningún ejemplo instructivo se tocó (el cálculo trabajado de la ventana — "p
 
 **Verificación:** `node --check`; se confirmó por `grep` que cada fragmento operativo clave de las 20+ reglas de `ADAPTACIONES_PEDIATRICAS` y las secciones principales de `SRB_DRAFT_PROMPT` sigue presente exactamente una vez (ni duplicado, ni perdido) — incluyendo la frase de referencia del suero, el ejemplo numérico de la ventana, los encabezados exactos del semáforo, y el esquema JSON completo. No se puede probar que el MODELO siga comportándose igual sin generar un borrador real — este cambio es de forma, no reescribe el sentido de ninguna regla.
 
+### 28 oct 2026 — Glosario con tooltip y botón "Hablar con Vita" en `app/` (pedido de Peter en la misma reunión)
+
+Los dos pedidos de frontend que habían quedado pendientes de la reunión con Peter:
+
+**Glosario con tooltip:** en la pestaña "Mi plan", los términos técnicos del plan ("ventana de alimentación", "flora intestinal" — los dos que Peter nombró explícitamente) aparecen subrayados; al tocarlos, se despliega la definición por encima del texto, sin navegar a ningún lado ni sacar al padre de la lectura — decisión explícita de Peter en la reunión ("no es bueno que se salga de la lectura... podemos ponerlo como un significado tipo mouse-over"). Implementado como un diccionario (`GLOSARIO`) + un componente (`TerminoGlosario`) que cada ocurrencia maneja de forma independiente (su propio estado abierto/cerrado). Solo se activa en el mensaje del plan, no en el chat de Vita — ahí Vita ya explica en vivo si hace falta.
+
+**Botón "Hablar con Vita":** al final de "Mi plan", después del mensaje y el disclaimer del pediatra, una línea + botón con el texto exacto que dio Peter: "Cualquier inquietud sobre la terminología o sugerencias, pregúntale a Vita." — lleva directo a la pestaña Vita (`setTab("vita")`), sin recargar ni perder el contexto del plan.
+
+**Verificación:** sintaxis JSX validada con `@babel/preset-react`; probado en local contra el caso real de Samuel — el término "Ventana de alimentación" (dentro de "Lo que el formulario reporta") se resalta y al tocarlo muestra la definición correcta sin desbordar la tarjeta; el botón "Hablar con Vita" lleva a la pestaña Vita con el chat persistido intacto; sin errores de consola.
+
 ---
 
 ---
