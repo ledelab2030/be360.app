@@ -1,15 +1,24 @@
-<!-- Home de be360.app, reescrita el 10 ago 2026 (Leonardo + Claude). Antes esta
-     raíz era un quiz compartido con Núcleo y Javier Institute (otros productos
-     de LedeLab) — se movieron intactos a /nucleo/ y /javier-institute/. Esta
-     página es SOLO be360/Vita: honesta con la etapa actual (TRL 4, piloto en
-     validación con BIS Barranquilla, aún sin resultados de familias reales) —
-     nada de cifras inventadas ("X% de estudiantes en riesgo") ni promesas que
-     no podemos sostener todavía. Actualizar el bloque "Dónde vamos" a medida
-     que avance el TRL (ver be360_TRL_assessment en Drive y CHANGELOG.md).
+<!-- Home de be360.app, reescrita el 28 oct 2026 (Leonardo + Claude) — segunda
+     reescritura (la primera fue el 10 ago 2026). Motivo: la versión anterior
+     afirmaba "en validación con nuestro colegio piloto en Barranquilla" en
+     dos lugares (el stage-pill del hero y la sección "Dónde vamos") — ese
+     piloto NUNCA empezó (se mandó una propuesta, el rector nunca respondió,
+     no ha habido seguimiento). Leonardo pidió quitar esa afirmación de toda
+     página pública, y de paso rehacer el home para que sea información
+     genérica sobre be360 — qué es, cómo probarlo, FAQ — sin mencionar al
+     piloto, sin nombrar personas ni el método clínico por nombre (ver
+     conversación: "a nadie le golpea que sea Peter Álvarez, porque él no es
+     casi conocido, ni el SRB, que son palabras enredadas que generan
+     resistencia"), y sin segmentar por perfil (familia/colegio) todavía —
+     eso se decide después. Colores y tipografía SIN cambiar — Leonardo
+     prefiere expresamente esta paleta (navy/verde/azul claro, fuente del
+     sistema) sobre la que se usó para panel/equipo/app, así que esta vez la
+     unificación fue esas tres páginas adoptando ESTA paleta, no al revés
+     (ver CHANGELOG.md, misma fecha).
      No enlaza directo a la herramienta real (vita-demo-formulario) a
      propósito — corre con la API de Anthropic de Leonardo, sin control de
      acceso por usuario todavía (pendiente, ver CHANGELOG). Los caminos de
-     familias/colegios capturan interés por correo; el enlace real al
+     familias/comunidades capturan interés por correo; el enlace real al
      producto se comparte de forma privada, caso por caso, mientras eso no
      esté resuelto. -->
 <!DOCTYPE html>
@@ -18,7 +27,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Bienestar 360 · Cuerpo sano, mente brillante</title>
-  <meta name="description" content="Acompañamiento de bienestar familiar basado en evidencia — para tu hijo y tu hogar, o para tu institución educativa.">
+  <meta name="description" content="Acompañamiento de bienestar familiar basado en evidencia — para tu hogar, o para tu comunidad.">
   <meta property="og:title" content="Bienestar 360">
   <meta property="og:description" content="Cuerpo sano, mente brillante.">
   <meta property="og:url" content="https://be360.app">
@@ -46,43 +55,33 @@
     .logo .be { color: var(--navy); } .logo .three { color: var(--green); } .logo .sixty { color: var(--light-blue); }
     .logo-tag { font-family: Georgia, 'Times New Roman', serif; font-style: italic; color: #A0A0A0; font-size: clamp(15px, 2.2vw, 20px); margin-top: 4px; letter-spacing: 0.08em; }
     .hero { padding: 52px 0 36px; text-align: center; }
-    .stage-pill { display: inline-block; background: #E9F1F8; color: var(--navy); padding: 7px 16px; border-radius: 999px; font-size: 13px; font-weight: 500; margin-bottom: 18px; }
     h1 { font-size: clamp(30px, 5.6vw, 46px); font-weight: 700; color: var(--navy); line-height: 1.15; margin-bottom: 16px; letter-spacing: -0.02em; }
     h1 .accent { color: var(--green); }
-    .subtitle { font-size: clamp(16px, 2.2vw, 19px); color: var(--gray-text); max-width: 560px; margin: 0 auto 8px; }
+    .subtitle { font-size: clamp(16px, 2.2vw, 19px); color: var(--gray-text); max-width: 560px; margin: 0 auto 28px; }
     section { padding: 44px 0; }
     .section-bg { background: var(--bg-soft); }
     h2 { font-size: clamp(22px, 3.6vw, 30px); font-weight: 700; color: var(--navy); margin-bottom: 26px; text-align: center; letter-spacing: -0.01em; }
-    .h2sub { text-align: center; color: var(--gray-text); font-size: 15px; margin-top: -18px; margin-bottom: 26px; max-width: 520px; margin-left: auto; margin-right: auto; }
+    p.lede { font-size: 15.5px; color: var(--gray-text); max-width: 620px; margin: 0 auto; text-align: center; }
 
-    /* Audiencias */
-    .audiences { display: grid; grid-template-columns: 1fr; gap: 18px; }
-    @media (min-width: 640px) { .audiences { grid-template-columns: 1fr 1fr; } }
-    .aud-card { background: white; border: 1px solid var(--border); border-radius: 18px; padding: 26px; display: flex; flex-direction: column; }
-    .aud-icon { font-size: 32px; margin-bottom: 10px; }
-    .aud-card h3 { font-size: 19px; font-weight: 700; color: var(--navy); margin-bottom: 8px; }
-    .aud-card p { font-size: 14.5px; color: var(--gray-text); margin-bottom: 18px; flex: 1; }
-    .btn { display: inline-block; background: var(--navy); color: white; padding: 14px 28px; border-radius: 999px; text-decoration: none; font-weight: 600; font-size: 15.5px; transition: transform 0.15s ease, box-shadow 0.15s ease; box-shadow: 0 4px 14px rgba(31,58,95,0.18); text-align: center; }
-    .btn:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(31,58,95,0.25); }
+    .btn { display: inline-block; background: var(--navy); color: white; padding: 14px 28px; border-radius: 999px; text-decoration: none; font-weight: 600; font-size: 15.5px; transition: transform 0.15s ease, box-shadow 0.15s ease; box-shadow: 0 4px 14px rgba(10,31,68,0.18); text-align: center; }
+    .btn:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(10,31,68,0.25); }
     .btn-outline { background: white; color: var(--navy); border: 2px solid var(--navy); box-shadow: none; }
+    .hero .btn { margin-top: 4px; }
 
-    .features { display: grid; grid-template-columns: 1fr; gap: 18px; }
-    @media (min-width: 640px) { .features { grid-template-columns: 1fr 1fr; } }
-    .feature { background: white; padding: 22px; border-radius: 16px; border: 1px solid var(--border); }
-    .feature-icon { display: inline-flex; align-items: center; justify-content: center; width: 42px; height: 42px; border-radius: 12px; background: #E9F1F8; font-size: 21px; margin-bottom: 12px; }
-    .feature h3 { font-size: 16.5px; font-weight: 700; color: var(--ink); margin-bottom: 6px; }
-    .feature p { font-size: 14.5px; color: var(--gray-text); line-height: 1.55; }
+    .participar { display: grid; grid-template-columns: 1fr; gap: 18px; }
+    @media (min-width: 640px) { .participar { grid-template-columns: 1fr 1fr; } }
+    .part-card { background: white; border: 1px solid var(--border); border-radius: 18px; padding: 26px; }
+    .part-icon { font-size: 30px; margin-bottom: 10px; }
+    .part-card h3 { font-size: 18px; font-weight: 700; color: var(--navy); margin-bottom: 8px; }
+    .part-card p { font-size: 14.5px; color: var(--gray-text); }
 
-    .team { display: grid; grid-template-columns: 1fr; gap: 22px; }
-    @media (min-width: 640px) { .team { grid-template-columns: 1fr 1fr; } }
-    .person { background: white; padding: 22px; border-radius: 16px; border: 1px solid var(--border); }
-    .person h3 { font-size: 17px; font-weight: 700; color: var(--navy); margin-bottom: 4px; }
-    .person .role { font-size: 13.5px; color: var(--green); font-weight: 600; margin-bottom: 8px; }
-    .person p { font-size: 14.5px; color: var(--gray-text); }
+    .charla-box { background: white; border: 1px solid var(--border); border-radius: 18px; padding: 28px 30px; text-align: center; max-width: 620px; margin: 0 auto; }
+    .charla-box p { font-size: 14.5px; color: var(--gray-text); margin: 10px 0 22px; }
 
-    .stage-box { background: white; border: 1px solid var(--border); border-radius: 16px; padding: 22px 24px; max-width: 620px; margin: 0 auto; }
-    .stage-box p { font-size: 14.5px; color: var(--gray-text); }
-    .stage-box strong { color: var(--navy); }
+    .faq { display: flex; flex-direction: column; gap: 14px; max-width: 680px; margin: 0 auto; }
+    .faq-item { background: white; border: 1px solid var(--border); border-radius: 14px; padding: 18px 22px; }
+    .faq-item h3 { font-size: 15px; font-weight: 700; color: var(--navy); margin-bottom: 6px; }
+    .faq-item p { font-size: 14px; color: var(--gray-text); }
 
     .final-cta { text-align: center; padding: 52px 0 30px; }
     .final-cta h2 { margin-bottom: 12px; }
@@ -108,106 +107,71 @@
         <div class="logo"><span class="be">be</span><span class="three">3</span><span class="sixty">60</span></div>
         <div class="logo-tag">Health-Tech</div>
       </div>
-      <div class="stage-pill">🌱 En validación con nuestro colegio piloto en Barranquilla</div>
       <h1>Cuerpo sano,<br><span class="accent">mente brillante</span>.</h1>
-      <p class="subtitle">Acompañamiento de bienestar familiar — para tu hijo y tu hogar, o para tu institución educativa. Hábitos que cuidan cuerpo y mente, todos los días.</p>
+      <p class="subtitle">Acompañamiento de bienestar familiar — hábitos de sueño, alimentación y movimiento que sí se sostienen. Para tu hogar, o para tu comunidad.</p>
+      <a class="btn" href="mailto:leonardo@ledelab.group?subject=Quiero%20probar%20be360&body=Hola%2C%0A%0AQuiero%20saber%20m%C3%A1s%20sobre%20be360.%0A%0AGracias%21">Quiero probarlo</a>
     </div>
   </section>
 
   <section>
     <div class="container">
-      <h2>¿Quién eres?</h2>
-      <div class="audiences">
-        <div class="aud-card">
-          <div class="aud-icon">🌱</div>
-          <h3>Soy familia</h3>
-          <p>Quiero acompañamiento de bienestar para mi hijo/a — hábitos de sueño, alimentación y movimiento que sí se sostienen.</p>
-          <a class="btn" href="/talentos">Quiero saber más →</a>
+      <h2>¿Qué es be360?</h2>
+      <p class="lede">Un programa de acompañamiento para familias, enfocado en los hábitos que más importan: sueño, alimentación y movimiento. Nada de dietas ni reglas rígidas. Empezamos con un diagnóstico de la situación actual de tu hijo/a, seguimos con un plan personalizado, y acompañamos de cerca para sostener los cambios en el tiempo.</p>
+    </div>
+  </section>
+
+  <section class="section-bg">
+    <div class="container">
+      <h2>Cómo puedes participar</h2>
+      <div class="participar">
+        <div class="part-card">
+          <div class="part-icon">🌱</div>
+          <h3>De forma individual</h3>
+          <p>Tu familia empieza directo: diagnóstico, plan personalizado, acompañamiento.</p>
         </div>
-        <div class="aud-card">
-          <div class="aud-icon">🏫</div>
-          <h3>Soy institución educativa</h3>
-          <p>Quiero conocer cómo Vita se ofrece como valor agregado a las familias de mi colegio, sin costo para ellas.</p>
-          <a class="btn btn-outline" href="mailto:leonardo@ledelab.group?subject=Quiero%20conocer%20Vita%20para%20mi%20colegio&body=Hola%2C%0A%0AMe%20gustar%C3%ADa%20conocer%20m%C3%A1s%20sobre%20Vita%20para%20mi%20instituci%C3%B3n.%0A%0ANombre%20de%20la%20instituci%C3%B3n%3A%0AN%C3%BAmero%20aproximado%20de%20estudiantes%3A%0A%0AGracias%21">Quiero conocer Vita para mi colegio →</a>
+        <div class="part-card">
+          <div class="part-icon">🤝</div>
+          <h3>En comunidad</h3>
+          <p>Si representas un colegio, un grupo de familias o cualquier otra comunidad, be360 se puede ofrecer como beneficio compartido para todos los hogares.</p>
         </div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="container">
+      <h2>Charlas para padres</h2>
+      <div class="charla-box">
+        <p>Sesiones para padres y madres que quieren empezar a cambiar el estilo de vida de sus hijos — qué hábitos realmente mueven la aguja, y por dónde empezar sin abrumarse. Un primer acercamiento, sin compromiso de inscribirse al programa completo.</p>
+        <a class="btn btn-outline" href="mailto:leonardo@ledelab.group?subject=Quiero%20que%20me%20avisen%20de%20la%20pr%C3%B3xima%20charla&body=Hola%2C%0A%0AQuiero%20que%20me%20avisen%20de%20la%20pr%C3%B3xima%20charla%20para%20padres.%0A%0AGracias%21">Quiero que me avisen de la próxima charla</a>
       </div>
     </div>
   </section>
 
   <section class="section-bg">
     <div class="container">
-      <h2>¿Qué hacemos?</h2>
-      <div class="features">
-        <div class="feature">
-          <div class="feature-icon">🧭</div>
-          <h3>Diagnóstico personalizado</h3>
-          <p>Mapeamos el estilo de vida actual de cada niño o niña — hábitos, sueño, alimentación, emociones.</p>
+      <h2>Preguntas frecuentes</h2>
+      <div class="faq">
+        <div class="faq-item">
+          <h3>¿Para quién es be360?</h3>
+          <p>Para familias con niños y adolescentes que quieren mejorar hábitos de sueño, alimentación y movimiento — por su cuenta o a través de su colegio o comunidad.</p>
         </div>
-        <div class="feature">
-          <div class="feature-icon">💬</div>
-          <h3>Acompañamiento continuo</h3>
-          <p>Conversaciones cortas y guiadas, sin agendas complicadas ni apps adicionales que instalar.</p>
+        <div class="faq-item">
+          <h3>¿Reemplaza a mi pediatra?</h3>
+          <p>No. be360 acompaña y suma con el médico de tu hijo/a — nunca lo reemplaza ni interfiere con tratamientos o medicación en curso.</p>
         </div>
-        <div class="feature">
-          <div class="feature-icon">🌱</div>
-          <h3>Microcambios sostenibles</h3>
-          <p>Orientación práctica en nutrición, sueño, movimiento y manejo del estrés — un cambio chico a la vez.</p>
+        <div class="faq-item">
+          <h3>¿Cómo funciona el acompañamiento?</h3>
+          <p>Primero entendemos la situación actual de tu hijo/a con un diagnóstico. Con eso armamos un plan personalizado que revisamos contigo. Después, seguimos acompañándote para sostener los cambios.</p>
         </div>
-        <div class="feature">
-          <div class="feature-icon">📚</div>
-          <h3>Basado en evidencia</h3>
-          <p>Intervención conductual preventiva basada en evidencia para reducir factores inflamatorios modificables.</p>
+        <div class="faq-item">
+          <h3>¿Si mi colegio participa, tiene costo para las familias?</h3>
+          <p>No — cuando be360 llega a través de una institución, es un beneficio para las familias, sin costo adicional para ellas.</p>
         </div>
-      </div>
-    </div>
-  </section>
-
-  <section>
-    <div class="container">
-      <h2>Cómo funciona para un colegio</h2>
-      <div class="features">
-        <div class="feature">
-          <div class="feature-icon">1️⃣</div>
-          <h3>La institución acepta</h3>
-          <p>Formalizamos el convenio como valor agregado gratuito para la comunidad estudiantil. Sin costo para las familias.</p>
+        <div class="faq-item">
+          <h3>¿Cómo empiezo?</h3>
+          <p>Escríbenos contándonos un poco de tu familia o tu comunidad, y te respondemos con los siguientes pasos.</p>
         </div>
-        <div class="feature">
-          <div class="feature-icon">2️⃣</div>
-          <h3>Las familias activan Vita</h3>
-          <p>Reciben un enlace por correo. Sin instalar nada, sin plataformas nuevas.</p>
-        </div>
-        <div class="feature">
-          <div class="feature-icon">3️⃣</div>
-          <h3>El equipo hace el trabajo</h3>
-          <p>Diagnóstico conductual, hábitos y seguimiento personalizado por familia. La institución solo facilita, no carga con el trabajo.</p>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <section class="section-bg">
-    <div class="container">
-      <h2>Quiénes estamos detrás</h2>
-      <div class="team">
-        <div class="person">
-          <h3>Peter Álvarez</h3>
-          <div class="role">Director de Bienestar</div>
-          <p>Especialista en reversión biológica. Más de una década acompañando familias en Colombia. Creador del Sistema de Reversión Biológica (SRB).</p>
-        </div>
-        <div class="person">
-          <h3>Leonardo De la Hoz</h3>
-          <div class="role">Director de Aprendizaje e Innovación</div>
-          <p>Executive MBA en Sostenibilidad (Bologna Business School). Candidato a MA en Educación con énfasis en Tecnología Educativa (University of Tartu, Estonia). CEO de LedeLab Group OÜ.</p>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <section>
-    <div class="container">
-      <h2>Dónde vamos</h2>
-      <div class="stage-box">
-        <p>Hoy be360 está en fase de <strong>validación</strong> con nuestro colegio piloto en Barranquilla — estamos afinando el programa con un grupo pequeño de familias antes de crecer. Preferimos avanzar con cuidado a prometer algo que todavía no hemos probado a fondo.</p>
       </div>
     </div>
   </section>
@@ -215,7 +179,7 @@
   <section class="final-cta">
     <div class="container">
       <h2>¿Hablamos?</h2>
-      <p>Cuéntanos un poco de tu familia o tu institución y te respondemos.</p>
+      <p>Cuéntanos un poco de tu familia o tu comunidad y te respondemos.</p>
       <a href="mailto:leonardo@ledelab.group?subject=Quiero%20conocer%20Bienestar%20360&body=Hola%2C%0A%0AMe%20gustar%C3%ADa%20conocer%20m%C3%A1s%20sobre%20Bienestar%20360.%0A%0AGracias%21" class="btn">Quiero saber más</a>
     </div>
   </section>

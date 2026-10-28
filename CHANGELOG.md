@@ -709,6 +709,24 @@ Leonardo pidió unificar la apariencia entre el home público y las tres superfi
 
 **Verificación:** sin errores de Babel en navegador local en los tres archivos; barrido de `grep` confirmando cero hex de la paleta vieja; revisado visualmente "Hoy" y la pantalla de entrada de `equipo/` — colores y fuente consistentes entre las dos.
 
+### 28 oct 2026 — Home reescrito: fuera la afirmación de un piloto que nunca empezó (pedido de Leonardo)
+
+Leonardo encontró que `index.html` (y su traducción, `en/index.html`) afirmaban en dos lugares — el pill del hero y la sección "Dónde vamos" — estar "en validación con nuestro colegio piloto en Barranquilla". Eso nunca pasó: se mandó una propuesta a BIS, el rector nunca respondió, no ha habido seguimiento. Pidió que se quitara de toda página pública.
+
+La conversación se fue afinando hasta un texto final, en varias rondas:
+1. Primer intento: quitar el piloto pero seguir hablando de "etapa de desarrollo" — Leonardo corrigió: el home es para cualquier visitante, no para inversionistas, no se habla de la madurez de la organización ahí.
+2. Agregó una pieza nueva: **charlas para padres**, un punto de entrada más liviano que el programa completo.
+3. Pidió una sección de **preguntas frecuentes**.
+4. Encontró un error real en el borrador: había escrito "Dr. Peter Álvarez" — ningún documento del proyecto lo respalda (ni `CONTEXT.md` ni la versión anterior del home, que decía "Especialista en reversión biológica", nunca "Dr."). Se corrigió.
+5. Pidió ir más allá: quitar toda mención a Peter y al SRB por nombre — "a nadie le golpea que sea Peter Álvarez, no es casi conocido, ni el SRB, son palabras enredadas que generan resistencia". Texto genérico, enfocado en la organización y la oferta, no en personas ni metodologías.
+6. Explícito: nada de segmentar por perfil (familia/colegio) todavía — "después miramos, pero todavía no".
+
+**Cambios en `index.html` y `en/index.html`:** reescritos completos. Fuera: el stage-pill, "¿Quién eres?" (tarjetas familia/colegio), "Cómo funciona para un colegio", "Quiénes estamos detrás" (nombres, títulos, SRB), "Dónde vamos". Adentro: Hero sin afirmación de etapa, "¿Qué es be360?" (genérico), "Cómo puedes participar" (individual/comunidad, sin tarjetas por perfil), "Charlas para padres" (nuevo, con su propio CTA), "Preguntas frecuentes" (nuevo, 5 preguntas). El CSS no se tocó — es la misma paleta navy/verde/azul claro de siempre (ver entrada anterior, misma fecha: la unificación de `panel/equipo/app` fue en esta dirección, el home no cambió).
+
+**Revisadas, no tocadas, otras menciones de BIS encontradas en el repo** (distintas en naturaleza, no la misma urgencia): un comentario de código en `vita-demo-formulario/` y `-v2/` (nunca visible, no es copy); un ejemplo de formato de URL en la pantalla de error de `panel-colegio/` (`?colegio=BIS2026`, herramienta interna con PIN, no mercadeo); un encabezado en `panel-colegio-proyeccion/`, que es explícitamente un mockup de diseño, "100% simulado, NUNCA conectado a datos reales" (ya documentado así en el propio archivo). Quedan anotadas para Leonardo, no se tocaron en este cambio.
+
+**Verificación:** ambas páginas son HTML estático sin JS de datos — se sirvieron en local y se revisó el contenido completo (texto de principio a fin) contra lo acordado; sin menciones de BIS, Barranquilla, piloto, Peter o SRB en ningún lado visible.
+
 ---
 
 ---
