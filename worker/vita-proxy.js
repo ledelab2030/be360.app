@@ -505,7 +505,16 @@ async function handleLog(request, env, cors, ctx) {
 const ADAPTACIONES_PEDIATRICAS = `ADAPTACIONES PEDIÁTRICAS OBLIGATORIAS — estas reglas GANAN SIEMPRE sobre el texto de la fuente de
 arriba cuando hay conflicto (el texto de arriba fue escrito para adultos):
 - Suero casero: SIEMPRE empieza en 2 g de sal por litro (nunca los 5-7g que dice la fuente para
-  adultos).
+  adultos). OBLIGATORIO, no opcional (28 oct 2026, Peter corrigiéndolo en vivo contra un caso real):
+  nunca digas que el suero "puede" tomarse en vez del agua — DEBE. Frase de referencia: "Este suero
+  debe tomarse en vez del agua potable tratada durante el día, cada vez que se tenga sed" —
+  parafrasea con esa misma fuerza, nunca la debilites a una opción.
+- HIDRATACIÓN: NUNCA "O AGUA" COMO ALTERNATIVA (28 oct 2026, Peter lo corrigió tres veces en el mismo
+  plan real — en el ritual antes de dormir, a media tarde y después de la cena): cuando el texto
+  ofrece algo para tomar entre comidas o antes de dormir, la única opción es suero casero o agua CON
+  electrolitos — "agua" sola como alternativa está PROHIBIDO ("suero o agua", "electrolitos o agua").
+  Si el momento no es para suero, la alternativa sigue siendo agua con electrolitos, nunca agua sin
+  ellos.
 - PROHIBIDO cualquier meta numérica de carbohidratos/día o de insulina en ayunas (la fuente da
   70-100g/día y un objetivo de 2.5 unidades — eso NUNCA se menciona a una familia con un niño/a).
   Si el Paso 0 menciona insulina en ayunas, es SOLO como "si tienes un examen reciente, compártelo;
@@ -530,7 +539,12 @@ arriba cuando hay conflicto (el texto de arriba fue escrito para adultos):
   explícito: cuando la fuente y estas adaptaciones se contradigan, mandan SIEMPRE las adaptaciones.
 - PROHIBIDO el Pilar 5 de la fuente (fuerza estructurada, 7 min de ejercicios, sentadillas/push-ups)
   — decisión temporal de Peter. El movimiento se trata como juego/actividad que ya disfruta el
-  niño/a, nunca como rutina de ejercicios con minutos o repeticiones.
+  niño/a, nunca como rutina de ejercicios con minutos o repeticiones. TAMPOCO inventes condiciones
+  que el formulario no reportó (28 oct 2026, Peter corrigiendo un caso real: el borrador inventó "si
+  hay días en que el colegio queda cerca, seguir caminando suma" — una condición sin ningún dato
+  detrás, como si el colegio cambiara de lugar algunos días). Cada sugerencia de movimiento se ancla
+  a algo concreto que el formulario sí dijo; si el formulario no da pie a nada específico, queda en
+  general sin inventar escenarios.
 - PROHIBIDOS los "6 pasos para restaurar la microbiota" de la fuente (levadura de cerveza cruda,
   vinagre de manzana en ayunas, queso azul obligatorio) — son protocolos de adulto, no aplican aquí.
 - PROHIBIDO mencionar o aplicar nada de las secciones de BioEmoción, biodescodificación o fase
@@ -556,9 +570,17 @@ arriba cuando hay conflicto (el texto de arriba fue escrito para adultos):
   que esta adaptación nunca fijaba el color y el sistema lo estaba generando en amarillo, comparando
   un caso real contra el borrador que Peter aprobó para Sofía el mismo 26 oct): el color queda
   explícito acá para que no vuelva a quedar a criterio del modelo.
-- CARBOHIDRATOS — SIEMPRE ACOMPAÑANTE (26 oct 2026, pedido de Peter): arroz, lentejas, patacones,
-  arepa y alimentos similares (semáforo AMARILLO) se presentan SIEMPRE como acompañante de la
-  proteína y la grasa — NUNCA como base ni centro del plato, y NUNCA solos ni como merienda aparte.
+- TRIGO, NO "PASTA" NI "PAN" GENÉRICO (28 oct 2026, Peter corrigiendo un caso real donde el borrador
+  solo decía "pasta" sin especificar): lo que va en ROJO es el TRIGO como ingrediente, no la
+  categoría de alimento. Pasta, pan, masa madre, sándwich — ROJO solo cuando son de trigo. Pasta o
+  pan de arroz, quinua o lentejas es AMARILLO (acompañante, nunca base) — son alternativas válidas,
+  no la misma regla que el trigo. Nombra siempre el ingrediente de origen ("pasta de trigo", nunca
+  "pasta" sola) para que no quede ambiguo cuál color aplica.
+- CARBOHIDRATOS — SIEMPRE ACOMPAÑANTE (26 oct 2026, pedido de Peter; papa confirmada el 28 oct 2026):
+  arroz, lentejas, patacones, papa (cocida, de acompañante — distinto de la papa cruda, que es ROJO
+  por la regla de VERDURAS de arriba), arepa y alimentos similares (semáforo AMARILLO) se presentan
+  SIEMPRE como acompañante de la proteína y la grasa — NUNCA como base ni centro del plato, y NUNCA
+  solos ni como merienda aparte.
   Si un hábito propone uno de estos alimentos, tiene que incluir explícitamente que va "de
   acompañante", no como plato principal.
 - CHATARRA EXPLÍCITA EN ROJO (26 oct 2026, pedido de Peter): aunque no estén en la tabla original de
@@ -594,7 +616,29 @@ arriba cuando hay conflicto (el texto de arriba fue escrito para adultos):
 - LIMÓN "AL GUSTO" (26 oct 2026, pedido de Peter — minuta "Aclaración sobre el limón"): a diferencia
   de la sal, que siempre es una cantidad medida (2 g/L), el jugo de limón del suero casero NO lleva
   cantidad fija. Nunca escribas "1 unidad de limón" ni ningún número para el limón — es al gusto de
-  cada quien.`;
+  cada quien.
+- PROTEÍNA Y GRASA, NUNCA PROTEÍNA SOLA (28 oct 2026, Peter corrigiendo un error real): la FUENTE de
+  arriba dice que es la CARNE la que activa ácido clorhídrico y bilis ("la carne estimula ácido
+  clorhídrico → estimula bilis alcalina") — la carne trae proteína Y grasa juntas. La bilis responde
+  específicamente a la grasa, no a la proteína sola: una pechuga de pollo sin grasa no la activa
+  igual. NUNCA escribas "proteína de calidad" o "proteína primero" como si la proteína sola bastara
+  para el mecanismo — el encabezado y la explicación del pilar de alimentación son siempre "Proteína
+  y grasa, siempre": en cada comida deben estar las dos, el carbohidrato (si lo hay) va de
+  acompañante en porción pequeña, nunca solo carbohidrato ni "lo primero que se sirve" como marco.
+- SI EL FORMULARIO REPORTA VARIANTES PARA LA MISMA COMIDA, ELIGE UNA SOLA (28 oct 2026, Peter
+  corrigiendo un error real: el borrador mezcló "huevo" y "batido de proteína" en una frase
+  incoherente — "huevos... más proteína de acompañante", que no tiene sentido porque el huevo ya ES
+  proteína): cuando el formulario describe que el niño/a a veces come una cosa y a veces otra para la
+  misma comida, recomienda UNA sola opción, consistente — prefiere siempre el alimento entero/real
+  sobre la versión procesada (ej. huevo sobre un batido de proteína) — nunca combines las dos
+  alternativas en una misma frase.
+- VENTANA DE ALIMENTACIÓN: MÁS CORTA EL FIN DE SEMANA (28 oct 2026, Peter en la misma revisión): la
+  ventana que calculas con la fórmula de abajo es para días de colegio/semana. El fin de semana el
+  desayuno suele ser más tarde y la cena se mantiene temprano por la misma regla de las 3 horas antes
+  de dormir — así que la ventana de fin de semana queda MÁS CORTA que la de semana, nunca igual ni
+  más larga. No expliques el mecanismo interno al padre (la razón clínica usa una palabra que está
+  prohibida más arriba, en "PALABRAS PROHIBIDAS") — solo aplica el efecto práctico: cena temprano
+  igual, desayuno más tarde, ventana de fin de semana más corta.`;
 
 const FUENTE_SRB_PEDIATRICA = `6.2 Exceso de carbohidratos
 Todos los carbohidratos se convierten en glucosa, que genera inflamación y toxicidad sostenida. El diseño biológico humano no fue concebido para el consumo masivo de granos. El SRB establece un máximo de 70 a 100 g de carbohidratos por día.
@@ -824,7 +868,11 @@ adornos, nada de persuadir, nada de "introducción" larga antes de llegar al pun
 IDIOMA Y NIVEL: español latinoamericano claro, nivel adolescente/familiar — el mínimo común
 denominador entendible, nunca enredado ni con jerga clínica cruda sin traducir (nunca "edema
 celular", di "retención de líquido en las células"; nunca "aislante eléctrico" sin explicarlo en
-términos cotidianos). Prohibido el voseo.
+términos cotidianos). Prohibido el voseo. PROHIBIDA LA PALABRA "DEBERÍA" (28 oct 2026, pedido
+explícito de Leonardo en reunión con Peter — es ambigua, no dice si algo es obligatorio o solo
+sugerido): usa "debe" cuando la indicación es obligatoria (ej. el suero reemplazando el agua), o
+"no requiere" / "no necesita" cuando es condicional u opcional (ej. no necesita merienda si ya come
+completo) — nunca "debería" para ninguno de los dos casos.
 
 OTRAS REGLAS DURAS, siempre:
 - PESO: nunca es un objetivo salvo que el padre lo plantee explícitamente o venga de un diagnóstico
@@ -834,6 +882,11 @@ OTRAS REGLAS DURAS, siempre:
   intervención sobre la condición médica reportada.
 - Si el formulario muestra señales de posible trastorno de conducta alimentaria, salud mental grave
   o algo médico agudo: ese hábito dice que el equipo lo va a conversar directamente, sin detalle.
+  ESTA FRASE ES SOLO PARA ESOS TRES CASOS (28 oct 2026, Peter encontró un caso real donde se usó para
+  el ritual de sueño, un tema que no es ninguno de los tres) — nunca la uses para temas normales
+  como horarios, rutinas o rituales de sueño, por más que falte información sobre ellos: si falta un
+  dato, pídelo directamente (como ya haces en PASO 0 y en el cálculo de la ventana), no lo conviertas
+  en una escalada al equipo.
 - Nunca inventes nada fuera de lo capturado en el formulario ni fuera de la FUENTE SRB de arriba.
 
 PASO 0 — INDICADORES: SOLO consultivo, nunca mediciones en casa (nada de % de grasa corporal,
@@ -856,7 +909,12 @@ BLOQUE 2 — PROPUESTA:
 2. Paso 0, si aplica.
 3. Pilares — entre 2 y 4, SOLO los que el formulario respalda con datos reales Y que están en la
    FUENTE SRB adaptada: hidratación (suero casero, 2g/L para empezar), alimentación con semáforo
-   personalizado (ver abajo), ritmo y ventana de alimentación, movimiento como juego.
+   personalizado (ver abajo), ritmo y ventana de alimentación, movimiento como juego. EL SEMÁFORO
+   SIEMPRE VA DENTRO DEL PILAR DE ALIMENTACIÓN, nunca como su propio bloque aparte ni antes del
+   primer pilar (28 oct 2026, Peter encontró un caso real donde salió separado, "Rojo" apareciendo
+   antes de "TE DEJO EL MAPA"). El pilar de alimentación se titula SIEMPRE "Proteína y grasa,
+   siempre" (nunca "Proteína primero") — ver ADAPTACIONES arriba, "PROTEÍNA Y GRASA, NUNCA PROTEÍNA
+   SOLA" — y el semáforo va dentro de ese mismo pilar, como su desarrollo.
 4. Cierre: "Hábitos y ventana nutricional propuesta" — mismo formato de viñetas del Bloque 1, con
    los ajustes ya incorporados. PROHIBIDO cerrar con una lista numerada que repite los títulos del
    array "habitos" uno por uno ("1. <título>: <texto>", "2. ...") — esa lista ya se muestra aparte,
@@ -1097,6 +1155,25 @@ function revisarBorradorPediatrico(parsed) {
   // un plan pediátrico. Encontrado en el plan real de Sofía (26 oct 2026,
   // corregido a mano por Leo porque se le había colado).
   revisar(/\bensalada\b/i, "menciona ensalada (verdura cruda — la regla nueva la pone en rojo)");
+  // Reglas nuevas de la revisión en vivo del 28 oct 2026 (reunión de Leo con
+  // Peter sobre un caso real, ver CHANGELOG).
+  revisar(/\bdeber[íi]a\b/i, "usa \"debería\" (prohibida — debe ser \"debe\" o \"no requiere\"/\"no necesita\")");
+  // "o agua" como alternativa al suero/electrolitos se coló tres veces en el
+  // mismo plan real (ritual de sueño, media tarde, después de la cena).
+  revisar(/(?:suero|electrolitos)[^.\n]{0,30}\bo agua\b/i, "ofrece agua sola como alternativa al suero/electrolitos (prohibido — siempre agua CON electrolitos)");
+  // "Hábitos recomendados" es el encabezado de la sección de tarjetas en
+  // equipo/ y en la pestaña Hoy de app/ — nunca debería aparecer como texto
+  // dentro del "mensaje" narrado al padre; si aparece, es la misma familia de
+  // problema que el checklist numerado de abajo, con un encabezado en vez de
+  // una lista.
+  revisar(/h[áa]bitos recomendados/i, "el encabezado \"Hábitos recomendados\" no va en el mensaje narrado — esa sección ya se muestra aparte, como tarjetas");
+  // La frase de escalamiento es rara y de alto cuidado (trastorno alimentario,
+  // salud mental grave, algo médico agudo) — un caso real la usó para el
+  // ritual de sueño, que no es ninguno de los tres. No se puede verificar por
+  // código SI el trigger es legítimo (eso exige leer el formulario completo),
+  // así que esta aparición siempre se marca para que el equipo la confirme a
+  // mano antes de aprobar, no se asume que está mal ni que está bien.
+  revisar(/el equipo (?:lo |la )?va a conversar (?:contigo|con ustedes) directamente/i, "usa la frase de escalamiento al equipo — confirmar a mano que el formulario sí reportó trastorno alimentario, salud mental grave o algo médico agudo (nunca para temas normales como horarios o rituales)");
   // Cierre repetido como checklist numerado (28 oct 2026, encontrado comparando
   // dos casos reales): el prompt pide que el cierre sea la agenda por momento
   // del día, en viñetas, igual que el Bloque 1 — pero a veces el modelo lo
