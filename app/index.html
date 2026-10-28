@@ -1,0 +1,588 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+<meta name="robots" content="noindex" />
+<title>be360 · Plan de bienestar</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+<script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<script src="https://unpkg.com/jspdf@2.5.2/dist/jspdf.umd.min.js"></script>
+<style>
+  html,body{margin:0;height:100%}
+  *{box-sizing:border-box}
+  .rise{animation:rise .28s cubic-bezier(.2,.8,.2,1)}
+  @keyframes rise{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+  .dot{width:7px;height:7px;border-radius:50%;background:#5A7A5C;display:inline-block;animation:blink 1.2s infinite}
+  .dot:nth-child(2){animation-delay:.2s}.dot:nth-child(3){animation-delay:.4s}
+  @keyframes blink{0%,60%,100%{opacity:.25}30%{opacity:1}}
+  .scroll::-webkit-scrollbar{width:8px}.scroll::-webkit-scrollbar-thumb{background:#D8CFBE;border-radius:8px}
+  /* Nav responsive (27 oct 2026) — pestañas abajo en móvil, rail a la
+     izquierda en escritorio. Ver mockup "Navegación app.be360.co": la App
+     Familia es la que está pensada de celular hacia afuera, al revés de
+     equipo/. */
+  .tabbar-mobile{display:flex}
+  .sidebar-desktop{display:none}
+  @media (min-width:861px){ .tabbar-mobile{display:none} .sidebar-desktop{display:flex} }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const { useState, useEffect } = React;
+
+// ============================================================
+// App Familia — 27 oct 2026, pedido de Leonardo. ADITIVA Y PARALELA a
+// plan/index.html: ruta nueva (/app/), mismo patrón ?id=... en la URL, no
+// reemplaza ni modifica el link que ya reciben las familias por correo. El
+// backend es EXACTAMENTE el mismo (GET /plan?id=, POST /escalar, el
+// passthrough de Claude para el chat de seguimiento) — nada nuevo que
+// mantener sincronizado con reglas clínicas: lo que cambia el SRB/prompt
+// sigue viviendo solo en worker/vita-proxy.js, y esta página lo hereda
+// igual que plan/.
+//
+// Qué es distinto de plan/index.html: en vez de una sola página larga +
+// el chat como overlay de pantalla completa, la misma información se
+// organiza en 4 pestañas persistentes (Hoy / Mi plan / Vita / Progreso —
+// ver mockup "Navegación app.be360.co"). TODA la lógica (prompt de
+// seguimiento, consolidación de "dato_nuevo", PDF, Retos de bienestar) es
+// la misma de plan/index.html, copiada a propósito — mismo criterio que ya
+// se aplicó entre panel/ y equipo/: páginas para una audiencia distinta de
+// la fuente que copiaron, no se mantienen sincronizadas entre sí.
+// ============================================================
+const WORKER_URL = "https://vita-proxy.leonardo-751.workers.dev";
+
+const P = { bg:"#ECE5D8", panel:"#FBF8F1", panelRaised:"#FFFFFF", ink:"#2C2A24", sage:"#5A7A5C", sageDeep:"#3E5A40", sageSoft:"#DCE7D6", clay:"#B5764A", claySoft:"#F0DFCB", line:"#D8CFBE", muted:"#8A8473", user:"#C9DDB8" };
+
+function getIdFromUrl() {
+  const params = new URLSearchParams(window.location.search);
+  return params.get("id");
+}
+
+// Misma bandera invisible que plan/index.html — ver ese archivo para el
+// porqué completo. Los Retos de bienestar siguen siendo piloto cerrado
+// mientras se valida con Peter; esta página no cambia esa decisión.
+function getRetosFlag() {
+  const params = new URLSearchParams(window.location.search);
+  return params.get("retos") === "1";
+}
+
+const RETOS = [
+  { id: "bebidas", titulo: "Menos bebidas azucaradas", texto: "Marca los días en que no tomó gaseosa, jugo de caja ni bebidas con azúcar añadida." },
+  { id: "ultraprocesados", titulo: "Menos ultraprocesados", texto: "Ultraprocesado no es lo mismo que \"procesado\": son productos con ingredientes que no usarías en tu cocina (colorantes, saborizantes, conservantes) — snacks empacados, cereales azucarados, embutidos. Marca los días con menos de esto en su plato." },
+  { id: "movimiento", titulo: "Movimiento", texto: "Marca los días en que jugó, caminó o se movió activamente al menos 30 minutos." },
+  { id: "pantallas_noche", titulo: "Sin pantallas antes de dormir", texto: "Marca los días en que se desconectó de tablet, celular o TV al menos 30 minutos antes de acostarse." },
+];
+
+const todayKey = () => new Date().toISOString().slice(0, 10);
+const dateKeyDaysAgo = (n) => { const d = new Date(); d.setDate(d.getDate() - n); return d.toISOString().slice(0, 10); };
+
+const contarDias = (log, retoId, desde, hasta) => {
+  const dias = (log && log[retoId]) || {};
+  let n = 0;
+  for (let i = desde; i <= hasta; i++) { if (dias[dateKeyDaysAgo(i)]) n++; }
+  return n;
+};
+
+// ---- Prompt del chat de seguimiento: idéntico a plan/index.html ----
+const buildSeguimientoPrompt = (data) => {
+  const nombreNino = data.nombreNino || "tu hijo/a";
+  const habitos = (data.plan && data.plan.habitos) || [];
+  const habitosTexto = habitos.map((h, i) => (i + 1) + ". " + h.titulo + ": " + h.texto).join("\n") || "(sin hábitos registrados)";
+  return `Eres Vita, el acompañante de bienestar de Bienestar 360. Hablas con el padre/madre de ${nombreNino} para acompañar el plan de hábitos YA APROBADO por Peter Álvarez.
+
+# EL PLAN APROBADO DE ${nombreNino.toUpperCase()} (tu única fuente — no inventes nada fuera de esto, no propongas hábitos nuevos, no cambies el plan)
+${habitosTexto}
+
+# QUÉ HACES
+Acompañas el sostenimiento de ESTOS hábitos ya aprobados. NO diagnosticas, NO prescribes, NO das ninguna recomendación nueva. Hablas SIEMPRE con el padre/madre, nunca con ${nombreNino}.
+
+# TONO
+Tuteo, cercano. CERO emojis. 2 a 4 líneas por mensaje. Una pregunta a la vez. Sin listas ni viñetas. Sin juicio, nunca culpar. No evalúas ("¿cumpliste?"), preguntas abierto ("¿cómo les fue con...?"). Si cuentan que no lograron nada esta semana: NUNCA señales la falla — ofrece una versión más pequeña del hábito ("¿y si esta semana solo martes y jueves?"). Celebra lo pequeño. Cierra con algo concreto. Nunca menciones IA, tecnología, "sin medicamentos", "revertir", "curar" ni "epigenética".
+
+CONSULTIVA, NO PROACTIVA (26 oct 2026, pedido de Peter — minuta "Tono de acompañamiento temprano"): no abras preguntando directamente por el cumplimiento de los hábitos ni pidiendo un reporte de tareas — eso se siente invasivo. Deja que el padre/madre lleve la conversación: salúdalo y pregúntale en qué le puedes ayudar hoy. Si él mismo trae el tema de cómo les fue con algún hábito, ahí sí acompañas esa conversación con calidez, siguiendo las reglas de arriba.
+
+# ESCALAMIENTO (agrega el marcador AL FINAL de tu respuesta, en su propia línea — nunca lo menciones ni lo expliques al padre, es invisible para el sistema)
+- Señal de riesgo real (algo médico agudo, salud mental grave, mención de hacerse daño): responde con calidez, dile con claridad que contacte a su médico o a urgencias YA, y agrega: <escalar>urgencia</escalar>
+- Pregunta puntual sobre el plan que no debas resolver tú (ej. contenido clínico nuevo, "¿le puedo dar X en vez de Y?"): responde "Eso lo reviso con Peter y te respondo" y agrega: <escalar>duda</escalar>
+- Pide hablar con una persona directamente: responde con honestidad que le avisas al equipo, y agrega: <escalar>solicitud_humano</escalar>
+- Pregunta sobre medicación: "Eso es de tu equipo médico. Lo anoto para que Peter lo tenga presente." y agrega: <escalar>duda</escalar>
+- El padre/madre comparte un dato nuevo relevante para el plan (ej. la hora real de dormir, una excepción recurrente de horario, una restricción nueva — lo que haga falta para ajustar el plan más adelante): agradece el dato con calidez y pregúntale si hay algo más que quiera agregar o actualizar antes de pasárselo al equipo — NO agregues el marcador todavía en este turno, falta confirmar que no hay más.
+- El padre/madre confirma que eso es todo (dice algo como "no", "eso es todo", "nada más", "ya", o responde a tu pregunta de arriba sin agregar nada nuevo): dile que lo registras para que el equipo lo tenga en cuenta, y agrega, en la misma línea: <escalar>dato_nuevo|RESUMEN</escalar> — donde RESUMEN junta TODO lo que compartió sobre el tema en la conversación (no solo este último mensaje), completo por sí solo (no asumas que quien lo lea vio el resto de la conversación).
+- Si preguntan quién está detrás: "Bienestar 360 lo lidera Peter Álvarez, con un equipo de bienestar."
+- Para todo lo demás (check-ins normales, contar cómo les fue, dudas que sí puedes responder con el plan de arriba): NO agregues ningún marcador.`;
+};
+
+const parseEscalar = (text) => {
+  const m = text.match(/<escalar>([\s\S]*?)<\/escalar>/);
+  const clean = text.replace(/<escalar>[\s\S]*?<\/escalar>/g, "").trim();
+  if (!m) return { clean, motivo: null, detalle: null };
+  const raw = m[1].trim();
+  const i = raw.indexOf("|");
+  if (i === -1) return { clean, motivo: raw, detalle: null };
+  return { clean, motivo: raw.slice(0, i).trim(), detalle: raw.slice(i + 1).trim() };
+};
+
+const renderRich = (text) => (text||"").split(/(\*\*[^*]+\*\*)/g).map((part,i)=>
+  part.startsWith("**")&&part.endsWith("**")
+    ? <strong key={i} style={{fontWeight:800}}>{part.slice(2,-2)}</strong>
+    : <React.Fragment key={i}>{part}</React.Fragment>
+);
+
+// ---- PDF: idéntico a plan/index.html — ver ese archivo para las notas
+// completas sobre el saneo de caracteres y el agrupado por estilo. ----
+const PDF_MARGIN = 40;
+const PDF_LINE_HEIGHT = 15;
+
+function sanearTextoPdf(texto) {
+  if (!texto) return texto;
+  return texto
+    .replace(/═+/g, m => "-".repeat(m.length))
+    .replace(/[\u{1F000}-\u{1FFFF}]/gu, "")
+    .replace(/[←-⯿]/g, "")
+    .replace(/[️‍]/g, "");
+}
+
+function pdfEscribirParrafo(doc, texto, x, y, maxWidth, fontSize) {
+  texto = sanearTextoPdf(texto);
+  const pageHeight = doc.internal.pageSize.getHeight();
+  doc.setFontSize(fontSize);
+  const segmentos = (texto || "").split(/(\*\*[^*]+\*\*)/g).filter(s => s !== "");
+  const palabras = [];
+  for (const seg of segmentos) {
+    const negrita = seg.startsWith("**") && seg.endsWith("**");
+    const contenido = negrita ? seg.slice(2, -2) : seg;
+    contenido.split(" ").forEach(w => { if (w !== "") palabras.push({ texto: w, negrita }); });
+  }
+  let linea = [];
+  let anchoLinea = 0;
+  const anchoEspacio = doc.getTextWidth(" ");
+  const escribirLinea = () => {
+    if (linea.length === 0) return;
+    let cx = x;
+    let i = 0;
+    while (i < linea.length) {
+      const negrita = linea[i].negrita;
+      const grupo = [];
+      while (i < linea.length && linea[i].negrita === negrita) { grupo.push(linea[i].texto); i++; }
+      const textoGrupo = grupo.join(" ");
+      doc.setFont(undefined, negrita ? "bold" : "normal");
+      doc.text(textoGrupo, cx, y);
+      cx += doc.getTextWidth(textoGrupo) + anchoEspacio;
+    }
+    y += PDF_LINE_HEIGHT;
+    if (y > pageHeight - PDF_MARGIN) { doc.addPage(); y = PDF_MARGIN; }
+    linea = []; anchoLinea = 0;
+  };
+  for (const p of palabras) {
+    doc.setFont(undefined, p.negrita ? "bold" : "normal");
+    const anchoPalabra = doc.getTextWidth(p.texto);
+    if (linea.length && anchoLinea + anchoEspacio + anchoPalabra > maxWidth) escribirLinea();
+    linea.push(p);
+    anchoLinea += (linea.length > 1 ? anchoEspacio : 0) + anchoPalabra;
+  }
+  escribirLinea();
+  doc.setFont(undefined, "normal");
+  return y;
+}
+
+function descargarPdf(nombreNino, mensaje, habitos) {
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ unit: "pt", format: "a4" });
+  const maxWidth = doc.internal.pageSize.getWidth() - PDF_MARGIN * 2;
+  let y = PDF_MARGIN;
+
+  doc.setFont(undefined, "bold"); doc.setFontSize(16);
+  doc.text("Plan de hábitos de " + sanearTextoPdf(nombreNino || "tu hijo/a"), PDF_MARGIN, y);
+  y += 22;
+  doc.setFont(undefined, "normal"); doc.setFontSize(10.5);
+  doc.setTextColor(140, 132, 115);
+  doc.text("Revisado y aprobado por Peter Álvarez — Bienestar 360", PDF_MARGIN, y);
+  doc.setTextColor(44, 42, 36);
+  y += 26;
+
+  (mensaje || "").split("\n").forEach(parrafo => {
+    if (parrafo.trim() === "") { y += PDF_LINE_HEIGHT * 0.6; return; }
+    y = pdfEscribirParrafo(doc, parrafo, PDF_MARGIN, y, maxWidth, 11);
+  });
+
+  if (habitos.length) {
+    y += 10;
+    if (y > doc.internal.pageSize.getHeight() - PDF_MARGIN - 30) { doc.addPage(); y = PDF_MARGIN; }
+    doc.setFont(undefined, "bold"); doc.setFontSize(13);
+    doc.text("Hábitos", PDF_MARGIN, y);
+    y += 20;
+    habitos.forEach((h, i) => {
+      y = pdfEscribirParrafo(doc, "**" + (i + 1) + ". " + (h.titulo || "") + "**", PDF_MARGIN, y, maxWidth, 11.5);
+      y = pdfEscribirParrafo(doc, h.texto || "", PDF_MARGIN, y, maxWidth, 10.5);
+      y += 8;
+    });
+  }
+
+  doc.save("plan-" + (nombreNino || "bienestar360").trim().replace(/\s+/g, "-").toLowerCase() + ".pdf");
+}
+
+// ---- Nav de 4 pestañas (Hoy / Mi plan / Vita / Progreso) ----
+const TABS = [
+  { id:"hoy", label:"Hoy", icon:"●" },
+  { id:"plan", label:"Mi plan", icon:"▦" },
+  { id:"vita", label:"Vita", icon:"◐" },
+  { id:"progreso", label:"Progreso", icon:"▲" },
+];
+
+const TabBarMobile = ({ tab, onTab }) => (
+  <div className="tabbar-mobile" style={{position:"fixed", left:0, right:0, bottom:0, height:64, background:P.panelRaised, borderTop:"1px solid "+P.line, alignItems:"center", justifyContent:"space-around", zIndex:30, paddingBottom:4}}>
+    {TABS.map(t => (
+      <button key={t.id} onClick={()=>onTab(t.id)} style={{display:"flex", flexDirection:"column", alignItems:"center", gap:3, background:"none", border:"none", cursor:"pointer", fontFamily:"'Nunito',sans-serif", color: tab===t.id?P.sageDeep:P.muted}}>
+        <span style={{width:22, height:22, borderRadius:7, display:"flex", alignItems:"center", justifyContent:"center", fontSize:12, border:"2px solid "+(tab===t.id?P.sageDeep:P.muted), background: tab===t.id?P.sageSoft:"transparent"}}>{t.icon}</span>
+        <span style={{fontSize:10, fontWeight:800}}>{t.label}</span>
+      </button>
+    ))}
+  </div>
+);
+
+const SidebarDesktop = ({ tab, onTab }) => (
+  <div className="sidebar-desktop" style={{width:172, flexShrink:0, flexDirection:"column", gap:4, position:"sticky", top:28}}>
+    <div style={{display:"flex", alignItems:"center", gap:8, padding:"4px 4px 14px"}}>
+      <div style={{fontSize:22}}>🌱</div>
+      <div style={{fontFamily:"'Fraunces',serif", fontSize:15, color:P.sageDeep, lineHeight:1.1}}>be360</div>
+    </div>
+    {TABS.map(t => (
+      <button key={t.id} onClick={()=>onTab(t.id)} style={{textAlign:"left", background: tab===t.id?P.sageSoft:"transparent", border:"none", borderRadius:12, padding:"10px 14px", fontSize:14, fontWeight: tab===t.id?800:700, color: tab===t.id?P.sageDeep:P.ink, cursor:"pointer", fontFamily:"'Nunito',sans-serif", width:"100%", display:"flex", alignItems:"center", gap:9}}>
+        <span style={{width:18, height:18, borderRadius:6, display:"flex", alignItems:"center", justifyContent:"center", fontSize:10, border:"2px solid currentColor", flexShrink:0}}>{t.icon}</span>
+        {t.label}
+      </button>
+    ))}
+  </div>
+);
+
+function App() {
+  const [stage, setStage] = useState("cargando"); // cargando | ok | no_disponible
+  const [tab, setTab] = useState("hoy");
+  const [data, setData] = useState(null);
+  const [retosOn, setRetosOn] = useState(false);
+  const [retosLog, setRetosLog] = useState({});
+  const [messages, setMessages] = useState([]);
+  const [input, setInput] = useState("");
+  const [chatLoading, setChatLoading] = useState(false);
+  const [chatError, setChatError] = useState(null);
+  const [chatIniciado, setChatIniciado] = useState(false);
+  const scrollRef = React.useRef(null);
+  const id = getIdFromUrl();
+  const retosFlag = getRetosFlag();
+
+  // Consolidación de "dato_nuevo" — idéntico a plan/index.html (ver ese
+  // archivo para la nota completa de por qué existe el período de calma).
+  const datoNuevoPendienteRef = React.useRef(null);
+  const datoNuevoTimerRef = React.useRef(null);
+
+  useEffect(() => { if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight; }, [messages, chatLoading]);
+
+  useEffect(() => {
+    if (!id) { setStage("no_disponible"); return; }
+    fetch(WORKER_URL + "/plan?id=" + encodeURIComponent(id))
+      .then(r => r.json())
+      .then(json => {
+        if (!json || json.ok !== true) { setStage("no_disponible"); return; }
+        setData(json);
+        try {
+          // Mismos keys de localStorage que plan/index.html, a propósito —
+          // si una familia usa las dos páginas, los Retos no se duplican.
+          setRetosOn(localStorage.getItem("retos_on_" + id) === "1");
+          setRetosLog(JSON.parse(localStorage.getItem("retos_log_" + id) || "{}"));
+        } catch (e) {}
+        setStage("ok");
+      })
+      .catch(() => setStage("no_disponible"));
+  }, [id]);
+
+  const toggleRetosOn = () => {
+    setRetosOn(prev => {
+      const next = !prev;
+      try { localStorage.setItem("retos_on_" + id, next ? "1" : "0"); } catch (e) {}
+      return next;
+    });
+  };
+
+  const toggleRetoHoy = (retoId) => {
+    const hoy = todayKey();
+    setRetosLog(prev => {
+      const dias = { ...(prev[retoId] || {}) };
+      dias[hoy] = !dias[hoy];
+      const next = { ...prev, [retoId]: dias };
+      try { localStorage.setItem("retos_log_" + id, JSON.stringify(next)); } catch (e) {}
+      return next;
+    });
+  };
+
+  const notificarEscalar = (motivo, mensajePadre, keepalive) => {
+    fetch(WORKER_URL + "/escalar", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ idPlan: id, nombreNino: data && data.nombreNino, motivo, mensajePadre }),
+      ...(keepalive ? { keepalive: true } : {}),
+    }).catch(() => {});
+  };
+
+  const flushDatoNuevoPendiente = (keepalive) => {
+    if (datoNuevoTimerRef.current) { clearTimeout(datoNuevoTimerRef.current); datoNuevoTimerRef.current = null; }
+    const pendiente = datoNuevoPendienteRef.current;
+    if (!pendiente) return;
+    datoNuevoPendienteRef.current = null;
+    notificarEscalar(pendiente.motivo, pendiente.detalle, keepalive);
+  };
+
+  const DATO_NUEVO_ESPERA_MS = 45000;
+
+  const manejarEscalar = (motivo, detalle, mensajeFallback) => {
+    if (!motivo) return;
+    if (motivo === "dato_nuevo") {
+      datoNuevoPendienteRef.current = { motivo, detalle: detalle || mensajeFallback };
+      if (datoNuevoTimerRef.current) clearTimeout(datoNuevoTimerRef.current);
+      datoNuevoTimerRef.current = setTimeout(flushDatoNuevoPendiente, DATO_NUEVO_ESPERA_MS);
+      return;
+    }
+    notificarEscalar(motivo, detalle || mensajeFallback);
+  };
+
+  // Mismo fix de closure vieja que plan/index.html (ver ese archivo para el
+  // bug real que lo motivó, caso de Samuel).
+  const flushDatoNuevoPendienteRef = React.useRef(flushDatoNuevoPendiente);
+  flushDatoNuevoPendienteRef.current = flushDatoNuevoPendiente;
+
+  useEffect(() => {
+    const onHide = () => flushDatoNuevoPendienteRef.current(true);
+    const onVisibility = () => { if (document.visibilityState === "hidden") onHide(); };
+    window.addEventListener("pagehide", onHide);
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => {
+      window.removeEventListener("pagehide", onHide);
+      document.removeEventListener("visibilitychange", onVisibility);
+    };
+  }, []);
+
+  const callVitaSeguimiento = async (msgs) => {
+    const res = await fetch(WORKER_URL, {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 800, system: buildSeguimientoPrompt(data), messages: msgs.map(m => ({ role: m.role, content: m.content })) }),
+    });
+    const json = await res.json();
+    return (json.content || []).filter(b => b.type === "text").map(b => b.text).join("\n") || "…";
+  };
+
+  const startChat = async () => {
+    setChatIniciado(true); setChatLoading(true); setChatError(null);
+    try {
+      const opener = "[Empieza la conversación de seguimiento. Saluda breve, recuerda que su plan ya está aprobado, y pregunta con calidez en qué le puedes ayudar hoy — NO le preguntes directamente cómo le ha ido con los hábitos ni le pidas un reporte, deja que el padre/madre lleve la conversación.]";
+      const raw = await callVitaSeguimiento([{ role: "user", content: opener }]);
+      const { clean, motivo, detalle } = parseEscalar(raw);
+      setMessages([{ role: "assistant", content: clean }]);
+      manejarEscalar(motivo, detalle, "(inicio de conversación)");
+    } catch (e) { setChatError("No se pudo conectar. Reintenta."); }
+    finally { setChatLoading(false); }
+  };
+
+  // Autoarranque del chat (27 oct 2026, nuevo acá): en plan/index.html el
+  // chat se abría con un clic explícito ("Escribirle a Vita"); acá Vita es
+  // una pestaña persistente, así que arranca sola la primera vez que el
+  // padre/madre entra a esa pestaña — una sola vez por sesión (chatIniciado).
+  useEffect(() => {
+    if (tab === "vita" && !chatIniciado && stage === "ok") startChat();
+  }, [tab, stage]);
+
+  const sendChat = async (text) => {
+    const content = (text ?? input).trim();
+    if (!content || chatLoading) return;
+    setChatError(null);
+    const next = [...messages, { role: "user", content }];
+    setMessages(next); setInput(""); setChatLoading(true);
+    try {
+      const raw = await callVitaSeguimiento(next);
+      const { clean, motivo, detalle } = parseEscalar(raw);
+      setMessages(m => [...m, { role: "assistant", content: clean }]);
+      manejarEscalar(motivo, detalle, content);
+    } catch (e) { setChatError("No se pudo conectar. Reintenta."); }
+    finally { setChatLoading(false); }
+  };
+
+  if (stage === "cargando") {
+    return (
+      <div style={{minHeight:"100vh", background:P.bg, fontFamily:"'Nunito',sans-serif", color:P.ink, display:"flex", alignItems:"center", justifyContent:"center"}}>
+        <div style={{color:P.muted}}>Cargando tu plan…</div>
+      </div>
+    );
+  }
+
+  if (stage === "no_disponible") {
+    const waNum = "37281282920";
+    const waMsg = encodeURIComponent("Hola, quería preguntar por el plan de mi hijo/a.");
+    return (
+      <div style={{minHeight:"100vh", background:P.bg, fontFamily:"'Nunito',sans-serif", color:P.ink, display:"flex", alignItems:"center", justifyContent:"center", padding:"32px 14px"}}>
+        <div style={{textAlign:"center", padding:"40px 20px", maxWidth:420}}>
+          <div style={{fontSize:44, marginBottom:14}}>🌱</div>
+          <div style={{fontFamily:"'Fraunces',serif", fontSize:22, color:P.sageDeep, marginBottom:10}}>Todavía no está listo</div>
+          <p style={{fontSize:14, color:P.muted, lineHeight:1.6, marginBottom:22}}>Este plan aún está en revisión, o el link no es válido. Si crees que es un error, escríbenos.</p>
+          <a href={"https://wa.me/"+waNum+"?text="+waMsg} target="_blank" rel="noopener noreferrer" style={{display:"inline-flex", alignItems:"center", justifyContent:"center", gap:8, background:P.sage, color:"#fff", fontWeight:800, fontSize:14.5, borderRadius:999, padding:"13px 24px", textDecoration:"none", boxShadow:"0 10px 24px rgba(90,122,92,.30)"}}>Escribirnos por WhatsApp</a>
+        </div>
+      </div>
+    );
+  }
+
+  const habitos = (data.plan && data.plan.habitos) || [];
+  const esVita = tab === "vita";
+
+  return (
+    <div style={{minHeight:"100vh", background:P.bg, fontFamily:"'Nunito',sans-serif", color:P.ink, display:"flex", justifyContent:"center"}}>
+      <div style={{width:"100%", maxWidth:900, display:"flex", gap:26, padding: esVita ? "28px 0 0" : "28px 14px 90px", alignItems:"flex-start"}}>
+        <div style={{padding: esVita?"0 0 0 14px":0}}>
+          <SidebarDesktop tab={tab} onTab={setTab}/>
+        </div>
+
+        <div style={{flex:1, minWidth:0, display:"flex", flexDirection:"column"}}>
+          {tab === "hoy" && (
+            <div className="rise" style={{display:"flex", flexDirection:"column", gap:18, padding: esVita?0:"0 0 0", maxWidth:440}}>
+              <div>
+                <div style={{fontSize:11.5, fontWeight:800, letterSpacing:".09em", textTransform:"uppercase", color:P.sageDeep}}>Hoy</div>
+                <h1 style={{fontFamily:"'Fraunces',serif", fontWeight:600, fontSize:"clamp(24px,6vw,28px)", lineHeight:1.15, margin:"4px 0 0", color:P.sageDeep}}>Lo que toca hoy</h1>
+              </div>
+              <div style={{display:"flex", flexDirection:"column", gap:10}}>
+                {habitos.map((h,i) => (
+                  <div key={i} style={{background:P.panel, border:"1px solid "+P.line, borderRadius:16, padding:"14px 16px"}}>
+                    <div style={{fontSize:14, fontWeight:800, color:P.ink, marginBottom:4}}>{h.titulo}</div>
+                    <div style={{fontSize:13, color:P.muted, lineHeight:1.5}}>{h.texto}</div>
+                  </div>
+                ))}
+                {habitos.length === 0 && <p style={{fontSize:13, color:P.muted}}>Todavía no hay hábitos registrados en el plan.</p>}
+              </div>
+
+              {retosFlag && (
+                <div style={{display:"flex", flexDirection:"column", gap:12, background:P.panel, border:"1px solid "+P.line, borderRadius:18, padding:"16px 17px"}}>
+                  <div style={{display:"flex", justifyContent:"space-between", alignItems:"center", gap:10}}>
+                    <div>
+                      <div style={{fontSize:14.5, fontWeight:800, color:P.ink}}>Retos de bienestar</div>
+                      <div style={{fontSize:12, color:P.muted, marginTop:2}}>Opcional · solo lo ves tú, no se comparte con el colegio</div>
+                    </div>
+                    <button onClick={toggleRetosOn} aria-checked={retosOn} style={{flexShrink:0, width:44, height:26, borderRadius:99, border:"1.5px solid "+(retosOn?P.sage:P.line), background: retosOn?P.sage:P.panelRaised, position:"relative", cursor:"pointer"}}>
+                      <span style={{position:"absolute", top:2, left: retosOn?20:2, width:19, height:19, borderRadius:"50%", background:"#fff", transition:"left .18s", boxShadow:"0 1px 2px rgba(40,42,36,.25)"}}/>
+                    </button>
+                  </div>
+                  {retosOn && (
+                    <div style={{display:"flex", flexDirection:"column", gap:10}}>
+                      {RETOS.map(r => {
+                        const hoyHecho = !!((retosLog[r.id] || {})[todayKey()]);
+                        return (
+                          <div key={r.id} style={{display:"flex", gap:12, alignItems:"flex-start", background: hoyHecho?P.sageSoft:P.panelRaised, border:"1px solid "+(hoyHecho?P.sage:P.line), borderRadius:14, padding:"12px 13px"}}>
+                            <button onClick={() => toggleRetoHoy(r.id)} aria-checked={hoyHecho} style={{flexShrink:0, width:24, height:24, borderRadius:8, border:"1.5px solid "+(hoyHecho?P.sage:P.line), background: hoyHecho?P.sage:P.panelRaised, color: hoyHecho?"#fff":"transparent", cursor:"pointer", display:"grid", placeItems:"center", marginTop:1}}>
+                              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" width="13" height="13"><path d="M4 12l5 5L20 6"/></svg>
+                            </button>
+                            <div style={{flex:1, minWidth:0}}>
+                              <p style={{fontSize:13.5, fontWeight:800, margin:"0 0 2px", color:P.ink}}>{r.titulo}</p>
+                              <p style={{fontSize:12.5, lineHeight:1.5, color:P.muted, margin:0}}>{r.texto}</p>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+
+          {tab === "plan" && (
+            <div className="rise" style={{display:"flex", flexDirection:"column", gap:18, maxWidth:440}}>
+              <div style={{display:"flex", flexDirection:"column", gap:6}}>
+                <div style={{fontSize:11.5, fontWeight:800, letterSpacing:".09em", textTransform:"uppercase", color:P.sageDeep}}>Plan de bienestar</div>
+                <h1 style={{fontFamily:"'Fraunces',serif", fontWeight:600, fontSize:"clamp(26px,7vw,32px)", lineHeight:1.1, margin:0, color:P.sageDeep}}>
+                  El plan de {data.nombreNino || "tu hijo/a"}
+                </h1>
+                <div style={{display:"flex", alignItems:"center", justifyContent:"space-between", gap:10, flexWrap:"wrap"}}>
+                  <div style={{fontSize:13, color:P.muted}}>Revisado y aprobado por <b style={{color:P.ink}}>Peter Álvarez</b></div>
+                  <button onClick={() => descargarPdf(data.nombreNino, data.mensaje, habitos)} style={{display:"inline-flex", alignItems:"center", gap:6, background:"none", border:"1.5px solid "+P.line, borderRadius:999, padding:"7px 14px", fontSize:12.5, fontWeight:800, color:P.sageDeep, cursor:"pointer", fontFamily:"'Nunito',sans-serif"}}>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" width="14" height="14"><path d="M12 3v12m0 0l-4-4m4 4l4-4M4 17v2a2 2 0 002 2h12a2 2 0 002-2v-2"/></svg>
+                    Descargar PDF
+                  </button>
+                </div>
+              </div>
+              {data.mensaje && (
+                <div style={{fontSize:14.5, lineHeight:1.6, background:P.panel, border:"1px solid "+P.line, borderRadius:18, padding:"16px 18px", whiteSpace:"pre-wrap"}}>
+                  {renderRich(data.mensaje)}
+                </div>
+              )}
+              <p style={{fontSize:11.5, textAlign:"center", color:P.muted, lineHeight:1.6}}>
+                Esto acompaña y suma con su pediatra — no lo reemplaza.
+              </p>
+            </div>
+          )}
+
+          {tab === "progreso" && (
+            <div className="rise" style={{display:"flex", flexDirection:"column", gap:18, maxWidth:440}}>
+              <div>
+                <div style={{fontSize:11.5, fontWeight:800, letterSpacing:".09em", textTransform:"uppercase", color:P.sageDeep}}>Progreso</div>
+                <h1 style={{fontFamily:"'Fraunces',serif", fontWeight:600, fontSize:"clamp(24px,6vw,28px)", lineHeight:1.15, margin:"4px 0 0", color:P.sageDeep}}>Cómo les ha ido</h1>
+              </div>
+              {retosFlag && retosOn ? (
+                <div style={{display:"flex", flexDirection:"column", gap:10}}>
+                  {RETOS.map(r => {
+                    const actual = contarDias(retosLog, r.id, 0, 6);
+                    const anterior = contarDias(retosLog, r.id, 7, 13);
+                    return (
+                      <div key={r.id} style={{background:P.panel, border:"1px solid "+P.line, borderRadius:14, padding:"13px 15px"}}>
+                        <p style={{fontSize:13.5, fontWeight:800, margin:"0 0 6px", color:P.ink}}>{r.titulo}</p>
+                        <p style={{fontSize:12.5, fontWeight:700, color:P.sageDeep, margin:0}}>Esta semana: {actual} de 7 · Semana pasada: {anterior} de 7</p>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div style={{textAlign:"center", padding:"50px 10px", color:P.muted, background:P.panel, border:"1px solid "+P.line, borderRadius:20}}>
+                  <div style={{fontSize:34, marginBottom:10}}>🌱</div>
+                  <div style={{fontFamily:"'Fraunces',serif", fontSize:17, color:P.sageDeep, marginBottom:8}}>Próximamente</div>
+                  <div style={{fontSize:13, maxWidth:280, margin:"0 auto", lineHeight:1.6}}>El seguimiento de progreso todavía está en piloto. Mientras tanto, cuéntale a Vita cómo les ha ido.</div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {tab === "vita" && (
+            <div className="rise" style={{display:"flex", flexDirection:"column", height:"calc(100vh - 28px)", background:P.panel, overflow:"hidden", border:"1px solid "+P.line, borderTopLeftRadius:26}}>
+              <div style={{background:"linear-gradient(135deg,"+P.sageDeep+","+P.sage+")", padding:"14px 16px", display:"flex", alignItems:"center", gap:11}}>
+                <div style={{width:40, height:40, borderRadius:"50%", background:P.panel, display:"grid", placeItems:"center", fontSize:20}}>🌱</div>
+                <div style={{flex:1}}>
+                  <div style={{fontFamily:"'Fraunces',serif", fontWeight:600, fontSize:19, color:"#fff", lineHeight:1}}>Vita</div>
+                  <div style={{fontSize:11.5, color:P.sageSoft, marginTop:3}}>{chatLoading ? "escribiendo…" : "Acompañamiento · " + (data.nombreNino || "")}</div>
+                </div>
+              </div>
+              <div ref={scrollRef} className="scroll" style={{flex:1, overflowY:"auto", padding:"16px 13px", display:"flex", flexDirection:"column", gap:10, background:"radial-gradient("+P.sageSoft+"55 1px,transparent 1px)", backgroundSize:"22px 22px"}}>
+                {messages.map((m,i) => (
+                  <div key={i} className="rise" style={{alignSelf: m.role==="user"?"flex-end":"flex-start", maxWidth:"84%"}}>
+                    <div style={{background: m.role==="user"?P.user:"#fff", color:P.ink, padding:"10px 13px", borderRadius: m.role==="user"?"16px 16px 4px 16px":"16px 16px 16px 4px", fontSize:14.5, lineHeight:1.5, boxShadow:"0 1px 2px rgba(40,42,36,.10)", whiteSpace:"pre-wrap", border: m.role==="user"?"none":"1px solid "+P.line}}>{renderRich(m.content)}</div>
+                  </div>
+                ))}
+                {chatLoading && (<div style={{alignSelf:"flex-start", background:"#fff", padding:"12px 15px", borderRadius:"16px 16px 16px 4px", border:"1px solid "+P.line}}><span className="dot"/> <span className="dot"/> <span className="dot"/></div>)}
+                {chatError && !chatLoading && (
+                  <div style={{alignSelf:"center", textAlign:"center", color:P.clay, fontSize:12.5, background:"#fff", padding:"10px 14px", borderRadius:12, border:"1px solid "+P.line, maxWidth:"92%"}}>
+                    {chatError}
+                    <div style={{marginTop:8}}><button onClick={() => messages.length===0 ? startChat() : sendChat(messages[messages.length-1].role==="user"?messages[messages.length-1].content:"")} style={{background:P.sage, border:"none", color:"#fff", borderRadius:999, padding:"7px 18px", fontSize:12.5, fontWeight:700, cursor:"pointer", fontFamily:"'Nunito',sans-serif"}}>Reintentar</button></div>
+                  </div>
+                )}
+              </div>
+              <div style={{padding:"10px 12px", background:P.panel, borderTop:"1px solid "+P.line, display:"flex", gap:8, alignItems:"flex-end"}}>
+                <textarea value={input} onChange={e=>setInput(e.target.value)} onKeyDown={e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();sendChat();}}} placeholder="Escribe aquí…" rows={1} style={{flex:1, resize:"none", border:"1px solid "+P.line, borderRadius:20, padding:"11px 15px", fontSize:14.5, fontFamily:"'Nunito',sans-serif", maxHeight:110, background:"#fff", color:P.ink, outline:"none"}}/>
+                <button onClick={()=>sendChat()} disabled={chatLoading||!input.trim()} style={{width:46, height:46, borderRadius:"50%", border:"none", background: input.trim()?P.sage:P.line, color:"#fff", fontSize:19, cursor: input.trim()?"pointer":"default", flexShrink:0}}>➤</button>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+      <TabBarMobile tab={tab} onTab={setTab}/>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
+</script>
+</body>
+</html>

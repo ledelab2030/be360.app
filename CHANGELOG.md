@@ -622,6 +622,22 @@ Leonardo quiere ofrecer acceso no solo a colegios sino a otros tipos de grupo (d
 
 **Verificación:** sin errores de Babel compilando en navegador local.
 
+### 27 oct 2026 — Nace `app/`: la App Familia, en paralelo a `plan/` (pedido de Leonardo)
+
+Mismo patrón exacto que `equipo/` (26 oct — 27 oct), esta vez para familias: Leonardo pidió arrancar la App Familia del mockup "Navegación app.be360.co". Aditiva, paralela, sin tocar `plan/index.html` — el link que ya reciben las familias por correo sigue funcionando exactamente igual, ni un byte tocado.
+
+**Cómo se evita una segunda fuente de verdad clínica, otra vez por diseño:** `app/index.html` usa el mismo `?id=` en la URL y pega contra los mismos tres endpoints que `plan/` (`GET /plan?id=`, `POST /escalar`, el passthrough de Claude para el chat) — nada nuevo en `worker/vita-proxy.js` ni en Apps Script. El prompt de seguimiento (`buildSeguimientoPrompt`), la consolidación de `dato_nuevo` con su período de calma, el fix del `ref` para la closure vieja del listener de `pagehide`, el PDF completo (con el saneo de caracteres fuera de Windows-1252), y los Retos de bienestar (piloto cerrado, `?retos=1`) — todo copiado línea por línea de `plan/index.html`, no reescrito. Mismos keys de `localStorage` (`retos_on_<id>`, `retos_log_<id>`) — si una familia llega a usar las dos páginas, los Retos no se duplican ni se pierden.
+
+**Qué cambia respecto a `plan/`:** en vez de una página larga + el chat como overlay de pantalla completa, la misma información vive en 4 pestañas persistentes:
+- **Hoy** — los hábitos del plan como checklist de un vistazo (sin tracking de cumplimiento todavía — eso sigue siendo lo que hacen los Retos, gated detrás de `?retos=1`, igual que en `plan/`). Si el flag está activo, el widget completo de Retos (con su toggle y el checklist diario) vive acá debajo.
+- **Mi plan** — el mensaje completo (diagnóstico + pilares + cierre) y el botón de descargar PDF — el contenido principal que hoy es la página entera de `plan/`.
+- **Vita** — el mismo chat de seguimiento, pero como pestaña persistente en vez de modal: arranca sola la primera vez que el padre/madre entra ahí (antes necesitaba el clic en "Escribirle a Vita"), una sola vez por sesión.
+- **Progreso** — si `?retos=1` y el padre lo activó, las cuentas semanales (ya existían en `plan/`, movidas acá en vez de compartir espacio con el checklist de Hoy). Si no, pantalla "Próximamente" honesta — no hay backend real de seguimiento de progreso fuera del piloto de Retos, y no se finge que sí.
+
+**Nav responsive, igual que `equipo/` pero al revés:** pestañas fijas abajo en móvil (la App Familia está pensada de celular hacia afuera), rail lateral en escritorio — sin hamburguesa, 4 ítems caben bien como pestañas en cualquier tamaño.
+
+**Verificación, más completa que la de `equipo/` porque se pudo** — `/plan` es de lectura pública (sin restricción de Origin, a diferencia de `/panel/*`), así que se probó el flujo real completo en local, no solo la sintaxis: contra el caso real de Samuel (`idPlan` ya usado en pruebas anteriores de esta sesión), las 4 pestañas cargaron con sus datos reales (hábitos en Hoy, mensaje completo en Mi plan), la pestaña Vita arrancó el chat sola y falló por CORS exactamente como se esperaba (`localhost` ≠ `https://be360.app`, mismo patrón ya confirmado con `equipo/` — prueba de que el Worker sigue protegido, no un bug), Progreso mostró "Próximamente" sin flag, y el nav responde bien en móvil (pestañas abajo) y escritorio (rail). Pendiente: confirmar el chat de verdad contra producción después del merge, y descargar un PDF real para confirmarlo (el código es copia exacta del ya probado en `plan/`, pero no se bajó el archivo en esta prueba).
+
 ---
 
 ---
