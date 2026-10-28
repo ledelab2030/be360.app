@@ -610,7 +610,17 @@ Primera sección real de las 4 que quedaron "Próximamente". Antes de construir,
 
 **Dos despliegues, no uno:** esta vez sí toca Apps Script (`listarEquipo`) además del Worker — hasta que se pegue a mano, `/panel/equipo` responde con el mismo fallo de "secret inválido" que ya se documentó para `eliminar_novedad` en su momento (fallo esperado, no un bug).
 
-**Verificación:** `node --check` sobre una copia temporal `.js` del Apps Script — sintaxis válida; `node --check` sobre `vita-proxy.js` — sintaxis válida; `equipo/index.html` verificado vía Babel en navegador local, sin errores. Pendiente: Leonardo pega el Apps Script, llena la pestaña "Equipo" con el roster real, y se confirma la lista contra producción.
+**Verificación:** `node --check` sobre una copia temporal `.js` del Apps Script — sintaxis válida; `node --check` sobre `vita-proxy.js` — sintaxis válida; `equipo/index.html` verificado vía Babel en navegador local, sin errores. **Confirmado en producción:** Leonardo pegó el Apps Script y llenó la pestaña "Equipo" con el roster real (Leonardo De la Hoz Borrego · Director de Aprendizaje e Innovación, Peter Álvarez Mora · Director de Bienestar) — `be360.app/equipo/` → Equipo muestra "Equipo (2)" con los dos nombres, roles y correos reales, sin errores en consola.
+
+### 27 oct 2026 — "Colegios" se renombra a "Comunidades" en el nav de `equipo/` (pedido de Leonardo)
+
+Leonardo quiere ofrecer acceso no solo a colegios sino a otros tipos de grupo (de amigos, de familias extendidas) — un colegio pasa a ser UN TIPO de comunidad, no el único caso. Se le preguntó qué tan lejos llevar esto ahora: la respuesta fue generalizar solo donde no cuesta nada (el ítem del nav en `equipo/`, que todavía no tiene nada atrás) y dejar quieto lo que ya funciona en producción real.
+
+**Cambio en `equipo/index.html`:** el ítem del nav "Colegios" pasa a mostrarse como "Comunidades" (el `id` interno sigue siendo `"colegios"` a propósito, por si algo necesita distinguirlo más adelante). Textos de la pantalla de PIN actualizados igual.
+
+**A propósito, NO se tocó:** `panel-colegio/`, `CODIGOS_VALIDOS_COLEGIO`, `PANEL_COLEGIO_SECRETS`, la columna `codigo_colegio` del Sheet, ni la acción `verificar_codigo` — todo eso ya funciona en el piloto real con el colegio BIS. Generalizar esos nombres a un modelo de "tipo de comunidad" se queda pendiente hasta que exista un segundo tipo real que lo necesite — hacerlo antes sería adivinar la forma exacta que va a tener "grupo de amigos" o "familia extendida" sin un caso real que la valide.
+
+**Verificación:** sin errores de Babel compilando en navegador local.
 
 ---
 

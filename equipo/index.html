@@ -47,9 +47,9 @@ const { useState, useEffect } = React;
 //
 // Qué es distinto de panel/index.html:
 // - Nav de 6 secciones en vez de 2 (Pendientes/Aprobados), pensada para que
-//   el equipo crezca más allá de Peter con un PIN — pero Colegios, Familias,
-//   Reportes y Equipo todavía NO tienen backend: se muestran como
-//   "Próximamente", nunca como funcionalidad fingida.
+//   el equipo crezca más allá de Peter con un PIN. Comunidades, Familias y
+//   Reportes todavía NO tienen backend: se muestran como "Próximamente",
+//   nunca como funcionalidad fingida. Equipo sí funciona (solo lectura).
 // - Nav responsive de verdad: rail fijo en escritorio, menú hamburguesa en
 //   móvil (ver mockup "Navegación app.be360.co" del 27 oct).
 // Todo lo demás (lista de pendientes/aprobados, detalle de un caso, editar
@@ -86,10 +86,20 @@ const ShellDetalle = (props) => (
 // Lista de secciones del nuevo panel — "activa:false" = sin backend
 // todavía, se muestra deshabilitada y con la etiqueta "Próximamente" en vez
 // de fingir que funciona (ver mockup "Navegación app.be360.co").
+//
+// "colegios" -> "comunidades" (27 oct 2026, pedido de Leonardo): un colegio
+// es UN TIPO de comunidad con acceso — también habrá grupos de amigos,
+// familias extendidas, etc. Renombrado solo acá, donde no hay nada atrás
+// todavía (id sigue siendo "colegios" a propósito, por si algo en el
+// futuro necesita distinguir el id de la etiqueta visible). NO se tocó
+// panel-colegio/, CODIGOS_VALIDOS_COLEGIO, PANEL_COLEGIO_SECRETS ni la
+// columna codigo_colegio — esos ya funcionan en producción real; generalizar
+// esos nombres se queda pendiente hasta que exista un segundo tipo de
+// comunidad de verdad, no antes (ver CHANGELOG.md).
 const SECCIONES = [
   { id:"pendientes", label:"Pendientes", activa:true },
   { id:"historial", label:"Aprobados", activa:true },
-  { id:"colegios", label:"Colegios", activa:false },
+  { id:"colegios", label:"Comunidades", activa:false },
   { id:"familias", label:"Familias", activa:false },
   { id:"reportes", label:"Reportes", activa:false },
   { id:"equipo", label:"Equipo", activa:true },
@@ -484,7 +494,7 @@ function App() {
         <ul style={{fontSize:13, color:P.ink, lineHeight:1.7, textAlign:"left", margin:"0 0 12px", paddingLeft:20}}>
           <li>Pendientes y Aprobados — igual que en el panel de siempre.</li>
           <li>Equipo — quién tiene acceso hoy, de solo lectura.</li>
-          <li>Colegios, Familias y Reportes están marcados "Próximamente" — todavía sin backend.</li>
+          <li>Comunidades, Familias y Reportes están marcados "Próximamente" — todavía sin backend.</li>
         </ul>
         <p style={{fontSize:12.5, color:P.muted, lineHeight:1.6, textAlign:"left", marginBottom:20}}>El PIN es el mismo de siempre — si ya entraste al panel de Peter en este navegador, no hace falta que lo vuelvas a escribir.</p>
         <div style={{position:"relative", width:"100%", maxWidth:220, margin:"0 auto 14px"}}>
