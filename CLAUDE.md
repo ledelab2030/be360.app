@@ -6,7 +6,7 @@ Capa de **ejecución** del producto. Léelo antes de tocar código.
 
 **Fuente de verdad del PROYECTO** (negocio, estrategia, sprint clínico, fondos, reglas duras, socios): `CONTEXT.md` en `iCloud/LedeLab/be360/` — repo privado `be360-workspace`. No dupliques negocio aquí. Si algo choca entre este archivo y `CONTEXT.md`, manda `CONTEXT.md`.
 
-**Separación de canales (22 oct 2026).** Este repo es ejecución. Las decisiones de *qué* construir vienen del chat primario de estrategia. Acá no se avanzan frentes de estrategia: si aparece una decisión de producto, negocio o clínica, se nombra y se deja para allá.
+**Separación de canales — ELIMINADA el 27 oct 2026.** Hasta esa fecha, las decisiones de *qué* construir venían de un chat primario de estrategia aparte y este repo era solo ejecución. Leonardo quitó esa separación: este es ahora el único canal, estrategia y ejecución juntas. Las convenciones de disciplina de código (§4) siguen igual — eso nunca fue parte de la separación.
 
 ---
 
@@ -15,6 +15,7 @@ Capa de **ejecución** del producto. Léelo antes de tocar código.
 - Repo: `github.com/ledelab2030/be360.app`, rama `main`, desplegado por GitHub Pages.
 - Local: `iCloud/LedeLab/be360/be360.app/` (movido desde `~/Downloads` el 22 oct 2026, para que todo lo local de be360 viva bajo una carpeta). Es un repo aparte del privado que lo contiene, y está gitignored por este.
 - **Producto del piloto:** `vita-demo-formulario/` (captura) + `panel/` (revisión de Peter) + `plan/` (lo que ve la familia).
+- **`equipo/` (27 oct 2026, en construcción)** — panel nuevo, en paralelo a `panel/`, que NO toca ni reemplaza: pensado para que el equipo crezca más allá de un solo PIN. Mismo Worker, mismas rutas `/panel/*`, mismo `PANEL_SECRET` — a propósito, para que el SRB/prompt nunca se desincronice entre los dos (los dos leen el mismo Sheet). Hoy solo Pendientes/Aprobados funcionan; Colegios/Familias/Reportes/Equipo están marcados "Próximamente", sin backend.
 - **Enlace de validación:** `vita-demo-formulario-v2/` — copia casi idéntica de producción; difieren en 3 lugares (marcador de versión, un comentario, y el campo `producto`) más la clave de guardado. **Todo cambio de copy va a las dos**, o divergen.
 - `worker/vita-proxy.js` — el Cloudflare Worker, en control de versiones. `worker/apps-script-formulario-v2.gs.txt` — el Apps Script, que se pega a mano.
 - No tocar: `vita-demo-3k9x/` (red de seguridad), `vita-demo-srb-1/` y `-2/` (iteraciones viejas). `vita-demo-srb-3/` es el demo general anterior, no pediátrico — sigue en pie pero no es el producto del piloto.
@@ -78,6 +79,6 @@ Los pendientes con su detalle viven en `CHANGELOG.md`, sección "Pendientes cono
 ## 7. Enlaces
 
 - Captura (producción): `https://be360.app/vita-demo-formulario/` · Validación: `https://be360.app/vita-demo-formulario-v2/`
-- Panel de Peter: `https://be360.app/panel/` · Panel de colegio: `https://be360.app/panel-colegio/`
+- Panel de Peter: `https://be360.app/panel/` · Panel de colegio: `https://be360.app/panel-colegio/` · Panel Equipo (nuevo, en construcción): `https://be360.app/equipo/`
 - Worker: `vita-proxy.leonardo-751.workers.dev`
 - Historia técnica completa: `CHANGELOG.md` · Estado del proyecto: `CONTEXT.md` (repo privado) · Narrativa del sprint: `contexto-historico/bienestar360_sprint_diseno_reconstruccion_2026-10-22.md`
