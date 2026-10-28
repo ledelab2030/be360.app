@@ -16,6 +16,13 @@
  * (SHARED_SECRET) — el panel nunca ve el secreto real que escribe en la
  * hoja.
  *
+ * APP FAMILIA (app/index.html, 27 oct 2026): guarda el chat completo de
+ * seguimiento con guardar_mensaje_chat — esa acción SÍ usa SHARED_SECRET
+ * (no PANEL_SECRET), porque la dispara la app pública de la familia a
+ * través del Worker, igual que notificar_escalamiento. doGet (/plan)
+ * devuelve ese chat de vuelta al padre, junto con las novedades ya
+ * registradas — nada que el padre no supiera ya de otra forma.
+ *
  * OJO — PANEL_SECRET (actualizado 19 ago 2026): ya NO vive como texto en
  * este archivo — se lee de PropertiesService (ver el comentario grande
  * junto a su declaración, más abajo). Esto reemplaza el enfoque anterior
@@ -216,6 +223,12 @@ var COLS = {
   // caso ya aprobado. JSON, array de {ts, motivo, resumen}, más reciente al
   // final — se añade, nunca se sobreescribe. Vacío = sin novedades todavía.
   novedades_json: 28,
+  // NUEVO (27 oct 2026, pedido de Leonardo — pestaña "Progreso" de
+  // app/index.html): historial COMPLETO del chat de seguimiento, no solo lo
+  // que se escala. JSON, array de {ts, role, content}, más reciente al
+  // final — mismo patrón append-only que novedades_json, nunca se
+  // sobreescribe. Vacío = sin conversación todavía.
+  chat_json: 29,
 };
 
 function doPost(e) {
@@ -254,6 +267,9 @@ function doPost(e) {
 
     if (body.action === "guardar_borrador") return guardarBorrador(sheet, body);
     if (body.action === "notificar_escalamiento") return notificarEscalamiento(sheet, body);
+    // NUEVO (27 oct 2026, pedido de Leonardo): guarda el chat completo de
+    // seguimiento — ver guardarMensajesChat() y la nota junto a ella.
+    if (body.action === "guardar_mensaje_chat") return guardarMensajesChat(sheet, body);
 
     // Comportamiento original: agregar fila nueva capturada por Vita.
     if (!body.dx) {
@@ -542,6 +558,32 @@ function notificarEscalamiento(sheet, body) {
   }
 }
 
+// Guarda uno o más mensajes del chat de seguimiento (27 oct 2026, pedido de
+// Leonardo — "el chat completo también", para que Vita recuerde la
+// conversación entre sesiones en la pestaña Vita de app/index.html, y para
+// mostrarla si hace falta en Progreso). Mismo patrón append-only que
+// registrarNovedad() de abajo, en su propia columna (chat_json) — nunca se
+// sobreescribe. SHARED_SECRET, el mismo nivel que notificar_escalamiento:
+// NO es una acción de panel (nunca lleva panelSecret), la dispara la app
+// pública de la familia a través del Worker, después de cada turno completo
+// (nunca mensaje por mensaje, para no multiplicar llamadas).
+function guardarMensajesChat(sheet, body) {
+  var idPlan = body.idPlan;
+  var mensajes = body.mensajes;
+  if (!idPlan) return respond({ ok: false, error: "idPlan faltante" }, 400);
+  if (!Array.isArray(mensajes) || mensajes.length === 0) return respond({ ok: false, error: "mensajes faltante" }, 400);
+  var found = encontrarFilaPorIdPlan(sheet, idPlan);
+  if (!found) return respond({ ok: false, error: "no encontrado" }, 404);
+  var actuales = [];
+  try { actuales = JSON.parse(found.values[COLS.chat_json] || "[]"); } catch (ex) {}
+  mensajes.forEach(function (m) {
+    actuales.push({ ts: m.ts || new Date().toISOString(), role: m.role || "", content: m.content || "" });
+  });
+  sheet.getRange(found.row, COLS.chat_json + 1).setValue(JSON.stringify(actuales));
+  SpreadsheetApp.flush();
+  return respond({ ok: true });
+}
+
 // Agrega una entrada al historial de novedades del caso (nunca sobreescribe
 // las anteriores). Ver detallePlan() para cómo el panel las lee de vuelta.
 function registrarNovedad(sheet, idPlan, motivo, resumen) {
@@ -632,11 +674,22 @@ function doGet(e) {
         if (plan.habitos) {
           plan.habitos = plan.habitos.filter(function (h) { return h.incluido !== false; });
         }
+        // NUEVO (27 oct 2026, pedido de Leonardo — pestaña Progreso y
+        // continuidad de la pestaña Vita en app/index.html): el padre ya
+        // podía ver estos datos de otras formas (las novedades ya se le
+        // mandaban por correo; el chat ya lo escribió él mismo) — acá solo
+        // se le devuelven de vuelta, no es información nueva expuesta.
+        var novedades = [];
+        try { novedades = JSON.parse(data[r][COLS.novedades_json] || "[]"); } catch (ex) {}
+        var chatHistory = [];
+        try { chatHistory = JSON.parse(data[r][COLS.chat_json] || "[]"); } catch (ex) {}
         return respond({
           ok: true,
           nombreNino: data[r][COLS.nombre_nino],
           mensaje: data[r][COLS.borrador_texto],
           plan: plan,
+          novedades: novedades,
+          chatHistory: chatHistory,
         });
       }
     }

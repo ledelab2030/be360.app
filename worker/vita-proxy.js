@@ -255,6 +255,15 @@ export default {
       return handleEscalar(request, env, cors);
     }
 
+    // NUEVO (27 oct 2026, pedido de Leonardo): guardar el chat COMPLETO de
+    // seguimiento, no solo lo que se escala — para que Vita recuerde la
+    // conversación entre sesiones (pestaña Vita de app/index.html) y para
+    // mostrarla en Progreso. Mismo patrón que /escalar: SHARED_SECRET
+    // (nunca PANEL_SECRET), porque lo dispara la app pública de la familia.
+    if (url.pathname === "/chat") {
+      return handleGuardarChat(request, env, cors);
+    }
+
     // NUEVO (8 ago 2026): panel de revisión de Peter (panel/index.html) —
     // reemplaza editar la hoja de cálculo directo, que cualquiera con acceso
     // puede dañar sin querer (borrar una fila, mover una columna, escribir
@@ -1393,6 +1402,44 @@ async function handleEscalar(request, env, cors) {
 
     if (!sheetRes.ok || !sheetData || sheetData.ok !== true) {
       return new Response(JSON.stringify({ ok: false, error: "no se pudo notificar" }), { status: 502, headers: jsonHeaders });
+    }
+    return new Response(JSON.stringify({ ok: true }), { status: 200, headers: jsonHeaders });
+  } catch (e) {
+    return new Response(JSON.stringify({ ok: false, error: String(e) }), { status: 500, headers: jsonHeaders });
+  }
+}
+
+// Guarda uno o más mensajes del chat de seguimiento (27 oct 2026, pedido de
+// Leonardo) — ver guardar_mensaje_chat en Apps Script. Mismo patrón que
+// handleEscalar justo arriba: reenvía al mismo webhook con el mismo
+// SHEET_WEBHOOK_SECRET_FORMULARIO, nunca PANEL_SECRET.
+async function handleGuardarChat(request, env, cors) {
+  const jsonHeaders = { ...cors, "Content-Type": "application/json" };
+  try {
+    const body = await request.json();
+    const { idPlan, mensajes } = body || {};
+
+    if (!env.SHEET_WEBHOOK_URL_FORMULARIO) {
+      return new Response(JSON.stringify({ ok: false, error: "SHEET_WEBHOOK_URL_FORMULARIO no configurado" }), { status: 500, headers: jsonHeaders });
+    }
+
+    const sheetRes = await fetch(env.SHEET_WEBHOOK_URL_FORMULARIO, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        secret: env.SHEET_WEBHOOK_SECRET_FORMULARIO || "",
+        action: "guardar_mensaje_chat",
+        idPlan: idPlan || "",
+        mensajes: Array.isArray(mensajes) ? mensajes : [],
+      }),
+    });
+
+    const sheetText = await sheetRes.text();
+    let sheetData = null;
+    try { sheetData = JSON.parse(sheetText); } catch (e) {}
+
+    if (!sheetRes.ok || !sheetData || sheetData.ok !== true) {
+      return new Response(JSON.stringify({ ok: false, error: "no se pudo guardar" }), { status: 502, headers: jsonHeaders });
     }
     return new Response(JSON.stringify({ ok: true }), { status: 200, headers: jsonHeaders });
   } catch (e) {

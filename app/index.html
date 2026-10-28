@@ -87,6 +87,18 @@ const contarDias = (log, retoId, desde, hasta) => {
   return n;
 };
 
+// Mismo helper que panel/index.html y equipo/index.html.
+function relativeDate(iso) {
+  if (!iso) return "";
+  const d = new Date(iso);
+  if (isNaN(d)) return "";
+  const diffH = Math.round((Date.now() - d.getTime()) / 3600000);
+  if (diffH < 1) return "hace menos de una hora";
+  if (diffH < 24) return "hace " + diffH + "h";
+  const diffD = Math.round(diffH / 24);
+  return "hace " + diffD + (diffD === 1 ? " día" : " días");
+}
+
 // ---- Prompt del chat de seguimiento: idéntico a plan/index.html ----
 const buildSeguimientoPrompt = (data) => {
   const nombreNino = data.nombreNino || "tu hijo/a";
@@ -270,6 +282,7 @@ function App() {
   const [chatLoading, setChatLoading] = useState(false);
   const [chatError, setChatError] = useState(null);
   const [chatIniciado, setChatIniciado] = useState(false);
+  const [novedades, setNovedades] = useState([]);
   const scrollRef = React.useRef(null);
   const id = getIdFromUrl();
   const retosFlag = getRetosFlag();
@@ -288,6 +301,16 @@ function App() {
       .then(json => {
         if (!json || json.ok !== true) { setStage("no_disponible"); return; }
         setData(json);
+        setNovedades(Array.isArray(json.novedades) ? json.novedades : []);
+        // Continuidad del chat (27 oct 2026, pedido de Leonardo — "el chat
+        // completo también"): si ya hay conversación guardada, se carga tal
+        // cual en vez de arrancar en blanco — y se marca "chatIniciado" para
+        // que el autoarranque de la pestaña Vita (más abajo) no le agregue
+        // un segundo saludo encima.
+        if (Array.isArray(json.chatHistory) && json.chatHistory.length) {
+          setMessages(json.chatHistory.map(m => ({ role: m.role, content: m.content })));
+          setChatIniciado(true);
+        }
         try {
           // Mismos keys de localStorage que plan/index.html, a propósito —
           // si una familia usa las dos páginas, los Retos no se duplican.
@@ -323,6 +346,20 @@ function App() {
       method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ idPlan: id, nombreNino: data && data.nombreNino, motivo, mensajePadre }),
       ...(keepalive ? { keepalive: true } : {}),
+    }).catch(() => {});
+  };
+
+  // Guarda el chat completo (27 oct 2026, pedido de Leonardo) — a
+  // diferencia de notificarEscalar (solo lo que se escala), esto guarda
+  // TODO el turno, se escale o no. Se llama una vez por turno completo
+  // (nunca mensaje por mensaje) para no multiplicar llamadas — ver
+  // startChat/sendChat más abajo. Igual que notificarEscalar, no bloquea
+  // el chat si falla: es persistencia de fondo, no algo que el padre tenga
+  // que esperar.
+  const guardarChat = (mensajes) => {
+    fetch(WORKER_URL + "/chat", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ idPlan: id, mensajes }),
     }).catch(() => {});
   };
 
@@ -380,6 +417,9 @@ function App() {
       const { clean, motivo, detalle } = parseEscalar(raw);
       setMessages([{ role: "assistant", content: clean }]);
       manejarEscalar(motivo, detalle, "(inicio de conversación)");
+      // Solo se guarda el saludo de Vita — el "opener" es una instrucción
+      // interna al modelo, no algo que el padre/madre haya dicho.
+      guardarChat([{ ts: new Date().toISOString(), role: "assistant", content: clean }]);
     } catch (e) { setChatError("No se pudo conectar. Reintenta."); }
     finally { setChatLoading(false); }
   };
@@ -403,6 +443,12 @@ function App() {
       const { clean, motivo, detalle } = parseEscalar(raw);
       setMessages(m => [...m, { role: "assistant", content: clean }]);
       manejarEscalar(motivo, detalle, content);
+      // Se guarda el turno completo — lo que escribió el padre/madre Y la
+      // respuesta de Vita, en una sola llamada.
+      guardarChat([
+        { ts: new Date().toISOString(), role: "user", content },
+        { ts: new Date().toISOString(), role: "assistant", content: clean },
+      ]);
     } catch (e) { setChatError("No se pudo conectar. Reintenta."); }
     finally { setChatLoading(false); }
   };
@@ -518,13 +564,32 @@ function App() {
           )}
 
           {tab === "progreso" && (
-            <div className="rise" style={{display:"flex", flexDirection:"column", gap:18, maxWidth:440}}>
+            <div className="rise" style={{display:"flex", flexDirection:"column", gap:22, maxWidth:440}}>
               <div>
                 <div style={{fontSize:11.5, fontWeight:800, letterSpacing:".09em", textTransform:"uppercase", color:P.sageDeep}}>Progreso</div>
                 <h1 style={{fontFamily:"'Fraunces',serif", fontWeight:600, fontSize:"clamp(24px,6vw,28px)", lineHeight:1.15, margin:"4px 0 0", color:P.sageDeep}}>Cómo les ha ido</h1>
               </div>
-              {retosFlag && retosOn ? (
+
+              {/* Línea de tiempo de novedades (27 oct 2026, pedido de
+                  Leonardo): lo mismo que ya ve el equipo en panel/equipo —
+                  fecha + resumen de lo que se compartió o confirmó. No es
+                  información nueva: ya se la mandábamos por correo cuando
+                  escalaba, y la escribió el propio padre/madre en el chat. */}
+              {novedades.length > 0 && (
                 <div style={{display:"flex", flexDirection:"column", gap:10}}>
+                  <div style={{fontSize:13, fontWeight:800, color:P.sageDeep}}>Lo que le has contado al equipo</div>
+                  {novedades.slice().reverse().map((n, i) => (
+                    <div key={i} style={{background:P.panel, border:"1px solid "+P.line, borderRadius:14, padding:"13px 15px"}}>
+                      <div style={{fontSize:11, color:P.muted, marginBottom:4}}>{relativeDate(n.ts)}</div>
+                      <div style={{fontSize:13.5, color:P.ink, lineHeight:1.5}}>{n.resumen || "(sin resumen)"}</div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {retosFlag && retosOn && (
+                <div style={{display:"flex", flexDirection:"column", gap:10}}>
+                  <div style={{fontSize:13, fontWeight:800, color:P.sageDeep}}>Tus retos</div>
                   {RETOS.map(r => {
                     const actual = contarDias(retosLog, r.id, 0, 6);
                     const anterior = contarDias(retosLog, r.id, 7, 13);
@@ -536,11 +601,13 @@ function App() {
                     );
                   })}
                 </div>
-              ) : (
+              )}
+
+              {novedades.length === 0 && !(retosFlag && retosOn) && (
                 <div style={{textAlign:"center", padding:"50px 10px", color:P.muted, background:P.panel, border:"1px solid "+P.line, borderRadius:20}}>
                   <div style={{fontSize:34, marginBottom:10}}>🌱</div>
-                  <div style={{fontFamily:"'Fraunces',serif", fontSize:17, color:P.sageDeep, marginBottom:8}}>Próximamente</div>
-                  <div style={{fontSize:13, maxWidth:280, margin:"0 auto", lineHeight:1.6}}>El seguimiento de progreso todavía está en piloto. Mientras tanto, cuéntale a Vita cómo les ha ido.</div>
+                  <div style={{fontFamily:"'Fraunces',serif", fontSize:17, color:P.sageDeep, marginBottom:8}}>Todavía no hay nada que mostrar</div>
+                  <div style={{fontSize:13, maxWidth:280, margin:"0 auto", lineHeight:1.6}}>Cuéntale a Vita cómo les ha ido — cada vez que compartas algo nuevo, va a quedar registrado acá.</div>
                 </div>
               )}
             </div>
