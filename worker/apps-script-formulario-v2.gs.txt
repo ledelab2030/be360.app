@@ -8,12 +8,13 @@
  * escribir "aprobado" en la fila equivocada). El panel solo expone las
  * acciones seguras: ver pendientes, incluir/excluir hábitos uno por uno,
  * editar el mensaje, guardar, aprobar, descartar, ver el historial de
- * aprobados (de solo lectura), y borrar una novedad puntual del chat de
- * seguimiento. 7 acciones en doPost: listar_pendientes, listar_historial,
- * detalle_plan, guardar_edicion_plan, aprobar_plan, descartar_pendiente,
- * eliminar_novedad. Usan PANEL_SECRET (abajo), un secreto DISTINTO del
- * que usa el Worker (SHARED_SECRET) — el panel nunca ve el secreto real que
- * escribe en la hoja.
+ * aprobados (de solo lectura), borrar una novedad puntual del chat de
+ * seguimiento, y listar el equipo (solo lectura). 8 acciones en doPost:
+ * listar_pendientes, listar_historial, detalle_plan, guardar_edicion_plan,
+ * aprobar_plan, descartar_pendiente, eliminar_novedad, listar_equipo. Usan
+ * PANEL_SECRET (abajo), un secreto DISTINTO del que usa el Worker
+ * (SHARED_SECRET) — el panel nunca ve el secreto real que escribe en la
+ * hoja.
  *
  * OJO — PANEL_SECRET (actualizado 19 ago 2026): ya NO vive como texto en
  * este archivo — se lee de PropertiesService (ver el comentario grande
@@ -230,6 +231,10 @@ function doPost(e) {
     if (body.action === "aprobar_plan") return conPanelSecret(body, function () { return aprobarPlan(sheet, body); });
     if (body.action === "descartar_pendiente") return conPanelSecret(body, function () { return descartarPendiente(sheet, body); });
     if (body.action === "eliminar_novedad") return conPanelSecret(body, function () { return eliminarNovedad(sheet, body); });
+    // NUEVO (27 oct 2026, pedido de Leonardo — sección "Equipo" de
+    // equipo/index.html): lista de solo lectura de quién tiene acceso hoy.
+    // No recibe "sheet" — vive en su propia pestaña, no en la de casos.
+    if (body.action === "listar_equipo") return conPanelSecret(body, function () { return listarEquipo(); });
 
     // Verificación de código de colegio — viene de verificar/index.html (una
     // página pública, el padre la abre desde el correo). NO usa SHARED_SECRET
@@ -569,6 +574,39 @@ function eliminarNovedad(sheet, body) {
   sheet.getRange(found.row, COLS.novedades_json + 1).setValue(JSON.stringify(actuales));
   SpreadsheetApp.flush();
   return respond({ ok: true, novedades: actuales });
+}
+
+// Lista del equipo (27 oct 2026, pedido de Leonardo — sección "Equipo" de
+// equipo/index.html) — referencia de SOLO LECTURA de quién tiene acceso
+// hoy. El login sigue siendo un único PANEL_SECRET compartido; esto no lo
+// cambia, solo lo hace visible. Vive en su propia pestaña "Equipo" del
+// mismo Sheet (no la de casos) — se crea sola con encabezados la primera
+// vez que se llama, así no hace falta preparar nada a mano antes de
+// desplegar. Agregar o quitar personas se hace escribiendo directo en esa
+// pestaña de Sheets — a diferencia de los casos clínicos, esta es una
+// lista de referencia simple sin lógica que se pueda romper por un valor
+// mal puesto, así que no hace falta una acción de panel para editarla.
+function listarEquipo() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var hoja = ss.getSheetByName("Equipo");
+  if (!hoja) {
+    hoja = ss.insertSheet("Equipo");
+    hoja.appendRow(["Nombre", "Rol", "Correo", "Notas"]);
+    hoja.setFrozenRows(1);
+    SpreadsheetApp.flush();
+  }
+  var data = hoja.getDataRange().getValues();
+  var out = [];
+  for (var r = 1; r < data.length; r++) {
+    if (!data[r][0]) continue; // fila vacía (ej. separador a mano) — se ignora
+    out.push({
+      nombre: data[r][0] || "",
+      rol: data[r][1] || "",
+      correo: data[r][2] || "",
+      notas: data[r][3] || "",
+    });
+  }
+  return respond({ ok: true, equipo: out });
 }
 
 function doGet(e) {
