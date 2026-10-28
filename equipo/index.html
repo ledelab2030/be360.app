@@ -336,6 +336,9 @@ function App() {
   const [confirmandoDescarte, setConfirmandoDescarte] = useState(false);
   const [confirmandoNovedadIdx, setConfirmandoNovedadIdx] = useState(null);
   const [borrandoNovedad, setBorrandoNovedad] = useState(false);
+  const [confirmandoRegenerar, setConfirmandoRegenerar] = useState(false);
+  const [regenerando, setRegenerando] = useState(false);
+  const [regeneradoOk, setRegeneradoOk] = useState(false);
 
   const llamarPanel = async (ruta, extra) => {
     const res = await fetch(WORKER_URL + "/panel/" + ruta, {
@@ -485,6 +488,22 @@ function App() {
       volverALista();
     } catch (e) { setAccionError(e.message === "PIN incorrecto" ? null : (e.message || "No se pudo descartar. Reintenta.")); setConfirmandoDescarte(false); }
     finally { setDescartando(false); }
+  };
+
+  // Regenera el borrador con el prompt vigente (28 oct 2026) — dispara la
+  // generación real en segundo plano (~1 min, no se espera acá) y vuelve
+  // decision a "pendiente_aprobacion" aunque el caso ya estuviera aprobado:
+  // el contenido nuevo necesita pasar otra vez por revisión antes de llegar
+  // a la familia. Hay que recargar el caso (o la lista) después de esperar.
+  const regenerar = async () => {
+    if (regenerando) return;
+    setRegenerando(true); setAccionError(null); setRegeneradoOk(false);
+    try {
+      const data = await llamarPanel("regenerar", { idPlan: detalle.idPlan });
+      if (!data.ok) throw new Error(data.error || "error");
+      setRegeneradoOk(true); setConfirmandoRegenerar(false);
+    } catch (e) { setAccionError(e.message === "PIN incorrecto" ? null : (e.message || "No se pudo regenerar. Reintenta.")); }
+    finally { setRegenerando(false); }
   };
 
   const borrarNovedad = async (index) => {
@@ -774,6 +793,24 @@ function App() {
             )}
           </div>
         )}
+
+        <div style={{borderTop:"1px solid "+P.line, paddingTop:14, marginTop:4}}>
+          {regeneradoOk ? (
+            <div style={{fontSize:13, color:P.sageDeep, lineHeight:1.5}}>✓ Regenerando con el prompt actual — tarda cerca de un minuto. Vuelve a esta sección después para revisar el resultado (quedó en "pendiente de aprobación").</div>
+          ) : !confirmandoRegenerar ? (
+            <span onClick={()=>setConfirmandoRegenerar(true)} style={{fontSize:12.5, color:P.muted, textDecoration:"underline", cursor:"pointer"}}>Regenerar con el prompt actual</span>
+          ) : (
+            <div style={{background:P.sageSoft, border:"1px solid "+P.sage, borderRadius:14, padding:"12px 16px"}}>
+              <div style={{fontSize:13, color:P.sageDeep, marginBottom:10, lineHeight:1.5}}>
+                ¿Regenerar el plan de {detalle.nombreNino || "este niño/a"} con el prompt actual? Vuelve a llamar al modelo con los mismos datos del formulario{detalle.correoEnviadoTs ? " — este caso ya está aprobado y la familia puede estar viendo el plan actual; el nuevo contenido queda en pendiente de aprobación hasta que lo revises y apruebes otra vez" : ""}.
+              </div>
+              <div style={{display:"flex", gap:8}}>
+                <button onClick={regenerar} disabled={regenerando} style={{...btnPrimary, opacity:regenerando?.7:1}}>{regenerando?"Encolando…":"Sí, regenerar"}</button>
+                <button onClick={()=>setConfirmandoRegenerar(false)} style={btnGhost}>Cancelar</button>
+              </div>
+            </div>
+          )}
+        </div>
 
         {!detalle.correoEnviadoTs && (
           <div style={{borderTop:"1px solid "+P.line, paddingTop:14, marginTop:4}}>

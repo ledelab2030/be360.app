@@ -164,7 +164,16 @@ export class GeneradorBorradores {
     // alarma se reintente en bucle llamando a Claude una y otra vez. La fila
     // se queda "pendiente" y se puede regenerar a mano, igual que antes.
     await this.state.storage.delete("trabajo");
-    await generarBorradorAutomatico(trabajo.dx, trabajo.ts, this.env);
+    // "modo: regenerar" (28 oct 2026) es la regeneración manual de un caso
+    // existente desde equipo/ — ver /panel/regenerar y
+    // regenerarBorradorExistente(). Mismo Durable Object, mismo motivo (la
+    // generación tarda ~70s, no cabe en ctx.waitUntil), pero guarda por
+    // idPlan en vez de ts.
+    if (trabajo.modo === "regenerar") {
+      await regenerarBorradorExistente(trabajo.idPlan, trabajo.dx, this.env);
+    } else {
+      await generarBorradorAutomatico(trabajo.dx, trabajo.ts, this.env);
+    }
   }
 }
 
@@ -293,6 +302,12 @@ export default {
     // NUEVO (28 oct 2026, pedido de Leonardo): borra el chat completo de un
     // caso — limpieza de mensajes de prueba, nunca disparado por la familia.
     if (url.pathname === "/panel/limpiar-chat") return handlePanelAction(request, env, cors, "limpiar_chat");
+    // NUEVO (28 oct 2026, pedido de Leonardo: regenerar casos reales con el
+    // prompt corregido tras la revisión con Peter) — a diferencia de las
+    // rutas de arriba, NO es un passthrough simple: dispara una generación
+    // real (~70s), así que no cabe en una respuesta HTTP normal. Ver
+    // handleRegenerar() más abajo.
+    if (url.pathname === "/panel/regenerar") return handleRegenerar(request, env, cors);
 
     // NUEVO (10 ago 2026): verificación del código de colegio — ver nota grande arriba.
     if (url.pathname === "/verificar") return handlePanelAction(request, env, cors, "verificar_codigo");
@@ -1229,15 +1244,18 @@ async function revisarGroundingConModelo(parsed, env) {
   }
 }
 
-// Genera el borrador automáticamente (Claude + Prompt Maestro embebido) y lo
-// guarda solo, vía la misma acción "guardar_borrador" del Apps Script. Corre
-// en segundo plano (ctx.waitUntil) — si falla por lo que sea, no revienta
-// nada: la fila simplemente se queda en "pendiente" para revisión manual,
-// igual que se comportaba el sistema antes de esta automatización.
-async function generarBorradorAutomatico(dx, ts, env) {
+// Núcleo compartido: genera + verifica + reintenta un borrador a partir de
+// "dx" (el formulario capturado), sin guardar nada todavía. Extraído el 28
+// oct 2026 (pedido de Leonardo: regenerar casos reales con el prompt ya
+// corregido tras la revisión con Peter) para no duplicar esta lógica entre
+// la generación automática normal (generarBorradorAutomatico, guarda por
+// "ts") y la regeneración manual de un caso existente
+// (regenerarBorradorExistente, guarda por "idPlan"). Devuelve
+// { mensajeFinal, habitos } o null si no se pudo generar nada limpio. Nunca
+// lanza — un fallo acá se trata igual que "no se pudo generar", nunca
+// revienta al que la llama.
+async function generarYVerificarBorrador(dx, env) {
   try {
-    if (!env.SHEET_WEBHOOK_URL_FORMULARIO) return;
-
     // Un solo prompt para todo formulario real desde el 27 oct 2026 (ver
     // comentario "SRB PEDIÁTRICO — PROMOVIDO A PRODUCCIÓN" junto a
     // SRB_DRAFT_PROMPT) — ya no depende de "producto" (por eso esta función
@@ -1361,7 +1379,7 @@ async function generarBorradorAutomatico(dx, ts, env) {
       }
     }
 
-    if (!parsed) return; // no se pudo generar limpio — se queda "pendiente"
+    if (!parsed) return null; // no se pudo generar limpio — se queda "pendiente"
 
     // El prompt devuelve el plan en dos bloques (resumen cronológico actual +
     // propuesta). El panel tiene una sola ventana de texto, así que se
@@ -1374,6 +1392,25 @@ async function generarBorradorAutomatico(dx, ts, env) {
       mensajeFinal = avisoVerificacion + "\n\n" + "═".repeat(40) + "\n\n" + mensajeFinal;
     }
 
+    return { mensajeFinal, habitos: Array.isArray(parsed.habitos) ? parsed.habitos : [] };
+  } catch (e) {
+    // Silencioso a propósito: un fallo acá no debe tumbar al que llama.
+    // Queda "pendiente" (o, en regeneración, se queda con el contenido
+    // anterior sin tocar).
+    return null;
+  }
+}
+
+// Genera el borrador automáticamente (Claude + Prompt Maestro embebido) y lo
+// guarda solo, vía la misma acción "guardar_borrador" del Apps Script. Corre
+// en segundo plano (ctx.waitUntil) — si falla por lo que sea, no revienta
+// nada: la fila simplemente se queda en "pendiente" para revisión manual,
+// igual que se comportaba el sistema antes de esta automatización.
+async function generarBorradorAutomatico(dx, ts, env) {
+  if (!env.SHEET_WEBHOOK_URL_FORMULARIO) return;
+  const resultado = await generarYVerificarBorrador(dx, env);
+  if (!resultado) return;
+  try {
     await fetch(env.SHEET_WEBHOOK_URL_FORMULARIO, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -1381,13 +1418,46 @@ async function generarBorradorAutomatico(dx, ts, env) {
         secret: env.SHEET_WEBHOOK_SECRET_FORMULARIO || "",
         action: "guardar_borrador",
         ts,
-        mensaje: mensajeFinal,
-        plan: { habitos: Array.isArray(parsed.habitos) ? parsed.habitos : [] },
+        mensaje: resultado.mensajeFinal,
+        plan: { habitos: resultado.habitos },
       }),
     });
   } catch (e) {
     // Silencioso a propósito: un fallo aquí no debe afectar al padre (ya
     // recibió su confirmación) ni tumbar el Worker. Queda "pendiente".
+  }
+}
+
+// Regenera el borrador de un caso que YA EXISTE (idPlan conocido) con el
+// prompt vigente — pedido de Leonardo el 28 oct 2026, tras corregir el
+// prompt en una revisión con Peter, para que casos reales ya generados con
+// la versión vieja reflejen las correcciones. A diferencia de
+// generarBorradorAutomatico(), guarda vía "regenerar_borrador" (por idPlan,
+// no por ts) — ver esa acción en Apps Script: SIEMPRE pisa el contenido
+// existente y vuelve decision a "pendiente_aprobacion", nunca lo deja
+// "aprobado" en silencio (HITL obligatorio, regla dura del proyecto — el
+// contenido nuevo necesita que Peter lo revise otra vez antes de llegar a la
+// familia, así el caso ya hubiera estado aprobado antes). Se dispara desde
+// /panel/regenerar, por el mismo Durable Object que la generación normal
+// (toma ~70s, no cabe en ctx.waitUntil).
+async function regenerarBorradorExistente(idPlan, dx, env) {
+  if (!env.SHEET_WEBHOOK_URL_FORMULARIO) return;
+  const resultado = await generarYVerificarBorrador(dx, env);
+  if (!resultado) return;
+  try {
+    await fetch(env.SHEET_WEBHOOK_URL_FORMULARIO, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        secret: env.SHEET_WEBHOOK_SECRET_FORMULARIO || "",
+        action: "regenerar_borrador",
+        idPlan,
+        mensaje: resultado.mensajeFinal,
+        plan: { habitos: resultado.habitos },
+      }),
+    });
+  } catch (e) {
+    // Silencioso a propósito, mismo criterio que generarBorradorAutomatico.
   }
 }
 
@@ -1563,6 +1633,73 @@ async function handleGuardarChat(request, env, cors) {
 // secreto real del Sheet (SHEET_WEBHOOK_SECRET_FORMULARIO) nunca sale de
 // aquí — Apps Script valida el panelSecret por su cuenta, con su propia
 // variable PANEL_SECRET, separada de la que usa el resto del sistema.
+// Regenera el borrador de un caso existente con el prompt vigente (28 oct
+// 2026, pedido de Leonardo tras corregir el prompt en una revisión con
+// Peter) — botón "Regenerar" en equipo/. A diferencia de las rutas de panel
+// de arriba, NO es un passthrough simple: valida el panelSecret reusando
+// "detalle_plan" (la misma acción que equipo/ ya usa para abrir un caso) en
+// vez de duplicar la verificación de PANEL_SECRET acá, reconstruye "dx" a
+// partir de esa respuesta, y encola la regeneración en el mismo Durable
+// Object que la generación automática — toma ~70s, no cabe en la respuesta
+// HTTP. Responde de inmediato con "encolado:true"; el resultado aparece en
+// el Sheet un minuto después, con decision vuelto a "pendiente_aprobacion"
+// (ver regenerarBorradorExistente) para que el equipo lo revise de nuevo
+// antes de que llegue a la familia.
+async function handleRegenerar(request, env, cors) {
+  const jsonHeaders = { ...cors, "Content-Type": "application/json" };
+  try {
+    const body = await request.json();
+    const { panelSecret, idPlan } = body || {};
+    if (!idPlan) {
+      return new Response(JSON.stringify({ ok: false, error: "idPlan faltante" }), { status: 400, headers: jsonHeaders });
+    }
+    if (!env.SHEET_WEBHOOK_URL_FORMULARIO) {
+      return new Response(JSON.stringify({ ok: false, error: "SHEET_WEBHOOK_URL_FORMULARIO no configurado" }), { status: 500, headers: jsonHeaders });
+    }
+
+    const detalleRes = await fetch(env.SHEET_WEBHOOK_URL_FORMULARIO, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "detalle_plan", panelSecret, idPlan }),
+    });
+    const detalleText = await detalleRes.text();
+    let detalle;
+    try { detalle = JSON.parse(detalleText); } catch (e) { detalle = { ok: false, error: "respuesta inválida de Apps Script" }; }
+    if (detalle.ok !== true) {
+      const status = detalle.unauthorized ? 401 : 404;
+      return new Response(JSON.stringify(detalle), { status, headers: jsonHeaders });
+    }
+
+    // dx con los mismos nombres de campo que espera el prompt (ver registro
+    // inicial en Apps Script, doPost) — detalle_plan los devuelve en
+    // camelCase, acá vuelven a snake_case.
+    const dx = {
+      nombre_nino: detalle.nombreNino || "", edad: detalle.edad || "",
+      que_deseas_lograr: detalle.queDeseaLograr || "", preocupacion_principal: detalle.preocupacionPrincipal || "",
+      origen: detalle.origen || "", sueno_y_movimiento: detalle.suenoYMovimiento || "",
+      senales_observables: detalle.senalesObservables || "", diagnosticos_y_atencion_medica: detalle.diagnosticosYAtencionMedica || "",
+      cronologia_del_dia: detalle.cronologiaDelDia || "", finde_y_gustos: detalle.findeYGustos || "",
+      mente_y_pantallas: detalle.menteYPantallas || "", emociones: detalle.emociones || "",
+      nombre_padre: detalle.nombrePadre || "", email_padre: detalle.emailPadre || "",
+    };
+
+    if (!env.GENERADOR_BORRADORES) {
+      return new Response(JSON.stringify({ ok: false, error: "GENERADOR_BORRADORES no disponible" }), { status: 500, headers: jsonHeaders });
+    }
+    const id = env.GENERADOR_BORRADORES.idFromName("regenerar-" + idPlan);
+    const stub = env.GENERADOR_BORRADORES.get(id);
+    await stub.fetch("https://generador/encolar", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ modo: "regenerar", idPlan, dx }),
+    });
+
+    return new Response(JSON.stringify({ ok: true, encolado: true }), { status: 200, headers: jsonHeaders });
+  } catch (e) {
+    return new Response(JSON.stringify({ ok: false, error: String(e) }), { status: 500, headers: jsonHeaders });
+  }
+}
+
 async function handlePanelAction(request, env, cors, accion) {
   const jsonHeaders = { ...cors, "Content-Type": "application/json" };
   try {

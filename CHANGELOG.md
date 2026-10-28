@@ -825,6 +825,18 @@ Los dos pedidos de frontend que habían quedado pendientes de la reunión con Pe
 
 **Verificación:** sintaxis JSX validada con `@babel/preset-react`; probado en local contra el caso real de Samuel — el término "Ventana de alimentación" (dentro de "Lo que el formulario reporta") se resalta y al tocarlo muestra la definición correcta sin desbordar la tarjeta; el botón "Hablar con Vita" lleva a la pestaña Vita con el chat persistido intacto; sin errores de consola.
 
+### 28 oct 2026 — Botón "Regenerar con el prompt actual" en `equipo/` (pedido de Leonardo: regenerar casos reales ya generados con la versión vieja del prompt)
+
+Después de corregir el prompt tras la revisión con Peter (entradas de arriba), Leonardo pidió regenerar los casos reales que mostraron los problemas — pero no hay forma de hacerlo desde esta sesión: regenerar significa escribir en el Sheet de producción, y eso exige el `PANEL_SECRET`, que esta sesión nunca tiene (ni debería pedirlo). La solución: construir el botón en `equipo/`, donde Leonardo ya está autenticado con el PIN real, y que él lo dispare.
+
+**Apps Script:** nueva acción `regenerar_borrador` (tier `SHARED_SECRET`, la llama el Worker, nunca el navegador directo) — hermana de `guardar_borrador` pero por `idPlan` en vez de `ts`, y a propósito SIN el bloqueo de idempotencia que tiene `guardar_borrador` (ese bloqueo existe para que un reintento automático nunca pise una aprobación ya hecha; acá SÍ se quiere pisar el contenido, es el pedido explícito). Siempre deja `decision = "pendiente_aprobacion"`, incluso si el caso ya estaba aprobado — regla dura del proyecto, HITL obligatorio: el contenido regenerado tiene que pasar otra vez por la revisión de Peter antes de llegar a una familia, así el plan ya hubiera estado aprobado y enviado antes.
+
+**Worker:** se extrajo el núcleo de generación+verificación+reintento de `generarBorradorAutomatico()` a una función compartida (`generarYVerificarBorrador`), para no duplicar esa lógica entre la generación automática normal y la regeneración manual. Nueva ruta `/panel/regenerar` (`handleRegenerar`) — no es un passthrough simple como las demás rutas de panel: valida el `panelSecret` reusando `detalle_plan` (así no duplica la verificación), reconstruye el `dx` original a partir de esa respuesta (los campos crudos del formulario, nunca inventados), y encola la regeneración en el mismo Durable Object que ya usa la generación automática (la llamada a Claude tarda ~70s, no cabe en una respuesta HTTP ni en `ctx.waitUntil`). El Durable Object ahora distingue `modo: "regenerar"` del flujo normal en su `alarm()`.
+
+**`equipo/`:** botón "Regenerar con el prompt actual" al final del detalle de cualquier caso (aprobado o pendiente), con confirmación — el texto de confirmación avisa explícitamente cuando el caso ya está aprobado y la familia puede estar viendo el plan actual. Al confirmar, la petición se encola y responde de inmediato ("tarda cerca de un minuto, vuelve a revisar después") — no hay espera ni polling, hay que volver a abrir el caso.
+
+**Verificación:** `node --check` sobre `vita-proxy.js` y el Apps Script; sintaxis JSX de `equipo/index.html` validada con `@babel/preset-react`. No se pudo probar en vivo todavía — la acción nueva de Apps Script necesita el pegado manual de Leonardo antes de poder dispararse.
+
 ---
 
 ---
