@@ -867,6 +867,16 @@ Leonardo preguntó si tenía que quedarse en la pantalla del caso mientras regen
 
 **Verificación:** sintaxis JSX validada con `@babel/preset-react`; cargado en local, sin errores de consola al montar (el `useEffect` nuevo corre incluso antes de iniciar sesión, cuando todavía no hay nada que vigilar).
 
+### 28 oct 2026 — El checklist seguía apareciendo en el PDF (lo agregaba el propio generador de PDF, no el modelo) + el plan ahora abre con la agenda, no cierra con ella
+
+Leonardo comparó el PDF del caso regenerado de Josef con lo acordado en la reunión y encontró dos pendientes reales.
+
+**Checklist duplicado en el PDF:** el `mensaje` ya termina (ahora empieza, ver abajo) con "Hábitos y ventana nutricional propuesta" — la agenda por momento del día. Pero `descargarPdf()`, en `app/` y `plan/`, agregaba DESPUÉS una sección "Hábitos" aparte, listando los mismos hábitos como lista numerada con título y párrafo completo — exactamente la misma redundancia que se corrigió en el prompt esta mañana, reintroducida por el código del PDF. Se quitó esa sección completa; el PDF ahora es solo el `mensaje`, con el encabezado y la firma de Peter. `descargarPdf()` ya no recibe `habitos` como parámetro (no lo usaba para nada más).
+
+**El plan ahora abre con la agenda, no cierra con ella:** pendiente desde la conversación sobre el diseño del plan — "¿Ofrecemos dos pestañas (resumen/detalle) o dejamos el plan reordenado para que empiece con 'Hábitos y ventana nutricional propuesta'?" — se había recomendado la segunda opción (sin cambios de esquema ni de frontend) pero nunca se ejecutó. `SRB_DRAFT_PROMPT`, BLOQUE 2: la agenda pasa del punto 4 (cierre) al punto 1 (apertura), antes del diagnóstico, Paso 0 y pilares. Se agregó la instrucción explícita de que la agenda tiene que entenderse SOLA, sin dar por hecho que el padre ya leyó el diagnóstico o los pilares que ahora vienen después — ese era el riesgo de coherencia que se había señalado al evaluar esta opción. La verificación por código del checklist numerado (`revisarBorradorPediatrico`) no necesitó cambios — ya revisaba el mensaje completo, no solo el final.
+
+**Verificación:** `node --check` sobre `vita-proxy.js`; sintaxis JSX de `app/index.html` y `plan/index.html` validada con `@babel/preset-react`; la regex de detección del checklist probada de nuevo contra los casos de referencia (Sofía, Samuel) — mismo resultado que antes, sin regresión. El reordenamiento del prompt no se puede probar sin generar un borrador nuevo real.
+
 ---
 
 ---

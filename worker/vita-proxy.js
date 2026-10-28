@@ -927,23 +927,28 @@ reportó el padre, sin opinar):
 - Cierra con: "Ventana de alimentación actual: aproximadamente X horas" — solo si se puede calcular
   con las horas reportadas; si no, omite esa línea.
 
-BLOQUE 2 — PROPUESTA:
-1. Diagnóstico breve — máximo 3 líneas, sin alarmismo, SOLO lo que la FUENTE SRB respalda y el
-   formulario muestra.
-2. Paso 0, si aplica.
-3. Pilares — entre 2 y 4, SOLO los que el formulario respalda con datos reales Y que están en la
-   FUENTE SRB adaptada: hidratación (suero casero, 2g/L para empezar), alimentación con semáforo
-   personalizado (ver abajo), ritmo y ventana de alimentación, movimiento como juego. EL SEMÁFORO
-   SIEMPRE VA DENTRO DEL PILAR DE ALIMENTACIÓN, nunca como su propio bloque aparte ni antes del
-   primer pilar. El pilar de alimentación se titula SIEMPRE "Proteína y grasa, siempre" (nunca
-   "Proteína primero") — ver ADAPTACIONES arriba, "PROTEÍNA Y GRASA, NUNCA PROTEÍNA SOLA" — y el
-   semáforo va dentro de ese mismo pilar, como su desarrollo.
-4. Cierre: "Hábitos y ventana nutricional propuesta" — mismo formato de viñetas del Bloque 1, con
-   los ajustes ya incorporados. PROHIBIDO cerrar con una lista numerada que repite los títulos del
-   array "habitos" uno por uno ("1. <título>: <texto>", "2. ...") — esa lista ya se muestra aparte,
-   como tarjetas, en la pestaña Hoy y en el panel del equipo, así que repetirla en el cierre es
-   redundante para el padre. El cierre SIEMPRE es la agenda por momento del día (mañana, lonchera,
+BLOQUE 2 — PROPUESTA. VA PRIMERO LA AGENDA, DESPUÉS EL PORQUÉ (28 oct 2026, pedido de Leonardo: se
+ve más atractivo y útil como inicio que como cierre — el padre entra queriendo saber qué hacer hoy,
+no leyendo el diagnóstico primero):
+1. Abre con "Hábitos y ventana nutricional propuesta" — mismo formato de viñetas del Bloque 1, con
+   los ajustes ya incorporados. Esta sección va PRIMERA, no al final: tiene que entenderse por sí
+   sola, sin dar por hecho que el padre ya leyó el diagnóstico o los pilares que vienen después —
+   cada viñeta dice qué cambia, y en una frase corta por qué, sin repetir el razonamiento completo
+   de los pilares (eso ya viene más abajo). PROHIBIDO abrir con una lista numerada que repite los
+   títulos del array "habitos" uno por uno ("1. <título>: <texto>", "2. ...") — esa lista ya se
+   muestra aparte, como tarjetas, en la pestaña Hoy y en el panel del equipo, así que repetirla acá
+   es redundante para el padre. SIEMPRE es la agenda por momento del día (mañana, lonchera,
    almuerzo, tarde, cena), nunca un resumen por hábito.
+2. Diagnóstico breve — máximo 3 líneas, sin alarmismo, SOLO lo que la FUENTE SRB respalda y el
+   formulario muestra.
+3. Paso 0, si aplica.
+4. "TE DEJO EL MAPA" + Pilares — entre 2 y 4, SOLO los que el formulario respalda con datos reales
+   Y que están en la FUENTE SRB adaptada: hidratación (suero casero, 2g/L para empezar),
+   alimentación con semáforo personalizado (ver abajo), ritmo y ventana de alimentación, movimiento
+   como juego. EL SEMÁFORO SIEMPRE VA DENTRO DEL PILAR DE ALIMENTACIÓN, nunca como su propio bloque
+   aparte. El pilar de alimentación se titula SIEMPRE "Proteína y grasa, siempre" (nunca "Proteína
+   primero") — ver ADAPTACIONES arriba, "PROTEÍNA Y GRASA, NUNCA PROTEÍNA SOLA" — y el semáforo va
+   dentro de ese mismo pilar, como su desarrollo.
 
 CÁLCULO DE LA VENTANA DE ALIMENTACIÓN — esto se ha calculado mal antes, hazlo con cuidado. La ventana
 de alimentación (primera a última comida) es un MÁXIMO de 12 horas, no un mínimo — dicho desde el
@@ -1025,7 +1030,7 @@ eso tienen que coincidir exactamente con las horas que escribiste en las viñeta
 
 Recibirás el formulario capturado en JSON. RESPONDE ÚNICAMENTE con este JSON:
 {"resumenCronologico":"<Bloque 1>",
-"mensaje":"<Bloque 2 completo: diagnóstico + Paso 0 si aplica + TE DEJO EL MAPA + pilares + cierre>",
+"mensaje":"<Bloque 2 completo, EN ESTE ORDEN: Hábitos y ventana nutricional propuesta (primero) + diagnóstico + Paso 0 si aplica + TE DEJO EL MAPA + pilares>",
 "habitos":[{"titulo":"<3 a 5 palabras>","texto":"<1-2 frases, SIN cita ni mención del SRB/la fuente — ver TRAZABILIDAD arriba>"}],
 "ventanaActual":{"primeraComida":"<HH:MM>","ultimaComida":"<HH:MM>"},
 "ventanaPropuesta":{"primeraComida":"<HH:MM>","ultimaComida":"<HH:MM>"},
@@ -1193,22 +1198,21 @@ function revisarBorradorPediatrico(parsed) {
   // así que esta aparición siempre se marca para que el equipo la confirme a
   // mano antes de aprobar, no se asume que está mal ni que está bien.
   revisar(/el equipo (?:lo |la )?va a conversar (?:contigo|con ustedes) directamente/i, "usa la frase de escalamiento al equipo — confirmar a mano que el formulario sí reportó trastorno alimentario, salud mental grave o algo médico agudo (nunca para temas normales como horarios o rituales)");
-  // Cierre repetido como checklist numerado (28 oct 2026, encontrado comparando
-  // dos casos reales): el prompt pide que el cierre sea la agenda por momento
-  // del día, en viñetas, igual que el Bloque 1 — pero a veces el modelo lo
-  // reemplaza por una lista numerada que repite, uno por uno, los mismos
-  // títulos del array "habitos", duplicando las tarjetas que ya se muestran
-  // aparte en la pestaña Hoy y en el panel del equipo. Ninguna parte del
-  // formato pedido (Paso 0, pilares, semáforo, cierre) usa "1.", "2." — esos
-  // van siempre en viñetas — así que dos o más apariciones en todo el mensaje
-  // son, en la práctica, siempre este mismo problema, no un falso positivo.
-  // Medido contra el caso real que lo mostró: el primer ítem queda a más de
-  // 1200 caracteres del final, por eso se revisa el mensaje completo y no
-  // solo la cola.
+  // La agenda (antes "cierre", ahora la sección que abre el mensaje — ver
+  // "VA PRIMERO LA AGENDA" en SRB_DRAFT_PROMPT) repetida como checklist
+  // numerado (28 oct 2026, encontrado comparando dos casos reales): el
+  // prompt pide que sea la agenda por momento del día, en viñetas, igual que
+  // el Bloque 1 — pero a veces el modelo la reemplaza por una lista numerada
+  // que repite, uno por uno, los mismos títulos del array "habitos",
+  // duplicando las tarjetas que ya se muestran aparte en la pestaña Hoy y en
+  // el panel del equipo. Ninguna parte del formato pedido (agenda, Paso 0,
+  // pilares, semáforo) usa "1.", "2." — esos van siempre en viñetas — así
+  // que dos o más apariciones en todo el mensaje son, en la práctica,
+  // siempre este mismo problema, no un falso positivo.
   const itemsNumerados = (parsed.mensaje || "").match(/(?:^|\n)\s*\d+\.\s/g) || [];
   if (itemsNumerados.length >= 2) {
     const ultimo = (parsed.mensaje || "").lastIndexOf(itemsNumerados[itemsNumerados.length - 1].trim());
-    problemas.push("el cierre repite el checklist de hábitos como lista numerada en vez de la agenda por momento del día, en viñetas → \"" + (parsed.mensaje || "").slice(ultimo, ultimo + 70).trim() + "\"");
+    problemas.push("la agenda repite el checklist de hábitos como lista numerada en vez de la agenda por momento del día, en viñetas → \"" + (parsed.mensaje || "").slice(ultimo, ultimo + 70).trim() + "\"");
   }
   return problemas;
 }

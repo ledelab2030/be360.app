@@ -240,7 +240,7 @@ function pdfEscribirParrafo(doc, texto, x, y, maxWidth, fontSize) {
   return y;
 }
 
-function descargarPdf(nombreNino, mensaje, habitos) {
+function descargarPdf(nombreNino, mensaje) {
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF({ unit: "pt", format: "a4" });
   const maxWidth = doc.internal.pageSize.getWidth() - PDF_MARGIN * 2;
@@ -255,23 +255,16 @@ function descargarPdf(nombreNino, mensaje, habitos) {
   doc.setTextColor(44, 42, 36);
   y += 26;
 
+  // SIN sección "Hábitos" aparte (28 oct 2026, Leonardo: "sigue apareciendo
+  // el checklist al generar el pdf") — el mensaje YA termina con "Hábitos y
+  // ventana nutricional propuesta", la misma información en forma de agenda
+  // por momento del día. Repetir los mismos 4-5 hábitos como lista numerada
+  // acá abajo era exactamente la misma redundancia que se corrigió en el
+  // mensaje del modelo, pero reintroducida por el propio generador de PDF.
   (mensaje || "").split("\n").forEach(parrafo => {
     if (parrafo.trim() === "") { y += PDF_LINE_HEIGHT * 0.6; return; }
     y = pdfEscribirParrafo(doc, parrafo, PDF_MARGIN, y, maxWidth, 11);
   });
-
-  if (habitos.length) {
-    y += 10;
-    if (y > doc.internal.pageSize.getHeight() - PDF_MARGIN - 30) { doc.addPage(); y = PDF_MARGIN; }
-    doc.setFont(undefined, "bold"); doc.setFontSize(13);
-    doc.text("Hábitos", PDF_MARGIN, y);
-    y += 20;
-    habitos.forEach((h, i) => {
-      y = pdfEscribirParrafo(doc, "**" + (i + 1) + ". " + (h.titulo || "") + "**", PDF_MARGIN, y, maxWidth, 11.5);
-      y = pdfEscribirParrafo(doc, h.texto || "", PDF_MARGIN, y, maxWidth, 10.5);
-      y += 8;
-    });
-  }
 
   doc.save("plan-" + (nombreNino || "bienestar360").trim().replace(/\s+/g, "-").toLowerCase() + ".pdf");
 }
@@ -606,7 +599,7 @@ function App() {
                 </h1>
                 <div style={{display:"flex", alignItems:"center", justifyContent:"space-between", gap:10, flexWrap:"wrap"}}>
                   <div style={{fontSize:13, color:P.muted}}>Revisado y aprobado por <b style={{color:P.ink}}>Peter Álvarez</b></div>
-                  <button onClick={() => descargarPdf(data.nombreNino, data.mensaje, habitos)} style={{display:"inline-flex", alignItems:"center", gap:6, background:"none", border:"1.5px solid "+P.line, borderRadius:999, padding:"7px 14px", fontSize:12.5, fontWeight:800, color:P.sageDeep, cursor:"pointer", fontFamily:"-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif"}}>
+                  <button onClick={() => descargarPdf(data.nombreNino, data.mensaje)} style={{display:"inline-flex", alignItems:"center", gap:6, background:"none", border:"1.5px solid "+P.line, borderRadius:999, padding:"7px 14px", fontSize:12.5, fontWeight:800, color:P.sageDeep, cursor:"pointer", fontFamily:"-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif"}}>
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" width="14" height="14"><path d="M12 3v12m0 0l-4-4m4 4l4-4M4 17v2a2 2 0 002 2h12a2 2 0 002-2v-2"/></svg>
                     Descargar PDF
                   </button>
