@@ -1,0 +1,724 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+<meta name="robots" content="noindex" />
+<title>Panel Equipo · Bienestar 360</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+<script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<script src="/shared/formulario-fields.js"></script>
+<script src="https://unpkg.com/jspdf@2.5.2/dist/jspdf.umd.min.js"></script>
+<style>
+  html,body{margin:0;height:100%}
+  *{box-sizing:border-box}
+  .rise{animation:rise .22s cubic-bezier(.2,.8,.2,1)}
+  @keyframes rise{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+  .panel-split{display:grid; grid-template-columns:1fr 1fr; gap:20px; align-items:start}
+  @media (max-width:860px){.panel-split{grid-template-columns:1fr}}
+  @media (min-width:861px){.panel-split-ref{position:sticky; top:28px; max-height:calc(100vh - 56px); overflow-y:auto}}
+  /* Nav responsive (27 oct 2026) — rail fijo en escritorio, barra superior +
+     cajón deslizante en móvil. panel/index.html no tenía esto porque Peter
+     solo lo usa en escritorio; acá sí hace falta desde el día uno. */
+  .sidebar-desktop{display:none}
+  .topbar-mobile{display:flex}
+  @media (min-width:861px){ .sidebar-desktop{display:flex} .topbar-mobile{display:none} }
+  .drawer-backdrop{position:fixed; inset:0; background:rgba(44,42,36,.35); z-index:40}
+  .drawer{position:fixed; top:0; left:0; bottom:0; width:248px; z-index:41; box-shadow:0 0 30px rgba(44,42,36,.25)}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const { useState, useEffect } = React;
+
+// ============================================================
+// Panel Equipo — 27 oct 2026, pedido de Leonardo. ADITIVO Y PARALELO a
+// panel/index.html: página nueva, ruta nueva (/equipo/), no reemplaza ni
+// modifica el panel de Peter que ya funciona. Mismo Worker, mismas rutas
+// /panel/*, mismo PANEL_SECRET — a propósito, para que no exista una
+// segunda fuente de verdad que mantener sincronizada. Si el SRB o el
+// prompt de generación cambian, ambos paneles lo reflejan solos, porque
+// los dos leen el mismo Sheet a través de las mismas acciones de Apps
+// Script — no hay nada que duplicar ni que se pueda desalinear.
+//
+// Qué es distinto de panel/index.html:
+// - Nav de 6 secciones en vez de 2 (Pendientes/Aprobados), pensada para que
+//   el equipo crezca más allá de Peter con un PIN — pero Colegios, Familias,
+//   Reportes y Equipo todavía NO tienen backend: se muestran como
+//   "Próximamente", nunca como funcionalidad fingida.
+// - Nav responsive de verdad: rail fijo en escritorio, menú hamburguesa en
+//   móvil (ver mockup "Navegación app.be360.co" del 27 oct).
+// Todo lo demás (lista de pendientes/aprobados, detalle de un caso, editar
+// hábitos, aprobar, descartar, novedades, descarga de PDF) es la MISMA
+// lógica de panel/index.html, copiada a propósito — ver la nota sobre PDF
+// más abajo para el porqué de copiar en vez de compartir.
+// ============================================================
+const WORKER_URL = "https://vita-proxy.leonardo-751.workers.dev";
+const PIN_KEY = "be360_panel_pin"; // mismo key que panel/index.html: un PIN sirve para los dos, mismo dominio.
+
+const P = { bg:"#ECE5D8", panel:"#FBF8F1", panelRaised:"#FFFFFF", ink:"#2C2A24", sage:"#5A7A5C", sageDeep:"#3E5A40", sageSoft:"#DCE7D6", clay:"#B5764A", claySoft:"#F0DFCB", line:"#D8CFBE", muted:"#8A8473" };
+
+const CAMPOS_IDENTIDAD = new Set(["nombre_padre","email_padre","nombre_nino","edad"]);
+const snakeACamel = s => s.replace(/_([a-z])/g, (_, c) => c.toUpperCase());
+const camposAFields = (lista) => lista
+  .filter(f => !CAMPOS_IDENTIDAD.has(f.key))
+  .map(f => ({ key: snakeACamel(f.key), label: f.label, hint: f.hint }));
+const DX_FIELDS_ACTUAL = camposAFields(FIELDS);
+const camposParaDetalle = (detalle) =>
+  (detalle.camposSnapshot && detalle.camposSnapshot.length) ? camposAFields(detalle.camposSnapshot) : DX_FIELDS_ACTUAL;
+
+const Shell = (props) => (
+  <div style={{minHeight:"100vh", background:P.bg, fontFamily:"'Nunito',sans-serif", color:P.ink, display:"flex", justifyContent:"center", padding:"28px 14px 56px"}}>
+    <div style={{width:"100%", maxWidth:560, display:"flex", flexDirection:"column", gap:18}}>{props.children}</div>
+  </div>
+);
+
+const ShellDetalle = (props) => (
+  <div style={{minHeight:"100vh", background:P.bg, fontFamily:"'Nunito',sans-serif", color:P.ink, display:"flex", justifyContent:"center", padding:"28px 14px 56px"}}>
+    <div style={{width:"100%", maxWidth:1180, display:"flex", flexDirection:"column", gap:18}}>{props.children}</div>
+  </div>
+);
+
+// Lista de secciones del nuevo panel — "activa:false" = sin backend
+// todavía, se muestra deshabilitada y con la etiqueta "Próximamente" en vez
+// de fingir que funciona (ver mockup "Navegación app.be360.co").
+const SECCIONES = [
+  { id:"pendientes", label:"Pendientes", activa:true },
+  { id:"historial", label:"Aprobados", activa:true },
+  { id:"colegios", label:"Colegios", activa:false },
+  { id:"familias", label:"Familias", activa:false },
+  { id:"reportes", label:"Reportes", activa:false },
+  { id:"equipo", label:"Equipo", activa:false },
+];
+
+const navBtnStyle = (activo, disponible) => ({
+  textAlign:"left", background: activo?P.sageSoft:"transparent", border:"none", borderRadius:12,
+  padding:"10px 14px", fontSize:14, fontWeight: activo?800:700, color: !disponible?P.muted:(activo?P.sageDeep:P.ink),
+  cursor:"pointer", fontFamily:"'Nunito',sans-serif", width:"100%", display:"flex", alignItems:"center",
+  justifyContent:"space-between", gap:8, opacity: disponible?1:.72,
+});
+
+const prontoTag = {fontSize:9, fontWeight:800, letterSpacing:".04em", textTransform:"uppercase", color:P.clay, background:P.claySoft, padding:"2px 6px", borderRadius:5, flexShrink:0};
+
+const NavItems = ({ seccion, onSeccion, pendientesCount, historialCount }) => (
+  <React.Fragment>
+    {SECCIONES.map(s => (
+      <button key={s.id} onClick={()=>onSeccion(s.id)} style={navBtnStyle(seccion===s.id, s.activa)}>
+        <span>{s.label}{s.id==="pendientes"&&pendientesCount!=null?" ("+pendientesCount+")":""}{s.id==="historial"&&historialCount!=null?" ("+historialCount+")":""}</span>
+        {!s.activa && <span style={prontoTag}>pronto</span>}
+      </button>
+    ))}
+  </React.Fragment>
+);
+
+// Rail fijo en escritorio (>860px) — igual de ancho y posición que
+// panel/index.html, solo con más ítems.
+const SidebarDesktop = ({ seccion, onSeccion, pendientesCount, historialCount, onSalir }) => (
+  <div className="sidebar-desktop" style={{width:172, flexShrink:0, flexDirection:"column", gap:4, position:"sticky", top:28}}>
+    <div style={{display:"flex", alignItems:"center", gap:8, padding:"4px 4px 14px"}}>
+      <div style={{fontSize:22}}>🌱</div>
+      <div style={{fontFamily:"'Fraunces',serif", fontSize:15, color:P.sageDeep, lineHeight:1.1}}>Panel<br/>Equipo</div>
+    </div>
+    <NavItems seccion={seccion} onSeccion={onSeccion} pendientesCount={pendientesCount} historialCount={historialCount}/>
+    <div style={{height:1, background:P.line, margin:"14px 4px"}}/>
+    <button onClick={onSalir} style={{...navBtnStyle(false,true), color:P.muted, fontSize:12.5}}>Salir</button>
+  </div>
+);
+
+// Barra superior + cajón deslizante en móvil (<861px).
+const TopbarMobile = ({ tituloActual, pendientesCount, historialCount, seccion, onSeccion, onSalir }) => {
+  const [abierto, setAbierto] = useState(false);
+  const elegir = (id) => { onSeccion(id); setAbierto(false); };
+  return (
+    <React.Fragment>
+      <div className="topbar-mobile" style={{alignItems:"center", gap:12, padding:"6px 2px 4px"}}>
+        <button onClick={()=>setAbierto(true)} aria-label="Abrir menú" style={{background:P.panelRaised, border:"1px solid "+P.line, borderRadius:10, width:38, height:38, display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", gap:3, cursor:"pointer"}}>
+          <span style={{width:16, height:2, background:P.sageDeep, borderRadius:2}}/>
+          <span style={{width:16, height:2, background:P.sageDeep, borderRadius:2}}/>
+          <span style={{width:16, height:2, background:P.sageDeep, borderRadius:2}}/>
+        </button>
+        <div style={{fontFamily:"'Fraunces',serif", fontSize:17, color:P.sageDeep, fontWeight:600}}>{tituloActual}</div>
+      </div>
+      {abierto && (
+        <React.Fragment>
+          <div className="drawer-backdrop" onClick={()=>setAbierto(false)}/>
+          <div className="drawer" style={{background:P.panel, padding:"18px 12px", display:"flex", flexDirection:"column", gap:4}}>
+            <div style={{display:"flex", alignItems:"center", gap:8, padding:"4px 4px 14px"}}>
+              <div style={{fontSize:22}}>🌱</div>
+              <div style={{fontFamily:"'Fraunces',serif", fontSize:15, color:P.sageDeep, lineHeight:1.1}}>Panel<br/>Equipo</div>
+            </div>
+            <NavItems seccion={seccion} onSeccion={elegir} pendientesCount={pendientesCount} historialCount={historialCount}/>
+            <div style={{height:1, background:P.line, margin:"14px 4px"}}/>
+            <button onClick={onSalir} style={{...navBtnStyle(false,true), color:P.muted, fontSize:12.5}}>Salir</button>
+          </div>
+        </React.Fragment>
+      )}
+    </React.Fragment>
+  );
+};
+
+// Layout con barra lateral — listados (Pendientes/Aprobados/Próximamente).
+const ShellConBarra = ({ sidebar, topbar, children }) => (
+  <div style={{minHeight:"100vh", background:P.bg, fontFamily:"'Nunito',sans-serif", color:P.ink, display:"flex", justifyContent:"center", padding:"28px 14px 56px"}}>
+    <div style={{width:"100%", maxWidth:760, display:"flex", gap:26, alignItems:"flex-start"}}>
+      {sidebar}
+      <div style={{flex:1, minWidth:0, display:"flex", flexDirection:"column", gap:18}}>
+        {topbar}
+        {children}
+      </div>
+    </div>
+  </div>
+);
+
+const btnPrimary = {background:P.sage,color:"#fff",border:"none",borderRadius:999,padding:"12px 24px",fontSize:14.5,fontWeight:800,fontFamily:"'Nunito',sans-serif",cursor:"pointer",boxShadow:"0 6px 18px rgba(90,122,92,.30)"};
+const btnGhost = {background:"none",border:"1px solid "+P.line,color:P.ink,borderRadius:999,padding:"9px 18px",fontSize:13.5,fontWeight:700,fontFamily:"'Nunito',sans-serif",cursor:"pointer"};
+
+function relativeDate(iso) {
+  if (!iso) return "";
+  const d = new Date(iso);
+  if (isNaN(d)) return "";
+  const diffH = Math.round((Date.now() - d.getTime()) / 3600000);
+  if (diffH < 1) return "hace menos de una hora";
+  if (diffH < 24) return "hace " + diffH + "h";
+  const diffD = Math.round(diffH / 24);
+  return "hace " + diffD + (diffD === 1 ? " día" : " días");
+}
+
+function formatEdad(edad) {
+  if (!edad && edad !== 0) return "";
+  const s = String(edad).trim();
+  return " · " + s + (/años?\b/i.test(s) ? "" : " años");
+}
+
+// ---- PDF: copiado tal cual de panel/index.html, a propósito — mismo
+// motivo que allá: estas páginas no se mantienen sincronizadas entre sí
+// como vita-demo-formulario/-v2 (audiencias distintas, no una copia de
+// validación de la otra). Si se toca el PDF en una, revisar la otra.
+const PDF_MARGIN = 40;
+const PDF_LINE_HEIGHT = 15;
+
+function sanearTextoPdf(texto) {
+  if (!texto) return texto;
+  return texto
+    .replace(/═+/g, m => "-".repeat(m.length))
+    .replace(/[\u{1F000}-\u{1FFFF}]/gu, "")
+    .replace(/[←-⯿]/g, "")
+    .replace(/[️‍]/g, "");
+}
+
+function pdfEscribirParrafo(doc, texto, x, y, maxWidth, fontSize) {
+  texto = sanearTextoPdf(texto);
+  const pageHeight = doc.internal.pageSize.getHeight();
+  doc.setFontSize(fontSize);
+  const segmentos = (texto || "").split(/(\*\*[^*]+\*\*)/g).filter(s => s !== "");
+  const palabras = [];
+  for (const seg of segmentos) {
+    const negrita = seg.startsWith("**") && seg.endsWith("**");
+    const contenido = negrita ? seg.slice(2, -2) : seg;
+    contenido.split(" ").forEach(w => { if (w !== "") palabras.push({ texto: w, negrita }); });
+  }
+  let linea = [];
+  let anchoLinea = 0;
+  const anchoEspacio = doc.getTextWidth(" ");
+  const escribirLinea = () => {
+    if (linea.length === 0) return;
+    let cx = x;
+    let i = 0;
+    while (i < linea.length) {
+      const negrita = linea[i].negrita;
+      const grupo = [];
+      while (i < linea.length && linea[i].negrita === negrita) { grupo.push(linea[i].texto); i++; }
+      const textoGrupo = grupo.join(" ");
+      doc.setFont(undefined, negrita ? "bold" : "normal");
+      doc.text(textoGrupo, cx, y);
+      cx += doc.getTextWidth(textoGrupo) + anchoEspacio;
+    }
+    y += PDF_LINE_HEIGHT;
+    if (y > pageHeight - PDF_MARGIN) { doc.addPage(); y = PDF_MARGIN; }
+    linea = []; anchoLinea = 0;
+  };
+  for (const p of palabras) {
+    doc.setFont(undefined, p.negrita ? "bold" : "normal");
+    const anchoPalabra = doc.getTextWidth(p.texto);
+    if (linea.length && anchoLinea + anchoEspacio + anchoPalabra > maxWidth) escribirLinea();
+    linea.push(p);
+    anchoLinea += (linea.length > 1 ? anchoEspacio : 0) + anchoPalabra;
+  }
+  escribirLinea();
+  doc.setFont(undefined, "normal");
+  return y;
+}
+
+function descargarPdf(nombreNino, mensaje, habitos) {
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ unit: "pt", format: "a4" });
+  const maxWidth = doc.internal.pageSize.getWidth() - PDF_MARGIN * 2;
+  let y = PDF_MARGIN;
+
+  doc.setFont(undefined, "bold"); doc.setFontSize(16);
+  doc.text("Plan de hábitos de " + sanearTextoPdf(nombreNino || "este niño/a"), PDF_MARGIN, y);
+  y += 22;
+  doc.setFont(undefined, "normal"); doc.setFontSize(10.5);
+  doc.setTextColor(140, 132, 115);
+  doc.text("Bienestar 360 — panel de revisión", PDF_MARGIN, y);
+  doc.setTextColor(44, 42, 36);
+  y += 26;
+
+  (mensaje || "").split("\n").forEach(parrafo => {
+    if (parrafo.trim() === "") { y += PDF_LINE_HEIGHT * 0.6; return; }
+    y = pdfEscribirParrafo(doc, parrafo, PDF_MARGIN, y, maxWidth, 11);
+  });
+
+  const incluidos = (habitos || []).filter(h => h.incluido !== false);
+  if (incluidos.length) {
+    y += 10;
+    if (y > doc.internal.pageSize.getHeight() - PDF_MARGIN - 30) { doc.addPage(); y = PDF_MARGIN; }
+    doc.setFont(undefined, "bold"); doc.setFontSize(13);
+    doc.text("Hábitos", PDF_MARGIN, y);
+    y += 20;
+    incluidos.forEach((h, i) => {
+      y = pdfEscribirParrafo(doc, "**" + (i + 1) + ". " + (h.titulo || "") + "**", PDF_MARGIN, y, maxWidth, 11.5);
+      y = pdfEscribirParrafo(doc, h.texto || "", PDF_MARGIN, y, maxWidth, 10.5);
+      y += 8;
+    });
+  }
+
+  doc.save("plan-" + (nombreNino || "bienestar360").trim().replace(/\s+/g, "-").toLowerCase() + ".pdf");
+}
+
+function App() {
+  const [pin, setPin] = useState(() => { try { return localStorage.getItem(PIN_KEY) || ""; } catch (e) { return ""; } });
+  const [pinInput, setPinInput] = useState("");
+  const [verPin, setVerPin] = useState(false);
+  const [pinError, setPinError] = useState(null);
+  const [checkingPin, setCheckingPin] = useState(false);
+
+  const [stage, setStage] = useState("cargando"); // cargando | lista | historial | detalle | proximamente
+  const [seccion, setSeccion] = useState("pendientes");
+  const [pendientes, setPendientes] = useState(null);
+  const [listaError, setListaError] = useState(null);
+  const [historial, setHistorial] = useState(null);
+  const [historialError, setHistorialError] = useState(null);
+
+  const [detalle, setDetalle] = useState(null);
+  const [soloLectura, setSoloLectura] = useState(false);
+  const [habitos, setHabitos] = useState([]);
+  const [mensaje, setMensaje] = useState("");
+  const [guardando, setGuardando] = useState(false);
+  const [guardadoOk, setGuardadoOk] = useState(false);
+  const [confirmando, setConfirmando] = useState(false);
+  const [aprobando, setAprobando] = useState(false);
+  const [accionError, setAccionError] = useState(null);
+  const [descartando, setDescartando] = useState(false);
+  const [confirmandoDescarte, setConfirmandoDescarte] = useState(false);
+  const [confirmandoNovedadIdx, setConfirmandoNovedadIdx] = useState(null);
+  const [borrandoNovedad, setBorrandoNovedad] = useState(false);
+
+  const llamarPanel = async (ruta, extra) => {
+    const res = await fetch(WORKER_URL + "/panel/" + ruta, {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ panelSecret: pin, ...extra }),
+    });
+    const data = await res.json().catch(() => ({ ok:false, error:"respuesta inválida" }));
+    if (res.status === 401 || (data && data.error === "panelSecret inválido")) {
+      try { localStorage.removeItem(PIN_KEY); } catch (e) {}
+      setPin("");
+      throw new Error("PIN incorrecto");
+    }
+    return data;
+  };
+
+  const cargarPendientes = async () => {
+    setStage("cargando"); setListaError(null);
+    try {
+      const data = await llamarPanel("pendientes", {});
+      if (!data.ok) throw new Error(data.error || "error");
+      setPendientes(data.pendientes || []);
+      setSeccion("pendientes"); setStage("lista");
+    } catch (e) {
+      setListaError(e.message === "PIN incorrecto" ? null : (e.message || "No se pudo cargar. Reintenta."));
+      setStage(e.message === "PIN incorrecto" ? "cargando" : "lista");
+    }
+  };
+
+  const cargarHistorial = async () => {
+    setStage("cargando"); setHistorialError(null);
+    try {
+      const data = await llamarPanel("historial", {});
+      if (!data.ok) throw new Error(data.error || "error");
+      setHistorial(data.historial || []);
+      setSeccion("historial"); setStage("historial");
+    } catch (e) {
+      setHistorialError(e.message === "PIN incorrecto" ? null : (e.message || "No se pudo cargar. Reintenta."));
+      setStage(e.message === "PIN incorrecto" ? "cargando" : "historial");
+    }
+  };
+
+  // Secciones sin backend (27 oct 2026) — no llaman al Worker, solo marcan
+  // la sección activa y muestran la pantalla "Próximamente".
+  const irAProximamente = (id) => { setSeccion(id); setStage("proximamente"); };
+
+  const irASeccion = (id) => {
+    if (id === "historial") return cargarHistorial();
+    if (id === "pendientes") return cargarPendientes();
+    return irAProximamente(id);
+  };
+
+  useEffect(() => { if (pin) cargarPendientes(); }, [pin]);
+
+  const entrarConPin = async () => {
+    if (!pinInput.trim() || checkingPin) return;
+    setCheckingPin(true); setPinError(null);
+    try {
+      const res = await fetch(WORKER_URL + "/panel/pendientes", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ panelSecret: pinInput.trim() }),
+      });
+      const data = await res.json().catch(() => ({ ok:false }));
+      if (!data.ok) { setPinError("PIN incorrecto."); return; }
+      try { localStorage.setItem(PIN_KEY, pinInput.trim()); } catch (e) {}
+      setPin(pinInput.trim());
+    } catch (e) { setPinError("No se pudo conectar. Reintenta."); }
+    finally { setCheckingPin(false); }
+  };
+
+  const abrirDetalle = async (idPlan, desde) => {
+    setStage("detalle"); setDetalle(null); setAccionError(null); setConfirmando(false); setGuardadoOk(false); setConfirmandoDescarte(false);
+    setSoloLectura(desde === "historial");
+    try {
+      const data = await llamarPanel("detalle", { idPlan });
+      if (!data.ok) throw new Error(data.error || "error");
+      setDetalle(data);
+      const hs = (data.plan && data.plan.habitos) || [];
+      setHabitos(hs.map(h => ({ titulo: h.titulo || "", texto: h.texto || "", incluido: h.incluido !== false })));
+      setMensaje(data.mensaje || "");
+    } catch (e) {
+      setAccionError(e.message === "PIN incorrecto" ? null : (e.message || "No se pudo cargar este caso. Reintenta."));
+    }
+  };
+
+  const volverALista = () => { seccion === "historial" ? cargarHistorial() : cargarPendientes(); };
+
+  const actualizarHabito = (i, campo, valor) => {
+    setHabitos(hs => hs.map((h, idx) => idx === i ? { ...h, [campo]: valor } : h));
+  };
+
+  const planParaGuardar = () => ({ habitos: habitos.map(h => ({ titulo: h.titulo, texto: h.texto, incluido: h.incluido })) });
+
+  const guardarCambios = async () => {
+    if (guardando) return;
+    setGuardando(true); setAccionError(null); setGuardadoOk(false);
+    try {
+      const data = await llamarPanel("guardar", { idPlan: detalle.idPlan, plan: planParaGuardar(), mensaje });
+      if (!data.ok) throw new Error(data.error || "error");
+      setGuardadoOk(true); setTimeout(() => setGuardadoOk(false), 2500);
+    } catch (e) { setAccionError(e.message === "PIN incorrecto" ? null : (e.message || "No se pudo guardar. Reintenta.")); }
+    finally { setGuardando(false); }
+  };
+
+  const aprobar = async () => {
+    if (aprobando) return;
+    setAprobando(true); setAccionError(null);
+    try {
+      const data = await llamarPanel("aprobar", { idPlan: detalle.idPlan, plan: planParaGuardar(), mensaje });
+      if (!data.ok) throw new Error(data.error || "error");
+      volverALista();
+    } catch (e) { setAccionError(e.message === "PIN incorrecto" ? null : (e.message || "No se pudo aprobar. Reintenta.")); setConfirmando(false); }
+    finally { setAprobando(false); }
+  };
+
+  const descartar = async () => {
+    if (descartando) return;
+    setDescartando(true); setAccionError(null);
+    try {
+      const data = await llamarPanel("descartar", { idPlan: detalle.idPlan });
+      if (!data.ok) throw new Error(data.error || "error");
+      volverALista();
+    } catch (e) { setAccionError(e.message === "PIN incorrecto" ? null : (e.message || "No se pudo descartar. Reintenta.")); setConfirmandoDescarte(false); }
+    finally { setDescartando(false); }
+  };
+
+  const borrarNovedad = async (index) => {
+    if (borrandoNovedad) return;
+    setBorrandoNovedad(true); setAccionError(null);
+    try {
+      const data = await llamarPanel("eliminar-novedad", { idPlan: detalle.idPlan, index });
+      if (!data.ok) throw new Error(data.error || "error");
+      setDetalle(d => ({ ...d, novedades: data.novedades }));
+      setConfirmandoNovedadIdx(null);
+    } catch (e) { setAccionError(e.message === "PIN incorrecto" ? null : (e.message || "No se pudo borrar. Reintenta.")); }
+    finally { setBorrandoNovedad(false); }
+  };
+
+  const salir = () => { try{localStorage.removeItem(PIN_KEY);}catch(e){} setPin(""); };
+
+  // ---------- PIN ----------
+  if (!pin) return (
+    <Shell>
+      <div style={{background:P.panel, border:"1px solid "+P.line, borderRadius:20, padding:"32px 26px", textAlign:"center"}}>
+        <div style={{fontSize:36, marginBottom:10}}>🌱</div>
+        <div style={{fontFamily:"'Fraunces',serif", fontSize:22, color:P.sageDeep, marginBottom:10}}>Panel Equipo</div>
+        <p style={{fontSize:13.5, color:P.ink, lineHeight:1.6, textAlign:"left", marginBottom:8}}>Mismo panel de revisión de siempre, con espacio para que el equipo crezca más allá de un solo PIN. Hoy funcionan:</p>
+        <ul style={{fontSize:13, color:P.ink, lineHeight:1.7, textAlign:"left", margin:"0 0 12px", paddingLeft:20}}>
+          <li>Pendientes y Aprobados — igual que en el panel de siempre.</li>
+          <li>Colegios, Familias, Reportes y Equipo están marcados "Próximamente" — todavía sin backend.</li>
+        </ul>
+        <p style={{fontSize:12.5, color:P.muted, lineHeight:1.6, textAlign:"left", marginBottom:20}}>El PIN es el mismo de siempre — si ya entraste al panel de Peter en este navegador, no hace falta que lo vuelvas a escribir.</p>
+        <div style={{position:"relative", width:"100%", maxWidth:220, margin:"0 auto 14px"}}>
+          <input type={verPin?"text":"password"} value={pinInput} onChange={e=>setPinInput(e.target.value)} onKeyDown={e=>{if(e.key==="Enter") entrarConPin();}} placeholder="PIN"
+            style={{width:"100%", textAlign:"center", fontSize:16, padding:"11px 40px 11px 14px", border:"1px solid "+P.line, borderRadius:12, fontFamily:"'Nunito',sans-serif", outline:"none"}} autoFocus/>
+          <button type="button" onClick={()=>setVerPin(v=>!v)} title={verPin?"Ocultar PIN":"Ver PIN"}
+            style={{position:"absolute", right:6, top:"50%", transform:"translateY(-50%)", background:"none", border:"none", color:P.muted, cursor:"pointer", fontSize:16, padding:6, lineHeight:1}}>
+            {verPin ? "🙈" : "👁"}
+          </button>
+        </div>
+        <div>
+          <button onClick={entrarConPin} disabled={checkingPin} style={{...btnPrimary, opacity:checkingPin?.7:1}}>{checkingPin?"Entrando…":"Entrar →"}</button>
+        </div>
+        {pinError && <p style={{fontSize:12.5, color:P.clay, marginTop:14}}>{pinError}</p>}
+      </div>
+    </Shell>
+  );
+
+  // ---------- CARGANDO ----------
+  if (stage === "cargando") return (
+    <Shell><div style={{textAlign:"center", padding:"60px 10px", color:P.muted}}>Cargando…</div></Shell>
+  );
+
+  const sidebarProps = { seccion, onSeccion:irASeccion, pendientesCount: pendientes?pendientes.length:null, historialCount: historial?historial.length:null, onSalir: salir };
+
+  // ---------- PRÓXIMAMENTE ----------
+  if (stage === "proximamente") {
+    const secc = SECCIONES.find(s => s.id === seccion);
+    return (
+      <ShellConBarra sidebar={<SidebarDesktop {...sidebarProps}/>} topbar={<TopbarMobile tituloActual={secc?secc.label:""} {...sidebarProps}/>}>
+        <div style={{textAlign:"center", padding:"70px 10px", color:P.muted, background:P.panel, border:"1px solid "+P.line, borderRadius:20}}>
+          <div style={{fontSize:34, marginBottom:10}}>🌱</div>
+          <div style={{fontFamily:"'Fraunces',serif", fontSize:19, color:P.sageDeep, marginBottom:8}}>{secc?secc.label:""} — próximamente</div>
+          <div style={{fontSize:13, maxWidth:320, margin:"0 auto", lineHeight:1.6}}>Todavía no tiene backend. Se activa cuando definamos qué necesita exactamente esta sección.</div>
+        </div>
+      </ShellConBarra>
+    );
+  }
+
+  // ---------- LISTA (pendientes) ----------
+  if (stage === "lista") return (
+    <ShellConBarra sidebar={<SidebarDesktop {...sidebarProps}/>} topbar={<TopbarMobile tituloActual="Pendientes" {...sidebarProps}/>}>
+      <div>
+        <h1 style={{fontFamily:"'Fraunces',serif", fontWeight:600, fontSize:26, margin:0, color:P.sageDeep}}>Pendientes {pendientes && pendientes.length ? "("+pendientes.length+")" : ""}</h1>
+      </div>
+      {listaError && (
+        <div style={{background:P.claySoft, border:"1px solid "+P.clay, borderRadius:14, padding:"12px 16px", fontSize:13, color:P.ink}}>
+          {listaError} <span onClick={cargarPendientes} style={{color:P.sageDeep, fontWeight:700, textDecoration:"underline", cursor:"pointer"}}>Reintentar</span>
+        </div>
+      )}
+      {!listaError && pendientes && pendientes.length === 0 && (
+        <div style={{textAlign:"center", padding:"50px 10px", color:P.muted}}>
+          <div style={{fontSize:34, marginBottom:10}}>🌿</div>
+          No hay casos pendientes de revisión.
+        </div>
+      )}
+      <div style={{display:"flex", flexDirection:"column", gap:10}}>
+        {(pendientes||[]).map(p => (
+          <div key={p.idPlan} className="rise" onClick={()=>abrirDetalle(p.idPlan,"pendientes")} style={{background:P.panel, border:"1px solid "+P.line, borderRadius:16, padding:"14px 16px", cursor:"pointer", display:"flex", justifyContent:"space-between", alignItems:"center", gap:12}}>
+            <div style={{minWidth:0}}>
+              <div style={{fontSize:15, fontWeight:800, color:P.ink}}>{p.nombreNino || "(sin nombre)"}{formatEdad(p.edad)}</div>
+              <div style={{fontSize:12.5, color:P.muted, marginTop:2}}>Padre/madre: {p.nombrePadre || "—"} · {relativeDate(p.timestamp)}</div>
+              {p.preocupacionPrincipal && <div style={{fontSize:12.5, color:P.ink, marginTop:5, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap"}}>{p.preocupacionPrincipal}</div>}
+            </div>
+            <div style={{color:P.sageDeep, fontSize:20, flexShrink:0}}>→</div>
+          </div>
+        ))}
+      </div>
+    </ShellConBarra>
+  );
+
+  // ---------- HISTORIAL (aprobados, solo lectura) ----------
+  if (stage === "historial") return (
+    <ShellConBarra sidebar={<SidebarDesktop {...sidebarProps}/>} topbar={<TopbarMobile tituloActual="Aprobados" {...sidebarProps}/>}>
+      <div>
+        <h1 style={{fontFamily:"'Fraunces',serif", fontWeight:600, fontSize:26, margin:0, color:P.sageDeep}}>Aprobados {historial && historial.length ? "("+historial.length+")" : ""}</h1>
+      </div>
+      {historialError && (
+        <div style={{background:P.claySoft, border:"1px solid "+P.clay, borderRadius:14, padding:"12px 16px", fontSize:13, color:P.ink}}>
+          {historialError} <span onClick={cargarHistorial} style={{color:P.sageDeep, fontWeight:700, textDecoration:"underline", cursor:"pointer"}}>Reintentar</span>
+        </div>
+      )}
+      {!historialError && historial && historial.length === 0 && (
+        <div style={{textAlign:"center", padding:"50px 10px", color:P.muted}}>
+          <div style={{fontSize:34, marginBottom:10}}>📋</div>
+          Todavía no hay casos aprobados.
+        </div>
+      )}
+      <div style={{display:"flex", flexDirection:"column", gap:10}}>
+        {(historial||[]).map(p => (
+          <div key={p.idPlan} className="rise" onClick={()=>abrirDetalle(p.idPlan,"historial")} style={{background:P.panel, border:"1px solid "+(p.tieneNovedades?P.clay:P.line), borderRadius:16, padding:"14px 16px", cursor:"pointer", display:"flex", justifyContent:"space-between", alignItems:"center", gap:12}}>
+            <div style={{minWidth:0}}>
+              <div style={{fontSize:15, fontWeight:800, color:P.ink, display:"flex", alignItems:"center", gap:8}}>
+                {p.nombreNino || "(sin nombre)"}{formatEdad(p.edad)}
+                {p.tieneNovedades && <span style={{background:P.claySoft, color:P.clay, fontSize:10.5, fontWeight:800, padding:"2px 8px", borderRadius:999, letterSpacing:".03em"}}>NOVEDAD</span>}
+              </div>
+              <div style={{fontSize:12.5, color:P.muted, marginTop:2}}>Padre/madre: {p.nombrePadre || "—"} · aprobado {relativeDate(p.correoEnviadoTs || p.timestamp)}</div>
+            </div>
+            <div style={{color:P.sageDeep, fontSize:20, flexShrink:0}}>→</div>
+          </div>
+        ))}
+      </div>
+    </ShellConBarra>
+  );
+
+  // ---------- DETALLE (pendiente = editable, historial = solo lectura) ----------
+  if (stage === "detalle") {
+    if (!detalle) return (
+      <Shell>
+        <button onClick={volverALista} style={{...btnGhost, alignSelf:"flex-start"}}>← {soloLectura?"Aprobados":"Pendientes"}</button>
+        {accionError ? <div style={{textAlign:"center", padding:"40px 10px", color:P.clay}}>{accionError}</div> : <div style={{textAlign:"center", padding:"40px 10px", color:P.muted}}>Cargando…</div>}
+      </Shell>
+    );
+    const habitosIncluidos = habitos.filter(h=>h.incluido);
+    const inclCount = habitosIncluidos.length;
+    const novedades = detalle.novedades || [];
+    return (
+      <ShellDetalle>
+        <div style={{display:"flex", justifyContent:"space-between", alignItems:"center", gap:10}}>
+          <button onClick={volverALista} style={btnGhost}>← {soloLectura?"Aprobados":"Pendientes"}</button>
+          <button onClick={() => descargarPdf(detalle.nombreNino, mensaje, habitos)} style={{...btnGhost, display:"inline-flex", alignItems:"center", gap:6}}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" width="14" height="14"><path d="M12 3v12m0 0l-4-4m4 4l4-4M4 17v2a2 2 0 002 2h12a2 2 0 002-2v-2"/></svg>
+            Descargar PDF
+          </button>
+        </div>
+
+        <div>
+          <h1 style={{fontFamily:"'Fraunces',serif", fontWeight:600, fontSize:24, margin:0, color:P.sageDeep}}>{detalle.nombreNino || "(sin nombre)"}{formatEdad(detalle.edad)}</h1>
+          <div style={{fontSize:13, color:P.muted, marginTop:4}}>Padre/madre: {detalle.nombrePadre || "—"} · {detalle.emailPadre || "sin correo"}</div>
+          <div style={{fontSize:11.5, color:detalle.consentimientoTs?P.sageDeep:P.clay, marginTop:4}}>{detalle.consentimientoTs ? ("✓ Consentimiento aceptado "+relativeDate(detalle.consentimientoTs)) : "⚠ Sin registro de consentimiento (caso previo al 9 ago, creado por una prueba directa sin pasar por el formulario real, o un caso real que hay que revisar)"}</div>
+          {soloLectura && <div style={{display:"inline-block", marginTop:8, background:P.sageSoft, color:P.sageDeep, fontSize:11.5, fontWeight:800, padding:"4px 10px", borderRadius:999}}>✓ Aprobado</div>}
+        </div>
+
+        {novedades.length > 0 && (
+          <div style={{background:P.claySoft, border:"1px solid "+P.clay, borderRadius:16, padding:"14px 16px", display:"flex", flexDirection:"column", gap:10}}>
+            <div style={{fontSize:13, fontWeight:800, color:P.clay}}>Novedades reportadas por la familia ({novedades.length})</div>
+            {novedades.map((n, idxOriginal) => ({ n, idxOriginal })).reverse().map(({ n, idxOriginal }) => (
+              <div key={idxOriginal} style={{background:P.panelRaised, border:"1px solid "+P.line, borderRadius:12, padding:"10px 12px"}}>
+                <div style={{display:"flex", justifyContent:"space-between", alignItems:"flex-start", gap:8, marginBottom:4}}>
+                  <div style={{fontSize:11, color:P.muted}}>{relativeDate(n.ts)}{n.motivo ? " · " + n.motivo : ""}</div>
+                  {confirmandoNovedadIdx !== idxOriginal ? (
+                    <span onClick={()=>setConfirmandoNovedadIdx(idxOriginal)} style={{fontSize:11, color:P.muted, textDecoration:"underline", cursor:"pointer", flexShrink:0}}>Borrar</span>
+                  ) : (
+                    <span style={{display:"flex", gap:6, flexShrink:0}}>
+                      <span onClick={()=>!borrandoNovedad && borrarNovedad(idxOriginal)} style={{fontSize:11, color:P.clay, fontWeight:800, textDecoration:"underline", cursor:"pointer"}}>{borrandoNovedad?"Borrando…":"¿Seguro?"}</span>
+                      <span onClick={()=>setConfirmandoNovedadIdx(null)} style={{fontSize:11, color:P.muted, textDecoration:"underline", cursor:"pointer"}}>Cancelar</span>
+                    </span>
+                  )}
+                </div>
+                <div style={{fontSize:13.5, color:P.ink, lineHeight:1.5}}>{n.resumen || "(sin resumen)"}</div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        <div className="panel-split">
+          <div className="panel-split-ref" style={{background:P.panel, border:"1px solid "+P.line, borderRadius:16, padding:"16px 18px"}}>
+            <div style={{fontSize:13.5, fontWeight:800, color:P.sageDeep, marginBottom:12}}>Formulario completo (contexto clínico)</div>
+            <div style={{display:"flex", flexDirection:"column", gap:10}}>
+              {camposParaDetalle(detalle).map(f => detalle[f.key] ? (
+                <div key={f.key}>
+                  <div style={{fontSize:11, fontWeight:800, color:P.muted, textTransform:"uppercase", letterSpacing:.3}}>{f.label}</div>
+                  {f.hint && <div style={{fontSize:11.5, color:P.muted, fontStyle:"italic", marginTop:1, marginBottom:3}}>{f.hint}</div>}
+                  <div style={{fontSize:13.5, color:P.ink, lineHeight:1.5, whiteSpace:"pre-wrap"}}>{detalle[f.key]}</div>
+                </div>
+              ) : null)}
+            </div>
+          </div>
+
+          <div>
+            <div style={{fontSize:13, fontWeight:800, color:P.sageDeep, marginBottom:6}}>Mensaje al padre/madre</div>
+            {soloLectura ? (
+              <div style={{background:P.panelRaised, border:"1px solid "+P.line, borderRadius:14, padding:"12px 14px", fontSize:14, color:P.ink, lineHeight:1.5, whiteSpace:"pre-wrap"}}>{mensaje || "—"}</div>
+            ) : (
+              <textarea value={mensaje} onChange={e=>setMensaje(e.target.value)} rows={28}
+                style={{width:"100%", border:"1px solid "+P.line, borderRadius:14, padding:"12px 14px", fontSize:14, fontFamily:"'Nunito',sans-serif", background:P.panelRaised, color:P.ink, outline:"none", resize:"vertical", lineHeight:1.5}}/>
+            )}
+          </div>
+        </div>
+
+        <div>
+          <div style={{fontSize:13, fontWeight:800, color:P.sageDeep, marginBottom:8}}>Hábitos recomendados ({inclCount} de {habitos.length} incluidos)</div>
+          <div style={{display:"flex", flexDirection:"column", gap:10}}>
+            {soloLectura ? habitosIncluidos.map((h, i) => (
+              <div key={i} style={{background:P.panelRaised, border:"1px solid "+P.line, borderRadius:14, padding:"12px 14px"}}>
+                <div style={{fontSize:13.5, fontWeight:800, color:P.ink, marginBottom:4}}>{h.titulo}</div>
+                <div style={{fontSize:13, color:P.muted, lineHeight:1.45}}>{h.texto}</div>
+              </div>
+            )) : habitos.map((h, i) => (
+              <div key={i} style={{background: h.incluido ? P.panelRaised : P.bg, border:"1px solid "+P.line, borderRadius:14, padding:"12px 14px", opacity:h.incluido?1:.55}}>
+                <div style={{display:"flex", alignItems:"flex-start", gap:10}}>
+                  <button onClick={()=>actualizarHabito(i,"incluido",!h.incluido)} title={h.incluido?"Excluir":"Incluir"}
+                    style={{flexShrink:0, marginTop:2, width:24, height:24, borderRadius:7, border:"1.5px solid "+(h.incluido?P.sage:P.line), background:h.incluido?P.sage:P.panelRaised, color:"#fff", cursor:"pointer", display:"grid", placeItems:"center"}}>
+                    {h.incluido && <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" width="13" height="13"><path d="M4 12l5 5L20 6"/></svg>}
+                  </button>
+                  <div style={{flex:1, minWidth:0, display:"flex", flexDirection:"column", gap:6}}>
+                    <input value={h.titulo} onChange={e=>actualizarHabito(i,"titulo",e.target.value)} placeholder="Título del hábito"
+                      style={{border:"1px solid "+P.line, borderRadius:9, padding:"7px 10px", fontSize:13.5, fontWeight:800, fontFamily:"'Nunito',sans-serif", color:P.ink, outline:"none"}}/>
+                    <textarea value={h.texto} onChange={e=>actualizarHabito(i,"texto",e.target.value)} rows={2} placeholder="Explicación para el padre/madre"
+                      style={{border:"1px solid "+P.line, borderRadius:9, padding:"7px 10px", fontSize:13, fontFamily:"'Nunito',sans-serif", color:P.ink, outline:"none", resize:"vertical", lineHeight:1.4}}/>
+                  </div>
+                </div>
+              </div>
+            ))}
+            {habitos.length === 0 && <p style={{fontSize:13, color:P.muted}}>No hay hábitos en el borrador — revisa el formulario completo arriba.</p>}
+          </div>
+        </div>
+
+        {accionError && <div style={{background:P.claySoft, border:"1px solid "+P.clay, borderRadius:12, padding:"10px 14px", fontSize:13, color:P.ink}}>{accionError}</div>}
+
+        {soloLectura ? (
+          <a href={"https://be360.app/plan/?id="+detalle.idPlan} target="_blank" rel="noopener noreferrer"
+            style={{...btnPrimary, alignSelf:"flex-start", textDecoration:"none", display:"inline-block"}}>Ver el plan del padre/madre →</a>
+        ) : (
+          <div style={{display:"flex", gap:10, flexWrap:"wrap"}}>
+            <button onClick={guardarCambios} disabled={guardando} style={{...btnGhost, opacity:guardando?.6:1}}>{guardando?"Guardando…":(guardadoOk?"✓ Guardado":"Guardar cambios")}</button>
+            {!confirmando ? (
+              <button onClick={()=>setConfirmando(true)} style={btnPrimary}>Aprobar y enviar →</button>
+            ) : (
+              <div style={{background:P.sageSoft, border:"1px solid "+P.sage, borderRadius:14, padding:"12px 16px", flex:1, minWidth:260}}>
+                <div style={{fontSize:13, color:P.sageDeep, marginBottom:10, lineHeight:1.5}}>¿Confirmas? Esto le manda un correo real a {detalle.nombrePadre || "el padre/madre"}{detalle.emailPadre?" ("+detalle.emailPadre+")":""} con el link del plan.</div>
+                <div style={{display:"flex", gap:8}}>
+                  <button onClick={aprobar} disabled={aprobando} style={{...btnPrimary, opacity:aprobando?.7:1}}>{aprobando?"Enviando…":"Sí, aprobar y enviar"}</button>
+                  <button onClick={()=>setConfirmando(false)} style={btnGhost}>Cancelar</button>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {!detalle.correoEnviadoTs && (
+          <div style={{borderTop:"1px solid "+P.line, paddingTop:14, marginTop:4}}>
+            {!confirmandoDescarte ? (
+              <span onClick={()=>setConfirmandoDescarte(true)} style={{fontSize:12.5, color:P.muted, textDecoration:"underline", cursor:"pointer"}}>Descartar este caso (prueba, duplicado, no aplica)</span>
+            ) : (
+              <div style={{background:P.claySoft, border:"1px solid "+P.clay, borderRadius:14, padding:"12px 16px"}}>
+                <div style={{fontSize:13, color:P.ink, marginBottom:10, lineHeight:1.5}}>¿Descartar el caso de {detalle.nombreNino || "este niño/a"}? Borra la fila del Sheet — no se puede deshacer.</div>
+                <div style={{display:"flex", gap:8}}>
+                  <button onClick={descartar} disabled={descartando} style={{background:P.clay, color:"#fff", border:"none", borderRadius:999, padding:"9px 18px", fontSize:13.5, fontWeight:700, cursor:"pointer", fontFamily:"'Nunito',sans-serif", opacity:descartando?.7:1}}>{descartando?"Descartando…":"Sí, descartar"}</button>
+                  <button onClick={()=>setConfirmandoDescarte(false)} style={btnGhost}>Cancelar</button>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+      </ShellDetalle>
+    );
+  }
+
+  return null;
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
+</script>
+</body>
+</html>
