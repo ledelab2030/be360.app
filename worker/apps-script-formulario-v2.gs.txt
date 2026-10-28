@@ -285,6 +285,15 @@ function doPost(e) {
     }
 
     if (body.action === "guardar_borrador") return guardarBorrador(sheet, body);
+    // NUEVO (28 oct 2026, pedido de Leonardo: regenerar los planes de Sofía y
+    // Joseph con el prompt ya corregido tras la revisión con Peter) — ver
+    // regenerarBorrador() más abajo, es guardarBorrador() pero por idPlan en
+    // vez de ts, y a propósito SIN el bloqueo de idempotencia: ese bloqueo
+    // existe para no pisar una aprobación por una llamada automática
+    // duplicada, pero acá SÍ queremos pisar el contenido — es el pedido
+    // explícito. La llama el Worker, nunca equipo/ directo (el Worker valida
+    // el panelSecret contra detalle_plan primero — ver /panel/regenerar).
+    if (body.action === "regenerar_borrador") return regenerarBorrador(sheet, body);
     if (body.action === "notificar_escalamiento") return notificarEscalamiento(sheet, body);
     // NUEVO (27 oct 2026, pedido de Leonardo): guarda el chat completo de
     // seguimiento — ver guardarMensajesChat() y la nota junto a ella.
@@ -580,6 +589,30 @@ function guardarBorrador(sheet, body) {
     }
   }
   return respond({ ok: false, error: "no se encontró la fila con ese ts" }, 404);
+}
+
+// Sobrescribe el borrador de un caso que YA EXISTE (idPlan conocido) con un
+// contenido recién regenerado — a diferencia de guardarBorrador() (que se
+// niega a pisar un idPlan existente, a propósito, para que un reintento
+// automático nunca borre una aprobación), esta acción SÍ pisa el contenido:
+// es un pedido explícito del equipo, no un reintento accidental. SIEMPRE
+// vuelve decision a "pendiente_aprobacion", incluso si el caso ya estaba
+// "aprobado" — el contenido nuevo tiene que pasar otra vez por la revisión
+// de Peter antes de llegar a la familia, igual que cualquier borrador nuevo
+// (regla dura del proyecto: HITL obligatorio). No toca correo_enviado_ts ni
+// verificacion_ts — son historial de lo que ya pasó, no se borran.
+function regenerarBorrador(sheet, body) {
+  var idPlan = body.idPlan;
+  if (!idPlan) return respond({ ok: false, error: "idPlan faltante" }, 400);
+  var found = encontrarFilaPorIdPlan(sheet, idPlan);
+  if (!found) return respond({ ok: false, error: "no encontrado" }, 404);
+  var row = found.row;
+  sheet.getRange(row, COLS.plan_json + 1).setValue(JSON.stringify(body.plan || {}));
+  sheet.getRange(row, COLS.decision + 1).setValue("pendiente_aprobacion");
+  sheet.getRange(row, COLS.borrador_texto + 1).setValue(body.mensaje || "");
+  sheet.getRange(row, COLS.estado + 1).setValue("borrador_listo");
+  SpreadsheetApp.flush();
+  return respond({ ok: true, idPlan: idPlan, row: row });
 }
 
 // Chat de seguimiento (plan/index.html) — cuando el bot detecta algo que hay
