@@ -761,6 +761,14 @@ Esto es distinto de la decisión ya tomada a propósito de dejar el correo a las
 
 **Verificación:** sintaxis validada con `@babel/preset-react` sobre el JSX extraído del archivo.
 
+### 28 oct 2026 — El cierre del plan repetía el checklist de hábitos como lista numerada (encontrado por Leonardo comparando dos casos reales) + Progreso pasa a ser la primera pestaña
+
+**Checklist redundante en el cierre:** Leonardo notó que el plan de un caso terminaba con una lista numerada que repetía, palabra por palabra, los mismos 3 hábitos que ya se muestran aparte como tarjetas (en la pestaña Hoy de `app/` y en "Hábitos recomendados" del panel del equipo) — mientras que otro caso real terminaba, como debía, con la agenda por momento del día ("Hábitos y ventana nutricional propuesta", mismo formato de viñetas del resumen cronológico). El punto 4 de BLOQUE 2 en `SRB_DRAFT_PROMPT` ya pedía ese formato de agenda, pero no prohibía explícitamente la alternativa — el modelo a veces cierra con el resumen por hábito en su lugar, no es la primera vez que pasa. Se agregó una prohibición explícita, con el caso real como ejemplo (sin nombre, por la convención de este repo). **No está resuelto para el caso ya aprobado que todavía tiene el checklist viejo** — ese texto ya quedó guardado en el Sheet antes de este cambio, y el prompt no reescribe casos existentes; queda pendiente decidir cómo limpiarlo (ver CLAUDE.md / conversación).
+
+**Progreso primera pestaña** (pedido de Leonardo — "se ve atractivo como inicio"): el orden de `TABS` en `app/` cambia a Progreso / Hoy / Mi plan / Vita / Seguimiento, y el estado inicial de la pestaña pasa de `"hoy"` a `"progreso"`.
+
+**Verificación:** `node --check` sobre `vita-proxy.js`; sintaxis de `app/index.html` validada con `@babel/preset-react`; probado en local contra el caso real de Samuel — Progreso carga de primera, con las 4 etapas en orden correcto. El cambio del prompt no se puede probar sin generar un borrador nuevo real (no se forzó una generación de prueba en este cambio).
+
 ---
 
 ---

@@ -245,13 +245,14 @@ function descargarPdf(nombreNino, mensaje, habitos) {
   doc.save("plan-" + (nombreNino || "bienestar360").trim().replace(/\s+/g, "-").toLowerCase() + ".pdf");
 }
 
-// ---- Nav de 4 pestañas (Hoy / Mi plan / Vita / Seguimiento) ----
+// ---- Nav de 5 pestañas — Progreso de primera (28 oct 2026, pedido de
+// Leonardo: "se ve atractivo como inicio") ----
 const TABS = [
+  { id:"progreso", label:"Progreso", icon:"◆" },
   { id:"hoy", label:"Hoy", icon:"●" },
   { id:"plan", label:"Mi plan", icon:"▦" },
   { id:"vita", label:"Vita", icon:"◐" },
   { id:"seguimiento", label:"Seguimiento", icon:"▲" },
-  { id:"progreso", label:"Progreso", icon:"◆" },
 ];
 
 // Progreso v1 (28 oct 2026, pedido de Leonardo) — línea de etapas armada
@@ -301,7 +302,7 @@ const SidebarDesktop = ({ tab, onTab }) => (
 
 function App() {
   const [stage, setStage] = useState("cargando"); // cargando | ok | no_disponible
-  const [tab, setTab] = useState("hoy");
+  const [tab, setTab] = useState("progreso");
   const [data, setData] = useState(null);
   const [retosOn, setRetosOn] = useState(false);
   const [retosLog, setRetosLog] = useState({});

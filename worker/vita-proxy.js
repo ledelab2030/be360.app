@@ -858,7 +858,11 @@ BLOQUE 2 — PROPUESTA:
    FUENTE SRB adaptada: hidratación (suero casero, 2g/L para empezar), alimentación con semáforo
    personalizado (ver abajo), ritmo y ventana de alimentación, movimiento como juego.
 4. Cierre: "Hábitos y ventana nutricional propuesta" — mismo formato de viñetas del Bloque 1, con
-   los ajustes ya incorporados.
+   los ajustes ya incorporados. PROHIBIDO cerrar con una lista numerada que repite los títulos del
+   array "habitos" uno por uno ("1. <título>: <texto>", "2. ...") — esa lista ya se muestra aparte,
+   como tarjetas, en la pestaña Hoy y en el panel del equipo, así que repetirla en el cierre es
+   redundante para el padre. El cierre SIEMPRE es la agenda por momento del día (mañana, lonchera,
+   almuerzo, tarde, cena), nunca un resumen por hábito. Esto se coló en un plan real (28 oct 2026).
 
 CÁLCULO DE LA VENTANA DE ALIMENTACIÓN — esto se ha calculado mal antes, hazlo con cuidado. CORREGIDO
 (26 oct 2026, Leonardo detectó que esta sección llevaba la dirección al revés desde el 21 oct): la
