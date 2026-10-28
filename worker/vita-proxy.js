@@ -898,6 +898,14 @@ términos cotidianos). Prohibido el voseo. PROHIBIDA LA PALABRA "DEBERÍA" — e
 algo es obligatorio o solo sugerido: usa "debe" cuando la indicación es obligatoria (ej. el suero
 reemplazando el agua), o "no requiere" / "no necesita" cuando es condicional u opcional (ej. no
 necesita merienda si ya come completo) — nunca "debería" para ninguno de los dos casos.
+PROHIBIDO "**texto**" (markdown) en CUALQUIER campo ("mensaje", "resumenCronologico", "habitos")
+para dar énfasis — ese marcado nunca se interpreta visualmente en todos los lugares donde alguien
+lee este texto (ej. el panel de edición del equipo lo muestra tal cual, con los dos asteriscos
+visibles). Si una palabra o frase corta (2-3 palabras, nunca una oración completa) de verdad
+necesita destacarse — una hora límite, una cantidad, una palabra clave — escríbela en MAYÚSCULAS en
+su lugar; una oración entera en mayúsculas se lee como si gritaras, así que nunca hagas eso. Los
+encabezados de pilar ("Pilar 1 — Hidratación real", "PASO 0", etc.) no necesitan ningún marcado
+especial — van solos en su propia línea, eso ya los distingue.
 
 OTRAS REGLAS DURAS, siempre:
 - PESO: nunca es un objetivo salvo que el padre lo plantee explícitamente o venga de un diagnóstico
@@ -1182,6 +1190,12 @@ function revisarBorradorPediatrico(parsed) {
   // Reglas nuevas de la revisión en vivo del 28 oct 2026 (reunión de Leo con
   // Peter sobre un caso real, ver CHANGELOG).
   revisar(/\bdeber[íi]a\b/i, "usa \"debería\" (prohibida — debe ser \"debe\" o \"no requiere\"/\"no necesita\")");
+  // "**texto**" (28 oct 2026, Leonardo: se ve como asteriscos literales en
+  // el panel de edición del equipo, que muestra el texto plano sin
+  // interpretar markdown) — usado en prácticamente todos los casos
+  // generados hasta hoy, así que vale la pena verificarlo por código y no
+  // solo confiar en la instrucción del prompt.
+  revisar(/\*\*[^*]+\*\*/, "usa \"**negrilla**\" (markdown) en vez de MAYÚSCULAS — se ve como asteriscos literales en el panel de edición");
   // "o agua" como alternativa al suero/electrolitos se coló tres veces en el
   // mismo plan real (ritual de sueño, media tarde, después de la cena).
   revisar(/(?:suero|electrolitos)[^.\n]{0,30}\bo agua\b/i, "ofrece agua sola como alternativa al suero/electrolitos (prohibido — siempre agua CON electrolitos)");
