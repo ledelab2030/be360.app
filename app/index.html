@@ -241,7 +241,26 @@ const TABS = [
   { id:"plan", label:"Mi plan", icon:"▦" },
   { id:"vita", label:"Vita", icon:"◐" },
   { id:"seguimiento", label:"Seguimiento", icon:"▲" },
+  { id:"progreso", label:"Progreso", icon:"◆" },
 ];
+
+// Progreso v1 (28 oct 2026, pedido de Leonardo) — línea de etapas armada
+// SOLO con datos que ya existen (nada de tracking nuevo todavía, ver
+// CHANGELOG para las etapas que sí necesitan algo nuevo: ajustes al plan,
+// hábito sostenido, logro — esas se muestran "Próximamente", no fingidas).
+function etapasProgreso(data, novedades, chatHistory) {
+  const etapas = [];
+  if (data.timestamp) etapas.push({ titulo:"Diagnóstico recibido", ts:data.timestamp, hecho:true });
+  if (data.correoEnviadoTs) etapas.push({ titulo:"Plan aprobado y enviado", ts:data.correoEnviadoTs, hecho:true });
+  if (chatHistory && chatHistory.length) etapas.push({ titulo:"Primera conversación con Vita", ts:chatHistory[0].ts, hecho:true });
+  if (novedades && novedades.length) {
+    etapas.push({ titulo: novedades.length === 1 ? "1 novedad compartida con el equipo" : novedades.length + " novedades compartidas con el equipo", ts: novedades[novedades.length-1].ts, hecho:true });
+  }
+  etapas.sort((a,b) => new Date(a.ts) - new Date(b.ts));
+  return etapas;
+}
+
+const ETAPAS_PROXIMAS = ["Ajustes al plan", "Hábito sostenido", "Logro"];
 
 const TabBarMobile = ({ tab, onTab }) => (
   <div className="tabbar-mobile" style={{position:"fixed", left:0, right:0, bottom:0, height:64, background:P.panelRaised, borderTop:"1px solid "+P.line, alignItems:"center", justifyContent:"space-around", zIndex:30, paddingBottom:4}}>
@@ -256,9 +275,10 @@ const TabBarMobile = ({ tab, onTab }) => (
 
 const SidebarDesktop = ({ tab, onTab }) => (
   <div className="sidebar-desktop" style={{width:172, flexShrink:0, flexDirection:"column", gap:4, position:"sticky", top:28}}>
-    <div style={{display:"flex", alignItems:"center", gap:8, padding:"4px 4px 14px"}}>
-      <div style={{fontSize:22}}>🌱</div>
-      <div style={{fontFamily:"-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif", fontSize:15, color:P.sageDeep, lineHeight:1.1}}>be360</div>
+    <div style={{padding:"4px 4px 18px"}}>
+      <div style={{fontFamily:"-apple-system, BlinkMacSystemFont, 'Helvetica Neue', Arial, sans-serif", fontWeight:800, fontSize:20, letterSpacing:"-0.02em"}}>
+        <span style={{color:"#0A1F44"}}>be</span><span style={{color:"#4A7045"}}>3</span><span style={{color:"#5D8AA8"}}>60</span>
+      </div>
     </div>
     {TABS.map(t => (
       <button key={t.id} onClick={()=>onTab(t.id)} style={{textAlign:"left", background: tab===t.id?P.sageSoft:"transparent", border:"none", borderRadius:12, padding:"10px 14px", fontSize:14, fontWeight: tab===t.id?800:700, color: tab===t.id?P.sageDeep:P.ink, cursor:"pointer", fontFamily:"-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif", width:"100%", display:"flex", alignItems:"center", gap:9}}>
@@ -610,6 +630,53 @@ function App() {
               )}
             </div>
           )}
+
+          {tab === "progreso" && (() => {
+            const etapas = etapasProgreso(data, novedades, data.chatHistory || []);
+            return (
+              <div className="rise" style={{display:"flex", flexDirection:"column", gap:22, maxWidth:440}}>
+                <div>
+                  <div style={{fontSize:11.5, fontWeight:800, letterSpacing:".09em", textTransform:"uppercase", color:P.sageDeep}}>Progreso</div>
+                  <h1 style={{fontFamily:"-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif", fontWeight:600, fontSize:"clamp(24px,6vw,28px)", lineHeight:1.15, margin:"4px 0 0", color:P.sageDeep}}>El camino hasta ahora</h1>
+                </div>
+
+                <div style={{display:"flex", flexDirection:"column"}}>
+                  {etapas.map((e, i) => (
+                    <div key={i} style={{display:"flex", gap:14}}>
+                      <div style={{display:"flex", flexDirection:"column", alignItems:"center", flexShrink:0}}>
+                        <div style={{width:14, height:14, borderRadius:"50%", background:P.sage, border:"3px solid "+P.panelRaised, boxShadow:"0 0 0 2px "+P.sage, marginTop:3}}/>
+                        {(i < etapas.length - 1 || ETAPAS_PROXIMAS.length) && <div style={{width:2, flex:1, background:P.line, minHeight:28}}/>}
+                      </div>
+                      <div style={{paddingBottom:20}}>
+                        <div style={{fontSize:14, fontWeight:800, color:P.ink}}>{e.titulo}</div>
+                        <div style={{fontSize:12, color:P.muted, marginTop:2}}>{relativeDate(e.ts)}</div>
+                      </div>
+                    </div>
+                  ))}
+                  {ETAPAS_PROXIMAS.map((titulo, i) => (
+                    <div key={"prox"+i} style={{display:"flex", gap:14}}>
+                      <div style={{display:"flex", flexDirection:"column", alignItems:"center", flexShrink:0}}>
+                        <div style={{width:14, height:14, borderRadius:"50%", background:P.panelRaised, border:"2px dashed "+P.line, marginTop:3}}/>
+                        {i < ETAPAS_PROXIMAS.length - 1 && <div style={{width:2, flex:1, background:P.line, minHeight:28, opacity:.5}}/>}
+                      </div>
+                      <div style={{paddingBottom:20}}>
+                        <div style={{fontSize:14, fontWeight:700, color:P.muted}}>{titulo}</div>
+                        <div style={{fontSize:12, color:P.muted, marginTop:2}}>Próximamente</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {etapas.length === 0 && (
+                  <div style={{textAlign:"center", padding:"50px 10px", color:P.muted, background:P.panel, border:"1px solid "+P.line, borderRadius:20}}>
+                    <div style={{fontSize:34, marginBottom:10}}>🌱</div>
+                    <div style={{fontFamily:"-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif", fontSize:17, color:P.sageDeep, marginBottom:8}}>Apenas empezando</div>
+                    <div style={{fontSize:13, maxWidth:280, margin:"0 auto", lineHeight:1.6}}>Las primeras etapas van a aparecer acá apenas tengan fecha.</div>
+                  </div>
+                )}
+              </div>
+            );
+          })()}
 
           {tab === "vita" && (
             <div className="rise" style={{display:"flex", flexDirection:"column", height:"calc(100vh - 28px)", background:P.panel, overflow:"hidden", border:"1px solid "+P.line, borderTopLeftRadius:26}}>

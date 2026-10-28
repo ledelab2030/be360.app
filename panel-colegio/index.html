@@ -5,8 +5,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
 <meta name="robots" content="noindex" />
 <title>Panel del colegio · Bienestar 360</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
 <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
 <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
 <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
@@ -44,15 +42,15 @@ const { useState, useEffect } = React;
 // ============================================================
 const WORKER_URL = "https://vita-proxy.leonardo-751.workers.dev";
 
-const P = { bg:"#ECE5D8", panel:"#FBF8F1", panelRaised:"#FFFFFF", ink:"#2C2A24", sage:"#5A7A5C", sageDeep:"#3E5A40", sageSoft:"#DCE7D6", clay:"#B5764A", claySoft:"#F0DFCB", line:"#D8CFBE", muted:"#8A8473" };
+const P = { bg:"#FAFAFA", panel:"#F4F6F8", panelRaised:"#FFFFFF", ink:"#1A1A1A", sage:"#4A7045", sageDeep:"#0A1F44", sageSoft:"#E9F1F8", clay:"#B5764A", claySoft:"#F0DFCB", line:"#E7E9EC", muted:"#6B6B6B" };
 
 const Shell = (props) => (
-  <div style={{minHeight:"100vh", background:P.bg, fontFamily:"'Nunito',sans-serif", color:P.ink, display:"flex", justifyContent:"center", padding:"28px 14px 56px"}}>
+  <div style={{minHeight:"100vh", background:P.bg, fontFamily:"-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif", color:P.ink, display:"flex", justifyContent:"center", padding:"28px 14px 56px"}}>
     <div style={{width:"100%", maxWidth:560, display:"flex", flexDirection:"column", gap:18}}>{props.children}</div>
   </div>
 );
 
-const btnPrimary = {background:P.sage,color:"#fff",border:"none",borderRadius:999,padding:"12px 24px",fontSize:14.5,fontWeight:800,fontFamily:"'Nunito',sans-serif",cursor:"pointer",boxShadow:"0 6px 18px rgba(90,122,92,.30)"};
+const btnPrimary = {background:P.sage,color:"#fff",border:"none",borderRadius:999,padding:"12px 24px",fontSize:14.5,fontWeight:800,fontFamily:"-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif",cursor:"pointer",boxShadow:"0 6px 18px rgba(74,112,69,.30)"};
 
 const EDAD_LABELS = { "2-5":"2 a 5 años", "6-9":"6 a 9 años", "10-13":"10 a 13 años", "14-17":"14 a 17 años", "18-20":"18 a 20 años", sin_dato:"Sin dato" };
 const MES_LABELS = ["ene","feb","mar","abr","may","jun","jul","ago","sep","oct","nov","dic"];
@@ -129,7 +127,7 @@ function App() {
       <Shell>
         <div style={{background:P.panel, border:"1px solid "+P.line, borderRadius:20, padding:"32px 26px", textAlign:"center"}}>
           <div style={{fontSize:36, marginBottom:10}}>🌱</div>
-          <div style={{fontFamily:"'Fraunces',serif", fontSize:20, color:P.sageDeep, marginBottom:10}}>Falta el código de colegio</div>
+          <div style={{fontFamily:"-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif", fontSize:20, color:P.sageDeep, marginBottom:10}}>Falta el código de colegio</div>
           <p style={{fontSize:13.5, color:P.muted, lineHeight:1.6}}>Este link debe incluir tu colegio (ej. termina en <code>?colegio=BIS2026</code>). Si no lo tienes, escríbenos.</p>
         </div>
       </Shell>
@@ -141,13 +139,13 @@ function App() {
     <Shell>
       <div style={{background:P.panel, border:"1px solid "+P.line, borderRadius:20, padding:"32px 26px", textAlign:"center"}}>
         <div style={{fontSize:36, marginBottom:10}}>🌱</div>
-        <div style={{fontFamily:"'Fraunces',serif", fontSize:22, color:P.sageDeep, marginBottom:10}}>Panel del colegio</div>
+        <div style={{fontFamily:"-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif", fontSize:22, color:P.sageDeep, marginBottom:10}}>Panel del colegio</div>
         <p style={{fontSize:13.5, color:P.ink, lineHeight:1.6, textAlign:"left", marginBottom:8}}>Acá ves el progreso de Bienestar 360 en tu comunidad — familias inscritas, cuántas ya tienen su plan, y su evolución en el tiempo.</p>
         <p style={{fontSize:12.5, color:P.muted, lineHeight:1.6, textAlign:"left", marginBottom:8}}>Todo lo que ves acá es agregado del colegio completo — nunca el caso de un niño/a en particular, ni siquiera si eres también padre/madre de una familia inscrita.</p>
         <p style={{fontSize:12.5, color:P.muted, lineHeight:1.6, textAlign:"left", marginBottom:20}}>El PIN es solo para ti (o quien más tenga acceso autorizado en tu colegio).</p>
         <div style={{position:"relative", width:"100%", maxWidth:220, margin:"0 auto 14px"}}>
           <input type={verPin?"text":"password"} value={pinInput} onChange={e=>setPinInput(e.target.value)} onKeyDown={e=>{if(e.key==="Enter") entrarConPin();}} placeholder="PIN"
-            style={{width:"100%", textAlign:"center", fontSize:16, padding:"11px 40px 11px 14px", border:"1px solid "+P.line, borderRadius:12, fontFamily:"'Nunito',sans-serif", outline:"none"}} autoFocus/>
+            style={{width:"100%", textAlign:"center", fontSize:16, padding:"11px 40px 11px 14px", border:"1px solid "+P.line, borderRadius:12, fontFamily:"-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif", outline:"none"}} autoFocus/>
           <button type="button" onClick={()=>setVerPin(v=>!v)} title={verPin?"Ocultar PIN":"Ver PIN"}
             style={{position:"absolute", right:6, top:"50%", transform:"translateY(-50%)", background:"none", border:"none", color:P.muted, cursor:"pointer", fontSize:16, padding:6, lineHeight:1}}>
             {verPin ? "🙈" : "👁"}
@@ -173,7 +171,7 @@ function App() {
       <div style={{display:"flex", justifyContent:"space-between", alignItems:"flex-start"}}>
         <div>
           <div style={{fontSize:11.5, fontWeight:800, letterSpacing:".09em", textTransform:"uppercase", color:P.sageDeep}}>Panel del colegio</div>
-          <h1 style={{fontFamily:"'Fraunces',serif", fontWeight:600, fontSize:"clamp(24px,6vw,30px)", margin:"4px 0 0", color:P.sageDeep}}>{colegio}</h1>
+          <h1 style={{fontFamily:"-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif", fontWeight:600, fontSize:"clamp(24px,6vw,30px)", margin:"4px 0 0", color:P.sageDeep}}>{colegio}</h1>
         </div>
         <span onClick={salir} style={{fontSize:12.5, color:P.muted, textDecoration:"underline", cursor:"pointer", flexShrink:0, marginTop:6}}>Salir</span>
       </div>
@@ -187,7 +185,7 @@ function App() {
       {!error && (
         <React.Fragment>
           <div style={{background:P.sageSoft, borderRadius:18, padding:"20px 22px", textAlign:"center"}}>
-            <div style={{fontFamily:"'Fraunces',serif", fontSize:44, fontWeight:600, color:P.sageDeep, lineHeight:1}}>{r.total ?? 0}</div>
+            <div style={{fontFamily:"-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif", fontSize:44, fontWeight:600, color:P.sageDeep, lineHeight:1}}>{r.total ?? 0}</div>
             <div style={{fontSize:12.5, fontWeight:700, color:P.sageDeep, marginTop:6, textTransform:"uppercase", letterSpacing:".04em"}}>Familias inscritas y verificadas</div>
           </div>
 
@@ -199,11 +197,11 @@ function App() {
             <React.Fragment>
               <div style={{display:"grid", gridTemplateColumns:"1fr 1fr", gap:12}}>
                 <div style={{background:P.panel, border:"1px solid "+P.line, borderRadius:16, padding:"16px 18px", textAlign:"center"}}>
-                  <div style={{fontFamily:"'Fraunces',serif", fontSize:28, fontWeight:600, color:P.sageDeep}}>{r.aprobados ?? 0}</div>
+                  <div style={{fontFamily:"-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif", fontSize:28, fontWeight:600, color:P.sageDeep}}>{r.aprobados ?? 0}</div>
                   <div style={{fontSize:12, color:P.muted, marginTop:4}}>Con plan ya entregado</div>
                 </div>
                 <div style={{background:P.panel, border:"1px solid "+P.line, borderRadius:16, padding:"16px 18px", textAlign:"center"}}>
-                  <div style={{fontFamily:"'Fraunces',serif", fontSize:28, fontWeight:600, color:P.sageDeep}}>{r.enProceso ?? 0}</div>
+                  <div style={{fontFamily:"-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif", fontSize:28, fontWeight:600, color:P.sageDeep}}>{r.enProceso ?? 0}</div>
                   <div style={{fontSize:12, color:P.muted, marginTop:4}}>En proceso</div>
                 </div>
               </div>

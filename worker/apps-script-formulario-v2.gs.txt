@@ -255,6 +255,9 @@ function doPost(e) {
     // equipo/index.html): lista de solo lectura de quién tiene acceso hoy.
     // No recibe "sheet" — vive en su propia pestaña, no en la de casos.
     if (body.action === "listar_equipo") return conPanelSecret(body, function () { return listarEquipo(); });
+    // NUEVO (28 oct 2026, pedido de Leonardo): borra el chat completo de un
+    // caso — limpieza de mensajes de prueba, ver limpiarChat().
+    if (body.action === "limpiar_chat") return conPanelSecret(body, function () { return limpiarChat(sheet, body); });
     // NUEVO (28 oct 2026, pedido de Leonardo — "evitar fricción en las
     // validaciones que siguen": login real por persona en equipo/index.html,
     // en vez de un PIN único compartido, SIN montar un sistema de auth
@@ -638,6 +641,24 @@ function guardarMensajesChat(sheet, body) {
   return respond({ ok: true });
 }
 
+// Borra el chat COMPLETO de un caso (28 oct 2026, pedido de Leonardo —
+// limpiar mensajes de prueba de un caso real, en este caso el de Samuel).
+// A diferencia de guardar_mensaje_chat (SHARED_SECRET, la dispara la app de
+// la familia), ESTA sí es una acción de panel — borrar todo el historial es
+// una acción administrativa, no algo que la familia pueda disparar. Vacía
+// chat_json a "[]"; no hay forma de deshacerlo, por eso solo vive detrás de
+// PANEL_SECRET y no tiene botón en ningún panel todavía — se llama a mano
+// cuando hace falta, igual que se hizo hoy.
+function limpiarChat(sheet, body) {
+  var idPlan = body.idPlan;
+  if (!idPlan) return respond({ ok: false, error: "idPlan faltante" }, 400);
+  var found = encontrarFilaPorIdPlan(sheet, idPlan);
+  if (!found) return respond({ ok: false, error: "no encontrado" }, 404);
+  sheet.getRange(found.row, COLS.chat_json + 1).setValue("[]");
+  SpreadsheetApp.flush();
+  return respond({ ok: true });
+}
+
 // Agrega una entrada al historial de novedades del caso (nunca sobreescribe
 // las anteriores). Ver detallePlan() para cómo el panel las lee de vuelta.
 function registrarNovedad(sheet, idPlan, motivo, resumen) {
@@ -737,6 +758,10 @@ function doGet(e) {
         try { novedades = JSON.parse(data[r][COLS.novedades_json] || "[]"); } catch (ex) {}
         var chatHistory = [];
         try { chatHistory = JSON.parse(data[r][COLS.chat_json] || "[]"); } catch (ex) {}
+        // NUEVO (28 oct 2026, pedido de Leonardo — Progreso v1, línea de
+        // etapas): fechas que ya existían en el Sheet, nunca expuestas antes
+        // en /plan — el padre ya las conoce (cuándo llenó el formulario,
+        // cuándo le llegó el correo de aprobación), no es dato nuevo.
         return respond({
           ok: true,
           nombreNino: data[r][COLS.nombre_nino],
@@ -744,6 +769,8 @@ function doGet(e) {
           plan: plan,
           novedades: novedades,
           chatHistory: chatHistory,
+          timestamp: data[r][COLS.timestamp] || "",
+          correoEnviadoTs: data[r][COLS.correo_enviado_ts] || "",
         });
       }
     }
