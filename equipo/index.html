@@ -756,7 +756,7 @@ function App() {
         {accionError && <div style={{background:P.claySoft, border:"1px solid "+P.clay, borderRadius:12, padding:"10px 14px", fontSize:13, color:P.ink}}>{accionError}</div>}
 
         {soloLectura ? (
-          <a href={"https://be360.app/plan/?id="+detalle.idPlan} target="_blank" rel="noopener noreferrer"
+          <a href={"https://be360.app/app/?id="+detalle.idPlan} target="_blank" rel="noopener noreferrer"
             style={{...btnPrimary, alignSelf:"flex-start", textDecoration:"none", display:"inline-block"}}>Ver el plan del padre/madre →</a>
         ) : (
           <div style={{display:"flex", gap:10, flexWrap:"wrap"}}>

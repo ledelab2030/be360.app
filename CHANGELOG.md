@@ -743,6 +743,16 @@ La conversación se fue afinando hasta un texto final, en varias rondas:
 
 **Verificación:** `node --check` sobre Apps Script y `vita-proxy.js` — sintaxis válida; `app/`, `equipo/` y `panel-colegio/` verificados vía Babel en navegador local, sin errores; Progreso v1 probado contra el caso real de Samuel en local (mostró la novedad real y la primera conversación, ordenadas correctamente — las etapas de fecha de aprobación/diagnóstico no aparecieron porque el backend de este cambio todavía no estaba desplegado en ese momento, comportamiento esperado). Pendiente: desplegar Apps Script, confirmar Progreso completo contra producción, y llamar `limpiar_chat` sobre el caso de Samuel.
 
+### 28 oct 2026 — `equipo/` seguía enlazando al padre/madre a `plan/` (la versión vieja), no a `app/` (reportado por Leonardo con capturas)
+
+Leonardo entró a un caso aprobado en `equipo/` y siguió el botón "Ver el plan del padre/madre →" — lo llevó a `plan/?id=...`, la página de una sola pantalla sin persistencia de chat. Desde ahí, el botón de "chatear con Vita" lleva al chat viejo, que no guarda historial — a diferencia de la pestaña Vita fija de `app/` (de ayer), que sí lo guarda en `chat_json`. El botón de `equipo/` nunca se actualizó cuando se construyó `app/`.
+
+Esto es distinto de la decisión ya tomada a propósito de dejar el correo a las familias apuntando a `plan/?id=...` (para no romper enlaces ya mandados, ver entrada del 27 oct). El botón interno de `equipo/` no tiene esa restricción — es solo para que el equipo revise, no un enlace ya enviado — así que se cambia a `app/?id=...`.
+
+**Cambio:** una línea en `equipo/index.html`, el `href` del botón "Ver el plan del padre/madre →" pasa de `https://be360.app/plan/?id=` a `https://be360.app/app/?id=`.
+
+**Verificación:** sintaxis validada con `@babel/preset-react` sobre el JSX extraído del archivo.
+
 ---
 
 ---
