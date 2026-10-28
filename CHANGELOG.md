@@ -779,6 +779,30 @@ Se agregó una regla nueva a `revisarBorradorPediatrico()` (la misma función qu
 
 **Pendiente, explícitamente fuera de este cambio:** (1) limpiar el texto ya guardado del caso que generó este hallazgo — la verificación nueva no reescribe lo que ya existe; (2) una revisión más profunda del prompt completo (`SRB_DRAFT_PROMPT` + `ADAPTACIONES_PEDIATRICAS`), pedida por Leonardo el mismo día, para reducir duplicación (la regla de la ventana de alimentación está descrita dos veces, con distinto nivel de detalle, en los dos bloques) y separar la narrativa histórica ("encontrado en vivo el...") de la instrucción que de verdad necesita leer el modelo — evaluada pero no ejecutada todavía, a la espera de confirmación por el riesgo de tocar un prompt en producción sin ambiente de pruebas.
 
+### 28 oct 2026 — Ajustes al prompt pediátrico tras revisión en vivo de un caso real con Peter
+
+Leonardo revisó con Peter, frase por frase, un caso real completo (transcripción en Google Docs) — la primera revisión de ese nivel de detalle desde que el SRB pediátrico se promovió a producción. Encontraron varios problemas reales en el borrador, todos corregidos en esta entrada:
+
+- **Suero casero debe ser obligatorio, no opcional** — el prompt a veces lo redactaba como "puede tomarse en vez del agua". Frase de referencia fijada en `ADAPTACIONES_PEDIATRICAS`.
+- **"O agua" como alternativa al suero/electrolitos, prohibido** — apareció tres veces en el mismo plan real (ritual de sueño, media tarde, después de la cena). Regla nueva + verificación por código.
+- **Pasta/pan: el color depende del TRIGO como ingrediente, no de la categoría de alimento** — pasta/pan de trigo es rojo; de arroz, quinua o lentejas es amarillo. El borrador decía "pasta" sin especificar.
+- **Papa confirmada amarillo** (cocida, de acompañante — distinta de la papa cruda, que sigue roja por la regla de verduras).
+- **Corrección clínica: la bilis responde a la grasa, no a la proteína sola.** El borrador decía "proteína de calidad" produce ácido clorhídrico y bilis — la FUENTE SRB en realidad lo atribuye a la CARNE (proteína + grasa juntas). El pilar de alimentación se titula ahora siempre "Proteína y grasa, siempre" (no "Proteína primero").
+- **El semáforo siempre va dentro del Pilar de alimentación**, nunca como bloque aparte — se coló separado en el caso real revisado, aunque en los dos casos anteriores había salido bien.
+- **Cuando el formulario reporta variantes para una misma comida** (ej. a veces huevo, a veces batido de proteína), el plan debe elegir una sola opción consistente — el borrador las mezcló en una frase incoherente ("huevos... más proteína de acompañante").
+- **Prohibida la palabra "debería"** (pedido explícito de Leonardo en la reunión) — usar "debe" (obligatorio) o "no requiere"/"no necesita" (opcional). Verificación por código agregada.
+- **Ventana de alimentación más corta el fin de semana** — nuance nueva: la ventana calculada es para días de colegio; el fin de semana, con desayuno más tarde y la misma hora de cena, la ventana queda más corta. Sin nombrar el mecanismo clínico al padre (sigue siendo palabra prohibida).
+- **Movimiento: nunca inventar condiciones no reportadas por el formulario** — el borrador inventó "si hay días en que el colegio queda cerca, seguir caminando suma", sin ningún dato detrás.
+- **La frase de escalamiento al equipo ("el equipo lo va a conversar contigo directamente") es solo para los 3 triggers ya definidos** (trastorno alimentario, salud mental grave, algo médico agudo) — se usó para el ritual de sueño, que no es ninguno de los tres. Verificación por código: cada vez que aparece, se marca para que el equipo confirme a mano que el trigger es real, nunca se asume automáticamente que está bien o mal.
+- **Un nombre de otra persona apareció en el plan** ("Nelly", dirigiéndose a la mamá por su nombre a mitad de una frase) — investigado y descartado como fuga de datos (no está en ningún lugar del código); Leonardo confirmó que es el nombre real de la mamá, legítimo en el formulario. El problema no era el nombre — era la frase de escalamiento mal aplicada (punto anterior); con esa frase restringida a sus tres triggers reales, esta combinación no debería volver a aparecer.
+- **Defensivo, por si "Hábitos recomendados" se refería a otra cosa:** se agregó detección de ese encabezado literal dentro del `mensaje` (además del checklist numerado de la entrada anterior) — ese texto es exclusivo de las tarjetas de `equipo/`/`app/`, nunca debería aparecer narrado.
+
+**Fuera de alcance de este cambio, explícitamente pospuesto por Peter** ("habrá que testear" / "hay que evaluar"): semáforo en formato más conciso tipo listado; PDF vs. forzar entrada a la app; que Vita aprenda preguntas frecuentes para reducir escalamientos — visión de producto, no un cambio de prompt.
+
+**Pedido de frontend, no de prompt, todavía sin construir:** glosario con tooltip para términos técnicos (ventana de alimentación, flora intestinal) que no saque al padre de la lectura; botón al final del plan invitando a preguntarle a Vita sobre terminología o dudas.
+
+**Verificación:** `node --check` sobre `vita-proxy.js`; cada regex nueva (`debería`, "o agua", "Hábitos recomendados", frase de escalamiento) probada contra el `mensaje` real de los dos casos de referencia (Sofía, Samuel) — cero falsos positivos — y contra fragmentos reconstruidos de los problemas reales descritos en la reunión, confirmando que sí detectan lo que deben. El cambio de contenido del prompt (trigo, proteína y grasa, ventana de fin de semana, etc.) no se puede probar sin generar un borrador nuevo real.
+
 ---
 
 ---
