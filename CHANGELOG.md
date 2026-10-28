@@ -751,6 +751,16 @@ Arreglo: `renderRich` ahora parte el texto por línea y, cuando una línea es so
 
 **Verificación:** sintaxis validada con `@babel/preset-react` sobre el bloque JSX extraído de ambos archivos; render visual confirmado en una página de prueba aislada en local con un mensaje de ejemplo que incluye el separador — la línea ahora se ve como un divisor limpio dentro del borde de la tarjeta, no sobresale.
 
+### 28 oct 2026 — `equipo/` seguía enlazando al padre/madre a `plan/` (la versión vieja), no a `app/` (reportado por Leonardo con capturas)
+
+Leonardo entró a un caso aprobado en `equipo/` y siguió el botón "Ver el plan del padre/madre →" — lo llevó a `plan/?id=...`, la página de una sola pantalla sin persistencia de chat. Desde ahí, el botón de "chatear con Vita" lleva al chat viejo, que no guarda historial — a diferencia de la pestaña Vita fija de `app/` (de ayer), que sí lo guarda en `chat_json`. El botón de `equipo/` nunca se actualizó cuando se construyó `app/`.
+
+Esto es distinto de la decisión ya tomada a propósito de dejar el correo a las familias apuntando a `plan/?id=...` (para no romper enlaces ya mandados, ver entrada del 27 oct). El botón interno de `equipo/` no tiene esa restricción — es solo para que el equipo revise, no un enlace ya enviado — así que se cambia a `app/?id=...`.
+
+**Cambio:** una línea en `equipo/index.html`, el `href` del botón "Ver el plan del padre/madre →" pasa de `https://be360.app/plan/?id=` a `https://be360.app/app/?id=`.
+
+**Verificación:** sintaxis validada con `@babel/preset-react` sobre el JSX extraído del archivo.
+
 ---
 
 ---
