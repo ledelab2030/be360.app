@@ -660,7 +660,28 @@ Después de ver la pestaña Progreso vacía ("Próximamente"), Leonardo pregunt�
 
 **Nota de privacidad, no bloqueante:** esto cambia el chat de "vive solo en la pestaña abierta, se pierde al cerrar" a "se guarda en el Sheet". Vale la pena que la pantalla de consentimiento lo refleje en algún momento — no se tocó hoy, Leonardo decide cuándo.
 
-**Verificación:** `node --check` sobre una copia temporal `.js` del Apps Script — sintaxis válida; `node --check` sobre `vita-proxy.js` — sintaxis válida; `app/index.html` verificado vía Babel en navegador local, sin errores nuevos (Progreso cae correctamente al estado vacío mientras el backend no esté desplegado). Pendiente: Leonardo pega el Apps Script, se confirma un turno de chat guardándose y recuperándose, y una novedad real apareciendo en Progreso.
+**Verificación:** `node --check` sobre una copia temporal `.js` del Apps Script — sintaxis válida; `node --check` sobre `vita-proxy.js` — sintaxis válida; `app/index.html` verificado vía Babel en navegador local, sin errores nuevos (Progreso cae correctamente al estado vacío mientras el backend no esté desplegado). **Confirmado en producción después del pegado manual:** un turno real de chat se guardó y se recuperó correctamente al recargar — la pestaña Vita cargó la conversación anterior sin duplicar el saludo (un primer intento sí duplicó un saludo, en la ventana de propagación justo después del redeploy de Apps Script — no se repitió en pruebas siguientes, se interpreta como un hipo transitorio, no un bug del código).
+
+### 28 oct 2026 — Login por persona en `equipo/`: evitar fricción antes de las próximas validaciones (pedido de Leonardo)
+
+Leonardo preguntó si debería haber una página de bienvenida minimalista, para equipo y para familias, con login, que lleve al panel o al flujo correspondiente — "cómo funciona propiamente una suite". Para familias el tradeoff es real (login le mete fricción justo al momento que más importa — un padre abriendo esto por primera vez); para el equipo no, porque ya hay una pantalla de entrada (`equipo/`) y ya existe el roster de la pestaña "Equipo". Decisión: empezar por el equipo, para no meterle fricción a las validaciones con familias que siguen.
+
+**Qué NO se construyó, a propósito:** ni un sistema de auth nuevo (contraseñas, reseteo, sesiones con expiración) ni una página de login separada. Se reusa exactamente lo que ya existía — el PIN único (`PANEL_SECRET`) sigue funcionando igual que siempre, y la pestaña "Equipo" (Nombre/Rol/Correo/Notas) gana una 5ª columna, **PIN**, que Leonardo llena a mano — mismo criterio que el resto de esa pestaña: lista de referencia simple, sin acción de panel para asignarlos.
+
+**Cambios en `worker/apps-script-formulario-v2.gs.txt`:**
+- `conPanelSecret()` ya no compara contra un solo `PANEL_SECRET` — ahora llama a `pinEsValido(pin)`, que acepta el PIN maestro **o** cualquier PIN personal de la columna E de "Equipo". Un solo punto de cambio, las 9 acciones de panel que ya existían (incluida `listar_equipo`) siguen funcionando sin tocarlas.
+- Nueva acción `login_equipo` → `loginEquipo(body)` — prueba un PIN candidato y dice **de quién es** (nombre + rol), para que el frontend salude por nombre. A propósito NO lleva `conPanelSecret`: validar la credencial es su propio trabajo, pedirla de antemano sería circular. El PIN maestro se acepta igual (nadie queda bloqueado) pero sin nombre asociado.
+- `listarEquipo()` sigue sin exponer la columna PIN — nunca se devuelve en la lista, solo se usa para comparar.
+
+**Cambios en `worker/vita-proxy.js`:** nueva ruta `/panel/login` → `handlePanelAction(..., "login_equipo")`, mismo passthrough genérico de siempre.
+
+**Cambios en `equipo/index.html`:** la pantalla de entrada (que ya era, en los hechos, el "landing minimalista que lleva al panel" de la pregunta de Leonardo) prueba el PIN contra `/panel/login` en vez de contra una acción cualquiera; si lo reconoce, guarda el nombre/rol en `localStorage` (keys nuevas, separadas de la del PIN) y saluda "Hola, {nombre}" en el rail de escritorio y en el cajón móvil. `panel/index.html` **no se tocó** — Peter sigue entrando exactamente igual que siempre, y de hecho su PIN compartido ahora también funcionaría en `equipo/` sin ningún cambio adicional (y viceversa: un PIN personal nuevo también entraría en `panel/`, aunque ahí no se le muestre el nombre).
+
+**Un solo despliegue… con una excepción:** el Worker no cambia su forma de desplegarse (`wrangler deploy`), pero como siempre que se toca Apps Script, hace falta el pegado manual — hasta entonces, `pinEsValido()` sigue viendo solo el PIN maestro (la columna PIN del Sheet no se consulta), así que los PINes personales fallan con el mismo "PIN incorrecto" de siempre — no es un bug, es el mismo patrón de "mitad nueva, mitad vieja" ya documentado.
+
+**Pendiente de Leonardo, fuera de código:** agregar la columna "PIN" (encabezado + valores) a la pestaña "Equipo" del Sheet, para Leonardo y Peter — sin eso, el login personal no tiene con qué comparar y solo el PIN maestro funciona.
+
+**Verificación:** `node --check` sobre Apps Script y `vita-proxy.js` — sintaxis válida; `equipo/index.html` verificado vía Babel en navegador local, sin errores. Pendiente: confirmar un login personal real contra producción después de que Leonardo llene la columna PIN y pegue el Apps Script.
 
 ---
 

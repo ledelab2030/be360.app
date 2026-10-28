@@ -59,6 +59,10 @@ const { useState, useEffect } = React;
 // ============================================================
 const WORKER_URL = "https://vita-proxy.leonardo-751.workers.dev";
 const PIN_KEY = "be360_panel_pin"; // mismo key que panel/index.html: un PIN sirve para los dos, mismo dominio.
+// Nombre/rol de quién entró (28 oct 2026, login por persona) — solo para
+// saludar; la autorización real sigue siendo el PIN de PIN_KEY.
+const NOMBRE_KEY = "be360_equipo_nombre";
+const ROL_KEY = "be360_equipo_rol";
 
 const P = { bg:"#ECE5D8", panel:"#FBF8F1", panelRaised:"#FFFFFF", ink:"#2C2A24", sage:"#5A7A5C", sageDeep:"#3E5A40", sageSoft:"#DCE7D6", clay:"#B5764A", claySoft:"#F0DFCB", line:"#D8CFBE", muted:"#8A8473" };
 
@@ -127,7 +131,7 @@ const NavItems = ({ seccion, onSeccion, pendientesCount, historialCount }) => (
 
 // Rail fijo en escritorio (>860px) — igual de ancho y posición que
 // panel/index.html, solo con más ítems.
-const SidebarDesktop = ({ seccion, onSeccion, pendientesCount, historialCount, onSalir }) => (
+const SidebarDesktop = ({ seccion, onSeccion, pendientesCount, historialCount, onSalir, nombrePersona }) => (
   <div className="sidebar-desktop" style={{width:172, flexShrink:0, flexDirection:"column", gap:4, position:"sticky", top:28}}>
     <div style={{display:"flex", alignItems:"center", gap:8, padding:"4px 4px 14px"}}>
       <div style={{fontSize:22}}>🌱</div>
@@ -135,12 +139,13 @@ const SidebarDesktop = ({ seccion, onSeccion, pendientesCount, historialCount, o
     </div>
     <NavItems seccion={seccion} onSeccion={onSeccion} pendientesCount={pendientesCount} historialCount={historialCount}/>
     <div style={{height:1, background:P.line, margin:"14px 4px"}}/>
+    {nombrePersona && <div style={{fontSize:11.5, color:P.muted, padding:"0 14px 6px"}}>Hola, {nombrePersona}</div>}
     <button onClick={onSalir} style={{...navBtnStyle(false,true), color:P.muted, fontSize:12.5}}>Salir</button>
   </div>
 );
 
 // Barra superior + cajón deslizante en móvil (<861px).
-const TopbarMobile = ({ tituloActual, pendientesCount, historialCount, seccion, onSeccion, onSalir }) => {
+const TopbarMobile = ({ tituloActual, pendientesCount, historialCount, seccion, onSeccion, onSalir, nombrePersona }) => {
   const [abierto, setAbierto] = useState(false);
   const elegir = (id) => { onSeccion(id); setAbierto(false); };
   return (
@@ -163,6 +168,7 @@ const TopbarMobile = ({ tituloActual, pendientesCount, historialCount, seccion, 
             </div>
             <NavItems seccion={seccion} onSeccion={elegir} pendientesCount={pendientesCount} historialCount={historialCount}/>
             <div style={{height:1, background:P.line, margin:"14px 4px"}}/>
+            {nombrePersona && <div style={{fontSize:11.5, color:P.muted, padding:"0 9px 6px"}}>Hola, {nombrePersona}</div>}
             <button onClick={onSalir} style={{...navBtnStyle(false,true), color:P.muted, fontSize:12.5}}>Salir</button>
           </div>
         </React.Fragment>
@@ -306,6 +312,7 @@ function App() {
   const [verPin, setVerPin] = useState(false);
   const [pinError, setPinError] = useState(null);
   const [checkingPin, setCheckingPin] = useState(false);
+  const [nombrePersona, setNombrePersona] = useState(() => { try { return localStorage.getItem(NOMBRE_KEY) || ""; } catch (e) { return ""; } });
 
   const [stage, setStage] = useState("cargando"); // cargando | lista | historial | detalle | proximamente | equipo
   const [seccion, setSeccion] = useState("pendientes");
@@ -398,17 +405,27 @@ function App() {
 
   useEffect(() => { if (pin) cargarPendientes(); }, [pin]);
 
+  // Login por persona (28 oct 2026, pedido de Leonardo — "evitar fricción en
+  // las validaciones que siguen"): en vez de probar el PIN contra una acción
+  // cualquiera del panel, se prueba contra /panel/login, que además dice de
+  // quién es — para saludar por nombre. El PIN sigue siendo la única
+  // credencial real; esto solo agrega identidad encima.
   const entrarConPin = async () => {
     if (!pinInput.trim() || checkingPin) return;
     setCheckingPin(true); setPinError(null);
     try {
-      const res = await fetch(WORKER_URL + "/panel/pendientes", {
+      const res = await fetch(WORKER_URL + "/panel/login", {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ panelSecret: pinInput.trim() }),
+        body: JSON.stringify({ pin: pinInput.trim() }),
       });
       const data = await res.json().catch(() => ({ ok:false }));
       if (!data.ok) { setPinError("PIN incorrecto."); return; }
-      try { localStorage.setItem(PIN_KEY, pinInput.trim()); } catch (e) {}
+      try {
+        localStorage.setItem(PIN_KEY, pinInput.trim());
+        localStorage.setItem(NOMBRE_KEY, data.nombre || "");
+        localStorage.setItem(ROL_KEY, data.rol || "");
+      } catch (e) {}
+      setNombrePersona(data.nombre || "");
       setPin(pinInput.trim());
     } catch (e) { setPinError("No se pudo conectar. Reintenta."); }
     finally { setCheckingPin(false); }
@@ -482,7 +499,10 @@ function App() {
     finally { setBorrandoNovedad(false); }
   };
 
-  const salir = () => { try{localStorage.removeItem(PIN_KEY);}catch(e){} setPin(""); };
+  const salir = () => {
+    try { localStorage.removeItem(PIN_KEY); localStorage.removeItem(NOMBRE_KEY); localStorage.removeItem(ROL_KEY); } catch (e) {}
+    setPin(""); setNombrePersona("");
+  };
 
   // ---------- PIN ----------
   if (!pin) return (
@@ -496,9 +516,9 @@ function App() {
           <li>Equipo — quién tiene acceso hoy, de solo lectura.</li>
           <li>Comunidades, Familias y Reportes están marcados "Próximamente" — todavía sin backend.</li>
         </ul>
-        <p style={{fontSize:12.5, color:P.muted, lineHeight:1.6, textAlign:"left", marginBottom:20}}>El PIN es el mismo de siempre — si ya entraste al panel de Peter en este navegador, no hace falta que lo vuelvas a escribir.</p>
+        <p style={{fontSize:12.5, color:P.muted, lineHeight:1.6, textAlign:"left", marginBottom:20}}>Entra con tu PIN personal — así te saludamos por nombre. El PIN del panel de Peter también sigue funcionando.</p>
         <div style={{position:"relative", width:"100%", maxWidth:220, margin:"0 auto 14px"}}>
-          <input type={verPin?"text":"password"} value={pinInput} onChange={e=>setPinInput(e.target.value)} onKeyDown={e=>{if(e.key==="Enter") entrarConPin();}} placeholder="PIN"
+          <input type={verPin?"text":"password"} value={pinInput} onChange={e=>setPinInput(e.target.value)} onKeyDown={e=>{if(e.key==="Enter") entrarConPin();}} placeholder="Tu PIN"
             style={{width:"100%", textAlign:"center", fontSize:16, padding:"11px 40px 11px 14px", border:"1px solid "+P.line, borderRadius:12, fontFamily:"'Nunito',sans-serif", outline:"none"}} autoFocus/>
           <button type="button" onClick={()=>setVerPin(v=>!v)} title={verPin?"Ocultar PIN":"Ver PIN"}
             style={{position:"absolute", right:6, top:"50%", transform:"translateY(-50%)", background:"none", border:"none", color:P.muted, cursor:"pointer", fontSize:16, padding:6, lineHeight:1}}>
@@ -518,7 +538,7 @@ function App() {
     <Shell><div style={{textAlign:"center", padding:"60px 10px", color:P.muted}}>Cargando…</div></Shell>
   );
 
-  const sidebarProps = { seccion, onSeccion:irASeccion, pendientesCount: pendientes?pendientes.length:null, historialCount: historial?historial.length:null, onSalir: salir };
+  const sidebarProps = { seccion, onSeccion:irASeccion, pendientesCount: pendientes?pendientes.length:null, historialCount: historial?historial.length:null, onSalir: salir, nombrePersona };
 
   // ---------- PRÓXIMAMENTE ----------
   if (stage === "proximamente") {

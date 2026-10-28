@@ -23,6 +23,13 @@
  * devuelve ese chat de vuelta al padre, junto con las novedades ya
  * registradas — nada que el padre no supiera ya de otra forma.
  *
+ * LOGIN POR PERSONA (equipo/index.html, 28 oct 2026, pedido de Leonardo):
+ * conPanelSecret() ya no exige el PIN maestro único — acepta también un PIN
+ * personal de la pestaña "Equipo" (columna PIN, se llena a mano). La acción
+ * login_equipo dice de quién es un PIN candidato, para saludar por nombre;
+ * no lleva conPanelSecret (probar la credencial es su propio trabajo). Ver
+ * pinEsValido().
+ *
  * OJO — PANEL_SECRET (actualizado 19 ago 2026): ya NO vive como texto en
  * este archivo — se lee de PropertiesService (ver el comentario grande
  * junto a su declaración, más abajo). Esto reemplaza el enfoque anterior
@@ -248,6 +255,15 @@ function doPost(e) {
     // equipo/index.html): lista de solo lectura de quién tiene acceso hoy.
     // No recibe "sheet" — vive en su propia pestaña, no en la de casos.
     if (body.action === "listar_equipo") return conPanelSecret(body, function () { return listarEquipo(); });
+    // NUEVO (28 oct 2026, pedido de Leonardo — "evitar fricción en las
+    // validaciones que siguen": login real por persona en equipo/index.html,
+    // en vez de un PIN único compartido, SIN montar un sistema de auth
+    // nuevo). Prueba un PIN candidato contra la columna PIN de la pestaña
+    // "Equipo" (o el PIN maestro) y dice DE QUIÉN es — a propósito NO lleva
+    // conPanelSecret: probar la credencial es justo lo que hace esta acción,
+    // pedirla de antemano sería circular. Ver pinEsValido() más abajo, que
+    // ahora es también lo que usa conPanelSecret() para las demás acciones.
+    if (body.action === "login_equipo") return loginEquipo(body);
 
     // Verificación de código de colegio — viene de verificar/index.html (una
     // página pública, el padre la abre desde el correo). NO usa SHARED_SECRET
@@ -318,10 +334,48 @@ function doPost(e) {
 // secreto puede reusar el mismo patrón sin que el Worker necesite conocer
 // el texto exacto de cada mensaje (ver handlePanelAction en vita-proxy.js).
 function conPanelSecret(body, fn) {
-  if (!body.panelSecret || body.panelSecret !== PANEL_SECRET) {
+  if (!body.panelSecret || !pinEsValido(body.panelSecret)) {
     return respond({ ok: false, error: "panelSecret inválido", unauthorized: true }, 401);
   }
   return fn();
+}
+
+// Un PIN es válido si es el PIN maestro (PANEL_SECRET, como hasta hoy) o el
+// PIN personal de alguien en la pestaña "Equipo" (28 oct 2026, login por
+// persona — ver loginEquipo() y la nota junto a "login_equipo" en doPost).
+// Columna E (índice 4) de "Equipo" — Nombre/Rol/Correo/Notas/PIN. Se llena a
+// mano en Sheets, igual que el resto de esa pestaña: no hay acción de panel
+// para asignar PINes, es una lista de referencia simple.
+function pinEsValido(pin) {
+  if (pin === PANEL_SECRET) return true;
+  var hoja = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Equipo");
+  if (!hoja) return false;
+  var data = hoja.getDataRange().getValues();
+  for (var r = 1; r < data.length; r++) {
+    if (data[r][4] && String(data[r][4]) === String(pin)) return true;
+  }
+  return false;
+}
+
+// Identifica DE QUIÉN es un PIN — para que equipo/index.html pueda saludar
+// por nombre en vez de mostrar un "Panel Equipo" genérico. NO expone PINes
+// (listarEquipo() tampoco los devuelve) — solo dice, para el PIN que
+// mandaron, a quién pertenece. El PIN maestro no tiene nombre asociado: se
+// acepta igual (fallback, nadie queda bloqueado) pero sin saludo personal.
+function loginEquipo(body) {
+  var pin = body.pin;
+  if (!pin) return respond({ ok: false, error: "PIN incorrecto" }, 401);
+  var hoja = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Equipo");
+  if (hoja) {
+    var data = hoja.getDataRange().getValues();
+    for (var r = 1; r < data.length; r++) {
+      if (data[r][4] && String(data[r][4]) === String(pin)) {
+        return respond({ ok: true, nombre: data[r][0] || "", rol: data[r][1] || "" });
+      }
+    }
+  }
+  if (pin === PANEL_SECRET) return respond({ ok: true, nombre: "", rol: "" });
+  return respond({ ok: false, error: "PIN incorrecto" }, 401);
 }
 
 // ============================================================
