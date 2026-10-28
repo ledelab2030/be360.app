@@ -5,8 +5,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
 <meta name="robots" content="noindex" />
 <title>be360 · Plan de bienestar</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
 <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
 <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
 <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
@@ -16,10 +14,10 @@
   *{box-sizing:border-box}
   .rise{animation:rise .28s cubic-bezier(.2,.8,.2,1)}
   @keyframes rise{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
-  .dot{width:7px;height:7px;border-radius:50%;background:#5A7A5C;display:inline-block;animation:blink 1.2s infinite}
+  .dot{width:7px;height:7px;border-radius:50%;background:#4A7045;display:inline-block;animation:blink 1.2s infinite}
   .dot:nth-child(2){animation-delay:.2s}.dot:nth-child(3){animation-delay:.4s}
   @keyframes blink{0%,60%,100%{opacity:.25}30%{opacity:1}}
-  .scroll::-webkit-scrollbar{width:8px}.scroll::-webkit-scrollbar-thumb{background:#D8CFBE;border-radius:8px}
+  .scroll::-webkit-scrollbar{width:8px}.scroll::-webkit-scrollbar-thumb{background:#E7E9EC;border-radius:8px}
   /* Nav responsive (27 oct 2026) — pestañas abajo en móvil, rail a la
      izquierda en escritorio. Ver mockup "Navegación app.be360.co": la App
      Familia es la que está pensada de celular hacia afuera, al revés de
@@ -46,7 +44,7 @@ const { useState, useEffect } = React;
 //
 // Qué es distinto de plan/index.html: en vez de una sola página larga +
 // el chat como overlay de pantalla completa, la misma información se
-// organiza en 4 pestañas persistentes (Hoy / Mi plan / Vita / Progreso —
+// organiza en 4 pestañas persistentes (Hoy / Mi plan / Vita / Seguimiento —
 // ver mockup "Navegación app.be360.co"). TODA la lógica (prompt de
 // seguimiento, consolidación de "dato_nuevo", PDF, Retos de bienestar) es
 // la misma de plan/index.html, copiada a propósito — mismo criterio que ya
@@ -55,7 +53,7 @@ const { useState, useEffect } = React;
 // ============================================================
 const WORKER_URL = "https://vita-proxy.leonardo-751.workers.dev";
 
-const P = { bg:"#ECE5D8", panel:"#FBF8F1", panelRaised:"#FFFFFF", ink:"#2C2A24", sage:"#5A7A5C", sageDeep:"#3E5A40", sageSoft:"#DCE7D6", clay:"#B5764A", claySoft:"#F0DFCB", line:"#D8CFBE", muted:"#8A8473", user:"#C9DDB8" };
+const P = { bg:"#FAFAFA", panel:"#F4F6F8", panelRaised:"#FFFFFF", ink:"#1A1A1A", sage:"#4A7045", sageDeep:"#0A1F44", sageSoft:"#E9F1F8", clay:"#B5764A", claySoft:"#F0DFCB", line:"#E7E9EC", muted:"#6B6B6B", user:"#D7E8D2" };
 
 function getIdFromUrl() {
   const params = new URLSearchParams(window.location.search);
@@ -237,18 +235,18 @@ function descargarPdf(nombreNino, mensaje, habitos) {
   doc.save("plan-" + (nombreNino || "bienestar360").trim().replace(/\s+/g, "-").toLowerCase() + ".pdf");
 }
 
-// ---- Nav de 4 pestañas (Hoy / Mi plan / Vita / Progreso) ----
+// ---- Nav de 4 pestañas (Hoy / Mi plan / Vita / Seguimiento) ----
 const TABS = [
   { id:"hoy", label:"Hoy", icon:"●" },
   { id:"plan", label:"Mi plan", icon:"▦" },
   { id:"vita", label:"Vita", icon:"◐" },
-  { id:"progreso", label:"Progreso", icon:"▲" },
+  { id:"seguimiento", label:"Seguimiento", icon:"▲" },
 ];
 
 const TabBarMobile = ({ tab, onTab }) => (
   <div className="tabbar-mobile" style={{position:"fixed", left:0, right:0, bottom:0, height:64, background:P.panelRaised, borderTop:"1px solid "+P.line, alignItems:"center", justifyContent:"space-around", zIndex:30, paddingBottom:4}}>
     {TABS.map(t => (
-      <button key={t.id} onClick={()=>onTab(t.id)} style={{display:"flex", flexDirection:"column", alignItems:"center", gap:3, background:"none", border:"none", cursor:"pointer", fontFamily:"'Nunito',sans-serif", color: tab===t.id?P.sageDeep:P.muted}}>
+      <button key={t.id} onClick={()=>onTab(t.id)} style={{display:"flex", flexDirection:"column", alignItems:"center", gap:3, background:"none", border:"none", cursor:"pointer", fontFamily:"-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif", color: tab===t.id?P.sageDeep:P.muted}}>
         <span style={{width:22, height:22, borderRadius:7, display:"flex", alignItems:"center", justifyContent:"center", fontSize:12, border:"2px solid "+(tab===t.id?P.sageDeep:P.muted), background: tab===t.id?P.sageSoft:"transparent"}}>{t.icon}</span>
         <span style={{fontSize:10, fontWeight:800}}>{t.label}</span>
       </button>
@@ -260,10 +258,10 @@ const SidebarDesktop = ({ tab, onTab }) => (
   <div className="sidebar-desktop" style={{width:172, flexShrink:0, flexDirection:"column", gap:4, position:"sticky", top:28}}>
     <div style={{display:"flex", alignItems:"center", gap:8, padding:"4px 4px 14px"}}>
       <div style={{fontSize:22}}>🌱</div>
-      <div style={{fontFamily:"'Fraunces',serif", fontSize:15, color:P.sageDeep, lineHeight:1.1}}>be360</div>
+      <div style={{fontFamily:"-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif", fontSize:15, color:P.sageDeep, lineHeight:1.1}}>be360</div>
     </div>
     {TABS.map(t => (
-      <button key={t.id} onClick={()=>onTab(t.id)} style={{textAlign:"left", background: tab===t.id?P.sageSoft:"transparent", border:"none", borderRadius:12, padding:"10px 14px", fontSize:14, fontWeight: tab===t.id?800:700, color: tab===t.id?P.sageDeep:P.ink, cursor:"pointer", fontFamily:"'Nunito',sans-serif", width:"100%", display:"flex", alignItems:"center", gap:9}}>
+      <button key={t.id} onClick={()=>onTab(t.id)} style={{textAlign:"left", background: tab===t.id?P.sageSoft:"transparent", border:"none", borderRadius:12, padding:"10px 14px", fontSize:14, fontWeight: tab===t.id?800:700, color: tab===t.id?P.sageDeep:P.ink, cursor:"pointer", fontFamily:"-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif", width:"100%", display:"flex", alignItems:"center", gap:9}}>
         <span style={{width:18, height:18, borderRadius:6, display:"flex", alignItems:"center", justifyContent:"center", fontSize:10, border:"2px solid currentColor", flexShrink:0}}>{t.icon}</span>
         {t.label}
       </button>
@@ -455,7 +453,7 @@ function App() {
 
   if (stage === "cargando") {
     return (
-      <div style={{minHeight:"100vh", background:P.bg, fontFamily:"'Nunito',sans-serif", color:P.ink, display:"flex", alignItems:"center", justifyContent:"center"}}>
+      <div style={{minHeight:"100vh", background:P.bg, fontFamily:"-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif", color:P.ink, display:"flex", alignItems:"center", justifyContent:"center"}}>
         <div style={{color:P.muted}}>Cargando tu plan…</div>
       </div>
     );
@@ -465,12 +463,12 @@ function App() {
     const waNum = "37281282920";
     const waMsg = encodeURIComponent("Hola, quería preguntar por el plan de mi hijo/a.");
     return (
-      <div style={{minHeight:"100vh", background:P.bg, fontFamily:"'Nunito',sans-serif", color:P.ink, display:"flex", alignItems:"center", justifyContent:"center", padding:"32px 14px"}}>
+      <div style={{minHeight:"100vh", background:P.bg, fontFamily:"-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif", color:P.ink, display:"flex", alignItems:"center", justifyContent:"center", padding:"32px 14px"}}>
         <div style={{textAlign:"center", padding:"40px 20px", maxWidth:420}}>
           <div style={{fontSize:44, marginBottom:14}}>🌱</div>
-          <div style={{fontFamily:"'Fraunces',serif", fontSize:22, color:P.sageDeep, marginBottom:10}}>Todavía no está listo</div>
+          <div style={{fontFamily:"-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif", fontSize:22, color:P.sageDeep, marginBottom:10}}>Todavía no está listo</div>
           <p style={{fontSize:14, color:P.muted, lineHeight:1.6, marginBottom:22}}>Este plan aún está en revisión, o el link no es válido. Si crees que es un error, escríbenos.</p>
-          <a href={"https://wa.me/"+waNum+"?text="+waMsg} target="_blank" rel="noopener noreferrer" style={{display:"inline-flex", alignItems:"center", justifyContent:"center", gap:8, background:P.sage, color:"#fff", fontWeight:800, fontSize:14.5, borderRadius:999, padding:"13px 24px", textDecoration:"none", boxShadow:"0 10px 24px rgba(90,122,92,.30)"}}>Escribirnos por WhatsApp</a>
+          <a href={"https://wa.me/"+waNum+"?text="+waMsg} target="_blank" rel="noopener noreferrer" style={{display:"inline-flex", alignItems:"center", justifyContent:"center", gap:8, background:P.sage, color:"#fff", fontWeight:800, fontSize:14.5, borderRadius:999, padding:"13px 24px", textDecoration:"none", boxShadow:"0 10px 24px rgba(74,112,69,.30)"}}>Escribirnos por WhatsApp</a>
         </div>
       </div>
     );
@@ -480,7 +478,7 @@ function App() {
   const esVita = tab === "vita";
 
   return (
-    <div style={{minHeight:"100vh", background:P.bg, fontFamily:"'Nunito',sans-serif", color:P.ink, display:"flex", justifyContent:"center"}}>
+    <div style={{minHeight:"100vh", background:P.bg, fontFamily:"-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif", color:P.ink, display:"flex", justifyContent:"center"}}>
       <div style={{width:"100%", maxWidth:900, display:"flex", gap:26, padding: esVita ? "28px 0 0" : "28px 14px 90px", alignItems:"flex-start"}}>
         <div style={{padding: esVita?"0 0 0 14px":0}}>
           <SidebarDesktop tab={tab} onTab={setTab}/>
@@ -491,7 +489,7 @@ function App() {
             <div className="rise" style={{display:"flex", flexDirection:"column", gap:18, padding: esVita?0:"0 0 0", maxWidth:440}}>
               <div>
                 <div style={{fontSize:11.5, fontWeight:800, letterSpacing:".09em", textTransform:"uppercase", color:P.sageDeep}}>Hoy</div>
-                <h1 style={{fontFamily:"'Fraunces',serif", fontWeight:600, fontSize:"clamp(24px,6vw,28px)", lineHeight:1.15, margin:"4px 0 0", color:P.sageDeep}}>Lo que toca hoy</h1>
+                <h1 style={{fontFamily:"-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif", fontWeight:600, fontSize:"clamp(24px,6vw,28px)", lineHeight:1.15, margin:"4px 0 0", color:P.sageDeep}}>Lo que toca hoy</h1>
               </div>
               <div style={{display:"flex", flexDirection:"column", gap:10}}>
                 {habitos.map((h,i) => (
@@ -511,7 +509,7 @@ function App() {
                       <div style={{fontSize:12, color:P.muted, marginTop:2}}>Opcional · solo lo ves tú, no se comparte con el colegio</div>
                     </div>
                     <button onClick={toggleRetosOn} aria-checked={retosOn} style={{flexShrink:0, width:44, height:26, borderRadius:99, border:"1.5px solid "+(retosOn?P.sage:P.line), background: retosOn?P.sage:P.panelRaised, position:"relative", cursor:"pointer"}}>
-                      <span style={{position:"absolute", top:2, left: retosOn?20:2, width:19, height:19, borderRadius:"50%", background:"#fff", transition:"left .18s", boxShadow:"0 1px 2px rgba(40,42,36,.25)"}}/>
+                      <span style={{position:"absolute", top:2, left: retosOn?20:2, width:19, height:19, borderRadius:"50%", background:"#fff", transition:"left .18s", boxShadow:"0 1px 2px rgba(26,26,26,.25)"}}/>
                     </button>
                   </div>
                   {retosOn && (
@@ -541,12 +539,12 @@ function App() {
             <div className="rise" style={{display:"flex", flexDirection:"column", gap:18, maxWidth:440}}>
               <div style={{display:"flex", flexDirection:"column", gap:6}}>
                 <div style={{fontSize:11.5, fontWeight:800, letterSpacing:".09em", textTransform:"uppercase", color:P.sageDeep}}>Plan de bienestar</div>
-                <h1 style={{fontFamily:"'Fraunces',serif", fontWeight:600, fontSize:"clamp(26px,7vw,32px)", lineHeight:1.1, margin:0, color:P.sageDeep}}>
+                <h1 style={{fontFamily:"-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif", fontWeight:600, fontSize:"clamp(26px,7vw,32px)", lineHeight:1.1, margin:0, color:P.sageDeep}}>
                   El plan de {data.nombreNino || "tu hijo/a"}
                 </h1>
                 <div style={{display:"flex", alignItems:"center", justifyContent:"space-between", gap:10, flexWrap:"wrap"}}>
                   <div style={{fontSize:13, color:P.muted}}>Revisado y aprobado por <b style={{color:P.ink}}>Peter Álvarez</b></div>
-                  <button onClick={() => descargarPdf(data.nombreNino, data.mensaje, habitos)} style={{display:"inline-flex", alignItems:"center", gap:6, background:"none", border:"1.5px solid "+P.line, borderRadius:999, padding:"7px 14px", fontSize:12.5, fontWeight:800, color:P.sageDeep, cursor:"pointer", fontFamily:"'Nunito',sans-serif"}}>
+                  <button onClick={() => descargarPdf(data.nombreNino, data.mensaje, habitos)} style={{display:"inline-flex", alignItems:"center", gap:6, background:"none", border:"1.5px solid "+P.line, borderRadius:999, padding:"7px 14px", fontSize:12.5, fontWeight:800, color:P.sageDeep, cursor:"pointer", fontFamily:"-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif"}}>
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" width="14" height="14"><path d="M12 3v12m0 0l-4-4m4 4l4-4M4 17v2a2 2 0 002 2h12a2 2 0 002-2v-2"/></svg>
                     Descargar PDF
                   </button>
@@ -563,11 +561,11 @@ function App() {
             </div>
           )}
 
-          {tab === "progreso" && (
+          {tab === "seguimiento" && (
             <div className="rise" style={{display:"flex", flexDirection:"column", gap:22, maxWidth:440}}>
               <div>
-                <div style={{fontSize:11.5, fontWeight:800, letterSpacing:".09em", textTransform:"uppercase", color:P.sageDeep}}>Progreso</div>
-                <h1 style={{fontFamily:"'Fraunces',serif", fontWeight:600, fontSize:"clamp(24px,6vw,28px)", lineHeight:1.15, margin:"4px 0 0", color:P.sageDeep}}>Cómo les ha ido</h1>
+                <div style={{fontSize:11.5, fontWeight:800, letterSpacing:".09em", textTransform:"uppercase", color:P.sageDeep}}>Seguimiento</div>
+                <h1 style={{fontFamily:"-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif", fontWeight:600, fontSize:"clamp(24px,6vw,28px)", lineHeight:1.15, margin:"4px 0 0", color:P.sageDeep}}>Cómo les ha ido</h1>
               </div>
 
               {/* Línea de tiempo de novedades (27 oct 2026, pedido de
@@ -606,7 +604,7 @@ function App() {
               {novedades.length === 0 && !(retosFlag && retosOn) && (
                 <div style={{textAlign:"center", padding:"50px 10px", color:P.muted, background:P.panel, border:"1px solid "+P.line, borderRadius:20}}>
                   <div style={{fontSize:34, marginBottom:10}}>🌱</div>
-                  <div style={{fontFamily:"'Fraunces',serif", fontSize:17, color:P.sageDeep, marginBottom:8}}>Todavía no hay nada que mostrar</div>
+                  <div style={{fontFamily:"-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif", fontSize:17, color:P.sageDeep, marginBottom:8}}>Todavía no hay nada que mostrar</div>
                   <div style={{fontSize:13, maxWidth:280, margin:"0 auto", lineHeight:1.6}}>Cuéntale a Vita cómo les ha ido — cada vez que compartas algo nuevo, va a quedar registrado acá.</div>
                 </div>
               )}
@@ -618,26 +616,26 @@ function App() {
               <div style={{background:"linear-gradient(135deg,"+P.sageDeep+","+P.sage+")", padding:"14px 16px", display:"flex", alignItems:"center", gap:11}}>
                 <div style={{width:40, height:40, borderRadius:"50%", background:P.panel, display:"grid", placeItems:"center", fontSize:20}}>🌱</div>
                 <div style={{flex:1}}>
-                  <div style={{fontFamily:"'Fraunces',serif", fontWeight:600, fontSize:19, color:"#fff", lineHeight:1}}>Vita</div>
+                  <div style={{fontFamily:"-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif", fontWeight:600, fontSize:19, color:"#fff", lineHeight:1}}>Vita</div>
                   <div style={{fontSize:11.5, color:P.sageSoft, marginTop:3}}>{chatLoading ? "escribiendo…" : "Acompañamiento · " + (data.nombreNino || "")}</div>
                 </div>
               </div>
               <div ref={scrollRef} className="scroll" style={{flex:1, overflowY:"auto", padding:"16px 13px", display:"flex", flexDirection:"column", gap:10, background:"radial-gradient("+P.sageSoft+"55 1px,transparent 1px)", backgroundSize:"22px 22px"}}>
                 {messages.map((m,i) => (
                   <div key={i} className="rise" style={{alignSelf: m.role==="user"?"flex-end":"flex-start", maxWidth:"84%"}}>
-                    <div style={{background: m.role==="user"?P.user:"#fff", color:P.ink, padding:"10px 13px", borderRadius: m.role==="user"?"16px 16px 4px 16px":"16px 16px 16px 4px", fontSize:14.5, lineHeight:1.5, boxShadow:"0 1px 2px rgba(40,42,36,.10)", whiteSpace:"pre-wrap", border: m.role==="user"?"none":"1px solid "+P.line}}>{renderRich(m.content)}</div>
+                    <div style={{background: m.role==="user"?P.user:"#fff", color:P.ink, padding:"10px 13px", borderRadius: m.role==="user"?"16px 16px 4px 16px":"16px 16px 16px 4px", fontSize:14.5, lineHeight:1.5, boxShadow:"0 1px 2px rgba(26,26,26,.10)", whiteSpace:"pre-wrap", border: m.role==="user"?"none":"1px solid "+P.line}}>{renderRich(m.content)}</div>
                   </div>
                 ))}
                 {chatLoading && (<div style={{alignSelf:"flex-start", background:"#fff", padding:"12px 15px", borderRadius:"16px 16px 16px 4px", border:"1px solid "+P.line}}><span className="dot"/> <span className="dot"/> <span className="dot"/></div>)}
                 {chatError && !chatLoading && (
                   <div style={{alignSelf:"center", textAlign:"center", color:P.clay, fontSize:12.5, background:"#fff", padding:"10px 14px", borderRadius:12, border:"1px solid "+P.line, maxWidth:"92%"}}>
                     {chatError}
-                    <div style={{marginTop:8}}><button onClick={() => messages.length===0 ? startChat() : sendChat(messages[messages.length-1].role==="user"?messages[messages.length-1].content:"")} style={{background:P.sage, border:"none", color:"#fff", borderRadius:999, padding:"7px 18px", fontSize:12.5, fontWeight:700, cursor:"pointer", fontFamily:"'Nunito',sans-serif"}}>Reintentar</button></div>
+                    <div style={{marginTop:8}}><button onClick={() => messages.length===0 ? startChat() : sendChat(messages[messages.length-1].role==="user"?messages[messages.length-1].content:"")} style={{background:P.sage, border:"none", color:"#fff", borderRadius:999, padding:"7px 18px", fontSize:12.5, fontWeight:700, cursor:"pointer", fontFamily:"-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif"}}>Reintentar</button></div>
                   </div>
                 )}
               </div>
               <div style={{padding:"10px 12px", background:P.panel, borderTop:"1px solid "+P.line, display:"flex", gap:8, alignItems:"flex-end"}}>
-                <textarea value={input} onChange={e=>setInput(e.target.value)} onKeyDown={e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();sendChat();}}} placeholder="Escribe aquí…" rows={1} style={{flex:1, resize:"none", border:"1px solid "+P.line, borderRadius:20, padding:"11px 15px", fontSize:14.5, fontFamily:"'Nunito',sans-serif", maxHeight:110, background:"#fff", color:P.ink, outline:"none"}}/>
+                <textarea value={input} onChange={e=>setInput(e.target.value)} onKeyDown={e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();sendChat();}}} placeholder="Escribe aquí…" rows={1} style={{flex:1, resize:"none", border:"1px solid "+P.line, borderRadius:20, padding:"11px 15px", fontSize:14.5, fontFamily:"-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif", maxHeight:110, background:"#fff", color:P.ink, outline:"none"}}/>
                 <button onClick={()=>sendChat()} disabled={chatLoading||!input.trim()} style={{width:46, height:46, borderRadius:"50%", border:"none", background: input.trim()?P.sage:P.line, color:"#fff", fontSize:19, cursor: input.trim()?"pointer":"default", flexShrink:0}}>➤</button>
               </div>
             </div>

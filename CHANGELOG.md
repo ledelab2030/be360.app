@@ -683,6 +683,32 @@ Leonardo preguntó si debería haber una página de bienvenida minimalista, para
 
 **Verificación:** `node --check` sobre Apps Script y `vita-proxy.js` — sintaxis válida; `equipo/index.html` verificado vía Babel en navegador local, sin errores. Pendiente: confirmar un login personal real contra producción después de que Leonardo llene la columna PIN y pegue el Apps Script.
 
+### 28 oct 2026 — Unificación visual: `panel/`, `equipo/` y `app/` adoptan los colores y la tipografía del home (pedido de Leonardo)
+
+Leonardo pidió unificar la apariencia entre el home público y las tres superficies de la app. Aclaró la dirección: le gustan más los colores y la fuente que ya tiene el home (navy/verde/azul claro, fuente del sistema) que la paleta sage/clay/Fraunces-Nunito que se usó para construir `panel/`, `equipo/` y `app/` esta semana — así que el cambio va en esa dirección, no al revés.
+
+**Por qué fue mecánico y no un rediseño:** las tres páginas ya centralizaban toda su paleta en un solo objeto `P` (mismo patrón, copiado entre las tres desde el principio) y la tipografía en dos líneas de `<link>` a Google Fonts — cambiar los valores de `P` y quitar esas dos líneas alcanza, sin tocar layout, espaciado ni lógica de ningún componente.
+
+**Mapeo aplicado** (mismo en los tres archivos, para que no se desincronicen entre sí):
+| Rol | Antes | Ahora |
+|---|---|---|
+| Acento / botones | sage `#5A7A5C` | verde `#4A7045` |
+| Encabezados | sageDeep `#3E5A40` | navy `#0A1F44` |
+| Fondo seleccionado | sageSoft `#DCE7D6` | `#E9F1F8` (ya existía en el home) |
+| Bordes | line `#D8CFBE` | `#E7E9EC` |
+| Texto secundario | muted `#8A8473` | gray-text `#6B6B6B` |
+| Fondo de página | bg `#ECE5D8` | `#FAFAFA` |
+| Fondo de tarjeta | panel `#FBF8F1` | `#F4F6F8` |
+| Burbuja de "yo" en el chat (solo `app/`) | `#C9DDB8` | `#D7E8D2` |
+| Alertas/novedades | clay `#B5764A` | se queda igual — el home no tenía un color de advertencia, el terracota sigue sirviendo como acento distinto |
+| Tipografía | Fraunces (encabezados) + Nunito (cuerpo) | una sola, la pila del sistema del home (`-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif`) |
+
+**Lo que el mapeo por sí solo no cubría, encontrado revisando antes de dar por terminado:** varias sombras y dos colores de UI (el punto animado de "escribiendo…" y el scrollbar del chat, ambos solo en `app/`) estaban en valores hexadecimales sueltos dentro del `<style>` o en `rgba()` escritos a mano — no pasaban por el objeto `P`, así que el sed del mapeo no los tocaba. Un barrido final (`grep` de todos los hex de 6 dígitos en los tres archivos) confirmó que, después de corregir esos casos sueltos, no quedó ni un solo color de la paleta vieja en ningún lado.
+
+**De paso, pedido en la misma conversación:** la pestaña "Progreso" de `app/` se renombra a **Seguimiento** — es donde solo viven las novedades compartidas con el equipo; "Progreso" queda libre para una idea más grande (línea de etapas: aprobado → primera conversación → ajustes al plan → hábitos sostenidos → logros), todavía sin construir ni diseñar a fondo.
+
+**Verificación:** sin errores de Babel en navegador local en los tres archivos; barrido de `grep` confirmando cero hex de la paleta vieja; revisado visualmente "Hoy" y la pantalla de entrada de `equipo/` — colores y fuente consistentes entre las dos.
+
 ---
 
 ---

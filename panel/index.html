@@ -5,8 +5,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
 <meta name="robots" content="noindex" />
 <title>Panel de revisión · Bienestar 360</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
 <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
 <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
 <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
@@ -63,7 +61,7 @@ const { useState, useEffect } = React;
 const WORKER_URL = "https://vita-proxy.leonardo-751.workers.dev";
 const PIN_KEY = "be360_panel_pin";
 
-const P = { bg:"#ECE5D8", panel:"#FBF8F1", panelRaised:"#FFFFFF", ink:"#2C2A24", sage:"#5A7A5C", sageDeep:"#3E5A40", sageSoft:"#DCE7D6", clay:"#B5764A", claySoft:"#F0DFCB", line:"#D8CFBE", muted:"#8A8473" };
+const P = { bg:"#FAFAFA", panel:"#F4F6F8", panelRaised:"#FFFFFF", ink:"#1A1A1A", sage:"#4A7045", sageDeep:"#0A1F44", sageSoft:"#E9F1F8", clay:"#B5764A", claySoft:"#F0DFCB", line:"#E7E9EC", muted:"#6B6B6B" };
 
 // DX_FIELDS ya NO se escribe a mano (2 oct 2026) — se DERIVA de la misma
 // constante FIELDS que usan vita-demo-formulario/ y vita-demo-formulario-v2/
@@ -90,7 +88,7 @@ const camposParaDetalle = (detalle) =>
   (detalle.camposSnapshot && detalle.camposSnapshot.length) ? camposAFields(detalle.camposSnapshot) : DX_FIELDS_ACTUAL;
 
 const Shell = (props) => (
-  <div style={{minHeight:"100vh", background:P.bg, fontFamily:"'Nunito',sans-serif", color:P.ink, display:"flex", justifyContent:"center", padding:"28px 14px 56px"}}>
+  <div style={{minHeight:"100vh", background:P.bg, fontFamily:"-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif", color:P.ink, display:"flex", justifyContent:"center", padding:"28px 14px 56px"}}>
     <div style={{width:"100%", maxWidth:560, display:"flex", flexDirection:"column", gap:18}}>{props.children}</div>
   </div>
 );
@@ -101,7 +99,7 @@ const Shell = (props) => (
 // con comodidad. 1180px dejado a propósito más ancho que ShellConBarra
 // (760px, para listados) porque acá no compite con ninguna barra lateral.
 const ShellDetalle = (props) => (
-  <div style={{minHeight:"100vh", background:P.bg, fontFamily:"'Nunito',sans-serif", color:P.ink, display:"flex", justifyContent:"center", padding:"28px 14px 56px"}}>
+  <div style={{minHeight:"100vh", background:P.bg, fontFamily:"-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif", color:P.ink, display:"flex", justifyContent:"center", padding:"28px 14px 56px"}}>
     <div style={{width:"100%", maxWidth:1180, display:"flex", flexDirection:"column", gap:18}}>{props.children}</div>
   </div>
 );
@@ -110,7 +108,7 @@ const ShellDetalle = (props) => (
 // / Aprobados). El detalle de un caso (sea pendiente o de solo lectura)
 // usa el Shell normal, angosto, para no competir por atención con la barra.
 const ShellConBarra = (props) => (
-  <div style={{minHeight:"100vh", background:P.bg, fontFamily:"'Nunito',sans-serif", color:P.ink, display:"flex", justifyContent:"center", padding:"28px 14px 56px"}}>
+  <div style={{minHeight:"100vh", background:P.bg, fontFamily:"-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif", color:P.ink, display:"flex", justifyContent:"center", padding:"28px 14px 56px"}}>
     <div style={{width:"100%", maxWidth:760, display:"flex", gap:26, alignItems:"flex-start"}}>
       {props.sidebar}
       <div style={{flex:1, minWidth:0, display:"flex", flexDirection:"column", gap:18}}>{props.children}</div>
@@ -121,14 +119,14 @@ const ShellConBarra = (props) => (
 const navBtnStyle = (activo) => ({
   textAlign:"left", background: activo?P.sageSoft:"transparent", border:"none", borderRadius:12,
   padding:"10px 14px", fontSize:14, fontWeight: activo?800:700, color: activo?P.sageDeep:P.ink,
-  cursor:"pointer", fontFamily:"'Nunito',sans-serif", width:"100%",
+  cursor:"pointer", fontFamily:"-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif", width:"100%",
 });
 
 const Sidebar = ({ seccion, onSeccion, pendientesCount, historialCount, onSalir }) => (
   <div style={{width:172, flexShrink:0, display:"flex", flexDirection:"column", gap:4, position:"sticky", top:28}}>
     <div style={{display:"flex", alignItems:"center", gap:8, padding:"4px 4px 14px"}}>
       <div style={{fontSize:22}}>🌱</div>
-      <div style={{fontFamily:"'Fraunces',serif", fontSize:15, color:P.sageDeep, lineHeight:1.1}}>Panel de<br/>revisión</div>
+      <div style={{fontFamily:"-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif", fontSize:15, color:P.sageDeep, lineHeight:1.1}}>Panel de<br/>revisión</div>
     </div>
     <button onClick={()=>onSeccion("pendientes")} style={navBtnStyle(seccion==="pendientes")}>Pendientes{pendientesCount!=null?" ("+pendientesCount+")":""}</button>
     <button onClick={()=>onSeccion("historial")} style={navBtnStyle(seccion==="historial")}>Aprobados{historialCount!=null?" ("+historialCount+")":""}</button>
@@ -137,8 +135,8 @@ const Sidebar = ({ seccion, onSeccion, pendientesCount, historialCount, onSalir 
   </div>
 );
 
-const btnPrimary = {background:P.sage,color:"#fff",border:"none",borderRadius:999,padding:"12px 24px",fontSize:14.5,fontWeight:800,fontFamily:"'Nunito',sans-serif",cursor:"pointer",boxShadow:"0 6px 18px rgba(90,122,92,.30)"};
-const btnGhost = {background:"none",border:"1px solid "+P.line,color:P.ink,borderRadius:999,padding:"9px 18px",fontSize:13.5,fontWeight:700,fontFamily:"'Nunito',sans-serif",cursor:"pointer"};
+const btnPrimary = {background:P.sage,color:"#fff",border:"none",borderRadius:999,padding:"12px 24px",fontSize:14.5,fontWeight:800,fontFamily:"-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif",cursor:"pointer",boxShadow:"0 6px 18px rgba(74,112,69,.30)"};
+const btnGhost = {background:"none",border:"1px solid "+P.line,color:P.ink,borderRadius:999,padding:"9px 18px",fontSize:13.5,fontWeight:700,fontFamily:"-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif",cursor:"pointer"};
 
 function relativeDate(iso) {
   if (!iso) return "";
@@ -453,7 +451,7 @@ function App() {
     <Shell>
       <div style={{background:P.panel, border:"1px solid "+P.line, borderRadius:20, padding:"32px 26px", textAlign:"center"}}>
         <div style={{fontSize:36, marginBottom:10}}>🌱</div>
-        <div style={{fontFamily:"'Fraunces',serif", fontSize:22, color:P.sageDeep, marginBottom:10}}>Panel de revisión</div>
+        <div style={{fontFamily:"-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif", fontSize:22, color:P.sageDeep, marginBottom:10}}>Panel de revisión</div>
         <p style={{fontSize:13.5, color:P.ink, lineHeight:1.6, textAlign:"left", marginBottom:8}}>Acá revisas los casos que Vita ya capturó con cada familia. Por cada uno puedes:</p>
         <ul style={{fontSize:13, color:P.ink, lineHeight:1.7, textAlign:"left", margin:"0 0 12px", paddingLeft:20}}>
           <li>Leer el formulario completo que llenó el padre/madre.</li>
@@ -464,7 +462,7 @@ function App() {
         <p style={{fontSize:12.5, color:P.muted, lineHeight:1.6, textAlign:"left", marginBottom:20}}>El PIN es solo para ti (o quien más tenga acceso autorizado).</p>
         <div style={{position:"relative", width:"100%", maxWidth:220, margin:"0 auto 14px"}}>
           <input type={verPin?"text":"password"} value={pinInput} onChange={e=>setPinInput(e.target.value)} onKeyDown={e=>{if(e.key==="Enter") entrarConPin();}} placeholder="PIN"
-            style={{width:"100%", textAlign:"center", fontSize:16, padding:"11px 40px 11px 14px", border:"1px solid "+P.line, borderRadius:12, fontFamily:"'Nunito',sans-serif", outline:"none"}} autoFocus/>
+            style={{width:"100%", textAlign:"center", fontSize:16, padding:"11px 40px 11px 14px", border:"1px solid "+P.line, borderRadius:12, fontFamily:"-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif", outline:"none"}} autoFocus/>
           <button type="button" onClick={()=>setVerPin(v=>!v)} title={verPin?"Ocultar PIN":"Ver PIN"}
             style={{position:"absolute", right:6, top:"50%", transform:"translateY(-50%)", background:"none", border:"none", color:P.muted, cursor:"pointer", fontSize:16, padding:6, lineHeight:1}}>
             {verPin ? "🙈" : "👁"}
@@ -487,7 +485,7 @@ function App() {
   if (stage === "lista") return (
     <ShellConBarra sidebar={<Sidebar seccion="pendientes" onSeccion={irASeccion} pendientesCount={pendientes?pendientes.length:null} historialCount={historial?historial.length:null} onSalir={salir}/>}>
       <div>
-        <h1 style={{fontFamily:"'Fraunces',serif", fontWeight:600, fontSize:26, margin:0, color:P.sageDeep}}>Pendientes {pendientes && pendientes.length ? "("+pendientes.length+")" : ""}</h1>
+        <h1 style={{fontFamily:"-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif", fontWeight:600, fontSize:26, margin:0, color:P.sageDeep}}>Pendientes {pendientes && pendientes.length ? "("+pendientes.length+")" : ""}</h1>
       </div>
       {listaError && (
         <div style={{background:P.claySoft, border:"1px solid "+P.clay, borderRadius:14, padding:"12px 16px", fontSize:13, color:P.ink}}>
@@ -519,7 +517,7 @@ function App() {
   if (stage === "historial") return (
     <ShellConBarra sidebar={<Sidebar seccion="historial" onSeccion={irASeccion} pendientesCount={pendientes?pendientes.length:null} historialCount={historial?historial.length:null} onSalir={salir}/>}>
       <div>
-        <h1 style={{fontFamily:"'Fraunces',serif", fontWeight:600, fontSize:26, margin:0, color:P.sageDeep}}>Aprobados {historial && historial.length ? "("+historial.length+")" : ""}</h1>
+        <h1 style={{fontFamily:"-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif", fontWeight:600, fontSize:26, margin:0, color:P.sageDeep}}>Aprobados {historial && historial.length ? "("+historial.length+")" : ""}</h1>
       </div>
       {historialError && (
         <div style={{background:P.claySoft, border:"1px solid "+P.clay, borderRadius:14, padding:"12px 16px", fontSize:13, color:P.ink}}>
@@ -571,7 +569,7 @@ function App() {
         </div>
 
         <div>
-          <h1 style={{fontFamily:"'Fraunces',serif", fontWeight:600, fontSize:24, margin:0, color:P.sageDeep}}>{detalle.nombreNino || "(sin nombre)"}{formatEdad(detalle.edad)}</h1>
+          <h1 style={{fontFamily:"-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif", fontWeight:600, fontSize:24, margin:0, color:P.sageDeep}}>{detalle.nombreNino || "(sin nombre)"}{formatEdad(detalle.edad)}</h1>
           <div style={{fontSize:13, color:P.muted, marginTop:4}}>Padre/madre: {detalle.nombrePadre || "—"} · {detalle.emailPadre || "sin correo"}</div>
           {/* Texto del aviso corregido (27 oct 2026, encontrado por Leonardo
               en un caso real del panel): decía "caso previo al 9 ago, o
@@ -649,7 +647,7 @@ function App() {
               <div style={{background:P.panelRaised, border:"1px solid "+P.line, borderRadius:14, padding:"12px 14px", fontSize:14, color:P.ink, lineHeight:1.5, whiteSpace:"pre-wrap"}}>{mensaje || "—"}</div>
             ) : (
               <textarea value={mensaje} onChange={e=>setMensaje(e.target.value)} rows={28}
-                style={{width:"100%", border:"1px solid "+P.line, borderRadius:14, padding:"12px 14px", fontSize:14, fontFamily:"'Nunito',sans-serif", background:P.panelRaised, color:P.ink, outline:"none", resize:"vertical", lineHeight:1.5}}/>
+                style={{width:"100%", border:"1px solid "+P.line, borderRadius:14, padding:"12px 14px", fontSize:14, fontFamily:"-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif", background:P.panelRaised, color:P.ink, outline:"none", resize:"vertical", lineHeight:1.5}}/>
             )}
           </div>
         </div>
@@ -671,9 +669,9 @@ function App() {
                   </button>
                   <div style={{flex:1, minWidth:0, display:"flex", flexDirection:"column", gap:6}}>
                     <input value={h.titulo} onChange={e=>actualizarHabito(i,"titulo",e.target.value)} placeholder="Título del hábito"
-                      style={{border:"1px solid "+P.line, borderRadius:9, padding:"7px 10px", fontSize:13.5, fontWeight:800, fontFamily:"'Nunito',sans-serif", color:P.ink, outline:"none"}}/>
+                      style={{border:"1px solid "+P.line, borderRadius:9, padding:"7px 10px", fontSize:13.5, fontWeight:800, fontFamily:"-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif", color:P.ink, outline:"none"}}/>
                     <textarea value={h.texto} onChange={e=>actualizarHabito(i,"texto",e.target.value)} rows={2} placeholder="Explicación para el padre/madre"
-                      style={{border:"1px solid "+P.line, borderRadius:9, padding:"7px 10px", fontSize:13, fontFamily:"'Nunito',sans-serif", color:P.ink, outline:"none", resize:"vertical", lineHeight:1.4}}/>
+                      style={{border:"1px solid "+P.line, borderRadius:9, padding:"7px 10px", fontSize:13, fontFamily:"-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif", color:P.ink, outline:"none", resize:"vertical", lineHeight:1.4}}/>
                   </div>
                 </div>
               </div>
@@ -717,7 +715,7 @@ function App() {
               <div style={{background:P.claySoft, border:"1px solid "+P.clay, borderRadius:14, padding:"12px 16px"}}>
                 <div style={{fontSize:13, color:P.ink, marginBottom:10, lineHeight:1.5}}>¿Descartar el caso de {detalle.nombreNino || "este niño/a"}? Borra la fila del Sheet — no se puede deshacer.</div>
                 <div style={{display:"flex", gap:8}}>
-                  <button onClick={descartar} disabled={descartando} style={{background:P.clay, color:"#fff", border:"none", borderRadius:999, padding:"9px 18px", fontSize:13.5, fontWeight:700, cursor:"pointer", fontFamily:"'Nunito',sans-serif", opacity:descartando?.7:1}}>{descartando?"Descartando…":"Sí, descartar"}</button>
+                  <button onClick={descartar} disabled={descartando} style={{background:P.clay, color:"#fff", border:"none", borderRadius:999, padding:"9px 18px", fontSize:13.5, fontWeight:700, cursor:"pointer", fontFamily:"-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif", opacity:descartando?.7:1}}>{descartando?"Descartando…":"Sí, descartar"}</button>
                   <button onClick={()=>setConfirmandoDescarte(false)} style={btnGhost}>Cancelar</button>
                 </div>
               </div>
