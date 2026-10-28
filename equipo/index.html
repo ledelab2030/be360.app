@@ -61,6 +61,22 @@ const PIN_KEY = "be360_panel_pin"; // mismo key que panel/index.html: un PIN sir
 // saludar; la autorización real sigue siendo el PIN de PIN_KEY.
 const NOMBRE_KEY = "be360_equipo_nombre";
 const ROL_KEY = "be360_equipo_rol";
+// Seguimiento de regeneraciones en curso (28 oct 2026, pedido de Leonardo: no
+// quedarse esperando en el caso — poder navegar a otra pantalla, incluso
+// cerrar y volver a abrir la pestaña, y que avise con una notificación
+// cuando esté lista). Vive en localStorage, no en estado de React, para que
+// sobreviva a cambiar de pantalla y a recargar la página.
+const REGEN_TRACK_KEY = "be360_equipo_regenerando";
+
+function notificarRegeneracion(titulo, cuerpo) {
+  try {
+    if (typeof Notification === "undefined") return;
+    if (Notification.permission === "granted") { new Notification(titulo, { body: cuerpo }); return; }
+    if (Notification.permission === "default") {
+      Notification.requestPermission().then(p => { if (p === "granted") new Notification(titulo, { body: cuerpo }); });
+    }
+  } catch (e) { /* Notification no disponible en este navegador — sin aviso nativo, la huella en la lista sigue sirviendo */ }
+}
 
 const P = { bg:"#FAFAFA", panel:"#F4F6F8", panelRaised:"#FFFFFF", ink:"#1A1A1A", sage:"#4A7045", sageDeep:"#0A1F44", sageSoft:"#E9F1F8", clay:"#B5764A", claySoft:"#F0DFCB", line:"#E7E9EC", muted:"#6B6B6B" };
 
@@ -425,6 +441,47 @@ function App() {
 
   useEffect(() => { if (pin) cargarPendientes(); }, [pin]);
 
+  // Vigila en segundo plano los casos que se mandaron a regenerar (28 oct
+  // 2026, pedido de Leonardo: no quedarse esperando en la pantalla del caso,
+  // poder navegar o cerrar la pestaña, y que avise con una notificación
+  // cuando termine). Corre siempre que App está montado, sin importar qué
+  // pantalla se esté viendo — por eso vive acá arriba, no dentro de una
+  // vista en particular. Lee el PIN fresco de localStorage en cada vuelta en
+  // vez de depender del estado "pin" del componente, para no reiniciar el
+  // intervalo cada vez que algo más cambia.
+  useEffect(() => {
+    const revisar = async () => {
+      let seguidos = [];
+      try { seguidos = JSON.parse(localStorage.getItem(REGEN_TRACK_KEY) || "[]"); } catch (e) {}
+      if (!seguidos.length) return;
+      let pinActual = "";
+      try { pinActual = localStorage.getItem(PIN_KEY) || ""; } catch (e) {}
+      if (!pinActual) return;
+      const quedan = [];
+      for (const caso of seguidos) {
+        try {
+          const res = await fetch(WORKER_URL + "/panel/detalle", {
+            method: "POST", headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ panelSecret: pinActual, idPlan: caso.idPlan }),
+          });
+          const data = await res.json();
+          const estado = (data && data.regeneracionEstado) || "";
+          if (/^ok /.test(estado)) {
+            notificarRegeneracion("✓ Regeneración lista", (caso.nombreNino || "Un caso") + " ya se regeneró — revísalo en Panel Equipo.");
+          } else if (/^error /.test(estado)) {
+            notificarRegeneracion("✗ Regeneración falló", (caso.nombreNino || "Un caso") + ": " + estado.replace(/^error \S+:?\s*/, ""));
+          } else {
+            quedan.push(caso); // sigue "iniciado" (o sin respuesta todavía) — seguir vigilando
+          }
+        } catch (e) { quedan.push(caso); }
+      }
+      try { localStorage.setItem(REGEN_TRACK_KEY, JSON.stringify(quedan)); } catch (e) {}
+    };
+    revisar();
+    const id = setInterval(revisar, 20000);
+    return () => clearInterval(id);
+  }, []);
+
   // Login por persona (28 oct 2026, pedido de Leonardo — "evitar fricción en
   // las validaciones que siguen"): en vez de probar el PIN contra una acción
   // cualquiera del panel, se prueba contra /panel/login, que además dice de
@@ -511,7 +568,9 @@ function App() {
   // generación real en segundo plano (~1 min, no se espera acá) y vuelve
   // decision a "pendiente_aprobacion" aunque el caso ya estuviera aprobado:
   // el contenido nuevo necesita pasar otra vez por revisión antes de llegar
-  // a la familia. Hay que recargar el caso (o la lista) después de esperar.
+  // a la familia. No hace falta quedarse en esta pantalla — se puede navegar
+  // a otra sección de inmediato, el vigilante de arriba (useEffect) avisa
+  // con una notificación cuando termine.
   const regenerar = async () => {
     if (regenerando) return;
     setRegenerando(true); setAccionError(null); setRegeneradoOk(false);
@@ -519,6 +578,12 @@ function App() {
       const data = await llamarPanel("regenerar", { idPlan: detalle.idPlan });
       if (!data.ok) throw new Error(data.error || "error");
       setRegeneradoOk(true); setConfirmandoRegenerar(false);
+      try {
+        const seguidos = JSON.parse(localStorage.getItem(REGEN_TRACK_KEY) || "[]");
+        seguidos.push({ idPlan: detalle.idPlan, nombreNino: detalle.nombreNino });
+        localStorage.setItem(REGEN_TRACK_KEY, JSON.stringify(seguidos));
+      } catch (e) {}
+      if (typeof Notification !== "undefined" && Notification.permission === "default") Notification.requestPermission();
     } catch (e) { setAccionError(e.message === "PIN incorrecto" ? null : (e.message || "No se pudo regenerar. Reintenta.")); }
     finally { setRegenerando(false); }
   };
@@ -644,6 +709,7 @@ function App() {
               <div style={{fontSize:15, fontWeight:800, color:P.ink}}>{p.nombreNino || "(sin nombre)"}{formatEdad(p.edad)}</div>
               <div style={{fontSize:12.5, color:P.muted, marginTop:2}}>Padre/madre: {p.nombrePadre || "—"} · {relativeDate(p.timestamp)}</div>
               {p.preocupacionPrincipal && <div style={{fontSize:12.5, color:P.ink, marginTop:5, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap"}}>{p.preocupacionPrincipal}</div>}
+              {huellaRegeneracion(p.regeneracionEstado) && <div style={{fontSize:11.5, color: huellaRegeneracion(p.regeneracionEstado).clay ? P.clay : P.sage, marginTop:4}}>{huellaRegeneracion(p.regeneracionEstado).texto}</div>}
             </div>
             <div style={{color:P.sageDeep, fontSize:20, flexShrink:0}}>→</div>
           </div>
@@ -678,6 +744,7 @@ function App() {
                 {p.tieneNovedades && <span style={{background:P.claySoft, color:P.clay, fontSize:10.5, fontWeight:800, padding:"2px 8px", borderRadius:999, letterSpacing:".03em"}}>NOVEDAD</span>}
               </div>
               <div style={{fontSize:12.5, color:P.muted, marginTop:2}}>Padre/madre: {p.nombrePadre || "—"} · aprobado {relativeDate(p.correoEnviadoTs || p.timestamp)}</div>
+              {huellaRegeneracion(p.regeneracionEstado) && <div style={{fontSize:11.5, color: huellaRegeneracion(p.regeneracionEstado).clay ? P.clay : P.sage, marginTop:4}}>{huellaRegeneracion(p.regeneracionEstado).texto}</div>}
             </div>
             <div style={{color:P.sageDeep, fontSize:20, flexShrink:0}}>→</div>
           </div>
@@ -816,7 +883,7 @@ function App() {
             <div style={{fontSize:12, color: huellaRegeneracion(detalle.regeneracionEstado).clay ? P.clay : P.muted, lineHeight:1.5}}>{huellaRegeneracion(detalle.regeneracionEstado).texto}</div>
           )}
           {regeneradoOk ? (
-            <div style={{fontSize:13, color:P.sageDeep, lineHeight:1.5}}>✓ Regenerando con el prompt actual — tarda cerca de un minuto. Vuelve a esta sección después para revisar el resultado (quedó en "pendiente de aprobación").</div>
+            <div style={{fontSize:13, color:P.sageDeep, lineHeight:1.5}}>✓ Regenerando con el prompt actual — tarda cerca de un minuto. Puedes navegar a otra sección, no hace falta esperar acá: avisa con una notificación cuando termine (quedó en "pendiente de aprobación").</div>
           ) : !confirmandoRegenerar ? (
             <span onClick={()=>setConfirmandoRegenerar(true)} style={{fontSize:12.5, color:P.muted, textDecoration:"underline", cursor:"pointer"}}>Regenerar con el prompt actual</span>
           ) : (

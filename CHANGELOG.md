@@ -851,6 +851,22 @@ Leonardo pegó el Apps Script y pidió regenerar un caso real — el contenido n
 
 **Verificación:** `node --check` sobre `vita-proxy.js` y el Apps Script.
 
+**Resuelto en la misma conversación:** con el Apps Script nuevo pegado, Leonardo reintentó un caso real — los logs en vivo mostraron el ciclo completo funcionando: llamada a Claude, un reintento automático (el verificador encontró un problema y se autocorrigió, como está diseñado), guardado exitoso en el Sheet (`{"ok":true,"idPlan":"...","row":29}`). El fallo del primer intento fue transitorio (probablemente el Apps Script todavía no estaba desplegado en ese momento, o apuntaba a la fila duplicada equivocada) — con los logs nuevos, la causa real de un fallo futuro va a ser visible de inmediato.
+
+### 28 oct 2026 — Huella de regeneración también en las listas de Pendientes/Aprobados (pedido de Leonardo: saberlo sin entrar a cada caso)
+
+La huella de la entrada anterior solo se veía dentro del detalle de un caso — Leonardo pidió verla en la lista, junto a "hace X días", para no tener que abrir cada uno. `listarPendientes()` y `listarHistorial()` (Apps Script) ahora devuelven `regeneracionEstado`; `equipo/` lo renderiza con el mismo `huellaRegeneracion()` ya construido, como una línea extra debajo de la fecha en cada tarjeta de la lista.
+
+**Verificación:** `node --check` sobre el Apps Script; sintaxis JSX de `equipo/index.html` validada con `@babel/preset-react`.
+
+### 28 oct 2026 — Notificación cuando termina una regeneración, sin quedarse esperando (pedido de Leonardo)
+
+Leonardo preguntó si tenía que quedarse en la pantalla del caso mientras regeneraba, y propuso que corriera en segundo plano con una notificación — ya corría en segundo plano del lado del servidor (la petición queda encolada y responde de inmediato), pero nada en `equipo/` avisaba cuando terminaba; había que acordarse de volver a revisar.
+
+**Cambio:** al confirmar "Regenerar", el caso se agrega a una lista de seguimiento en `localStorage` (`be360_equipo_regenerando`) — sobrevive a cambiar de pantalla y a cerrar/reabrir la pestaña. Un `useEffect` en el componente raíz de `App` (corre sin importar qué sección se esté viendo) revisa esa lista cada 20 segundos contra `detalle_plan`; cuando `regeneracionEstado` deja de decir "iniciado" y pasa a "ok" o "error", dispara una notificación nativa del navegador (`Notification` API, con el permiso pedido la primera vez que se regenera algo) y saca el caso de la lista de seguimiento. Si el navegador no soporta o no autoriza notificaciones, la huella que ya se ve en la lista y en el detalle sigue sirviendo como respaldo silencioso.
+
+**Verificación:** sintaxis JSX validada con `@babel/preset-react`; cargado en local, sin errores de consola al montar (el `useEffect` nuevo corre incluso antes de iniciar sesión, cuando todavía no hay nada que vigilar).
+
 ---
 
 ---

@@ -424,6 +424,7 @@ function listarPendientes(sheet) {
         preocupacionPrincipal: data[r][COLS.preocupacion_principal],
         timestamp: data[r][COLS.timestamp],
         verificacionTs: data[r][COLS.verificacion_ts],
+        regeneracionEstado: data[r][COLS.regeneracion_estado],
       });
     }
   }
@@ -452,6 +453,7 @@ function listarHistorial(sheet) {
         // pendiente todavía no se puede aprobar, así que la familia nunca
         // llega a /plan/ ni al chat (doGet responde 403 hasta aprobar).
         tieneNovedades: !!(data[r][COLS.novedades_json] && data[r][COLS.novedades_json] !== "[]"),
+        regeneracionEstado: data[r][COLS.regeneracion_estado],
       });
     }
   }
