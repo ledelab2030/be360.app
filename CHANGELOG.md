@@ -636,7 +636,31 @@ Mismo patrón exacto que `equipo/` (26 oct — 27 oct), esta vez para familias: 
 
 **Nav responsive, igual que `equipo/` pero al revés:** pestañas fijas abajo en móvil (la App Familia está pensada de celular hacia afuera), rail lateral en escritorio — sin hamburguesa, 4 ítems caben bien como pestañas en cualquier tamaño.
 
-**Verificación, más completa que la de `equipo/` porque se pudo** — `/plan` es de lectura pública (sin restricción de Origin, a diferencia de `/panel/*`), así que se probó el flujo real completo en local, no solo la sintaxis: contra el caso real de Samuel (`idPlan` ya usado en pruebas anteriores de esta sesión), las 4 pestañas cargaron con sus datos reales (hábitos en Hoy, mensaje completo en Mi plan), la pestaña Vita arrancó el chat sola y falló por CORS exactamente como se esperaba (`localhost` ≠ `https://be360.app`, mismo patrón ya confirmado con `equipo/` — prueba de que el Worker sigue protegido, no un bug), Progreso mostró "Próximamente" sin flag, y el nav responde bien en móvil (pestañas abajo) y escritorio (rail). Pendiente: confirmar el chat de verdad contra producción después del merge, y descargar un PDF real para confirmarlo (el código es copia exacta del ya probado en `plan/`, pero no se bajó el archivo en esta prueba).
+**Verificación, más completa que la de `equipo/` porque se pudo** — `/plan` es de lectura pública (sin restricción de Origin, a diferencia de `/panel/*`), así que se probó el flujo real completo en local, no solo la sintaxis: contra el caso real de Samuel (`idPlan` ya usado en pruebas anteriores de esta sesión), las 4 pestañas cargaron con sus datos reales (hábitos en Hoy, mensaje completo en Mi plan), la pestaña Vita arrancó el chat sola y falló por CORS exactamente como se esperaba (`localhost` ≠ `https://be360.app`, mismo patrón ya confirmado con `equipo/` — prueba de que el Worker sigue protegido, no un bug), Progreso mostró "Próximamente" sin flag, y el nav responde bien en móvil (pestañas abajo) y escritorio (rail). **Confirmado en producción después del merge:** el chat real funcionó de punta a punta — Vita arrancó sola, saludó a Samuel por nombre con el tono consultivo correcto (sin preguntar directo por cumplimiento), móvil y escritorio verificados contra `be360.app/app/`. Pendiente: descargar un PDF real para confirmarlo (el código es copia exacta del ya probado en `plan/`, pero no se bajó el archivo en esta prueba).
+
+### 27 oct 2026 — Progreso de verdad: línea de tiempo de novedades + el chat completo se guarda (pedido de Leonardo)
+
+Después de ver la pestaña Progreso vacía ("Próximamente"), Leonardo preguntó qué tenía en mente para esa sección — si era para llevar el hilo de las conversaciones con Vita, si registraba fecha/hora, si resumía en qué quedaron. Se le propuso reusar las **novedades** que ya existen (mismo dato que ve el equipo en `panel/`/`equipo/` — fecha + resumen de lo que se compartió o confirmó), sin backend nuevo. Confirmó esa dirección y agregó: **"chat completo también"** — que la conversación se guarde de verdad, no solo lo que escala.
+
+**Decisión de diseño:** en vez de una tabla nueva (fila por mensaje, con el riesgo real de que Sheets reinterprete una columna de `ts` como fecha y la corrompa), se reusa el mismo patrón ya probado de `novedades_json` — JSON append-only en una columna del Sheet por caso. Cero tablas nuevas, cero mecanismo nuevo que aprender.
+
+**Cambios en `worker/apps-script-formulario-v2.gs.txt`:**
+- Nueva columna `chat_json` (índice 29) — JSON, array de `{ts, role, content}`, se añade, nunca se sobreescribe. No se tocó el `appendRow` de captura inicial (igual que `novedades_json`, Sheets deja la celda vacía y el `JSON.parse(... || "[]")` ya lo maneja).
+- Nueva función `guardarMensajesChat(sheet, body)` — agrega uno o más mensajes de un turno a la columna. Acción `guardar_mensaje_chat` en `doPost`, con `SHARED_SECRET` (NUNCA `panelSecret`) — no es una acción de panel, la dispara la app pública de la familia a través del Worker, mismo nivel que `notificar_escalamiento`.
+- `doGet` (lo que sirve `/plan?id=`) ahora también devuelve `novedades` y `chatHistory` — nada nuevo expuesto: el padre ya veía las novedades por correo cuando escalaban, y el chat lo escribió él mismo.
+
+**Cambios en `worker/vita-proxy.js`:** nueva ruta `POST /chat` → `handleGuardarChat()`, mismo patrón exacto que `handleEscalar` (reenvía al mismo webhook, mismo `SHEET_WEBHOOK_SECRET_FORMULARIO`).
+
+**Cambios en `app/index.html`:**
+- Al cargar el plan, si ya hay `chatHistory`, la pestaña Vita arranca con la conversación cargada en vez de un saludo nuevo — Vita "recuerda" entre sesiones.
+- Cada turno completo (lo que escribe el padre/madre + la respuesta de Vita) se guarda en una sola llamada a `/chat`, sin bloquear el chat si falla (mismo criterio que `notificarEscalar`). El saludo inicial de `startChat` también se guarda (sin el "opener" interno, que nunca lo dijo el padre).
+- Progreso ahora muestra la línea de tiempo de novedades (fecha + resumen) siempre que haya alguna, más los Retos si el piloto está activo — y el "Todavía no hay nada que mostrar" solo aparece cuando de verdad no hay ninguna de las dos cosas.
+
+**Dos despliegues, no uno:** toca Apps Script además del Worker — hasta el pegado manual, `/chat` responde con el fallo esperado de siempre (`SHARED_SECRET` inválido cae al chequeo genérico) y `/plan` sigue sin devolver `novedades`/`chatHistory` todavía.
+
+**Nota de privacidad, no bloqueante:** esto cambia el chat de "vive solo en la pestaña abierta, se pierde al cerrar" a "se guarda en el Sheet". Vale la pena que la pantalla de consentimiento lo refleje en algún momento — no se tocó hoy, Leonardo decide cuándo.
+
+**Verificación:** `node --check` sobre una copia temporal `.js` del Apps Script — sintaxis válida; `node --check` sobre `vita-proxy.js` — sintaxis válida; `app/index.html` verificado vía Babel en navegador local, sin errores nuevos (Progreso cae correctamente al estado vacío mientras el backend no esté desplegado). Pendiente: Leonardo pega el Apps Script, se confirma un turno de chat guardándose y recuperándose, y una novedad real apareciendo en Progreso.
 
 ---
 
