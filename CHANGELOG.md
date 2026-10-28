@@ -803,6 +803,18 @@ Leonardo revisó con Peter, frase por frase, un caso real completo (transcripci�
 
 **Verificación:** `node --check` sobre `vita-proxy.js`; cada regex nueva (`debería`, "o agua", "Hábitos recomendados", frase de escalamiento) probada contra el `mensaje` real de los dos casos de referencia (Sofía, Samuel) — cero falsos positivos — y contra fragmentos reconstruidos de los problemas reales descritos en la reunión, confirmando que sí detectan lo que deben. El cambio de contenido del prompt (trigo, proteína y grasa, ventana de fin de semana, etc.) no se puede probar sin generar un borrador nuevo real.
 
+### 28 oct 2026 — Prompt más corto, mismo comportamiento: narrativa histórica movida a comentarios
+
+Pedido de Leonardo, de la evaluación que había quedado pendiente desde la mañana: `ADAPTACIONES_PEDIATRICAS` y `SRB_DRAFT_PROMPT` habían crecido a punta de parches — cada regla con su fecha, quién la encontró y en qué reunión, todo DENTRO del string que el modelo lee en cada generación. Esa narrativa es valiosa para quien mantenga el código, pero no para el modelo: es contexto que compite por su atención con las reglas que sí importan, sin cambiar su comportamiento.
+
+**Cambio:** toda la narrativa ("26 oct 2026, Peter en la minuta X", "Leonardo detectó que...", "se coló en un plan real") se extrajo a un bloque de comentarios de JS justo encima de cada `const`, fuera del string — el modelo ya no la lee. Dentro del string queda solo la regla operativa, sin fechas ni nombres. También se de-duplicó la regla de la ventana de alimentación, que vivía dos veces — una versión corta en `ADAPTACIONES_PEDIATRICAS`, otra con el procedimiento completo en `SRB_DRAFT_PROMPT` — ahora la versión corta solo apunta a la versión completa, en vez de repetir la explicación.
+
+Ningún ejemplo instructivo se tocó (el cálculo trabajado de la ventana — "primera comida 6:45 am, última comida 6:30 pm → ventana real 11h45" — se queda, porque enseña el método, no es narrativa histórica).
+
+**Resultado medido:** `ADAPTACIONES_PEDIATRICAS` pasó de 12,515 a 9,591 caracteres (-23%); `SRB_DRAFT_PROMPT` de 15,365 a 14,153 (-8%). Combinado, ~15% menos texto que el modelo lee en cada generación, mismas reglas.
+
+**Verificación:** `node --check`; se confirmó por `grep` que cada fragmento operativo clave de las 20+ reglas de `ADAPTACIONES_PEDIATRICAS` y las secciones principales de `SRB_DRAFT_PROMPT` sigue presente exactamente una vez (ni duplicado, ni perdido) — incluyendo la frase de referencia del suero, el ejemplo numérico de la ventana, los encabezados exactos del semáforo, y el esquema JSON completo. No se puede probar que el MODELO siga comportándose igual sin generar un borrador real — este cambio es de forma, no reescribe el sentido de ninguna regla.
+
 ---
 
 ---
