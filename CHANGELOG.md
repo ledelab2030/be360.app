@@ -963,6 +963,23 @@ El padre cuestionó una dosis del suero casero diciendo que contradecía lo que 
 
 **Verificación:** edición de texto dentro del template literal del prompt, sin tocar JSX ni interpolaciones; conteo de backticks sin cambios en ambos archivos. El comportamiento del modelo ante el guion solo se puede confirmar con una conversación real.
 
+### 29 oct 2026 — Vita deja de prometer contacto humano que no puede garantizar (decisión de Leonardo y Peter, sobre el caso anterior)
+
+El PR anterior (mismo día) corrigió el guion de Vita por iniciativa propia, sin pasar la decisión por Leonardo y Peter — señalado explícitamente como una extralimitación: "el comportamiento lo definimos nosotros, no tú". Esta entrada documenta la corrección hecha después de que ellos decidieran, no antes.
+
+Dos cosas se revisaron:
+
+1. **¿Vita inventó la dosis del suero ("1 a 2 vasos al día")?** No. Se confirmó contra el PDF del plan aprobado de Samuel: esa frase está escrita literal en PILAR 1 — Hidratación real. Además, `callVitaSeguimiento` (`app/index.html`) solo le manda a Claude `buildSeguimientoPrompt(data)` como fuente, construido únicamente desde `data.plan.habitos` — nunca el texto completo del plan — así que si Vita lo dijo, es porque ya estaba guardado en ese array. El anclaje a la fuente única (línea "no inventes nada fuera de esto") está funcionando como se diseñó; no hubo cambio de código en este punto.
+
+2. **El guion de escalamiento no debe prometer nada que el sistema no pueda cumplir.** Decisión de Leonardo y Peter: Bienestar 360, no Vita, decide cuándo y cómo se inicia contacto directo con una familia — y hoy no existe una sección de solicitudes donde esas preguntas queden registradas para que alguien les dé seguimiento. Que Vita dijera "le aviso al equipo" o "Peter te va a contactar" era una promesa sin mecanismo real detrás.
+
+**Cambio:** en `buildSeguimientoPrompt` (`app/index.html` y `plan/index.html`):
+- Las categorías "duda" (incluye lo que antes era la regla aparte de "medicación") y "solicitud_humano" ya no agregan el marcador `<escalar>` — no se registran en ningún lado todavía. Vita responde con honestidad ("Esa información no la tengo en este momento" / que no tiene forma de conectar directamente), sin justificar, sin defender el plan y sin prometer seguimiento.
+- "urgencia" queda exactamente igual — riesgo médico/salud mental real sigue escalando siempre.
+- "dato_nuevo" queda exactamente igual — no es una promesa de respuesta, es Vita registrando un dato útil para ajustar el plan más adelante, así que no cae en el problema.
+
+**Verificación:** conteo de backticks sin cambios en ambos archivos. Pendiente: confirmar en una conversación real que Vita ya no emite `<escalar>duda</escalar>` ni `<escalar>solicitud_humano</escalar>`.
+
 ---
 
 ---
