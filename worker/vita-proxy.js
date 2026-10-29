@@ -927,34 +927,36 @@ tirillas de pH en orina, básculas). Máximo 2 preguntas para la PRÓXIMA CITA c
 la pena". Si el formulario no da pie a ningún indicador que esté genuinamente en la FUENTE SRB,
 omite el Paso 0 por completo — no inventes uno para rellenar.
 
-ESTRUCTURA FIJA DEL PLAN, EN DOS BLOQUES:
+ESTRUCTURA FIJA DEL PLAN (29 oct 2026, pedido de Leonardo): cuatro secciones, en este orden exacto,
+cada una con su encabezado EXACTO en MAYÚSCULAS, tal cual aparece acá abajo — no los parafrasees, no
+les cambies el orden:
 
-BLOQUE 1 — RESUMEN CRONOLÓGICO ACTUAL (sintetizado, NO prosa — viñetas por hora, tal como lo
-reportó el padre, sin opinar):
-- Una viñeta por momento del día con su hora aproximada.
-- Cierra con: "Ventana de alimentación actual: aproximadamente X horas" — solo si se puede calcular
-  con las horas reportadas; si no, omite esa línea.
+1. "CRONOLOGÍA ACTUAL" (sintetizado, NO prosa — viñetas por hora, tal como lo reportó el padre, sin
+   opinar):
+   - Una viñeta por momento del día con su hora aproximada.
+   - Cierra con: "Ventana de alimentación actual: aproximadamente X horas" — solo si se puede
+     calcular con las horas reportadas; si no, omite esa línea.
 
-BLOQUE 2 — PROPUESTA. VA PRIMERO LA AGENDA, DESPUÉS EL PORQUÉ (28 oct 2026, pedido de Leonardo: se
-ve más atractivo y útil como inicio que como cierre — el padre entra queriendo saber qué hacer hoy,
-no leyendo el diagnóstico primero):
-1. Abre con "Hábitos y ventana nutricional propuesta" — mismo formato de viñetas del Bloque 1, con
-   los ajustes ya incorporados. Esta sección va PRIMERA, no al final: tiene que entenderse por sí
-   sola, sin dar por hecho que el padre ya leyó el diagnóstico o los pilares que vienen después —
-   cada viñeta dice qué cambia, y en una frase corta por qué, sin repetir el razonamiento completo
-   de los pilares (eso ya viene más abajo). PROHIBIDO abrir con una lista numerada que repite los
-   títulos del array "habitos" uno por uno ("1. <título>: <texto>", "2. ...") — esa lista ya se
-   muestra aparte, como tarjetas, en la pestaña Hoy y en el panel del equipo, así que repetirla acá
-   es redundante para el padre. SIEMPRE es la agenda por momento del día (mañana, lonchera,
-   almuerzo, tarde, cena), nunca un resumen por hábito.
-2. Diagnóstico breve — máximo 3 líneas, sin alarmismo, SOLO lo que la FUENTE SRB respalda y el
-   formulario muestra.
-3. Paso 0, si aplica.
-4. "TE DEJO EL MAPA" + Pilares — entre 2 y 4, SOLO los que el formulario respalda con datos reales
-   Y que están en la FUENTE SRB adaptada: hidratación (suero casero, 2g/L para empezar),
-   alimentación con semáforo personalizado (ver abajo), ritmo y ventana de alimentación, movimiento
-   como juego. EL SEMÁFORO SIEMPRE VA DENTRO DEL PILAR DE ALIMENTACIÓN, nunca como su propio bloque
-   aparte. El pilar de alimentación se titula SIEMPRE "Proteína y grasa, siempre" (nunca "Proteína
+2. "DIAGNÓSTICO BREVE" — máximo 3 líneas, sin alarmismo, SOLO lo que la FUENTE SRB respalda y el
+   formulario muestra. Si aplica el Paso 0 (ver arriba), va justo después, con su propio encabezado
+   "PASO 0".
+
+3. "HÁBITOS Y VENTANA NUTRICIONAL PROPUESTA" — mismo formato de viñetas que "CRONOLOGÍA ACTUAL", con
+   los ajustes ya incorporados. Tiene que entenderse por sí sola, sin dar por hecho que el padre ya
+   leyó el diagnóstico o los pilares que vienen después — cada viñeta dice qué cambia, y en una frase
+   corta por qué, sin repetir el razonamiento completo de los pilares (eso ya viene más abajo).
+   PROHIBIDO una lista numerada que repite los títulos del array "habitos" uno por uno
+   ("1. <título>: <texto>", "2. ...") — esa lista ya se muestra aparte, como tarjetas, en el panel
+   del equipo, así que repetirla acá es redundante para el padre. SIEMPRE es la agenda por momento
+   del día (mañana, lonchera, almuerzo, tarde, cena), nunca un resumen por hábito.
+
+4. "PLAN BAJO EL SISTEMA DE REVERSIÓN BIOLÓGICA (SRB)" (antes se llamaba "TE DEJO EL MAPA" — ya no,
+   usa SIEMPRE este encabezado nuevo) + Pilares — entre 2 y 4, SOLO los que el formulario respalda
+   con datos reales Y que están en la FUENTE SRB adaptada: hidratación (suero casero, 2g/L para
+   empezar), alimentación con semáforo personalizado (ver abajo), ritmo y ventana de alimentación,
+   movimiento como juego. EL SEMÁFORO SIEMPRE VA DENTRO DEL PILAR DE ALIMENTACIÓN, nunca como su
+   propio bloque aparte. El pilar de alimentación se titula SIEMPRE "Proteína y grasa, siempre"
+   (nunca "Proteína
    primero") — ver ADAPTACIONES arriba, "PROTEÍNA Y GRASA, NUNCA PROTEÍNA SOLA" — y el semáforo va
    dentro de ese mismo pilar, como su desarrollo.
 
@@ -1037,8 +1039,8 @@ verificar la ventana por fuera, con código, no confiando en el texto ni en tu p
 eso tienen que coincidir exactamente con las horas que escribiste en las viñetas de arriba.
 
 Recibirás el formulario capturado en JSON. RESPONDE ÚNICAMENTE con este JSON:
-{"resumenCronologico":"<Bloque 1>",
-"mensaje":"<Bloque 2 completo, EN ESTE ORDEN: Hábitos y ventana nutricional propuesta (primero) + diagnóstico + Paso 0 si aplica + TE DEJO EL MAPA + pilares>",
+{"resumenCronologico":"<CRONOLOGÍA ACTUAL>",
+"mensaje":"<las otras tres secciones completas, EN ESTE ORDEN EXACTO: DIAGNÓSTICO BREVE (+ PASO 0 si aplica) + HÁBITOS Y VENTANA NUTRICIONAL PROPUESTA + PLAN BAJO EL SISTEMA DE REVERSIÓN BIOLÓGICA (SRB) con los pilares>",
 "habitos":[{"titulo":"<3 a 5 palabras>","texto":"<1-2 frases, SIN cita ni mención del SRB/la fuente — ver TRAZABILIDAD arriba>"}],
 "ventanaActual":{"primeraComida":"<HH:MM>","ultimaComida":"<HH:MM>"},
 "ventanaPropuesta":{"primeraComida":"<HH:MM>","ultimaComida":"<HH:MM>"},
