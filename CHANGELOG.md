@@ -949,6 +949,12 @@ Esto reordena otra vez lo que se había reordenado ayer: el 28 oct, "Hábitos y 
 
 **Verificación:** `node --check`. El orden y las mayúsculas de los encabezados solo se pueden confirmar generando un borrador nuevo real.
 
+### 29 oct 2026 — La huella de regeneración pierde el "hace X" relativo, se queda solo con la fecha/hora exacta
+
+Leonardo lo pidió otra vez: "no pongas esos mensajes informativos sin autorización... duplicidad y riesgo de errores". El "hace menos de una hora" junto a la fecha exacta era información repetida (la fecha ya dice cuándo fue) y, al ser relativo, es el tipo de texto que se puede leer mal — ya pasó en esta misma conversación. `huellaRegeneracion()` ya no concatena `relativeDate(iso)`, solo `d.toLocaleString()`.
+
+**Verificación:** sintaxis JSX validada con `@babel/preset-react`.
+
 ---
 
 ---
