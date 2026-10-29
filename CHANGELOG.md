@@ -923,6 +923,14 @@ Leonardo mandó el PDF del caso real de Sofía por tercera vez: seguía con la s
 
 **Verificación:** sintaxis JSX validada con `@babel/preset-react`; `grep -rln "function descargarPdf" --include="*.html" .` confirma que ahora las tres copias (`app/`, `plan/`, `equipo/`) están arregladas y no hay una cuarta.
 
+### 29 oct 2026 — "Referencia para Vita" colapsada por defecto en equipo/ (Leonardo: "too much para la ventana del que revisa")
+
+Esa sección sigue siendo necesaria — es la fuente que `buildSeguimientoPrompt()` le da a Vita en el chat de seguimiento, no se puede quitar sin dejar a Vita sin referencia de qué se aprobó — pero Leonardo señaló que ocupa demasiado espacio en la pantalla donde Peter revisa y aprueba, compitiendo visualmente con el mensaje, que es lo que de verdad importa revisar ahí.
+
+**Cambio:** la sección pasa a un desplegable cerrado por defecto — un encabezado pequeño "▸ Referencia para Vita (N)" que al tocarlo despliega las tarjetas (editables si el caso está pendiente, de solo lectura si ya está aprobado). Nada cambia en el guardado — `planParaGuardar()` sigue mandando `habitos` igual que antes.
+
+**Verificación:** sintaxis JSX validada con `@babel/preset-react`. No se pudo probar interactivo en vivo (necesita el PIN real) — solo por lectura de código.
+
 ---
 
 ---
