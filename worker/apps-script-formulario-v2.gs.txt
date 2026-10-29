@@ -826,9 +826,16 @@ function doGet(e) {
         // etapas): fechas que ya existían en el Sheet, nunca expuestas antes
         // en /plan — el padre ya las conoce (cuándo llenó el formulario,
         // cuándo le llegó el correo de aprobación), no es dato nuevo.
+        // nombrePadre y edad (29 oct 2026, pedido de Leonardo: el home de
+        // app/index.html no mostraba ni el nombre del niño/a ni el del
+        // responsable) -- ya existían en el Sheet y ya se le devuelven al
+        // equipo en detalle_plan; acá solo faltaba exponerlos también al
+        // padre, que de sobra ya los conoce (son sus propios datos).
         return respond({
           ok: true,
           nombreNino: data[r][COLS.nombre_nino],
+          edad: data[r][COLS.edad],
+          nombrePadre: data[r][COLS.nombre_padre],
           mensaje: data[r][COLS.borrador_texto],
           plan: plan,
           novedades: novedades,

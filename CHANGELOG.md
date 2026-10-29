@@ -980,6 +980,18 @@ Dos cosas se revisaron:
 
 **Verificación:** conteo de backticks sin cambios en ambos archivos. Pendiente: confirmar en una conversación real que Vita ya no emite `<escalar>duda</escalar>` ni `<escalar>solicitud_humano</escalar>`.
 
+### 29 oct 2026 — Nombre del niño/a, edad y responsable, en el home de app/, en el texto que se aprueba y en el PDF (pedido de Leonardo, revisando el caso regenerado de Sofía)
+
+El home (pestaña Progreso de `app/`) no mostraba ni el nombre del niño/a ni el del responsable. Tampoco aparecían la edad ni el responsable en el texto que Peter aprueba ni en el PDF que descarga la familia.
+
+**Cambio:**
+- `doGet` (Apps Script) ahora devuelve `edad` y `nombrePadre` además de `nombreNino` — ya existían en el Sheet y ya se le devolvían al equipo en `detalle_plan`, solo faltaba exponerlos también al padre (son sus propios datos).
+- Pestaña Progreso de `app/index.html`: subtítulo nuevo bajo "El camino hasta ahora" con niño/a, edad y responsable.
+- Pestaña Mi plan de `app/index.html`: el encabezado "El plan de {niño/a}" ahora incluye la edad.
+- `generarYVerificarBorrador` (`worker/vita-proxy.js`): el mensaje final arranca con un encabezado armado por código (no por el modelo) — "{niño/a}, {edad} años" y "Responsable: {nombre del padre/madre}" — usando los datos reales del formulario. Al ser determinístico, no depende de que el modelo lo redacte bien, y llega solo con esto al texto que ve y aprueba el equipo en `equipo/` (porque se guarda ahí) y de ahí al PDF (que ya usa ese mismo texto) — sin tocar los tres generadores de PDF por separado. Aplica a borradores nuevos y a regeneraciones; los casos ya aprobados no lo tienen hasta que se regeneren.
+
+**Verificación:** `node --check` en ambos archivos del Worker/Apps Script. Sintaxis JSX de `app/index.html` validada con `@babel/standalone`.
+
 ---
 
 ---
