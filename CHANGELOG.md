@@ -939,6 +939,16 @@ Esa sección sigue siendo necesaria — es la fuente que `buildSeguimientoPrompt
 
 **Verificación:** sintaxis JSX validada con `@babel/preset-react` en los tres archivos; la regex de detección probada contra fragmentos reales (con emoji y sin emoji) de los dos casos usados como referencia hoy — detecta los tres colores correctamente, sin falso positivo en texto normal.
 
+### 29 oct 2026 — Cuatro secciones fijas, en mayúscula, en orden nuevo — fuera "TE DEJO EL MAPA"
+
+Pedido de Leonardo: las secciones principales del plan van siempre en este orden — CRONOLOGÍA ACTUAL, DIAGNÓSTICO BREVE, HÁBITOS Y VENTANA NUTRICIONAL PROPUESTA, y la sección de los pilares (antes "TE DEJO EL MAPA") pasa a llamarse "PLAN BAJO EL SISTEMA DE REVERSIÓN BIOLÓGICA (SRB)" — todos los encabezados en mayúscula, exactos, no parafraseados.
+
+Esto reordena otra vez lo que se había reordenado ayer: el 28 oct, "Hábitos y ventana nutricional propuesta" había pasado de cierre a apertura del plan (justo antes del diagnóstico). Hoy Leonardo definió el orden final completo, con las cuatro secciones nombradas: Cronología actual primero (ya lo era, es el Bloque 1), después Diagnóstico breve, después Hábitos y ventana (tercera, no primera), y al final los pilares, con su nuevo nombre.
+
+**Cambio:** `SRB_DRAFT_PROMPT`, sección "ESTRUCTURA FIJA DEL PLAN" reescrita completa — las cuatro secciones numeradas con su encabezado EXACTO entre comillas, en mayúscula, con la instrucción explícita de no parafrasearlos ni cambiar el orden. "TE DEJO EL MAPA" se retira del prompt (se deja una nota de que así se llamaba antes, para quien lea el código). El esquema JSON de la respuesta también se actualiza para describir el nuevo orden.
+
+**Verificación:** `node --check`. El orden y las mayúsculas de los encabezados solo se pueden confirmar generando un borrador nuevo real.
+
 ---
 
 ---
