@@ -1466,6 +1466,14 @@ async function generarYVerificarBorrador(dx, env) {
       mensajeFinal = parsed.resumenCronologico + "\n\n" + "═".repeat(40) + "\n\n" + parsed.mensaje;
     }
 
+    // Encabezado con niño/a, edad y responsable (29 oct 2026, pedido de
+    // Leonardo: no aparecían ni en el texto que se aprueba ni en el PDF).
+    // Se arma acá con los datos reales del formulario, no se le pide al
+    // modelo que los redacte -- son datos exactos que ya tenemos.
+    const encabezado = (dx.nombre_nino || "—") + (dx.edad ? ", " + dx.edad + " años" : "") + "\n" +
+      "Responsable: " + (dx.nombre_padre || "—") + "\n\n";
+    mensajeFinal = encabezado + mensajeFinal;
+
     return { mensajeFinal, habitos: Array.isArray(parsed.habitos) ? parsed.habitos : [] };
   } catch (e) {
     // Silencioso a propósito: un fallo acá no debe tumbar al que llama.

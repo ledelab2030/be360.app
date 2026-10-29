@@ -564,7 +564,7 @@ function App() {
               <div style={{display:"flex", flexDirection:"column", gap:6}}>
                 <div style={{fontSize:11.5, fontWeight:800, letterSpacing:".09em", textTransform:"uppercase", color:P.sageDeep}}>Plan de bienestar</div>
                 <h1 style={{fontFamily:"-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif", fontWeight:600, fontSize:"clamp(26px,7vw,32px)", lineHeight:1.1, margin:0, color:P.sageDeep}}>
-                  El plan de {data.nombreNino || "tu hijo/a"}
+                  El plan de {data.nombreNino || "tu hijo/a"}{data.edad ? ", " + data.edad + " años" : ""}
                 </h1>
                 <div style={{display:"flex", alignItems:"center", justifyContent:"space-between", gap:10, flexWrap:"wrap"}}>
                   <div style={{fontSize:13, color:P.muted}}>Revisado y aprobado por <b style={{color:P.ink}}>Peter Álvarez</b></div>
@@ -685,6 +685,12 @@ function App() {
                 <div>
                   <div style={{fontSize:11.5, fontWeight:800, letterSpacing:".09em", textTransform:"uppercase", color:P.sageDeep}}>Progreso</div>
                   <h1 style={{fontFamily:"-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif", fontWeight:600, fontSize:"clamp(24px,6vw,28px)", lineHeight:1.15, margin:"4px 0 0", color:P.sageDeep}}>El camino hasta ahora</h1>
+                  {(data.nombreNino || data.nombrePadre) && (
+                    <div style={{fontSize:13, color:P.muted, marginTop:6}}>
+                      {data.nombreNino}{data.edad ? ", " + data.edad + " años" : ""}
+                      {data.nombrePadre ? " · Responsable: " + data.nombrePadre : ""}
+                    </div>
+                  )}
                 </div>
 
                 <div style={{display:"flex", flexDirection:"column"}}>
