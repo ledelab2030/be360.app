@@ -230,8 +230,12 @@ function huellaRegeneracion(estado) {
   const m = estado.match(/^(ok|iniciado|error)\s+(\S+)(?:: ?([\s\S]*))?$/);
   if (!m) return { texto: estado };
   const tipo = m[1], iso = m[2], detalle = m[3];
+  // SOLO fecha y hora exacta (29 oct 2026, Leonardo — otra vez: "no pongas
+  // esos mensajes informativos sin autorización... duplicidad y riesgo de
+  // errores"). "hace X" es redundante con la fecha/hora de al lado y, al ser
+  // relativo, puede leerse mal — ya pasó una vez en esta conversación.
   const d = new Date(iso);
-  const cuando = isNaN(d) ? iso : (d.toLocaleString() + " · " + relativeDate(iso));
+  const cuando = isNaN(d) ? iso : d.toLocaleString();
   if (tipo === "ok") return { texto: "✓ Última regeneración: " + cuando };
   if (tipo === "iniciado") return { texto: "⏳ Regenerando: " + cuando, clay: true };
   return { texto: "✗ Último intento falló (" + cuando + ")" + (detalle ? ": " + detalle : ""), clay: true };
