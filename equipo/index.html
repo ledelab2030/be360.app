@@ -259,6 +259,23 @@ function sanearTextoPdf(texto) {
     .replace(/[️‍]/g, "");
 }
 
+// Color real de PDF para los encabezados del semáforo (29 oct 2026, Leonardo:
+// "no están saliendo los semáforos en colores en el pdf, en el cuerpo
+// editable sí"). sanearTextoPdf ya quitaba el emoji 🔴🟡🟢 en silencio — no
+// por descuido, sino porque jsPDF con fuentes estándar corrompe la línea
+// ENTERA si tiene un carácter fuera de Windows-1252 — pero eso dejaba el
+// encabezado sin ningún color, solo la palabra. En vez de un emoji que la
+// fuente no puede dibujar, se usa el color de texto real de jsPDF para esa
+// línea completa — mismos tonos que ya usa el resto del sitio (P.clay y
+// P.sage) para que no desentone.
+function colorSemaforo(parrafo) {
+  const t = (parrafo || "").trim();
+  if (/^(?:🔴\s*)?ROJO\b/.test(t)) return [196, 48, 43];
+  if (/^(?:🟡\s*)?AMARILLO\b/.test(t)) return [181, 118, 74];
+  if (/^(?:🟢\s*)?VERDE\b/.test(t)) return [74, 112, 69];
+  return null;
+}
+
 function pdfEscribirParrafo(doc, texto, x, y, maxWidth, fontSize) {
   texto = sanearTextoPdf(texto);
   const pageHeight = doc.internal.pageSize.getHeight();
@@ -324,7 +341,10 @@ function descargarPdf(nombreNino, mensaje) {
 
   (mensaje || "").split("\n").forEach(parrafo => {
     if (parrafo.trim() === "") { y += PDF_LINE_HEIGHT * 0.6; return; }
+    const color = colorSemaforo(parrafo);
+    if (color) doc.setTextColor(color[0], color[1], color[2]);
     y = pdfEscribirParrafo(doc, parrafo, PDF_MARGIN, y, maxWidth, 11);
+    if (color) doc.setTextColor(44, 42, 36);
   });
 
   doc.save("plan-" + (nombreNino || "bienestar360").trim().replace(/\s+/g, "-").toLowerCase() + ".pdf");

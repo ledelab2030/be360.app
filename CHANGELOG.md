@@ -931,6 +931,14 @@ Esa sección sigue siendo necesaria — es la fuente que `buildSeguimientoPrompt
 
 **Verificación:** sintaxis JSX validada con `@babel/preset-react`. No se pudo probar interactivo en vivo (necesita el PIN real) — solo por lectura de código.
 
+### 29 oct 2026 — Semáforo sin color en el PDF (Leonardo: "en el cuerpo editable sí salen")
+
+`sanearTextoPdf()` ya quitaba el emoji 🔴🟡🟢 en silencio desde hace tiempo — no por descuido, sino porque jsPDF con fuentes estándar (WinAnsiEncoding de un byte) corrompe la línea ENTERA si tiene un solo carácter fuera de Windows-1252. Pero eso dejaba el encabezado del semáforo sin ningún color, solo la palabra ROJO/AMARILLO/VERDE en texto normal — mientras que en la pestaña "Mi plan" y en el textarea de edición, el emoji se ve perfecto (es HTML/texto plano del navegador, no tiene ese límite).
+
+**Cambio:** nueva función `colorSemaforo()` (en `app/`, `plan/` y `equipo/` — las tres copias de `descargarPdf()`, ver entrada de ayer sobre la triplicación) que detecta si un párrafo empieza con "ROJO"/"AMARILLO"/"VERDE" (con o sin el emoji, da igual, ya que el emoji se quita después) y le aplica el color de texto real de jsPDF a esa línea — rojo, ámbar (mismo tono que `P.clay`) y verde (mismo tono que `P.sage`) — en vez de depender de un emoji que la fuente no puede dibujar.
+
+**Verificación:** sintaxis JSX validada con `@babel/preset-react` en los tres archivos; la regex de detección probada contra fragmentos reales (con emoji y sin emoji) de los dos casos usados como referencia hoy — detecta los tres colores correctamente, sin falso positivo en texto normal.
+
 ---
 
 ---
