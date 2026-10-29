@@ -980,6 +980,21 @@ Dos cosas se revisaron:
 
 **Verificación:** conteo de backticks sin cambios en ambos archivos. Pendiente: confirmar en una conversación real que Vita ya no emite `<escalar>duda</escalar>` ni `<escalar>solicitud_humano</escalar>`.
 
+### 29 oct 2026 — Siete correcciones al prompt de generación, revisando los casos regenerados de Sofía y Josef (decisión de Leonardo, punto por punto)
+
+Leonardo revisó dos casos reales ya regenerados con los cambios de esta misma tarde y encontró varios problemas de redacción que se repetían entre los dos casos. Mientras se ajustaba una de las reglas (vegetal cocido "nunca como plato aparte ni como base"), Leonardo solo había pedido quitar "plato aparte" — la parte de "ni como base" la agregué yo por mi cuenta, solo porque ya estaba en el prompt, sin ninguna fuente real que la respaldara. Me preguntó de dónde la saqué. No tenía de dónde. Su corrección: todo lo que diga el prompt debe rastrearse a la fuente SRB o a una decisión explícita de Leonardo o Peter, nunca a "ya estaba así" — el texto que ya está en el prompt no está validado por el solo hecho de estar ahí.
+
+**Cambio**, los siete puntos, en `SRB_DRAFT_PROMPT` (`worker/vita-proxy.js`):
+1. Vegetal cocido: quitada también la restricción de "base" — ya no hay ninguna restricción sobre cómo se sirve (plato aparte, acompañante), porque ninguna tenía fuente.
+2. Prohibido escribir ROJO/AMARILLO/VERDE o los emoji del semáforo dentro de "HÁBITOS Y VENTANA NUTRICIONAL PROPUESTA" — los colores son del Pilar de Alimentación, no de la agenda del día.
+3. Prohibido calificar un cambio como "el más importante" salvo que la fuente SRB lo diga explícito — los hábitos son un conjunto integral.
+4. Lenguaje prescriptivo, no descriptivo de un estado que no es real: "no deben ser la base" en vez de "no son la base" (que suena a que ya dejó de pasar cuando el formulario muestra lo contrario) — mismo criterio que la regla existente de "debería".
+5. En "HÁBITOS Y VENTANA NUTRICIONAL PROPUESTA": decir siempre qué comer y cómo, no qué no comer ni cómo lo está haciendo mal la familia hoy — para eso ya está el semáforo.
+6. Prohibido usar el nombre del padre/madre del formulario para dirigirse a él/ella en tercera persona ("Leonardo ajusta...") — siempre segunda persona. Apareció revisando el caso de Sofía, donde Leonardo mismo es el padre registrado y el plan le hablaba de él como si fuera un tercero.
+7. Regla nueva de pantallas (no existía ninguna antes — el Pilar 4 no tenía fuente alguna en `ADAPTACIONES_PEDIATRICAS`, todo lo que el modelo decía ahí era improvisado): nada de pantallas en la hora antes de dormir, calculada restando 1 hora de la hora real de dormir del formulario, mismo patrón que la regla de las 3 horas de la cena. La cifra (1 hora) es decisión explícita de Leonardo — la fuente SRB solo dice "manejo de pantallas", sin número.
+
+**Verificación:** `node --check`. El comportamiento del modelo ante las siete reglas nuevas solo se puede confirmar generando o regenerando un caso real.
+
 ---
 
 ---
