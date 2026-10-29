@@ -901,6 +901,18 @@ Leonardo regeneró el caso real de Sofía y, en el panel de revisión de `equipo
 
 **Verificación:** sintaxis JSX de `app/index.html` y `equipo/index.html` validada con `@babel/preset-react`; probado en local contra el caso real de Samuel — el nav muestra 4 pestañas, sin "Hoy", sin errores de consola. La sección renombrada de `equipo/` no se pudo probar en vivo (necesita el PIN real), solo por lectura de código.
 
+### 29 oct 2026 — Hasta 3 intentos de generación (no solo 1), y sin banner de advertencia en el mensaje
+
+Leonardo vio la alarma `[REVISIÓN AUTOMÁTICA — N punto(s) a mirar antes de aprobar]` en un caso regenerado y preguntó para qué queremos que eso salga — si el sistema ya detectó el problema, que lo corrija, no que se lo deje al equipo. Y de paso: toda la app debe ser minimalista y concisa, sin mensajes informativos o de advertencia antes de aprobar un caso.
+
+**Más intentos:** `generarYVerificarBorrador()` antes se rendía después de UN solo reintento — si seguía con fallos, los guardaba igual y avisaba. Ahora reintenta hasta 3 veces en total (`MAX_INTENTOS`), cada vez con la lista de lo que falló en el intento anterior — se queda con el mejor resultado de los tres. Más intentos reales a Claude, pero mucha más probabilidad de que el borrador salga limpio sin intervención manual.
+
+**Sin banner en el mensaje:** aunque después de los 3 intentos algo siga sin resolverse (raro, pero posible), ya no se le antepone `[REVISIÓN AUTOMÁTICA...]` al texto que ve el equipo — queda solo en el log del Worker (`console.log`), visible con `wrangler tail` si hace falta investigar, pero invisible en `equipo/`.
+
+**De paso, mismo espíritu:** el texto de `huellaRegeneracion()` en "iniciado" se recorta — tenía una explicación de cuándo preocuparse ("si sigue así más de un par de minutos, algo falló") que Leonardo pidió quitar, otra vez por lo mismo: minimalista y conciso, sin advertencias de más.
+
+**Verificación:** `node --check`. El comportamiento de los 3 intentos y la ausencia del banner solo se puede confirmar generando o regenerando un caso real.
+
 ---
 
 ---

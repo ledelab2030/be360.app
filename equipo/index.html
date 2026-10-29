@@ -233,7 +233,7 @@ function huellaRegeneracion(estado) {
   const d = new Date(iso);
   const cuando = isNaN(d) ? iso : (d.toLocaleString() + " · " + relativeDate(iso));
   if (tipo === "ok") return { texto: "✓ Última regeneración: " + cuando };
-  if (tipo === "iniciado") return { texto: "⏳ Regeneración iniciada: " + cuando + " — si sigue así más de un par de minutos, algo falló", clay: true };
+  if (tipo === "iniciado") return { texto: "⏳ Regenerando: " + cuando, clay: true };
   return { texto: "✗ Último intento falló (" + cuando + ")" + (detalle ? ": " + detalle : ""), clay: true };
 }
 

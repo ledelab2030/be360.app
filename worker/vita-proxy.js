@@ -1342,18 +1342,19 @@ async function generarYVerificarBorrador(dx, env) {
     };
 
     let parsed = await pedirBorrador();
-    let avisoVerificacion = "";
 
     // REVISIÓN ANTES DE GUARDAR (21 oct 2026, pedido de Leonardo): el
     // borrador no llega al panel sin pasar por acá. Dos capas —
     //   (a) reglas duras por código: palabras prohibidas, reglas narradas al
     //       padre, formato interno filtrado, cifras de adulto, ventana corta.
-    //       Si algo falla, se regenera UNA vez diciéndole qué corregir.
+    //       Si algo falla, se regenera hasta 2 veces más diciéndole qué
+    //       corregir (ver MAX_INTENTOS abajo).
     //   (b) verificador de grounding contra la fuente SRB: es advisory, se
-    //       anota para Peter pero nunca descarta el borrador.
-    // Lo que sobreviva con problemas se guarda igual, con la lista arriba.
-    // Mejor un borrador marcado que un caso vacío — y la alarma solo aparece
-    // cuando de verdad hay algo, para que Peter no aprenda a ignorarla.
+    //       anota en el log del Worker pero nunca descarta el borrador.
+    // Lo que sobreviva con problemas después de los 3 intentos se guarda
+    // igual — mejor un borrador marcado en el log que ningún caso — pero sin
+    // avisarlo en el texto que ve el equipo (29 oct 2026, Leonardo: nada de
+    // mensajes de advertencia antes de aprobar).
     const evaluar = (p) => {
       if (!p) return [];
       const fallos = revisarBorradorPediatrico(p);
@@ -1381,11 +1382,20 @@ async function generarYVerificarBorrador(dx, env) {
       return fallos;
     };
 
+    // Reintentos hasta que quede limpio, no solo uno (29 oct 2026, Leonardo:
+    // "si se detectó, de una vez corregirlo" — antes se rendía después de UN
+    // reintento y dejaba la alarma [REVISIÓN AUTOMÁTICA] para que el equipo
+    // corrigiera a mano algo que el propio sistema ya sabía que estaba mal).
+    // Máximo 3 intentos en total (1 inicial + 2 reintentos) — cada intento es
+    // una llamada real a Claude, así que no se alarga sin límite; si después
+    // de los 3 sigue con fallos, ahí sí se guarda marcado para revisión
+    // manual, igual que antes — mejor un borrador marcado que ningún caso.
     let fallos = evaluar(parsed);
-    if (!parsed || fallos.length > 0) {
+    const MAX_INTENTOS = 3;
+    for (let intento = 1; (!parsed || fallos.length > 0) && intento < MAX_INTENTOS; intento++) {
       const reintento = await pedirBorrador(fallos);
       const fallosReintento = evaluar(reintento);
-      // Se queda con el reintento si no produjo nada el primero, o si salió
+      // Se queda con el reintento si no produjo nada el anterior, o si salió
       // igual o mejor. Nunca se empeora a propósito.
       if (reintento && (!parsed || fallosReintento.length <= fallos.length)) {
         parsed = reintento;
@@ -1396,9 +1406,17 @@ async function generarYVerificarBorrador(dx, env) {
     if (parsed) {
       const sinRespaldo = await revisarGroundingConModelo(parsed, env);
       for (const s of sinRespaldo) fallos.push("posible afirmación sin respaldo en el SRB: " + s);
+      // SIN banner "[REVISIÓN AUTOMÁTICA]" en el mensaje (29 oct 2026,
+      // Leonardo: "para qué queremos que eso salga... toda la app
+      // minimalista y conciso, no añadas mensajes informativos o de
+      // advertencia antes de aprobarlos"). Antes de esto, se rendía después
+      // de UN reintento y dejaba el aviso ahí para que el equipo corrigiera
+      // a mano — ahora hay hasta 3 intentos (ver MAX_INTENTOS arriba), así
+      // que hace mucha menos falta. Lo que sí sobreviva después de los 3
+      // intentos queda solo en el log del Worker (console.log abajo), nunca
+      // en el texto que ve el equipo.
       if (fallos.length > 0) {
-        avisoVerificacion = "[REVISIÓN AUTOMÁTICA — " + fallos.length + " punto(s) a mirar antes de aprobar]\n" +
-          fallos.map(f => "· " + f).join("\n");
+        console.log("[generarYVerificarBorrador] quedaron " + fallos.length + " fallo(s) después de " + MAX_INTENTOS + " intentos: " + fallos.join(" | "));
       }
     }
 
@@ -1410,9 +1428,6 @@ async function generarYVerificarBorrador(dx, env) {
     let mensajeFinal = parsed.mensaje;
     if (parsed.resumenCronologico) {
       mensajeFinal = parsed.resumenCronologico + "\n\n" + "═".repeat(40) + "\n\n" + parsed.mensaje;
-    }
-    if (avisoVerificacion) {
-      mensajeFinal = avisoVerificacion + "\n\n" + "═".repeat(40) + "\n\n" + mensajeFinal;
     }
 
     return { mensajeFinal, habitos: Array.isArray(parsed.habitos) ? parsed.habitos : [] };
