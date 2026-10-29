@@ -913,6 +913,16 @@ Leonardo vio la alarma `[REVISIÓN AUTOMÁTICA — N punto(s) a mirar antes de a
 
 **Verificación:** `node --check`. El comportamiento de los 3 intentos y la ausencia del banner solo se puede confirmar generando o regenerando un caso real.
 
+### 29 oct 2026 — El checklist seguía en el PDF de `equipo/` — nunca se había tocado esa copia de la función
+
+Leonardo mandó el PDF del caso real de Sofía por tercera vez: seguía con la sección "Hábitos" numerada al final, y con el banner `[REVISIÓN AUTOMÁTICA...]` arriba — exactamente lo que se había arreglado el día anterior (PR #137) y hoy mismo. La causa: `descargarPdf()` existe por TRIPLICADO en este repo — `app/index.html`, `plan/index.html` y **`equipo/index.html`** — cada archivo con su propia copia completa de la función, porque ninguno importa código del otro (páginas estáticas sin build). El arreglo del 28 oct solo tocó `app/` y `plan/`; la copia de `equipo/` (el botón "Descargar PDF" del panel de revisión) nunca se revisó, y tenía el mismo bloque `if (incluidos.length) { ... "Hábitos" ... }` que las otras dos.
+
+**Cambio:** se quita esa misma sección de `equipo/index.html`, igual que se hizo en las otras dos — `descargarPdf()` ya no recibe `habitos` como parámetro en ninguna de las tres copias. Se confirmó con `grep -rl "function descargarPdf"` que no hay una cuarta copia en ningún otro archivo del repo.
+
+**Lo que esto enseña:** cuando un arreglo tiene que aplicarse a "cada copia de una función", conviene buscar explícitamente todas las copias con una herramienta (`grep -rn` del nombre de la función) antes de dar el arreglo por terminado — no asumir que ya se encontraron todas porque se revisaron los lugares "obvios" (en este caso, las dos páginas que la familia ve; se pasó por alto la del panel interno, que tiene el mismo botón).
+
+**Verificación:** sintaxis JSX validada con `@babel/preset-react`; `grep -rln "function descargarPdf" --include="*.html" .` confirma que ahora las tres copias (`app/`, `plan/`, `equipo/`) están arregladas y no hay una cuarta.
+
 ---
 
 ---
