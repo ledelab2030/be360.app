@@ -955,6 +955,14 @@ Leonardo lo pidió otra vez: "no pongas esos mensajes informativos sin autorizac
 
 **Verificación:** sintaxis JSX validada con `@babel/preset-react`.
 
+### 29 oct 2026 — Vita improvisaba en vez de seguir el guion de escalamiento ante una duda clínica (reportado por Leonardo con capturas del chat de Samuel)
+
+El padre cuestionó una dosis del suero casero diciendo que contradecía lo que enseña el SRB. En vez de seguir la regla "duda" del prompt (responder la frase fija "Eso lo reviso con Peter y te respondo" y escalar de una), Vita improvisó su propia justificación defendiendo el plan ("Lo que está en el plan de Samuel es lo que Peter revisó y aprobó... me quedo con eso como referencia") y lo ofreció como algo opcional ("si quieres que le pregunte a Peter"), mezclando el comportamiento con el de la regla "dato nuevo" (que sí espera confirmación antes de escalar). No tenía que ver con la antigüedad del plan — `buildSeguimientoPrompt` se reconstruye entero en cada mensaje, con las reglas que estén hoy en el código, sin importar cuándo se aprobó el plan.
+
+**Cambio:** la regla "duda" en `buildSeguimientoPrompt` (`app/index.html` y `plan/index.html`) ahora prohíbe explícitamente justificar o defender el plan con argumentos propios, prohíbe ofrecerlo como opcional, exige la frase fija y aclara que escala en el mismo turno sin esperar confirmación — distinto de "dato nuevo", que sí espera.
+
+**Verificación:** edición de texto dentro del template literal del prompt, sin tocar JSX ni interpolaciones; conteo de backticks sin cambios en ambos archivos. El comportamiento del modelo ante el guion solo se puede confirmar con una conversación real.
+
 ---
 
 ---
