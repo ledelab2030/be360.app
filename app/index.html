@@ -166,10 +166,20 @@ const aplicarGlosario = (texto, keyBase) => texto.split(GLOSARIO_REGEX).map((p,j
   return t ? <TerminoGlosario key={keyBase+"-"+j} termino={p} definicion={GLOSARIO[t]} /> : <React.Fragment key={keyBase+"-"+j}>{p}</React.Fragment>;
 });
 
+// Links clicables (30 oct 2026, pedido de Leonardo: el cierre fijo del plan
+// trae un link real a la pestaña Vita, "para que haga click el papá") — se
+// aplica DESPUÉS de separar negrilla y ANTES del glosario, así un link nunca
+// queda partido por una palabra del glosario ni al revés.
+const renderConLink = (texto, keyBase, conGlosario) => texto.split(/(https?:\/\/[^\s]+)/g).map((seg,j) =>
+  /^https?:\/\//.test(seg)
+    ? <a key={keyBase+"-u"+j} href={seg} target="_blank" rel="noopener noreferrer" style={{color:P.sageDeep, fontWeight:700, wordBreak:"break-all"}}>{seg}</a>
+    : <React.Fragment key={keyBase+"-t"+j}>{conGlosario ? aplicarGlosario(seg, keyBase+"-t"+j) : seg}</React.Fragment>
+);
+
 const renderRichLine = (line, conGlosario) => line.split(/(\*\*[^*]+\*\*)/g).map((part,i)=>
   part.startsWith("**")&&part.endsWith("**")
     ? <strong key={i} style={{fontWeight:800}}>{part.slice(2,-2)}</strong>
-    : <React.Fragment key={i}>{conGlosario ? aplicarGlosario(part, i) : part}</React.Fragment>
+    : <React.Fragment key={i}>{renderConLink(part, i, conGlosario)}</React.Fragment>
 );
 
 const renderRich = (text, conGlosario) => {
@@ -346,7 +356,13 @@ const SidebarDesktop = ({ tab, onTab }) => (
 
 function App() {
   const [stage, setStage] = useState("cargando"); // cargando | ok | no_disponible
-  const [tab, setTab] = useState("progreso");
+  // El link del cierre fijo del plan (30 oct 2026, generarYVerificarBorrador
+  // en el Worker) manda "&tab=vita" para abrir directo en esa pestaña —
+  // válido solo "vita", cualquier otro valor (o ninguno) cae en "progreso".
+  const [tab, setTab] = useState(() => {
+    const t = new URLSearchParams(window.location.search).get("tab");
+    return t === "vita" ? "vita" : "progreso";
+  });
   const [data, setData] = useState(null);
   const [retosOn, setRetosOn] = useState(false);
   const [retosLog, setRetosLog] = useState({});
