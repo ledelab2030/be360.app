@@ -1009,6 +1009,22 @@ Leonardo revisó dos casos reales ya regenerados con los cambios de esta misma t
 
 ---
 
+### 29 oct 2026 — La ventana de alimentación ACTUAL no se verificaba por código, solo la propuesta (reportado por Leonardo, caso de Josef regenerado a las 4:44pm)
+
+Leonardo revisó el PDF y dejó un comentario en el Google Doc: el plan de Josef decía "Ventana de alimentación actual: aproximadamente 13:154 horas (6:45 am a 8:0045 pm...)" — un número corrupto y una hora (8:45pm) que contradecía la propia cronología del plan, que reporta "Después de las 8:00 pm: solo agua". Su corrección: "OJO: no aproximar, redondear. La ventana actual sería de 6.45 am a 8 pm, un total de 13:15 horas."
+
+Dos causas, ninguna una regla nueva — las dos ya estaban aprobadas, solo no se cumplían:
+1. **Contradicción dentro del propio prompt.** La instrucción de la sección 1 (CRONOLOGÍA ACTUAL) le pedía al modelo escribir "Ventana de alimentación actual: aproximadamente X horas" — con la palabra "aproximadamente" ahí mismo en la plantilla — mientras que la regla CÁLCULO DE LA VENTANA (más abajo en el mismo prompt, existente desde el 21 oct por un error idéntico en el caso de Samuel) prohíbe esa palabra y exige precisión exacta. El modelo siguió la instrucción de la sección 1, que nunca se actualizó cuando se agregó la regla de precisión.
+2. **Hueco en la verificación por código.** `evaluar()` ya calculaba `horasDeVentana(p.ventanaPropuesta)` para la ventana propuesta (con tope de 12 horas), pero nunca llamaba la misma función sobre `p.ventanaActual` — el mismo campo estructurado `{primeraComida, ultimaComida}` que el prompt ya le pide al modelo. Un número corrupto en la ventana actual no tenía ninguna forma de detectarse antes de llegar al equipo.
+
+**Cambio:**
+- Quitada la palabra "aproximadamente" de la instrucción de la sección 1 — ya no contradice la regla de precisión existente.
+- `evaluar()` ahora también calcula `horasDeVentana(p.ventanaActual)` y lo compara contra el número que el modelo escribió en "Ventana de alimentación actual" dentro de `resumenCronologico` — si usa "aproximadamente" o si el número no coincide con el cálculo real (más de 10 minutos de diferencia), se reporta como fallo y entra al mismo ciclo de reintentos que ya existe para la ventana propuesta.
+
+**Verificación:** `node --check`.
+
+---
+
 ---
 
 ## Lo que enseña este historial
