@@ -638,17 +638,39 @@ arriba cuando hay conflicto (el texto de arriba fue escrito para adultos):
   que mejor encaje en la frase, no hace falta mencionar las tres siempre: un sobre de 1 gramo (se
   consiguen en Makro), una cuchara medidora, o una gramera de cocina (1 litro de agua x 2 gramos de
   sal).
+- LA RECETA DEL SUERO ES UNA PROPORCIÓN, NO UN LOTE FIJO (30 oct 2026, Leonardo): escribe siempre
+  "Por cada litro de agua..." — nunca "1 litro de agua..." a secas, que suena a que solo se prepara
+  un litro en total y no a la proporción que es. Y la receta COMPLETA (agua + sal + limón, con la
+  medida concreta) va UNA SOLA VEZ en todo el plan, dentro del Pilar 1 — en cualquier otra mención
+  del suero (HÁBITOS Y VENTANA, lonchera, otro pilar) solo nombras "suero casero", sin repetir la
+  receta.
 - LIMÓN "AL GUSTO": a diferencia de la sal, que siempre es una cantidad medida (2 g/L), el jugo de
   limón del suero casero NO lleva cantidad fija. Nunca escribas "1 unidad de limón" ni ningún número
   para el limón — es al gusto de cada quien.
+- EL SUERO NO SE TOMA DURANTE LA COMIDA (30 oct 2026, Leonardo): cuando menciones el suero en el
+  contexto de una comida (ej. el almuerzo del colegio), nunca des a entender que se toma junto con
+  esa comida — eso contradice la regla de "sin líquidos durante las comidas" de abajo. Di que se
+  lleva en el termo para tomarlo FUERA de la comida, como la bebida base del día en vez de agua sola
+  o jugo — nunca "con el almuerzo" ni frases que sugieran que acompaña el plato.
 - PROTEÍNA Y GRASA, NUNCA PROTEÍNA SOLA: la FUENTE de arriba dice que es la CARNE la que activa ácido
   clorhídrico y bilis ("la carne estimula ácido clorhídrico → estimula bilis alcalina") — la carne
   trae proteína Y grasa juntas. La bilis responde específicamente a la grasa, no a la proteína sola:
-  una pechuga de pollo sin grasa no la activa igual. NUNCA escribas "proteína de calidad" o "proteína
-  primero" como si la proteína sola bastara para el mecanismo — el encabezado y la explicación del
-  pilar de alimentación son siempre "Proteína y grasa, siempre": en cada comida deben estar las dos,
-  el carbohidrato (si lo hay) va de acompañante en porción pequeña, nunca solo carbohidrato ni "lo
-  primero que se sirve" como marco.
+  una pechuga de pollo sin grasa no la activa igual. NUNCA escribas "proteína de calidad", "proteína
+  primero" ni "la proteína y la grasa van primero" — "van primero" se lee como orden temporal ("se
+  comen antes"), que no es lo que quieres decir. Di "son prioritarias" en su lugar: el encabezado y
+  la explicación del pilar de alimentación son siempre "Proteína y grasa, siempre": en cada comida
+  deben estar las dos, el carbohidrato (si lo hay) va de acompañante en porción pequeña, nunca solo
+  carbohidrato.
+- PROTEÍNA Y GRASA SON COSAS DISTINTAS, NO ALTERNATIVAS INTERCAMBIABLES (30 oct 2026, Leonardo):
+  nunca presentes un alimento de proteína y uno de grasa como opciones equivalentes con "o" (ej.
+  "pollo o aguacate") — el pollo es proteína, el aguacate es grasa, cumplen roles distintos. Si
+  quieres nombrar los dos, sé explícito sobre cuál es cuál ("proteína: huevo o pollo; de
+  acompañante: aguacate"). Un alimento que YA trae su propia grasa (ej. huevo) es válido solo,
+  sin forzar un acompañante de grasa adicional — no le agregues una carga extra de disponibilidad o
+  costo al padre si no hace falta.
+- NO ESPECIFIQUES TEMPERATURA (30 oct 2026, Leonardo): no digas que algo se sirve "frío" o
+  "caliente" salvo que una temperatura específica sea clínicamente necesaria — no aporta nada y
+  puede leerse como una instrucción extra que no es.
 - SI EL FORMULARIO REPORTA VARIANTES PARA LA MISMA COMIDA, ELIGE UNA SOLA: cuando el formulario
   describe que el niño/a a veces come una cosa y a veces otra para la misma comida, recomienda UNA
   sola opción, consistente — prefiere siempre el alimento entero/real sobre la versión procesada
@@ -948,15 +970,18 @@ OTRAS REGLAS DURAS, siempre:
   escalada al equipo.
 - Nunca inventes nada fuera de lo capturado en el formulario ni fuera de la FUENTE SRB de arriba.
 
-PASO 0 — INDICADORES: SOLO consultivo, nunca mediciones en casa (nada de % de grasa corporal,
+PARA LA PRÓXIMA CITA CON EL PEDIATRA (antes "Paso 0" — renombrado y movido al final del plan, 30 oct
+2026, pedido de Leonardo): SOLO consultivo, nunca mediciones en casa (nada de % de grasa corporal,
 tirillas de pH en orina, básculas). Máximo 2 preguntas para la PRÓXIMA CITA con el pediatra —
 "si ya tienes un examen reciente de X, compártelo; si no, puedes preguntarle a tu pediatra si vale
 la pena". Si el formulario no da pie a ningún indicador que esté genuinamente en la FUENTE SRB,
-omite el Paso 0 por completo — no inventes uno para rellenar.
+omite esta sección por completo — no inventes una para rellenar. Va AL FINAL del plan, con su propio
+encabezado EXACTO "PARA LA PRÓXIMA CITA CON EL PEDIATRA", después de los pilares de la sección 4 —
+nunca dentro de "DIAGNÓSTICO BREVE" (ver ESTRUCTURA FIJA DEL PLAN más abajo).
 
-ESTRUCTURA FIJA DEL PLAN (29 oct 2026, pedido de Leonardo): cuatro secciones, en este orden exacto,
-cada una con su encabezado EXACTO en MAYÚSCULAS, tal cual aparece acá abajo — no los parafrasees, no
-les cambies el orden:
+ESTRUCTURA FIJA DEL PLAN (29-30 oct 2026, pedido de Leonardo): cuatro secciones fijas más una
+quinta condicional, en este orden exacto, cada una con su encabezado EXACTO en MAYÚSCULAS, tal cual
+aparece acá abajo — no los parafrasees, no les cambies el orden:
 
 1. "CRONOLOGÍA ACTUAL" (sintetizado, NO prosa — viñetas por hora, tal como lo reportó el padre, sin
    opinar):
@@ -966,8 +991,8 @@ les cambies el orden:
      calcular con las horas reportadas; si no, omite esa línea.
 
 2. "DIAGNÓSTICO BREVE" — máximo 3 líneas, sin alarmismo, SOLO lo que la FUENTE SRB respalda y el
-   formulario muestra. Si aplica el Paso 0 (ver arriba), va justo después, con su propio encabezado
-   "PASO 0".
+   formulario muestra. "PARA LA PRÓXIMA CITA CON EL PEDIATRA" (antes "Paso 0") YA NO va acá — se
+   mueve al final del plan, después de los pilares (ver sección 5 más abajo).
 
 3. "HÁBITOS Y VENTANA NUTRICIONAL PROPUESTA" — mismo formato de viñetas que "CRONOLOGÍA ACTUAL", con
    los ajustes ya incorporados. Tiene que entenderse por sí sola, sin dar por hecho que el padre ya
@@ -994,6 +1019,11 @@ les cambies el orden:
    (nunca "Proteína
    primero") — ver ADAPTACIONES arriba, "PROTEÍNA Y GRASA, NUNCA PROTEÍNA SOLA" — y el semáforo va
    dentro de ese mismo pilar, como su desarrollo.
+
+5. "PARA LA PRÓXIMA CITA CON EL PEDIATRA" (antes "PASO 0" — ver esa sección más arriba) — SOLO si
+   aplica (si no, se omite por completo). Va al final del plan, después de los pilares de la sección
+   4 — es la última sección que tú generas; después de esta no escribas nada más, el sistema agrega
+   un cierre fijo por fuera de lo que tú generas.
 
 CÁLCULO DE LA VENTANA DE ALIMENTACIÓN — esto se ha calculado mal antes, hazlo con cuidado. La ventana
 de alimentación (primera a última comida) es un MÁXIMO de 12 horas, no un mínimo — dicho desde el
@@ -1022,10 +1052,16 @@ MENOS 12 horas (misma regla, los dos extremos del día son complementarios dentr
 6. Las horas se escriben como se las dirías a un padre — "6:45 am", "7:00 pm" — nunca en formato
    de reloj de 24 horas ni con flechas tipo "06:00 → 19:00". Eso es el formato de los campos de
    abajo, que son internos; en el texto va lenguaje normal.
-7. Si el formulario NO trae horas suficientes para calcular la ventana, dilo en una línea y pide
-   el dato que falta — NO inventes horas ni propongas una ventana a ciegas. En ese caso, en los
-   campos de reloj de abajo pon exactamente "00:00" en las cuatro posiciones: eso le dice al
-   sistema que no había datos, que es distinto de una ventana mal calculada.
+7. DEDUCIR SÍ, SUPONER NO (30 oct 2026, Leonardo, caso de Josef): si el formulario no da una hora
+   exacta pero sí un límite explícito que la implica (ej. "después de las 8 pm solo agua" implica
+   que la última comida/bebida con calorías fue antes de las 8 pm), ESO CUENTA como dato — dedúcela
+   de ese límite explícito y calcula la ventana con ella, en vez de decir "no calculable". Lo que
+   nunca se permite es SUPONER una hora que el formulario no menciona ni implica de ninguna forma
+   (ej. inventar que la cena fue a las 8:45 pm sin que nada lo respalde) — ahí sí dilo en una línea y
+   pide el dato que falta. La diferencia: deducir parte de algo que el padre sí dijo; suponer no
+   parte de nada. Cuando de verdad no hay ni hora ni límite del que deducir, en los campos de reloj
+   de abajo pon exactamente "00:00" en las cuatro posiciones: eso le dice al sistema que no había
+   datos, que es distinto de una ventana mal calculada.
 
 HORA DE DORMIR Y LAS 3 HORAS MÍNIMAS ANTES DE DORMIR — ver ADAPTACIONES PEDIÁTRICAS arriba, "RITMO Y
 SUEÑO". Misma lógica de cuidado que el cálculo de la ventana:
@@ -1047,8 +1083,13 @@ SUEÑO". Misma lógica de cuidado que el cálculo de la ventana:
    abajo pon exactamente "00:00" — igual que con la ventana, eso le dice al sistema que faltó el
    dato, no que el cálculo salió en cero.
 
-SEMÁFORO PERSONALIZADO — encabezados EXACTOS (el rojo debe sonar firme, no "reducir poco a poco"):
-- "🔴 ROJO (eliminar por completo mientras equilibramos tu organismo)"
+SEMÁFORO PERSONALIZADO — encabezados EXACTOS (el rojo debe sonar firme, no "reducir poco a poco").
+Antes de los tres colores, una frase breve que introduzca la subsección en general (qué es, para que
+el padre sepa de qué trata antes de entrar en el detalle de cada color — cada color ya trae su
+propia explicación específica entre paréntesis, esta frase es solo la entrada):
+- "🔴 ROJO (eliminar por completo mientras equilibramos tu organismo)" — justo después de este
+  encabezado, en su propia frase, agrega SIEMPRE: "Más adelante miraremos si algunos se pueden
+  agregar al grupo de alimentos de la sección AMARILLO." (30 oct 2026, Leonardo).
 - "🟡 AMARILLO (con moderación)"
 - "🟢 VERDE (prioridad en cada comida)"
 Debajo de cada uno, ancla los alimentos de la FUENTE SRB a la señal concreta que el padre reportó —
@@ -1075,7 +1116,7 @@ eso tienen que coincidir exactamente con las horas que escribiste en las viñeta
 
 Recibirás el formulario capturado en JSON. RESPONDE ÚNICAMENTE con este JSON:
 {"resumenCronologico":"<CRONOLOGÍA ACTUAL>",
-"mensaje":"<las otras tres secciones completas, EN ESTE ORDEN EXACTO: DIAGNÓSTICO BREVE (+ PASO 0 si aplica) + HÁBITOS Y VENTANA NUTRICIONAL PROPUESTA + PLAN BAJO EL SISTEMA DE REVERSIÓN BIOLÓGICA (SRB) con los pilares>",
+"mensaje":"<las otras secciones completas, EN ESTE ORDEN EXACTO: DIAGNÓSTICO BREVE + HÁBITOS Y VENTANA NUTRICIONAL PROPUESTA + PLAN BAJO EL SISTEMA DE REVERSIÓN BIOLÓGICA (SRB) con los pilares + PARA LA PRÓXIMA CITA CON EL PEDIATRA (si aplica, va al final)>",
 "habitos":[{"titulo":"<3 a 5 palabras>","texto":"<1-2 frases, SIN cita ni mención del SRB/la fuente — ver TRAZABILIDAD arriba>"}],
 "ventanaActual":{"primeraComida":"<HH:MM>","ultimaComida":"<HH:MM>"},
 "ventanaPropuesta":{"primeraComida":"<HH:MM>","ultimaComida":"<HH:MM>"},
@@ -1209,10 +1250,20 @@ function revisarBorradorPediatrico(parsed) {
   // dispararse. El primer intento de esta regla buscaba la flecha ENTRE dos
   // horas y se le escapó el caso real, donde la flecha iba después.
   revisar(/\b(?:0\d|1[3-9]|2[0-3]):\d{2}\b/, "hora en formato de reloj de 24h (el padre lee 7:00 pm, no 19:00)");
-  revisar(/\bexcelente\b|sigue así|base sólida|qué bueno que|felicit/i, "lenguaje celebratorio (prohibido)");
+  revisar(/\bexcelente\b|\bperfect[oa]\b|sigue así|base sólida|qué bueno que|felicit/i, "lenguaje celebratorio (prohibido)");
   // Cifras del SRB de adultos que nunca van en un plan de niños.
   revisar(/1[.,]5 ?g|70 ?a ?100 ?g|60-80 ?%|2[.,]5 unidades|5 ?a ?7 ?g/i, "cifra del SRB de adultos");
   revisar(/medicament|jarabe|pomada|vaporub|suplement/i, "menciona un medicamento o remedio");
+  // Lenguaje psicológico/neurológico sin base en la fuente (30 oct 2026,
+  // Leonardo, caso de Josef): el modelo conectó un ritual de sueño rígido
+  // con "un sistema nervioso que llega a la noche con carga acumulada" y
+  // sugirió que esa rigidez "tiende a ceder sola" con más recuperación —
+  // ninguna de las dos ideas está en FUENTE_SRB_PEDIATRICA, que solo
+  // respalda la recuperación metabólica/hepática (desintoxicación nocturna
+  // del hígado), nunca nada sobre el sistema nervioso, rigidez o control
+  // emocional/psicológico. Especulación de ese tipo viola la regla de
+  // trazabilidad a la fuente igual que una dosis o cifra inventada.
+  revisar(/sistema nervioso|neurológic|\brigidez\b|necesidad de control|ceder (?:solo|sola)/i, "lenguaje psicológico/neurológico sin base en la FUENTE SRB");
   // Reglas nuevas de la reunión del 26 oct 2026 (minuta de Leo con Peter).
   // "Queso madurado/envejecido" como categoría genérica ya no es la excepción
   // láctea — solo queso azul/roquefort lo es (ver ADAPTACIONES_PEDIATRICAS,
@@ -1227,6 +1278,7 @@ function revisarBorradorPediatrico(parsed) {
   // Reglas nuevas de la revisión en vivo del 28 oct 2026 (reunión de Leo con
   // Peter sobre un caso real, ver CHANGELOG).
   revisar(/\bdeber[íi]a\b/i, "usa \"debería\" (prohibida — debe ser \"debe\" o \"no requiere\"/\"no necesita\")");
+  revisar(/van primero\b/i, "usa \"van primero\" (orden temporal confuso) — debe ser \"son prioritarias\"");
   // "**texto**" (28 oct 2026, Leonardo: se ve como asteriscos literales en
   // el panel de edición del equipo, que muestra el texto plano sin
   // interpretar markdown) — usado en prácticamente todos los casos
@@ -1502,6 +1554,17 @@ async function generarYVerificarBorrador(dx, env) {
     const encabezado = (dx.nombre_nino || "—") + (dx.edad ? ", " + dx.edad + " años" : "") + "\n" +
       "Responsable: " + (dx.nombre_padre || "—") + "\n\n";
     mensajeFinal = encabezado + mensajeFinal;
+
+    // Cierre fijo (30 oct 2026, pedido de Leonardo, texto suyo) — igual que
+    // el encabezado de arriba, armado por código y no por el modelo, para
+    // que sea siempre el mismo. No lleva un link directo al plan porque acá
+    // (generación nueva) el caso todavía no tiene idPlan asignado -- la
+    // familia ya recibe ese link por correo al aprobarse; acá solo se
+    // refiere a la pestaña Vita del mismo plan que está leyendo.
+    mensajeFinal = mensajeFinal + "\n\n" + "═".repeat(40) + "\n\n" +
+      "Te invitamos a hacerle seguimiento al plan aquí mismo, en la pestaña Vita. También podrás " +
+      "hacer preguntas sobre el mismo o agregar más información, así como pedir correcciones o " +
+      "aclaraciones a los datos que proporcionaste, para que los tengamos en cuenta más adelante.";
 
     return { mensajeFinal, habitos: Array.isArray(parsed.habitos) ? parsed.habitos : [] };
   } catch (e) {
