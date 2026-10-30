@@ -1023,6 +1023,30 @@ Dos causas, ninguna una regla nueva — las dos ya estaban aprobadas, solo no se
 
 **Verificación:** `node --check`.
 
+### 30 oct 2026 — Revisión completa del caso de Josef: 13 ajustes al prompt, decididos uno por uno con Leonardo
+
+Leonardo revisó dos regeneraciones reales de Josef (4:44pm y 10:43pm del 29 oct) en un Google Doc, con comentarios al margen. Cada punto se confirmó con él antes de tocar el prompt — incluido uno (D) donde yo había respondido mal: dije que no tenía acceso al SRB pediátrico para verificar una afirmación, cuando en realidad está embebido completo en este mismo archivo (`FUENTE_SRB_PEDIATRICA`, líneas 664-764) y no lo había revisado antes de responder.
+
+**Cambios, todos en `worker/vita-proxy.js`:**
+
+1. "Perfecto"/"perfecta" se suman a "excelente" en el lenguaje celebratorio prohibido.
+2. La receta del suero se escribe siempre "Por cada litro de agua..." (no "1 litro..." a secas, que suena a lote fijo en vez de proporción) — y la receta completa va UNA sola vez en todo el plan, dentro del Pilar 1; el resto de menciones solo nombran "suero casero".
+3. "Van primero" (orden temporal confuso) se reemplaza por "son prioritarias" — agregado también como chequeo de código.
+4. Nunca especificar temperatura de un alimento salvo que sea clínicamente necesario.
+5. Proteína y grasa no se presentan como alternativas intercambiables con "o" (ej. "pollo o aguacate") — son macros distintos. Un alimento que ya trae su grasa (huevo) es válido solo, sin forzar un acompañante adicional.
+6. (mismo punto que 5, una sola regla)
+7. El suero nunca se narra como si se tomara durante la comida — contradice "sin líquidos durante las comidas"; se lleva en termo para tomar fuera de la comida.
+8. (mismo punto que 2, una sola regla: no repetir instrucciones completas en más de un lugar)
+9. Antes del semáforo (ROJO/AMARILLO/VERDE), una frase breve que lo introduzca en general.
+10. Después del encabezado ROJO: agregar siempre "Más adelante miraremos si algunos se pueden agregar al grupo de alimentos de la sección AMARILLO."
+11. Cierre nuevo al final de cada plan (texto de Leonardo), armado por código — no por el modelo — igual que el encabezado de nombre/edad/responsable del PR anterior. No lleva link directo porque en la generación nueva el caso todavía no tiene `idPlan` asignado (la familia ya recibe ese link por correo al aprobarse); se refiere a la pestaña Vita del mismo plan.
+12. **"Para la próxima cita con el pediatra"** (antes "Paso 0", renombrado y **movido**): ya no va dentro de "Diagnóstico breve" — pasa a ser una quinta sección condicional, al final del plan, después de los pilares, justo antes del cierre fijo del punto 11.
+13. **Ventana actual: "deducir sí, suponer no".** El modelo decía "no calculable" cuando el formulario no daba una hora exacta de cena, aunque sí traía un límite explícito ("después de las 8pm solo agua") del que la hora se puede deducir. Ahora deduce de un límite explícito reportado; sigue prohibido suponer una hora que el formulario no menciona ni implica.
+
+**Hallazgo adicional, no una regla nueva sino una corrección de algo ya inventado:** el diagnóstico de Josef conectaba su ritual de sueño rígido con "un sistema nervioso que llega a la noche con carga acumulada" y sugería que esa rigidez "tiende a ceder sola" — ninguna de las dos ideas está en `FUENTE_SRB_PEDIATRICA`, que solo respalda la recuperación metabólica/hepática (desintoxicación nocturna del hígado), nunca nada sobre sistema nervioso o control psicológico. Se agrega verificación por código (`revisarBorradorPediatrico`) que detecta ese tipo de salto y lo manda a reintento, igual que una cifra inventada.
+
+**Verificación:** `node --check`. El comportamiento del modelo ante los 13 ajustes solo se puede confirmar generando o regenerando un caso real.
+
 ---
 
 ---
