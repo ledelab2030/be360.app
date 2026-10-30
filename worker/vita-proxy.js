@@ -1115,6 +1115,11 @@ base" es SOLO para los carbohidratos (arroz, papa, pasta de arroz/lentejas, plá
 regla no aplica a las grasas. Un mismo alimento NUNCA aparece en más de un color del semáforo: antes
 de escribir la lista completa, revisa que cada alimento mencionado (en cualquier parte del plan)
 tenga un solo color asignado, sin contradicciones entre secciones.
+VERDURAS, OTRA VEZ PORQUE SE REPITIÓ EL ERROR (30 oct 2026, caso de Josef: "Vegetales bien cocidos"
+apareció en VERDE): las verduras (crudas o cocidas) NUNCA van en VERDE, sin excepción — crudas van
+ROJO, bien cocidas van AMARILLO. Esto es justo al revés de las grasas de arriba (que SIEMPRE son
+VERDE) — no las trates igual solo porque las dos reglas hablan de "estar bien cocido" o "ir de
+acompañante".
 
 TRAZABILIDAD — SOLO PARA TI, NUNCA VISIBLE AL PADRE: cada hábito que escribas tiene que poder
 rastrearse a algo explícito de la FUENTE SRB o de las ADAPTACIONES de arriba — si no puedes señalar
@@ -1258,6 +1263,15 @@ function revisarBorradorPediatrico(parsed) {
   // Incluye las variantes "máximo" (26 oct 2026, desde que la ventana pasó de
   // mínimo a máximo de 12h) junto a las de "mínimo" que ya existían.
   revisar(/mínimo de 12 horas|máximo de 12 horas|por debajo del mínimo|por encima del máximo|corrección de ventana|propuesta final|margen seguro|margen mínimo|margen máximo/i, "le narra al padre una regla interna");
+  // Narra el cálculo de las 3 horas antes de dormir, o el método de
+  // deducción de una hora (30 oct 2026, Leonardo, caso de Josef: "más de 3
+  // horas antes de dormir" y "deducida del límite explícito reportado" —
+  // las dos explican al padre CÓMO se llegó a un número, que es
+  // exactamente lo que "TAMPOCO SE NARRA" (HORA DE DORMIR, punto 4) y
+  // "TODO ESTE CÁLCULO ES INTERNO" (CÁLCULO DE LA VENTANA, punto 5) ya
+  // prohibían para la regla de las 12 horas — acá se extiende el mismo
+  // chequeo a la regla de las 3 horas y a la deducción de horas faltantes.
+  revisar(/\b(?:m[áa]s de|al menos|m[íi]nimo de)\s+3\s+horas\s+antes\s+de\s+dormir|deducid[ao]\s+(?:del|de un)\s+l[íi]mite/i, "le narra al padre cómo calculó una hora (regla de las 3 horas o deducción) — el número ya debe salir correcto, sin explicar el método");
   // Referencias internas al SRB visibles al padre — prohibido desde el 26 oct
   // 2026 (minuta "Ocultar referencias internas" / "Eliminar muletillas del
   // SRB"). Antes el prompt pedía justo lo contrario (citar "(SRB — ...)" al
@@ -1337,6 +1351,22 @@ function revisarBorradorPediatrico(parsed) {
   if (itemsNumerados.length >= 2) {
     const ultimo = (parsed.mensaje || "").lastIndexOf(itemsNumerados[itemsNumerados.length - 1].trim());
     problemas.push("la agenda repite el checklist de hábitos como lista numerada en vez de la agenda por momento del día, en viñetas → \"" + (parsed.mensaje || "").slice(ultimo, ultimo + 70).trim() + "\"");
+  }
+  // Verdura/vegetal dentro del bloque VERDE del semáforo (30 oct 2026,
+  // Leonardo, caso de Josef: "Vegetales bien cocidos" apareció en VERDE,
+  // cuando la regla de VERDURAS — ya existente, no nueva — dice que
+  // SIEMPRE van en AMARILLO (bien cocidas) o ROJO (crudas), NUNCA en
+  // VERDE). Se recorta el texto justo después del encabezado "🟢 VERDE"
+  // (los ~600 caracteres siguientes son, en la práctica, la lista de ese
+  // color antes de la próxima sección) y se busca ahí cualquier mención de
+  // verdura/vegetal.
+  const idxVerde = (parsed.mensaje || "").search(/🟢\s*VERDE/i);
+  if (idxVerde !== -1) {
+    const bloqueVerde = (parsed.mensaje || "").slice(idxVerde, idxVerde + 600);
+    const mVerdura = bloqueVerde.match(/\b(?:vegetales?|verduras?|zucchini|champi[ñn]ones|cebolla|espinaca|br[óo]coli|zanahoria|calabac[íi]n)\b/i);
+    if (mVerdura) {
+      problemas.push("menciona verdura/vegetal dentro del bloque VERDE del semáforo — las verduras nunca van en VERDE, solo AMARILLO (bien cocidas) o ROJO (crudas) → \"" + mVerdura[0] + "\"");
+    }
   }
   return problemas;
 }
@@ -1513,6 +1543,31 @@ async function generarYVerificarBorrador(dx, env, idPlan) {
               fallos.push("la ventana actual dice \"" + horasTexto.trim() + "\" pero de " +
                 p.ventanaActual.primeraComida + " a " + p.ventanaActual.ultimaComida + " son " +
                 hh2 + "h" + String(mm3).padStart(2, "0"));
+            }
+          }
+        }
+      }
+      // Ventana PROPUESTA, mismo cruce que la actual arriba (30 oct 2026,
+      // Leonardo, caso de Josef: el texto decía "11h" cuando de 6:45 am a
+      // 5:30 pm son en realidad 10h45) — hasta ahora esta ventana solo se
+      // verificaba contra el tope de MAX_VENTANA_HORAS, nunca contra su
+      // propia aritmética. El texto vive en "mensaje" (sección HÁBITOS Y
+      // VENTANA), no en "resumenCronologico" como la actual.
+      if (h !== null) {
+        const mp = (p.mensaje || "").match(/Ventana de alimentaci[oó]n propuesta:\s*([^\n]+)/i);
+        if (mp) {
+          const horasTextoP = mp[1];
+          if (/aproximadamente/i.test(horasTextoP)) {
+            fallos.push("la ventana propuesta usa \"aproximadamente\" en vez de un número exacto: \"" + horasTextoP.trim() + "\"");
+          }
+          const mmp = horasTextoP.match(/(\d{1,2})(?:[:h](\d{2}))?/);
+          if (mmp) {
+            const horasEscritasP = Number(mmp[1]) + (mmp[2] ? Number(mmp[2]) / 60 : 0);
+            if (Math.abs(horasEscritasP - h) > 0.17) { // más de 10 min de diferencia
+              const hhp = Math.floor(h), mmp2 = Math.round((h - hhp) * 60);
+              fallos.push("la ventana propuesta dice \"" + horasTextoP.trim() + "\" pero de " +
+                p.ventanaPropuesta.primeraComida + " a " + p.ventanaPropuesta.ultimaComida + " son " +
+                hhp + "h" + String(mmp2).padStart(2, "0"));
             }
           }
         }

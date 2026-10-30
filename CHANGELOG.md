@@ -1064,6 +1064,18 @@ Además, revisando los comentarios del documento, Leonardo pidió que el cierre 
 
 **Verificación:** `node --check` en ambos archivos del Worker/Apps Script, sintaxis JSX de `app/index.html` y `plan/index.html` validada con `@babel/standalone`. Pendiente: confirmar con una regeneración real que el semáforo queda sin contradicciones y que el link del cierre funciona.
 
+### 30 oct 2026 — Usando la guía nueva: 3 hallazgos más en la siguiente regeneración de Josef
+
+Primera vez que se usó `GUIA_COMPARACION_PLANES.md` de punta a punta para evaluar un borrador — y funcionó: encontró una contradicción del semáforo que las reglas de código existentes no cubrían.
+
+1. **"Vegetales bien cocidos" apareció en VERDE.** La regla de VERDURAS existe desde hace días ("bien cocida va en AMARILLO... NUNCA en VERDE") pero nunca tuvo verificación por código — solo texto de prompt. Se agrega el chequeo en `revisarBorradorPediatrico`: busca menciones de verdura/vegetal dentro del bloque "🟢 VERDE" del semáforo. Se refuerza también la instrucción del prompt, aclarando que esta regla es la inversa de la de las grasas (que sí van siempre en VERDE) para que no se traten igual.
+2. **Error de cálculo en la ventana propuesta:** el texto decía "11h" para un rango que en realidad son 10h45. La verificación por código del cruce número-contra-cálculo (agregada ayer para la ventana ACTUAL) nunca se había extendido a la ventana PROPUESTA — solo se verificaba contra el tope de 12 horas, nunca contra su propia aritmética. Mismo patrón agregado ahora para la propuesta, leyendo del campo "mensaje" (la actual vive en "resumenCronologico").
+3. **El modelo volvió a narrar su propio cálculo:** "más de 3 horas antes de dormir" y "deducida del límite explícito reportado" — exactamente lo que las reglas "TAMPOCO SE NARRA" (regla de las 3 horas) y "TODO ESTE CÁLCULO ES INTERNO" (regla de las 12 horas) ya prohibían, pero nunca se había extendido la verificación por código a estos dos patrones específicos. Nuevo chequeo en `revisarBorradorPediatrico`.
+
+De paso, un bug en mi propio código de ayer: la nueva verificación de la ventana propuesta usaba `parsed.mensaje` en vez de `p.mensaje` dentro de `evaluar(p)` — por closure no habría lanzado error, pero en un reintento habría comparado contra el intento equivocado. Corregido antes de desplegar.
+
+**Verificación:** `node --check`. El comportamiento ante los tres chequeos nuevos solo se puede confirmar generando o regenerando un caso real.
+
 ---
 
 ---
