@@ -153,11 +153,19 @@ const parseEscalar = (text) => {
   return { clean, motivo: raw.slice(0, i).trim(), detalle: raw.slice(i + 1).trim() };
 };
 
+// Links clicables (30 oct 2026, pedido de Leonardo: el cierre fijo del plan
+// trae un link real a la pestaña Vita, "para que haga click el papá").
+const renderConLink = (texto, keyBase) => texto.split(/(https?:\/\/[^\s]+)/g).map((seg,j) =>
+  /^https?:\/\//.test(seg)
+    ? <a key={keyBase+"-u"+j} href={seg} target="_blank" rel="noopener noreferrer" style={{color:P.sageDeep, fontWeight:700, wordBreak:"break-all"}}>{seg}</a>
+    : seg
+);
+
 // Renderiza **negrita** como <strong>.
 const renderRichLine = (line) => line.split(/(\*\*[^*]+\*\*)/g).map((part,i)=>
   part.startsWith("**")&&part.endsWith("**")
     ? <strong key={i} style={{fontWeight:800}}>{part.slice(2,-2)}</strong>
-    : <React.Fragment key={i}>{part}</React.Fragment>
+    : <React.Fragment key={i}>{renderConLink(part, i)}</React.Fragment>
 );
 
 // Una línea hecha solo de "═" es el separador de bloques que manda el modelo

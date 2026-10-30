@@ -663,11 +663,16 @@ arriba cuando hay conflicto (el texto de arriba fue escrito para adultos):
   carbohidrato.
 - PROTEÍNA Y GRASA SON COSAS DISTINTAS, NO ALTERNATIVAS INTERCAMBIABLES (30 oct 2026, Leonardo):
   nunca presentes un alimento de proteína y uno de grasa como opciones equivalentes con "o" (ej.
-  "pollo o aguacate") — el pollo es proteína, el aguacate es grasa, cumplen roles distintos. Si
-  quieres nombrar los dos, sé explícito sobre cuál es cuál ("proteína: huevo o pollo; de
-  acompañante: aguacate"). Un alimento que YA trae su propia grasa (ej. huevo) es válido solo,
-  sin forzar un acompañante de grasa adicional — no le agregues una carga extra de disponibilidad o
-  costo al padre si no hace falta.
+  "pollo o aguacate") — el pollo es proteína, el aguacate es grasa, cumplen roles distintos. ESTO
+  APLICA IGUAL A LISTAS, no solo a un "o" entre dos alimentos (encontrado en el caso de Josef:
+  "huevo duro, tiras de pollo, aguacate o aceitunas y nueces" mezcla proteína y grasa en una sola
+  lista, el mismo problema con más alimentos) — nunca llames "algo con proteína y grasa" a una lista
+  donde algunos ítems (aguacate, aceitunas, nueces) NO tienen proteína, solo grasa; eso es un error
+  de macros, no solo de redacción. Si quieres nombrar varios, sé explícito sobre cuál rol cumple cada
+  uno: "proteína: huevo duro o tiras de pollo; de acompañante: aguacate, aceitunas o nueces" — nunca
+  una sola lista plana con "o" que mezcle las dos categorías. Un alimento que YA trae su propia grasa
+  (ej. huevo) es válido solo, sin forzar un acompañante de grasa adicional — no le agregues una carga
+  extra de disponibilidad o costo al padre si no hace falta.
 - NO ESPECIFIQUES TEMPERATURA (30 oct 2026, Leonardo): no digas que algo se sirve "frío" o
   "caliente" salvo que una temperatura específica sea clínicamente necesaria — no aporta nada y
   puede leerse como una instrucción extra que no es.
@@ -1090,10 +1095,26 @@ propia explicación específica entre paréntesis, esta frase es solo la entrada
 - "🔴 ROJO (eliminar por completo mientras equilibramos tu organismo)" — justo después de este
   encabezado, en su propia frase, agrega SIEMPRE: "Más adelante miraremos si algunos se pueden
   agregar al grupo de alimentos de la sección AMARILLO." (30 oct 2026, Leonardo).
-- "🟡 AMARILLO (con moderación)"
+- "🟡 AMARILLO (con moderación)" — justo después, en su propia frase, UNA sola aclaración general de
+  que estos alimentos van de acompañante (30 oct 2026, Leonardo) — nunca repitas "(de acompañante)"
+  o similar en cada ítem de la lista, esa frase general ya lo cubre para toda la sección.
 - "🟢 VERDE (prioridad en cada comida)"
 Debajo de cada uno, ancla los alimentos de la FUENTE SRB a la señal concreta que el padre reportó —
 nunca "no eliminar de golpe" ni ninguna otra frase que suavice el rojo.
+HUEVO SIEMPRE EN VERDE (30 oct 2026, Leonardo): el huevo va SIEMPRE en VERDE, nunca en AMARILLO —
+escríbelo "Huevos (clara y yema)", para dejar claro que cuenta también la yema (la grasa), no solo
+la clara (la proteína).
+EL COLOR DE UN ALIMENTO ES FIJO, NO CAMBIA SEGÚN SU ROL EN LA COMIDA (30 oct 2026, Leonardo, caso de
+Josef: huevo apareció a la vez en AMARILLO y en VERDE; aguacate y nueces/pistacho/marañón aparecieron
+en AMARILLO cuando en todos los demás casos del mismo día estaban en VERDE, sin ninguna regla que
+los degradara). El color de cada alimento viene de la FUENTE SRB y las ADAPTACIONES de arriba —
+grasas como aguacate, aceitunas, nueces, pistacho, marañón, queso azul/roquefort son SIEMPRE VERDE,
+estén como plato principal o como acompañante en esa comida — nunca las bajes a AMARILLO solo porque
+en una viñeta de HÁBITOS actúan de acompañante. La regla de "AMARILLO = de acompañante, nunca como
+base" es SOLO para los carbohidratos (arroz, papa, pasta de arroz/lentejas, plátano, arepa) — esa
+regla no aplica a las grasas. Un mismo alimento NUNCA aparece en más de un color del semáforo: antes
+de escribir la lista completa, revisa que cada alimento mencionado (en cualquier parte del plan)
+tenga un solo color asignado, sin contradicciones entre secciones.
 
 TRAZABILIDAD — SOLO PARA TI, NUNCA VISIBLE AL PADRE: cada hábito que escribas tiene que poder
 rastrearse a algo explícito de la FUENTE SRB o de las ADAPTACIONES de arriba — si no puedes señalar
@@ -1361,7 +1382,7 @@ async function revisarGroundingConModelo(parsed, env) {
 // { mensajeFinal, habitos } o null si no se pudo generar nada limpio. Nunca
 // lanza — un fallo acá se trata igual que "no se pudo generar", nunca
 // revienta al que la llama.
-async function generarYVerificarBorrador(dx, env) {
+async function generarYVerificarBorrador(dx, env, idPlan) {
   try {
     // Un solo prompt para todo formulario real desde el 27 oct 2026 (ver
     // comentario "SRB PEDIÁTRICO — PROMOVIDO A PRODUCCIÓN" junto a
@@ -1551,20 +1572,27 @@ async function generarYVerificarBorrador(dx, env) {
     // Leonardo: no aparecían ni en el texto que se aprueba ni en el PDF).
     // Se arma acá con los datos reales del formulario, no se le pide al
     // modelo que los redacte -- son datos exactos que ya tenemos.
-    const encabezado = (dx.nombre_nino || "—") + (dx.edad ? ", " + dx.edad + " años" : "") + "\n" +
+    // Edad sin duplicar "años" (30 oct 2026, encontrado en el caso de Josef:
+    // "11 años años") -- el campo del formulario a veces ya trae "años"
+    // incluido (texto libre), así que se recorta antes de agregarlo.
+    const edad = (dx.edad || "").replace(/\s*años?\s*$/i, "").trim();
+    const encabezado = (dx.nombre_nino || "—") + (edad ? ", " + edad + " años" : "") + "\n" +
       "Responsable: " + (dx.nombre_padre || "—") + "\n\n";
     mensajeFinal = encabezado + mensajeFinal;
 
     // Cierre fijo (30 oct 2026, pedido de Leonardo, texto suyo) — igual que
     // el encabezado de arriba, armado por código y no por el modelo, para
-    // que sea siempre el mismo. No lleva un link directo al plan porque acá
-    // (generación nueva) el caso todavía no tiene idPlan asignado -- la
-    // familia ya recibe ese link por correo al aprobarse; acá solo se
-    // refiere a la pestaña Vita del mismo plan que está leyendo.
+    // que sea siempre el mismo. Lleva un link real a la pestaña Vita del
+    // plan -- posible porque idPlan ahora se genera ANTES de esta llamada
+    // (ver generarBorradorAutomatico/regenerarBorradorExistente), no
+    // después como antes. Si por lo que sea no llega idPlan, se omite el
+    // link en vez de escribir uno roto.
+    const linkVita = idPlan ? "https://be360.app/app/?id=" + idPlan + "&tab=vita" : "";
     mensajeFinal = mensajeFinal + "\n\n" + "═".repeat(40) + "\n\n" +
-      "Te invitamos a hacerle seguimiento al plan aquí mismo, en la pestaña Vita. También podrás " +
-      "hacer preguntas sobre el mismo o agregar más información, así como pedir correcciones o " +
-      "aclaraciones a los datos que proporcionaste, para que los tengamos en cuenta más adelante.";
+      "Te invitamos a hacerle seguimiento al plan con ayuda de Vita" + (linkVita ? ": " + linkVita : "") +
+      ". También podrás hacer preguntas sobre el mismo o agregar más información, así como pedir " +
+      "correcciones o aclaraciones a los datos que proporcionaste, para que los tengamos en cuenta " +
+      "más adelante.";
 
     return { mensajeFinal, habitos: Array.isArray(parsed.habitos) ? parsed.habitos : [] };
   } catch (e) {
@@ -1582,7 +1610,18 @@ async function generarYVerificarBorrador(dx, env) {
 // igual que se comportaba el sistema antes de esta automatización.
 async function generarBorradorAutomatico(dx, ts, env) {
   if (!env.SHEET_WEBHOOK_URL_FORMULARIO) return;
-  const resultado = await generarYVerificarBorrador(dx, env);
+  // idPlan se genera ACÁ, antes de llamar a Claude (30 oct 2026, pedido de
+  // Leonardo) -- el cierre fijo del mensaje necesita un link real al plan
+  // ("https://be360.app/app/?id=..."), y antes de este cambio el idPlan no
+  // existía hasta que Apps Script lo asignaba DESPUÉS de guardar el
+  // mensaje, así que el link no se podía armar. Mismo formato que el que
+  // ya generaba Apps Script (Utilities.getUuid() recortado a 16
+  // caracteres) para que no cambie nada más del sistema. Apps Script usa
+  // este idPlan tal cual si body.idPlan viene en guardar_borrador (ver
+  // guardarBorrador() en el .gs) -- nunca genera uno distinto cuando ya
+  // viene uno, para que el link que el mensaje ya trae siempre coincida.
+  const idPlan = crypto.randomUUID().replace(/-/g, "").slice(0, 16);
+  const resultado = await generarYVerificarBorrador(dx, env, idPlan);
   if (!resultado) return;
   try {
     await fetch(env.SHEET_WEBHOOK_URL_FORMULARIO, {
@@ -1592,6 +1631,7 @@ async function generarBorradorAutomatico(dx, ts, env) {
         secret: env.SHEET_WEBHOOK_SECRET_FORMULARIO || "",
         action: "guardar_borrador",
         ts,
+        idPlan,
         mensaje: resultado.mensajeFinal,
         plan: { habitos: resultado.habitos },
       }),
@@ -1635,7 +1675,7 @@ async function regenerarBorradorExistente(idPlan, dx, env) {
     } catch (e) { /* best-effort: si ni esto se puede escribir, no hay más que intentar */ }
   };
   try {
-    const resultado = await generarYVerificarBorrador(dx, env);
+    const resultado = await generarYVerificarBorrador(dx, env, idPlan);
     console.log("[regenerarBorradorExistente] generarYVerificarBorrador devolvió: " + (resultado ? "contenido (" + resultado.mensajeFinal.length + " caracteres)" : "null"));
     if (!resultado) {
       await marcar("error " + new Date().toISOString() + ": no se pudo generar un borrador limpio (ver logs del Worker)");

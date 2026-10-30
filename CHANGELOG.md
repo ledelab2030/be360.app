@@ -1047,6 +1047,23 @@ Leonardo revisó dos regeneraciones reales de Josef (4:44pm y 10:43pm del 29 oct
 
 **Verificación:** `node --check`. El comportamiento del modelo ante los 13 ajustes solo se puede confirmar generando o regenerando un caso real.
 
+### 30 oct 2026 — Revisión de la regeneración de Josef: más fallos reales, no solo los 13 nuevos
+
+Al evaluar la regeneración hecha con el PR anterior, Leonardo pidió una revisión más estricta — y tenía razón: una primera pasada solo verificó los 13 puntos recién agregados ese mismo día, y pasó por alto fallos contra reglas que YA EXISTÍAN desde antes. Una segunda pasada, color por color del semáforo, encontró: huevo clasificado a la vez en AMARILLO y en VERDE (contradicción directa); aguacate y nueces/pistacho/marañón degradados a AMARILLO sin ninguna regla que lo justifique (la fuente los pone en VERDE sin condición, y así estaban en los casos de Samuel y Sofía el mismo día); y dos instancias donde proteína y grasa seguían mezcladas en una sola lista con "o" (lonchera y merienda de las 4:30pm) — la regla agregada un rato antes solo cubría el caso binario ("pollo o aguacate"), no listas más largas. Se guarda la instrucción en memoria: toda revisión de un plan regenerado tiene que cubrir el 100% de las reglas aplicables, no solo las del día — el objetivo es que la IA sea el filtro de calidad primario y el equipo humano revise solo al azar, lo que exige que la revisión de la IA sea confiablemente completa.
+
+Además, revisando los comentarios del documento, Leonardo pidió que el cierre fijo del plan (agregado en el PR anterior) lleve un link real y clicable a la pestaña Vita, no solo una referencia de texto — "para que haga click el papá". Eso exigía un cambio más grande: el `idPlan` se generaba DESPUÉS de guardar el mensaje (Apps Script lo asignaba en `guardarBorrador()`), así que no existía todavía cuando `generarYVerificarBorrador` armaba el cierre.
+
+**Cambios, todos en `worker/vita-proxy.js` salvo donde se indica:**
+- El color de un alimento es FIJO según la fuente — nunca cambia por su rol en una comida (acompañante vs. plato principal). La regla "AMARILLO = de acompañante, nunca como base" es solo para carbohidratos, nunca para grasas (aguacate, aceitunas, nueces, pistacho, marañón, queso azul/roquefort son siempre VERDE). Huevo va SIEMPRE en VERDE, escrito "Huevos (clara y yema)" para dejar claro que cuenta también la grasa de la yema.
+- AMARILLO ya no repite "(de acompañante)" en cada ítem — una sola frase general al inicio de la sección.
+- La regla de "proteína y grasa no son alternativas intercambiables" ahora cubre listas completas, no solo el caso binario "X o Y" — con ejemplo corregido de cómo separar explícitamente cuál es proteína y cuál es grasa.
+- **`idPlan` se genera en el Worker** (`crypto.randomUUID()`, mismo formato que ya usaba Apps Script), ANTES de llamar a Claude — se pasa a `generarYVerificarBorrador` para armar el link real del cierre (`https://be360.app/app/?id=...&tab=vita`), y se manda a Apps Script en `guardar_borrador` para que `guardarBorrador()` lo use en vez de generar uno nuevo (`worker/apps-script-formulario-v2.gs.txt`).
+- `app/index.html`: nuevo soporte para `?tab=vita` en la URL, para que el link del cierre abra directo en esa pestaña.
+- `app/index.html` y `plan/index.html`: los links dentro del mensaje (como el del cierre) ahora se renderizan clicables (`<a target="_blank">`), antes salían como texto plano.
+- Corregido además, encontrado en la misma revisión: el encabezado del plan decía "Josef, 11 años años" (duplicaba "años") — el campo `edad` del formulario ya trae "años" incluido, y el código lo volvía a agregar.
+
+**Verificación:** `node --check` en ambos archivos del Worker/Apps Script, sintaxis JSX de `app/index.html` y `plan/index.html` validada con `@babel/standalone`. Pendiente: confirmar con una regeneración real que el semáforo queda sin contradicciones y que el link del cierre funciona.
+
 ---
 
 ---

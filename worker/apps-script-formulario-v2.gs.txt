@@ -593,7 +593,12 @@ function guardarBorrador(sheet, body) {
         return respond({ ok: true, idPlan: idPlanExistente, row: rowNum, yaExistia: true });
       }
 
-      var idPlan = Utilities.getUuid().replace(/-/g, "").slice(0, 16);
+      // 30 oct 2026 (pedido de Leonardo): si el Worker ya generó un idPlan
+      // (lo necesita para armar el link real de Vita dentro del propio
+      // mensaje, antes de guardarlo acá) se usa ese -- nunca se genera uno
+      // nuevo si ya viene uno en el body, para que el link que el mensaje ya
+      // trae coincida siempre con el idPlan real de la fila.
+      var idPlan = body.idPlan || Utilities.getUuid().replace(/-/g, "").slice(0, 16);
       sheet.getRange(rowNum, COLS.id_plan + 1).setValue(idPlan);
       sheet.getRange(rowNum, COLS.plan_json + 1).setValue(JSON.stringify(body.plan || {}));
       sheet.getRange(rowNum, COLS.decision + 1).setValue("pendiente_aprobacion");
