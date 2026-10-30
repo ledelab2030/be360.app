@@ -961,7 +961,8 @@ les cambies el orden:
 1. "CRONOLOGÍA ACTUAL" (sintetizado, NO prosa — viñetas por hora, tal como lo reportó el padre, sin
    opinar):
    - Una viñeta por momento del día con su hora aproximada.
-   - Cierra con: "Ventana de alimentación actual: aproximadamente X horas" — solo si se puede
+   - Cierra con: "Ventana de alimentación actual: X horas" (NUNCA "aproximadamente" — ver la regla
+     de precisión en CÁLCULO DE LA VENTANA más abajo, aplica igual acá) — solo si se puede
      calcular con las horas reportadas; si no, omite esa línea.
 
 2. "DIAGNÓSTICO BREVE" — máximo 3 líneas, sin alarmismo, SOLO lo que la FUENTE SRB respalda y el
@@ -1414,6 +1415,34 @@ async function generarYVerificarBorrador(dx, env) {
         fallos.push("quedan " + hh + "h" + String(mm).padStart(2, "0") + " entre la última comida (" +
           p.ventanaPropuesta.ultimaComida + ") y la hora de dormir (" + p.horaDormir +
           "), por debajo del mínimo de " + MIN_HORAS_CENA_DORMIR + " horas");
+      }
+      // Ventana ACTUAL (29 oct 2026, Leonardo: caso de Josef, el texto decía
+      // "aproximadamente 13:154 horas" con una hora que contradecía la propia
+      // cronología) — hasta hoy solo se verificaba por código la ventana
+      // PROPUESTA; la actual solo documenta lo que ya pasa (no tiene un
+      // máximo que cumplir), pero el número que el modelo escribe en
+      // "resumenCronologico" sí se puede y se debe comparar contra el mismo
+      // cálculo de reloj, con el mismo criterio de no confiar en la resta
+      // del modelo.
+      const hActual = horasDeVentana(p.ventanaActual);
+      if (hActual !== null) {
+        const m = (p.resumenCronologico || "").match(/Ventana de alimentaci[oó]n actual:\s*([^\n]+)/i);
+        if (m) {
+          const horasTexto = m[1];
+          if (/aproximadamente/i.test(horasTexto)) {
+            fallos.push("la ventana actual usa \"aproximadamente\" en vez de un número exacto: \"" + horasTexto.trim() + "\"");
+          }
+          const mm2 = horasTexto.match(/(\d{1,2})(?:[:h](\d{2}))?/);
+          if (mm2) {
+            const horasEscritas = Number(mm2[1]) + (mm2[2] ? Number(mm2[2]) / 60 : 0);
+            if (Math.abs(horasEscritas - hActual) > 0.17) { // más de 10 min de diferencia
+              const hh2 = Math.floor(hActual), mm3 = Math.round((hActual - hh2) * 60);
+              fallos.push("la ventana actual dice \"" + horasTexto.trim() + "\" pero de " +
+                p.ventanaActual.primeraComida + " a " + p.ventanaActual.ultimaComida + " son " +
+                hh2 + "h" + String(mm3).padStart(2, "0"));
+            }
+          }
+        }
       }
       return fallos;
     };
