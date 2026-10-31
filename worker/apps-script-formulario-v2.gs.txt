@@ -884,7 +884,10 @@ function enviarPlanAprobado(sheet, row) {
     return { error: "sin idPlan" };
   }
 
-  var planUrl = "https://be360.app/plan/?id=" + idPlan;
+  // /app/, no /plan/ (31 oct 2026, Leonardo: el correo seguía mandando al
+  // link viejo) -- &tab=plan lo abre directo en "Mi plan", igual que el
+  // cierre fijo del mensaje manda a &tab=vita.
+  var planUrl = "https://be360.app/app/?id=" + idPlan + "&tab=plan";
 
   if (!emailPadre) {
     MailApp.sendEmail({
@@ -909,25 +912,22 @@ function enviarPlanAprobado(sheet, row) {
       .trim();
   }
 
-  // A partir del 13 ago 2026, el correo ya trae el plan adentro (mensaje +
-  // hábitos), no solo el link — encontrado en la prueba en vivo con Peter:
-  // un correo con solo un link se sentía como que "no llegaba el plan".
-  // Los hábitos excluidos por Peter en el panel NUNCA se muestran acá —
-  // mismo filtro que ya usa doGet para lo que ve el padre en /plan.
-  // El borrador viene con markdown (**negrita**, separadores ---) porque el
-  // panel y la página /plan sí lo renderizan. El correo es texto plano, así
-  // que sin limpiarlo el padre recibía literalmente "**DIAGNÓSTICO BREVE**" y
-  // renglones de guiones sueltos (21 oct 2026, encontrado aprobando un caso de
-  // prueba y leyendo el correo que llega de verdad).
+  // El correo trae el plan adentro (mensaje), no solo el link — encontrado
+  // en la prueba en vivo con Peter el 13 ago 2026: un correo con solo un
+  // link se sentía como que "no llegaba el plan". El borrador viene con
+  // markdown (**negrita**, separadores ---) porque el panel y /app sí lo
+  // renderizan. El correo es texto plano, así que sin limpiarlo el padre
+  // recibía literalmente "**DIAGNÓSTICO BREVE**" y renglones de guiones
+  // sueltos (21 oct 2026, encontrado aprobando un caso de prueba).
+  //
+  // SIN la lista de hábitos aparte (31 oct 2026, Leonardo: "el plan llegó
+  // con el checklist que habíamos eliminado"). Esto se agregó el 13 ago
+  // 2026, antes de que "mensaje" trajera el plan completo -- quedó
+  // obsoleto y nadie lo quitó: es el mismo problema de redundancia que ya
+  // se corrigió en el texto del modelo y en el PDF, pero en un cuarto
+  // lugar que ninguno de esos cambios tocaba, porque vive acá, en el
+  // correo, no en worker/vita-proxy.js.
   var mensaje = aTextoPlano(String(rowValues[COLS.borrador_texto] || "").trim());
-  var habitosTexto = "";
-  try {
-    var planData = JSON.parse(rowValues[COLS.plan_json] || "{}");
-    var habitosIncluidos = (planData.habitos || []).filter(function (h) { return h.incluido !== false; });
-    habitosTexto = habitosIncluidos.map(function (h, i) {
-      return (i + 1) + ". " + aTextoPlano(h.titulo) + ": " + aTextoPlano(h.texto);
-    }).join("\n\n");
-  } catch (ex) {}
 
   MailApp.sendEmail({
     to: emailPadre,
@@ -937,7 +937,6 @@ function enviarPlanAprobado(sheet, row) {
       "Hola" + (nombrePadre ? " " + nombrePadre : "") + ",\n\n" +
       "Ya está listo el plan de " + (nombreNino || "tu hijo/a") + ", revisado y aprobado por Peter Álvarez.\n\n" +
       (mensaje ? mensaje + "\n\n" : "") +
-      (habitosTexto ? habitosTexto + "\n\n" : "") +
       "Puedes marcar tu progreso y escribirle a Vita cuando quieras aquí:\n" +
       planUrl + "\n\n" +
       "Esto acompaña y suma con su pediatra — no lo reemplaza.\n\n" +

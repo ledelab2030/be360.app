@@ -1084,6 +1084,14 @@ Reportado por Leonardo: 2 intentos de regenerar a Sofía y 1 a Samuel fallaron c
 
 **Verificación:** `node --check`.
 
+### 31 oct 2026 — Correo de aprobación: cuarto lugar con el checklist duplicado, y link a `/plan/` en vez de `/app/`
+
+Reportado por Leonardo: el correo que le llega al padre al aprobar traía un checklist de hábitos duplicado y el link apuntaba a `/plan/` en vez de `/app/`. El checklist venía de `enviarPlanAprobado()` en Apps Script, que arma una lista numerada aparte del array `habitos` — código del 13 ago 2026, de antes de que `mensaje` trajera el plan completo, nunca limpiado cuando se corrigió el mismo problema en el texto del modelo y en el PDF.
+
+**Cambio:** quitada la lista `habitosTexto` del cuerpo del correo. `planUrl` ahora es `/app/?id=...&tab=plan`; `app/index.html` soporta `tab=plan` además de `tab=vita`.
+
+**Verificación:** `node --check` en el Apps Script.
+
 ---
 
 ---
