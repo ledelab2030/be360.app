@@ -1630,7 +1630,7 @@ async function generarYVerificarBorrador(dx, env, idPlan) {
     // Edad sin duplicar "años" (30 oct 2026, encontrado en el caso de Josef:
     // "11 años años") -- el campo del formulario a veces ya trae "años"
     // incluido (texto libre), así que se recorta antes de agregarlo.
-    const edad = (dx.edad || "").replace(/\s*años?\s*$/i, "").trim();
+    const edad = String(dx.edad || "").replace(/\s*años?\s*$/i, "").trim();
     const encabezado = (dx.nombre_nino || "—") + (edad ? ", " + edad + " años" : "") + "\n" +
       "Responsable: " + (dx.nombre_padre || "—") + "\n\n";
     mensajeFinal = encabezado + mensajeFinal;
@@ -1653,7 +1653,11 @@ async function generarYVerificarBorrador(dx, env, idPlan) {
   } catch (e) {
     // Silencioso a propósito: un fallo acá no debe tumbar al que llama.
     // Queda "pendiente" (o, en regeneración, se queda con el contenido
-    // anterior sin tocar).
+    // anterior sin tocar). PERO antes se tragaba la excepción sin dejar
+    // rastro -- un bug real (30 oct 2026: dx.edad como número, no string,
+    // rompía un .replace()) se veía solo como "devolvió: null", sin pista
+    // de la causa. Ahora al menos queda en el log.
+    console.log("[generarYVerificarBorrador] excepción: " + String(e));
     return null;
   }
 }
