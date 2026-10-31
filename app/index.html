@@ -356,12 +356,13 @@ const SidebarDesktop = ({ tab, onTab }) => (
 
 function App() {
   const [stage, setStage] = useState("cargando"); // cargando | ok | no_disponible
-  // El link del cierre fijo del plan (30 oct 2026, generarYVerificarBorrador
-  // en el Worker) manda "&tab=vita" para abrir directo en esa pestaña —
-  // válido solo "vita", cualquier otro valor (o ninguno) cae en "progreso".
+  // "&tab=" en la URL abre directo en esa pestaña — "vita" lo manda el
+  // cierre fijo del plan (30 oct 2026); "plan" lo manda el correo de
+  // aprobación (31 oct 2026, Apps Script). Cualquier otro valor, o ninguno,
+  // cae en "progreso".
   const [tab, setTab] = useState(() => {
     const t = new URLSearchParams(window.location.search).get("tab");
-    return t === "vita" ? "vita" : "progreso";
+    return (t === "vita" || t === "plan") ? t : "progreso";
   });
   const [data, setData] = useState(null);
   const [retosOn, setRetosOn] = useState(false);
