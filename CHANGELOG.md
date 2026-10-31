@@ -1076,6 +1076,14 @@ De paso, un bug en mi propio código de ayer: la nueva verificación de la venta
 
 **Verificación:** `node --check`. El comportamiento ante los tres chequeos nuevos solo se puede confirmar generando o regenerando un caso real.
 
+### 30 oct 2026 — Bug real: `dx.edad` como número rompía la regeneración (Sofía, Samuel)
+
+Reportado por Leonardo: 2 intentos de regenerar a Sofía y 1 a Samuel fallaron con "no se pudo generar un borrador limpio". Diagnosticado en vivo con `wrangler tail`: los 3 intentos a Claude SÍ devolvieron JSON válido — el fallo estaba después, en el encabezado nuevo del PR de ayer: `(dx.edad || "").replace(...)` lanza `TypeError` si `edad` llega como número en vez de string, y el `catch` silencioso de `generarYVerificarBorrador` se tragaba la excepción sin dejar rastro.
+
+**Cambio:** `String(dx.edad || "")` antes del `replace`. El `catch` ahora loguea la excepción en vez de tragarla en silencio.
+
+**Verificación:** `node --check`.
+
 ---
 
 ---
