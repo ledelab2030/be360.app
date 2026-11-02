@@ -1103,6 +1103,21 @@ Leonardo usó Gemini (con la guía + la fuente SRB adjuntas) para auditar borrad
 
 **Verificación:** `node --check`. El comportamiento ante estas reglas solo se puede confirmar generando o regenerando un caso real.
 
+### 2 nov 2026 — El rubro de auditoría estaba midiendo mal, y tres reglas más pasan del prompt al código
+
+Tres auditorías seguidas con Gemini (Sofía, Samuel, Josef) repitieron **los mismos cuatro falsos positivos**: exigían tablas markdown para la cronología y el semáforo, exigían una cabecera de metadatos que el modelo no debe escribir, marcaban como "no autorizados" alimentos que sí están en la fuente (pasta/pan de arroz o lentejas, algas marinas), y penalizaban el cierre con el enlace a Vita — que lo agrega el sistema por código y cuyo texto escribió Leonardo. El auditor estaba midiendo contra una reestructuración del prompt que Gemini propuso y que ya se había evaluado y descartado por razones técnicas: las tablas markdown salen con las barras a la vista en los tres lugares donde se lee el texto (textarea de `equipo/`, correo en texto plano, PDF). De ahí el 68/100 de Samuel: corregidos los falsos positivos, ese mismo borrador quedaba cerca de 90.
+
+Dos cosas más que salieron de esas auditorías: la "versión corregida" que propuso Gemini inventó una regla que no existe en ninguna fuente (detener los líquidos "30 minutos antes de comer y retomarlos 90 minutos después") — justo el tipo de fabricación que la auditoría dice estar buscando; y los hallazgos que sí eran reales eran siempre los mismos tres, que el prompt por sí solo no sostiene.
+
+**Cambio:**
+- **Nuevo `PROMPT_AUDITORIA_PLANES.md`** — prompt de auditoría congelado y versionado, que exige adjuntar los tres documentos (guía + adaptaciones + fuente), cierra de antemano los falsos positivos recurrentes, y obliga al auditor a citar la regla incumplida con su nombre antes de restar puntos. Separa INCUMPLIMIENTOS de CRITERIOS A DECIDIR y de SUGERENCIAS, para que una lectura ambigua no se cuente como falla. Deja anotados los dos criterios que siguen sin decidir (fruta entera en amarillo, tortilla/bollo de maíz).
+- **Tres verificaciones nuevas por código** en `revisarBorradorPediatrico` (`worker/vita-proxy.js`), que es donde las reglas se cumplen de verdad porque fuerzan reintento:
+  1. **Medida de la sal por debajo de 2 g/L** — "un sobre de 1 gramo partido en dos" (0.5 g) en el caso de Josef, "un sobre de 1 g y otro medio" (1.5 g) en un intento anterior. El regex ignora a propósito el "1 g" suelto, porque la redacción correcta lo contiene ("dos sobres de 1 gramo").
+  2. **Más variantes de narrar la regla de las 3 horas** — el modelo deja de escribir "mínimo de 3 horas" y escribe "las 3 horas que necesita", "deja 3 horas", "tres horas antes de que se duerma". Todas narran el cálculo interno igual.
+  3. **Pantallas omitidas por completo** — el plan de Samuel no las mencionaba en ninguna parte. La pauta no es condicional: va siempre, con hora exacta si el formulario la trae, como principio general si no.
+
+**Verificación:** `node --check`, y los dos regex nuevos probados contra las redacciones correctas e incorrectas reales de los casos (la correcta no dispara, las tres incorrectas sí).
+
 ---
 
 ---
