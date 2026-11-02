@@ -1282,7 +1282,23 @@ function revisarBorradorPediatrico(parsed) {
   // "TODO ESTE CÁLCULO ES INTERNO" (CÁLCULO DE LA VENTANA, punto 5) ya
   // prohibían para la regla de las 12 horas — acá se extiende el mismo
   // chequeo a la regla de las 3 horas y a la deducción de horas faltantes.
-  revisar(/\b(?:m[áa]s de|al menos|m[íi]nimo de)\s+3\s+horas\s+antes\s+de\s+dormir|deducid[ao]\s+(?:del|de un)\s+l[íi]mite/i, "le narra al padre cómo calculó una hora (regla de las 3 horas o deducción) — el número ya debe salir correcto, sin explicar el método");
+  // Variantes de la misma fuga, encontradas una por una en casos reales: el
+  // modelo deja de decir "mínimo de 3 horas" pero escribe "las 3 horas que
+  // necesita", "para que haya 3 horas", "tres horas antes de que se duerma".
+  // Todas narran la regla interna igual (30 oct - 2 nov 2026).
+  revisar(/\b(?:m[áa]s de|al menos|m[íi]nimo de)\s+(?:3|tres)\s+horas|(?:las|los)\s+(?:3|tres)\s+horas\s+que\s+(?:necesita|requiere|le\s+hacen\s+falta)|(?:para\s+que\s+(?:haya|queden|tenga)|dejando|deja)\s+(?:3|tres)\s+horas|(?:3|tres)\s+horas\s+antes\s+de\s+(?:que\s+se\s+duerma|dormir|acostarse)|deducid[ao]\s+(?:del|de un)\s+l[íi]mite/i, "le narra al padre cómo calculó una hora (regla de las 3 horas o deducción) — el número ya debe salir correcto, sin explicar el método");
+  // Medida de la sal por debajo de 2 g/L (2 nov 2026, caso de Josef: "un
+  // sobre de 1 gramo partido en dos" = 0.5 g; antes, "un sobre de 1 g y
+  // otro medio" = 1.5 g). La adaptación pediátrica es SIEMPRE 2 g por
+  // litro: dos sobres de 1 g enteros, una cuchara medidora o una gramera.
+  // Cualquier redacción que describa partir, dividir o usar medio sobre, o
+  // que escriba una cantidad distinta de 2 g junto a "sal", es un error
+  // clínico real, no de estilo.
+  // OJO con el "1 g": la redacción CORRECTA lo contiene ("dos sobres de 1
+  // gramo", "una cuchara medidora de 1 g, dos veces"), así que un "1 g"
+  // suelto NO se marca. Lo que se marca es media unidad, partir un sobre, o
+  // una cantidad total distinta de 2 g junto a "sal".
+  revisar(/\b(?:medio|media)\s+(?:sobre|cucharad\w*|gramo)|\b(?:otro|otra)\s+(?:medio|media)\b|sobre[^.\n]{0,30}\b(?:partid\w*|dividid\w*|mitad)\b|\b(?:0[.,]5|1[.,]5|3|4|5|6|7)\s?(?:g|gramos?)\b[^.\n]{0,30}\bsal\b|\bsal\b[^.\n]{0,30}\b(?:0[.,]5|1[.,]5|3|4|5|6|7)\s?(?:g|gramos?)\b/i, "la medida de la sal no suma 2 g por litro (la adaptación pediátrica es SIEMPRE 2 g/L: dos sobres de 1 g enteros, cuchara medidora o gramera)");
   // Referencias internas al SRB visibles al padre — prohibido desde el 26 oct
   // 2026 (minuta "Ocultar referencias internas" / "Eliminar muletillas del
   // SRB"). Antes el prompt pedía justo lo contrario (citar "(SRB — ...)" al
@@ -1371,6 +1387,14 @@ function revisarBorradorPediatrico(parsed) {
   // (los ~600 caracteres siguientes son, en la práctica, la lista de ese
   // color antes de la próxima sección) y se busca ahí cualquier mención de
   // verdura/vegetal.
+  // Pantallas omitidas por completo (2 nov 2026, caso de Samuel: el plan no
+  // mencionó pantallas en ninguna parte). La regla de pantallas no es
+  // condicional — aplica siempre, igual que la hidratación. Si falta la hora
+  // de dormir se enuncia el principio general ("la hora antes de dormir"),
+  // pero omitirla del todo nunca es correcto.
+  if (!/pantalla/i.test(texto)) {
+    problemas.push("el plan no menciona pantallas en ninguna parte — la pauta de corte antes de dormir va siempre, con hora exacta si el formulario la trae y como principio general si no");
+  }
   const idxVerde = (parsed.mensaje || "").search(/🟢\s*VERDE/i);
   if (idxVerde !== -1) {
     const bloqueVerde = (parsed.mensaje || "").slice(idxVerde, idxVerde + 600);
