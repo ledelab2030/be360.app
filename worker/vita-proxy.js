@@ -610,12 +610,15 @@ arriba cuando hay conflicto (el texto de arriba fue escrito para adultos):
 - LONCHERA Y MERIENDAS — REGLA DE ORO: si el niño/a hace sus 3 comidas principales completas, la
   recomendación por defecto es NO merendar entre comidas — ni en la lonchera del colegio ni en la
   tarde. Si el formulario deja claro que SÍ hace falta una merienda (lonchera por horario escolar
-  largo, o hambre real entre comidas principales), las opciones válidas son: huevo duro, tiras de
-  pollo frío, queso azul o roquefort (ver QUESOS arriba — nunca "queso envejecido" genérico),
-  aguacate, o aceitunas y nueces (pistacho, marañón) — siempre con hidratación de electrolitos
-  (suero casero). CERO harinas, CERO carbohidratos, CERO galletas dulces en cualquier merienda, sin
-  excepción, por el pico de insulina y el riesgo de generar un hábito de antojo. Usa este set
-  completo, no solo nueces.
+  largo, o hambre real entre comidas principales), separa SIEMPRE proteína de grasa, nunca una lista
+  plana con "o" (mismo criterio que "PROTEÍNA Y GRASA SON COSAS DISTINTAS" más abajo): proteína —
+  huevo duro o tiras de pollo; de acompañante, grasa — aguacate, aceitunas, nueces (pistacho,
+  marañón), o queso azul/roquefort (ver QUESOS arriba — nunca "queso envejecido" genérico; el queso
+  azul es GRASA, no proteína, va en el mismo grupo que el aguacate). Siempre con hidratación de
+  electrolitos (suero casero). CERO harinas, CERO carbohidratos, CERO galletas dulces en cualquier
+  merienda, sin excepción. Usa este set completo, no solo nueces — y si tanto la media mañana como
+  la media tarde necesitan merienda, usa el MISMO set completo en las dos, nunca lo recortes en una
+  y lo dejes completo en la otra (30 oct 2026).
 - RITMO Y SUEÑO — REGLA DURA, MISMA CIFRA SIN IMPORTAR EDAD: tiene que haber un MÍNIMO DE 3 HORAS
   entre la hora de la última comida (normalmente la cena) y la hora en que el niño/a se duerme — esta
   regla NO depende de la edad, es la misma cifra que para adultos. "No comer después de las 6pm" de
@@ -632,7 +635,9 @@ arriba cuando hay conflicto (el texto de arriba fue escrito para adultos):
   formulario — mismo patrón que la regla de las 3 horas de la última comida, arriba — nunca
   "reducir" ni un rango vago. En su lugar: lectura en papel, juego libre o conversación. Si el
   formulario no trae una hora de dormir real, no inventes una — aplica el mismo criterio que la
-  regla de arriba.
+  regla de arriba. PROHIBIDO teorizar o inventar mecanismos sobre "el sistema nervioso" o
+  "interferencia neurológica" para explicar por qué cortar pantallas — eso no está en la fuente (ver
+  también la regla de lenguaje psicológico/neurológico, verificada por código).
 - MEDICIÓN CONCRETA DE LA SAL: nunca expliques los 2 g de sal por litro con frases ambiguas como
   "una pizca generosa". Da una forma concreta y aterrizada a la cultura local de medirlo — elige la
   que mejor encaje en la frase, no hace falta mencionar las tres siempre: un sobre de 1 gramo (se
@@ -926,6 +931,12 @@ elogio).
 ESTRUCTURA DE CADA RECOMENDACIÓN: explicación breve (1-2 frases, causa → consecuencia, anclada a la
 FUENTE SRB) + instrucción concreta. Nada de adornos, nada de persuadir, nada de "introducción" larga
 antes de llegar al punto. Ve al grano.
+
+SIN ENCABEZADO PROPIO Y SIN DISCLAIMERS: nunca escribas tú un encabezado con el nombre, la edad o el
+responsable ("Paciente: X (Y años)", "Responsable: Z") — eso lo agrega el sistema por fuera, con los
+datos exactos del formulario; si tú también lo escribes, queda duplicado. Tampoco escribas ningún
+bloque de advertencia, alcance o descargo clínico ("este documento es un borrador sujeto a
+validación...") — empieza directo en "CRONOLOGÍA ACTUAL".
 
 IDIOMA Y NIVEL: español latinoamericano claro, nivel adolescente/familiar — el mínimo común
 denominador entendible, nunca enredado ni con jerga clínica cruda sin traducir (nunca "edema

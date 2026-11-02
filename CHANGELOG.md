@@ -1092,6 +1092,17 @@ Reportado por Leonardo: el correo que le llega al padre al aprobar traía un che
 
 **Verificación:** `node --check` en el Apps Script.
 
+### 30-31 oct 2026 — Auditorías con Gemini y tres mejoras al prompt de generación
+
+Leonardo usó Gemini (con la guía + la fuente SRB adjuntas) para auditar borradores de los tres casos de prueba, y también le pidió a Gemini que reformulara el prompt completo. La reformulación de Gemini tenía ideas buenas pero también problemas reales: una tabla markdown para la cronología que no renderiza en ningún lugar donde se lee el texto (textarea de `equipo/`, correo en texto plano, PDF), el queso azul/roquefort clasificado como "proteína" en vez de grasa (contradice el propio semáforo del mismo prompt), la pérdida de la regla de "deducir sí, suponer no" para la ventana actual, y un encabezado que hubiera duplicado el que ya arma el código. No se reemplazó el prompt completo por el de Gemini — se adoptaron las ideas que sí eran mejoras reales:
+
+**Cambio**, en `ADAPTACIONES_PEDIATRICAS` (`worker/vita-proxy.js`):
+- LONCHERA Y MERIENDAS: ahora separa explícitamente proteína de grasa (mismo criterio que la regla de "proteína y grasa no son alternativas intercambiables") — el queso azul/roquefort queda claramente del lado de la grasa, no de la proteína. Nueva regla: si hace falta merienda tanto en la mañana como en la tarde, debe ser el MISMO set completo en las dos, nunca recortado en una.
+- PANTALLAS: refuerzo directo en la regla ("prohibido teorizar sobre el sistema nervioso o interferencia neurológica"), además del chequeo por código que ya existía.
+- Nueva regla explícita: el modelo nunca escribe su propio encabezado (nombre/edad/responsable) ni ningún bloque de advertencia o descargo clínico — eso lo arma el código, y un encabezado del modelo quedaría duplicado.
+
+**Verificación:** `node --check`. El comportamiento ante estas reglas solo se puede confirmar generando o regenerando un caso real.
+
 ---
 
 ---
