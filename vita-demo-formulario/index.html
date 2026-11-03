@@ -311,7 +311,12 @@ const coberturaDia=(texto)=>{
 // de mantener la experiencia conversacional sin convertirla en un cuestionario
 // rígido: el chat sigue fluyendo libre, solo que no se puede cerrar el caso
 // sin estos dos datos puntuales.
-const RE_HORA_DORMIR = /duerme|acuesta|dormir/i;
+// FIX (3 nov 2026, caso real de Joaquín): "Va a la cama a las 8:00 PM" no
+// calzaba con ninguna de las tres palabras — "la cama" como sustantivo es
+// tan común como los verbos, y "acostar" (infinitivo/otras conjugaciones
+// distintas de "acuesta") tampoco estaba cubierto. Mismas dos palabras que
+// ya se agregaron a PERIODOS_DIA ("Antes de dormir") más abajo.
+const RE_HORA_DORMIR = /duerme|acuesta|dormir|acostar|\bla cama\b/i;
 const tieneHoraDormirReal = (texto) => {
   const t = texto || "";
   const reGlobal = new RegExp(RE_HORA_DORMIR.source, "gi");

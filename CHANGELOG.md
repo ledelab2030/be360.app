@@ -1212,6 +1212,14 @@ Después del fix de "Al levantarse", "Antes de dormir" se mantuvo marcado como f
 
 **Verificación:** reproducido el texto real de Valeria contra la lógica original ("no_mencionado") y con el cambio ("ok"); las 3 frases con "antes de" del fix anterior (irse a dormir, que se acueste, antes de acostarse) siguen funcionando sin regresión; probado explícitamente el caso de la siesta de mediodía para confirmar que SIGUE sin marcarse como cubierto; control sin mención real sin cambios. `@babel/standalone` sobre el `<script type="text/babel">` de ambos archivos, sin errores.
 
+### 3 nov 2026 — Sexta vuelta: "la hora en que se duerme" bloqueaba el envío de verdad — misma palabra que faltaba ("la cama"), en una función distinta
+
+Con un sexto caso sintético (Joaquín Caicedo) apareció un bloqueo nuevo, más duro que los anteriores: el banner "Aún falta: la hora en que se duerme" no se podía saltar con ningún botón — ni "Quiero completar el día" ni "Confirmar y enviar así" aparecían, porque esto no es `coberturaDia()` (informativa) sino `faltanDatosDuros()`/`tieneHoraDormirReal()` (bloqueo real, agregado el 26 oct 2026 para poder exigir la regla de las 3 horas entre cena y sueño). Esa función vive aparte, sobre el campo `sueno_y_movimiento` (no `cronologia_del_dia`), con su propia lista de palabras clave: `RE_HORA_DORMIR = /duerme|acuesta|dormir/i`. El texto real decía *"Va a la cama a las 8:00 PM..."* — "la cama" es la misma palabra que se agregó un par de PRs atrás a `PERIODOS_DIA`, pero nunca se replicó acá porque es una constante aparte.
+
+**Cambio:** `RE_HORA_DORMIR` ahora incluye también `acostar` y `\bla cama\b`, en los dos formularios.
+
+**Verificación:** reproducido el texto real de Joaquín contra la lógica original (`false`) y con el cambio (`true`); "se duerme a las 9pm", "se acuesta a las 9pm" y "a dormir a las 9pm" (ya cubiertos) sin regresión; control sin mención real sin cambios. `@babel/standalone` sobre el `<script type="text/babel">` de ambos archivos, sin errores.
+
 ---
 
 ---
