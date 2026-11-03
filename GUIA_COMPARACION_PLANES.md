@@ -98,6 +98,7 @@
 - [ ] Justo después de AMARILLO: una sola aclaración general de que son alimentos de acompañante — **sin repetir "(de acompañante)" en cada ítem**.
 - [ ] **El color de cada alimento es FIJO según la fuente — no cambia según su rol en esa comida.** La regla "de acompañante = amarillo" es SOLO para carbohidratos (arroz, papa, pasta de arroz/lentejas, plátano, arepa, fruta entera) — nunca para grasas.
 - [ ] **Fruta entera (no jugo) va en AMARILLO** — mismo trato que arroz/papa/plátano: de acompañante de una comida con proteína y grasa, nunca sola como merienda (decisión de Leonardo, 3 nov 2026). El **jugo de fruta sigue SIEMPRE ROJO**, sin excepción — eso sí lo dice la fuente explícitamente ("agua con azúcar concentrada").
+- [ ] **Tortilla o bollo de maíz va en AMARILLO** — mismo caso que la arepa: es maíz, no trigo, así que la regla de TRIGO no aplica (decisión de Leonardo, 3 nov 2026).
 - [ ] Grasas (aguacate, aceitunas, nueces, pistacho, marañón, queso azul/roquefort) van SIEMPRE en VERDE, sean plato principal o acompañante.
 - [ ] Huevo va SIEMPRE en VERDE, escrito "Huevos (clara y yema)" — nunca en AMARILLO.
 - [ ] **Ningún alimento aparece en más de un color** — revisa cada alimento mencionado en CUALQUIER parte del plan (no solo dentro del semáforo) contra su color asignado.

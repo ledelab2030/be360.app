@@ -1134,6 +1134,14 @@ Nueva regeneración de Josef, auditada con Gemini (sin el prompt congelado — v
 
 **Verificación:** `node --check`.
 
+### 3 nov 2026 — Decidido: tortilla o bollo de maíz también va en AMARILLO
+
+Último criterio pendiente, cerrado en el mismo día que la fruta entera. Mismo caso que la arepa: es maíz, no trigo, así que la regla de TRIGO (que decide ROJO solo cuando el ingrediente es trigo) no aplica. Con esto, `PROMPT_AUDITORIA_PLANES.md` queda sin ningún criterio pendiente de decisión.
+
+**Cambio:** nueva entrada en `ADAPTACIONES_PEDIATRICAS` (`worker/vita-proxy.js`), junto a la de arepa en la regla de CARBOHIDRATOS. Sincronizado en `GUIA_COMPARACION_PLANES.md` y `PROMPT_AUDITORIA_PLANES.md`.
+
+**Verificación:** `node --check`.
+
 ---
 
 ---

@@ -600,11 +600,12 @@ arriba cuando hay conflicto (el texto de arriba fue escrito para adultos):
   no la misma regla que el trigo. Nombra siempre el ingrediente de origen ("pasta de trigo", nunca
   "pasta" sola) para que no quede ambiguo cuál color aplica.
 - CARBOHIDRATOS — SIEMPRE ACOMPAÑANTE: arroz, lentejas, patacones, papa (cocida, de acompañante —
-  distinto de la papa cruda, que es ROJO por la regla de VERDURAS de arriba), arepa y alimentos
-  similares (semáforo AMARILLO) se presentan SIEMPRE como acompañante de la proteína y la grasa —
-  NUNCA como base ni centro del plato, y NUNCA solos ni como merienda aparte. Si un hábito propone
-  uno de estos alimentos, tiene que incluir explícitamente que va "de acompañante", no como plato
-  principal.
+  distinto de la papa cruda, que es ROJO por la regla de VERDURAS de arriba), arepa, tortilla o
+  bollo de maíz (3 nov 2026, decisión explícita de Leonardo — mismo caso que la arepa: es maíz, no
+  trigo, así que la regla de TRIGO de arriba no aplica) y alimentos similares (semáforo AMARILLO) se
+  presentan SIEMPRE como acompañante de la proteína y la grasa — NUNCA como base ni centro del
+  plato, y NUNCA solos ni como merienda aparte. Si un hábito propone uno de estos alimentos, tiene
+  que incluir explícitamente que va "de acompañante", no como plato principal.
 - FRUTA ENTERA — MISMO TRATO QUE LOS CARBOHIDRATOS DE ARRIBA (3 nov 2026, decisión explícita de
   Leonardo): la fuente nunca habla de fruta entera para pediatría — solo prohíbe el JUGO de fruta
   ("agua con azúcar concentrada"). La fruta entera (no jugo) va en AMARILLO, con la MISMA regla que

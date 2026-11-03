@@ -69,6 +69,8 @@ falso positivo:
   * Fruta entera (no jugo) — AMARILLO, de acompañante de una comida con proteína y grasa, nunca
     sola (ver (B), regla de FRUTA ENTERA — decisión del 3 nov 2026). El jugo de fruta sigue SIEMPRE
     ROJO, sin excepción.
+  * Tortilla o bollo de maíz — AMARILLO, mismo caso que la arepa (es maíz, no trigo, la regla de
+    TRIGO no aplica) — decisión del 3 nov 2026.
 
 CÓMO CALIFICAR
 - Un hallazgo solo resta si puedes citar la regla incumplida en (A), (B) o (C), con su nombre.
@@ -87,9 +89,6 @@ Aquí va el plan a evaluar:
 
 ## Criterios todavía sin decidir
 
-Estos aparecen como "hallazgo" en cada auditoría solo porque nunca se decidieron formalmente. Hasta
-que Leonardo y Peter los cierren, el auditor debe reportarlos como *criterio a decidir*, no como
-incumplimiento:
-
-- **Tortilla o bollo de maíz.** Mismo caso que la arepa (maíz, no trigo), pero no está nombrado
-  explícitamente en (B). Pendiente de decisión.
+Ninguno por ahora — los dos que quedaron abiertos el 30 oct 2026 (fruta entera, tortilla/bollo de
+maíz) se decidieron el 3 nov 2026 y ya están en la lista de alimentos autorizados de arriba. Cuando
+aparezca un criterio nuevo sin decidir, anotarlo acá hasta que Leonardo y Peter lo cierren.
