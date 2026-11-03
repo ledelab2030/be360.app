@@ -1506,6 +1506,17 @@ function revisarBorradorPediatrico(parsed) {
     if (mBebidasEnSemaforo) {
       problemas.push("\"bebidas/líquidos durante las comidas\" aparece como ítem de un color del semáforo — es una regla de comportamiento, no un alimento, y no debe listarse en ROJO/AMARILLO/VERDE → \"" + mBebidasEnSemaforo[0] + "\"");
     }
+    // "Agua sola" y "fruta sola" como HÁBITO dentro del semáforo (3 nov 2026,
+    // caso real de Josef regenerado por el panel real: "Agua sola como
+    // bebida base" y "Fruta sola como merienda independiente" aparecieron
+    // como ítems de ROJO). Ninguno de los dos es un alimento físico — son
+    // hábitos o combinaciones, y la regla de "semáforo exclusivo de
+    // ingredientes" ya existe en el prompt, pero no tenía respaldo de
+    // código. Mismo bloque ROJO→VERDE que el chequeo de bebidas de arriba.
+    const mHabitoEnSemaforo = bloqueSemaforoCompleto.match(/\bagua\s+sola\b|\bfruta\s+sola\b/i);
+    if (mHabitoEnSemaforo) {
+      problemas.push("\"" + mHabitoEnSemaforo[0] + "\" aparece como ítem de un color del semáforo — ni \"agua sola\" ni \"fruta sola\" son alimentos físicos, son hábitos/combinaciones, y el semáforo es exclusivo de ingredientes → \"" + mHabitoEnSemaforo[0] + "\"");
+    }
   }
   return problemas;
 }
