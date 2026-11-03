@@ -1168,6 +1168,14 @@ Siguiendo el pedido de Leonardo ("prueba el formulario real antes de desplegar")
 
 **Hallazgos aparte, fuera del alcance de hoy, reportados a Leonardo sin tocar código:** el plan de Samuel no menciona pantallas en ninguna parte (regla ya existente, no nueva — posible hueco real de contenido, no de código); y el chequeo de "ensalada" (28 oct 2026) tiene el mismo defecto que el de trigo tenía — no distingue cuándo "ensalada" aparece correctamente en ROJO o en la cronología descriptiva — encontrado en el caso de Sofía, pendiente de decisión sobre si se corrige ahora o después.
 
+### 3 nov 2026 — "Agua sola" y "fruta sola" como hábito colado en el semáforo, encontrado auditando una regeneración real de Josef
+
+Mientras se probaba en paralelo un camino de generación con Gemini (documento externo "Manual Maestro... v4.24", sin relación con este repo), Leonardo regeneró Josef, Samuel y Sofía con el botón real de `equipo/` (Claude, pipeline real) y los mandó a auditar con Gemini usando esa misma rúbrica externa. La auditoría le restó 2 puntos a Josef por algo real: dentro de 🔴 ROJO del semáforo aparecían *"Agua sola como bebida base"* y *"Fruta sola como merienda independiente"* — ninguno de los dos es un alimento físico, son hábitos/combinaciones. La regla de "semáforo exclusivo de ingredientes" ya existe en el prompt (`SRB_DRAFT_PROMPT`), pero no tenía respaldo de código — misma familia de problema que "bebidas durante las comidas" (ya cerrado hoy), solo que con otra frase.
+
+**Cambio:** nuevo chequeo en `revisarBorradorPediatrico` (`worker/vita-proxy.js`), en el mismo bloque ROJO→VERDE que ya usa el chequeo de "bebidas durante las comidas" — busca "agua sola" o "fruta sola" como ítem de cualquier color.
+
+**Verificación:** `node --check`, la frase exacta del caso real de Josef (dispara), la redacción correcta de la regla de fruta entera ("...nunca sola como merienda", en AMARILLO, no debe disparar), un plan limpio de control, y "agua sola" mencionada fuera del semáforo (ya cubierta por otra regla, no debe disparar esta) — los 5 casos correctos. También se corrió de nuevo toda la suite de las dos entradas anteriores (20 casos) sin regresiones.
+
 ---
 
 ---
