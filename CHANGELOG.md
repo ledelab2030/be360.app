@@ -1142,6 +1142,22 @@ Nueva regeneración de Josef, auditada con Gemini (sin el prompt congelado — v
 
 **Verificación:** `node --check`.
 
+### 3 nov 2026 — Cuatro fugas más coladas fuera de donde ya se vigilaba, y un bug que volvía inútil cada reintento
+
+El chequeo de trigo del 3 nov solo miraba el bloque AMARILLO del semáforo; el de verduras solo VERDE. Pero el mismo problema de fondo — el modelo copia algo de la FUENTE de adultos o lo acomoda donde no debe — tiene más puertas de entrada que esas dos, y una de ellas no se podía ver mirando solo el texto del plan: hace falta el formulario crudo (`dx`) para saber si el Pilar de Movimiento se omitió con o sin datos reales detrás.
+
+Además, al escribir el chequeo de Movimiento apareció un bug de fondo, sin relación con el pedido de hoy: el encabezado obligatorio de la sección 4, `"PLAN BAJO EL SISTEMA DE REVERSIÓN BIOLÓGICA (SRB)"` (fijado el 29-30 oct), contiene la palabra "SRB" — y el chequeo que prohíbe mencionar el SRB (`\bsrb\b`, del 26 oct, anterior al encabezado) la marcaba como fallo en **todo plan real**, sin que ningún reintento pudiera corregirlo nunca: el modelo no puede evitar escribir un encabezado que el propio prompt exige. Esto explica por qué el conteo de "fallos después de N intentos" en el log nunca podía bajar a cero desde que ese encabezado existe.
+
+**Cambios**, todos en `worker/vita-proxy.js`:
+1. **Trigo fuera del semáforo** — nuevo chequeo en `revisarBorradorPediatrico` que cubre también la sección "HÁBITOS Y VENTANA NUTRICIONAL PROPUESTA" (donde el modelo puede presentar trigo como "acompañante pequeño" antes de llegar al semáforo) y el array `habitos` (tarjetas). Mismo filtro de negaciones ("no de trigo") que el chequeo de AMARILLO ya tenía, para no marcar la redacción correcta.
+2. **Cifras de adulto en movimiento** — nueva regla en `ADAPTACIONES_PEDIATRICAS` y nuevo chequeo por código: "al menos 10,000 pasos diarios" y "7 minutos de ejercicios de fuerza" son cifras de la FUENTE de adultos (sección 10.1) que no se trasladan a niños/as, ni ajustadas ni reducidas.
+3. **"Bebidas durante las comidas" no es un alimento** — la fuente la lista como fila de su tabla INCLUIR/ELIMINAR (sección 7), pero es una regla de comportamiento/momento, no un alimento. Nueva regla en `ADAPTACIONES_PEDIATRICAS` + chequeo que la detecta si aparece como ítem de ROJO/AMARILLO/VERDE (ya había una regla previa — "el suero no se toma durante la comida" — pero nunca se había generalizado ni verificado por código).
+4. **Pilar de Movimiento obligatorio cuando el formulario SÍ reporta deporte/actividad** — instrucción reforzada en ESTRUCTURA FIJA DEL PLAN (sección 4) + nuevo chequeo en el cierre de `evaluar()`, el único punto con acceso a `dx` (el formulario crudo) además del borrador — `revisarBorradorPediatrico` nunca recibe `dx`. Descuenta primero las negaciones ("no hace ningún deporte") para no obligar al modelo a inventar movimiento donde el formulario reporta justo lo contrario (eso ya lo prohíbe la regla de "Movimiento sin condiciones inventadas").
+5. **Bug corregido:** el chequeo de "menciona el SRB" ahora descuenta el encabezado obligatorio exacto antes de buscar la palabra "SRB" — sigue disparando con una cita real ("según el SRB", "(SRB — sección 7)").
+6. **`MAX_INTENTOS` de 3 a 4** (1 inicial + 3 reintentos) — el caso de Josef mostró que 3 intentos no siempre bastan para limpiar todos los fallos reales.
+
+**Verificación:** `node --check`, y cada regex nuevo probado por separado (extrayendo la función a un script aparte) contra el caso que debe disparar y contra la redacción correcta que NO debe — incluida la regresión del bug del encabezado "(SRB)" contra un plan limpio real.
+
 ---
 
 ---
