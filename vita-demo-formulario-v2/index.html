@@ -212,9 +212,20 @@ const PERIODOS_DIA = [
   { label:"Desayuno", re:/desayun/i },
   { label:"Media mañana", re:/media ma[ñn]ana|lonchera|refrigerio/i },
   { label:"Almuerzo", re:/almuerz/i },
-  { label:"Media tarde", re:/media tarde|onces/i },
+  // FIX (3 nov 2026, encontrado probando con casos sintéticos): las frases
+  // más naturales en español no calzaban con los patrones originales —
+  // "media tarde" no cubría "en la tarde" ni "merienda" sueltos, y "antes de
+  // (dormir|acostarse|la cama)" exigía la palabra pegada justo después de
+  // "antes de", así que "antes de IRSE A dormir" o "antes de QUE SE acueste"
+  // (conjugación con diptongo, "acostarse" no aparece como subcadena de
+  // "acueste") contaban como "no mencionado" aunque el padre sí hubiera dado
+  // la hora. Media tarde ahora acepta cualquier mención de "tarde" (no hay
+  // otro período que use esa palabra, así que no choca con desayuno/almuerzo/
+  // cena). Antes de dormir ahora tolera hasta 20 caracteres entre "antes de"
+  // y el verbo, y cubre también la conjugación "acuest-".
+  { label:"Media tarde", re:/\btarde\b|\bonces\b|\bmerienda\b/i },
   { label:"Cena", re:/\bcena\b|comida de la noche/i },
-  { label:"Antes de dormir", re:/antes de (dormir|acostarse|la cama)/i },
+  { label:"Antes de dormir", re:/antes de[^.\n]{0,20}(?:dormir\w*|acostar\w*|acuest\w*|la cama)/i },
 ];
 
 // NUEVO (8 sep 2026, pedido explícito de Peter en la reunión del 19 ago):

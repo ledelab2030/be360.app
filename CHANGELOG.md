@@ -1176,6 +1176,18 @@ Mientras se probaba en paralelo un camino de generación con Gemini (documento e
 
 **Verificación:** `node --check`, la frase exacta del caso real de Josef (dispara), la redacción correcta de la regla de fruta entera ("...nunca sola como merienda", en AMARILLO, no debe disparar), un plan limpio de control, y "agua sola" mencionada fuera del semáforo (ya cubierta por otra regla, no debe disparar esta) — los 5 casos correctos. También se corrió de nuevo toda la suite de las dos entradas anteriores (20 casos) sin regresiones.
 
+### 3 nov 2026 — `coberturaDia` marcaba "Media tarde" y "Antes de dormir" como faltantes aunque el padre sí los había dado
+
+Leonardo probó el formulario de punta a punta con 8 casos sintéticos (generados con Gemini, siguiendo el esquema real de los 14 campos — ver el prompt que se le dio, basado en `vita-demo-formulario/index.html` líneas 113-176) pegándolos en el chat de Vita. Dos casos distintos (Tomás Restrepo, Mateo Meza) mostraron el mismo bloqueo: Vita decía "14/14, todo completo", pero al tocar "Enviar a revisión" el modal de `PanelRevisionFinal` insistía en que faltaba la hora de "Media tarde" y "Antes de dormir" — con la hora sí presente en el texto.
+
+**Causa:** `coberturaDia()` (`vita-demo-formulario/index.html` y `vita-demo-formulario-v2/index.html`, función `PERIODOS_DIA`) detecta cada momento del día por palabra clave, y dos de los siete patrones eran demasiado rígidos para el español natural:
+- "Media tarde" solo reconocía "media tarde" u "onces" literales — "en la tarde", "por la tarde" o "merienda" sueltos no calzaban.
+- "Antes de dormir" exigía que "dormir", "acostarse" o "la cama" fueran la palabra INMEDIATAMENTE siguiente a "antes de" — frases tan comunes como "antes de IRSE A dormir" o "antes de QUE SE acueste" (conjugación con diptongo: "acueste" no contiene "acostar" como subcadena) no disparaban ninguna coincidencia.
+
+**Cambio:** "Media tarde" ahora acepta cualquier mención de "tarde" sola, "onces" o "merienda" (ningún otro período usa esa palabra, no hay choque). "Antes de dormir" ahora tolera hasta 20 caracteres entre "antes de" y el verbo, y cubre también la conjugación "acuest-". Mismo cambio en los dos formularios (son idénticos en esta parte — "todo cambio de copy va a las dos", ver `CLAUDE.md`).
+
+**Verificación:** `node --check` no aplica a JSX — se extrajo el `<script type="text/babel">` de ambos archivos y se transformó con `@babel/standalone` (sin errores, los dos). Antes de tocar el código se reprodujo el patrón exacto con 6 frases naturales ("antes de irse a dormir...", "antes de que se acueste...", "en la tarde, a las 4pm...", etc.) contra la lógica original extraída a un script aparte — todas fallaban como "no_mencionado", confirmando la causa. Después del cambio, las 6 quedan cubiertas, y los casos de control (sin mención real, o mencionado sin hora cerca) siguen fallando como deben.
+
 ---
 
 ---
