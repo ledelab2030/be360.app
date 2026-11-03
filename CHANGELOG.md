@@ -1126,6 +1126,14 @@ Nueva regeneración de Josef, auditada con Gemini (sin el prompt congelado — v
 
 **Verificación:** `node --check`, y el regex probado contra el caso real ("masa madre" dispara) y tres redacciones correctas de la regla de pasta sin trigo (ninguna dispara).
 
+### 3 nov 2026 — Decidido: fruta entera va en AMARILLO, mismo trato que arroz/papa/plátano
+
+Último criterio pendiente de los dos que quedaron sin decidir en `PROMPT_AUDITORIA_PLANES.md` (30 oct 2026). La fuente SRB nunca habla de fruta entera para pediatría — solo prohíbe el jugo ("agua con azúcar concentrada"). La única frase que toca fruta entera está en la sección "6 pasos para restaurar la microbiota" (7.1), un protocolo de adultos que las adaptaciones pediátricas ya bloquean completo. Mismo hueco que ya existía con arroz, papa, plátano y arepa: ninguno de los cuatro está en la tabla de la fuente tampoco — entraron a AMARILLO por decisión explícita de Peter para la versión pediátrica. Leonardo decidió darle a la fruta entera el mismo tratamiento.
+
+**Cambio:** nueva regla en `ADAPTACIONES_PEDIATRICAS` (`worker/vita-proxy.js`) — fruta entera (no jugo) va en AMARILLO, de acompañante de una comida con proteína y grasa, nunca sola; el jugo de fruta sigue SIEMPRE ROJO. Sincronizado en `GUIA_COMPARACION_PLANES.md` y `PROMPT_AUDITORIA_PLANES.md` (se quita de "criterios sin decidir", queda "tortilla o bollo de maíz" como el único pendiente).
+
+**Verificación:** `node --check`.
+
 ---
 
 ---

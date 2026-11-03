@@ -605,6 +605,12 @@ arriba cuando hay conflicto (el texto de arriba fue escrito para adultos):
   NUNCA como base ni centro del plato, y NUNCA solos ni como merienda aparte. Si un hábito propone
   uno de estos alimentos, tiene que incluir explícitamente que va "de acompañante", no como plato
   principal.
+- FRUTA ENTERA — MISMO TRATO QUE LOS CARBOHIDRATOS DE ARRIBA (3 nov 2026, decisión explícita de
+  Leonardo): la fuente nunca habla de fruta entera para pediatría — solo prohíbe el JUGO de fruta
+  ("agua con azúcar concentrada"). La fruta entera (no jugo) va en AMARILLO, con la MISMA regla que
+  arroz/papa/plátano/arepa: SIEMPRE de acompañante de una comida con proteína y grasa, NUNCA sola
+  como merienda ni como base. El jugo de fruta sigue SIEMPRE ROJO, sin excepción — ahí sí lo dice la
+  fuente explícitamente.
 - CHATARRA EXPLÍCITA EN ROJO: aunque no estén en la tabla original de la fuente, helados y
   salchipapas van SIEMPRE en ROJO si el formulario los menciona — nunca en amarillo.
 - LONCHERA Y MERIENDAS — REGLA DE ORO: si el niño/a hace sus 3 comidas principales completas, la
