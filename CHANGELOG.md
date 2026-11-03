@@ -1196,6 +1196,14 @@ Probando otro de los 8 casos sintéticos (Nicolás Herrera) después del fix ant
 
 **Verificación:** reproducido el patrón exacto ("A las 10:15 AM en el descanso compra...") contra la lógica original — "no_mencionado"; con el cambio, "ok". Casos de control (sin mención, y la redacción ya cubierta "lonchera") sin cambios. `@babel/standalone` sobre el `<script type="text/babel">` de ambos archivos, sin errores.
 
+### 3 nov 2026 — Cuarta vuelta: "despierta" tampoco calzaba con "despert" — verbos con diptongo (o→ue, e→ie) son el patrón real detrás de los tres bugs de hoy
+
+Probando un cuarto caso sintético (Valeria Jaramillo), "Al levantarse" quedó marcado como faltante con el texto *"Se despierta a las 6:15 AM..."* — el verbo "despertar" diptonga a "despierta" en presente (e→ie), así que la subcadena "despert" nunca aparece en la forma conjugada, solo en el infinitivo o el gerundio ("despertando"). Es el mismo fenómeno gramatical que ya causó el bug de "acostarse"/"acueste" en el PR anterior de hoy (o→ue) — vale la pena tenerlo presente como categoría de riesgo para cualquier chequeo futuro basado en subcadena de un verbo español: buscar siempre la forma conjugada común además del infinitivo.
+
+**Cambio:** se agrega el radical diptongado `despiert` a las palabras clave de "Al levantarse", en los dos formularios.
+
+**Verificación:** reproducido el patrón exacto contra la lógica original — "no_mencionado"; con el cambio, "ok". Probado también "se levanta a las 6am" y "despertando a las 7" (ambos ya cubiertos, sin regresión) y un control sin mención real. `@babel/standalone` sobre el `<script type="text/babel">` de ambos archivos, sin errores.
+
 ---
 
 ---
