@@ -306,6 +306,27 @@ const RANGO_HORAS = {
   "Cena": [18*60, 23*60+59],
   "Antes de dormir": [19*60, 23*60+59],
 };
+// Hora SUGERIDA para mostrarle al padre y que la confirme (3 nov 2026,
+// pedido explícito de Leonardo: caso real de Josef, "media mañana" y
+// "almuerzo" sí aparecían mencionados en la cronología pero sin hora
+// exacta — en vez de dejarlo como un hueco genérico, "debería asumirse
+// 9-10am y 3-4pm, y pedir confirmación al padre antes de enviar"). Es
+// DISTINTA de RANGO_HORAS: esa es deliberadamente ancha (es el respaldo de
+// coberturaDia(), sirve para no perder un dato real que esté en otra
+// parte del rango); esta es angosta, pensada para mostrarse como pregunta
+// de sí/no ("¿fue como a las 9-10am?"), solo para los momentos donde
+// SÍ hay palabra clave pero no una hora pegada (motivo "sin_hora" — nunca
+// se ofrece para "no_mencionado", ahí no hay nada que confirmar). No
+// incluye "Al levantarse" porque casi nunca llega a "sin_hora": suele ser
+// la hora ancla de la que parte el resto del relato.
+const HORA_SUGERIDA = {
+  "Desayuno": "7:00–8:00 am",
+  "Media mañana": "9:00–10:00 am",
+  "Almuerzo": "12:00–1:00 pm",
+  "Media tarde": "3:00–4:00 pm",
+  "Cena": "6:00–7:00 pm",
+  "Antes de dormir": "8:00–9:00 pm",
+};
 // Convierte UN fragmento de texto que ya se sabe que contiene una hora (ej.
 // "6:45 PM", "21:00") a minutos desde medianoche. Deliberadamente NO
 // resuelve "a las 7" en palabras sin meridiano (alternativa 3 de
@@ -459,7 +480,7 @@ const formatoEmailValido=(email)=>/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test((email||"").
 // así — el correo, en cambio, no tiene una opción de "continuar sin
 // arreglarlo" si el formato se ve roto, porque ahí no hay ambigüedad
 // posible: sin un correo con formato válido, la entrega no puede funcionar.
-const PanelRevisionFinal=({dx,onCambiarEmail,faltantes,onCompletarDia,onConfirmar,P,btnPrimary})=>{
+const PanelRevisionFinal=({dx,onCambiarEmail,faltantes,onCompletarDia,onConfirmar,horasConfirmadas,onToggleHoraConfirmada,P,btnPrimary})=>{
   const emailOk=formatoEmailValido(dx.email_padre);
   return (
     <div style={{position:"absolute",inset:0,background:"rgba(40,42,36,.55)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:20,padding:20}}>
@@ -475,12 +496,30 @@ const PanelRevisionFinal=({dx,onCambiarEmail,faltantes,onCompletarDia,onConfirma
         {faltantes && faltantes.length>0 && (<React.Fragment>
           <div style={{height:1,background:P.line,margin:"4px 0 14px"}}/>
           <p style={{fontSize:13.5,color:P.ink,lineHeight:1.55,marginBottom:8}}>Falta la hora en estos momentos del día de {dx.nombre_nino||"tu hijo o hija"}:</p>
-          <ul style={{fontSize:13,color:P.sageDeep,fontWeight:700,marginBottom:12,paddingLeft:18}}>
-            {faltantes.map(f=><li key={f.label}>{f.label}{f.motivo==="sin_hora"?<span style={{fontWeight:400,color:P.muted}}> — falta la hora exacta</span>:null}</li>)}
+          <ul style={{fontSize:13,color:P.sageDeep,fontWeight:700,marginBottom:4,paddingLeft:18}}>
+            {faltantes.map(f=>{
+              // NUEVO (3 nov 2026): si el momento SÍ está mencionado (solo le
+              // falta la hora — nunca para "no_mencionado", ahí no hay nada
+              // que sugerir) y hay una hora típica para proponer, se ofrece
+              // como pregunta de confirmación en vez de solo avisar el hueco.
+              const sugerencia = f.motivo==="sin_hora" ? HORA_SUGERIDA[f.label] : null;
+              return (
+                <li key={f.label} style={{marginBottom:sugerencia?8:0}}>
+                  {f.label}
+                  {f.motivo==="sin_hora" && !sugerencia && <span style={{fontWeight:400,color:P.muted}}> — falta la hora exacta</span>}
+                  {sugerencia && (
+                    <label style={{display:"flex",alignItems:"center",gap:7,fontWeight:400,color:P.muted,marginTop:3,cursor:"pointer"}}>
+                      <input type="checkbox" checked={!!(horasConfirmadas&&horasConfirmadas[f.label])} onChange={()=>onToggleHoraConfirmada(f.label)} style={{width:15,height:15,accentColor:P.sage,flexShrink:0}}/>
+                      <span>¿Fue como a las {sugerencia}?</span>
+                    </label>
+                  )}
+                </li>
+              );
+            })}
           </ul>
           {/* Dos párrafos reducidos a uno (21 oct 2026): decían lo mismo en
               mucho más espacio, y el segundo sonaba a reproche. */}
-          <p style={{fontSize:12.5,color:P.muted,lineHeight:1.5,marginBottom:16}}>Está bien si no las sabes. Pero con el día completo, el plan sale más preciso desde el primer intento.</p>
+          <p style={{fontSize:12.5,color:P.muted,lineHeight:1.5,margin:"12px 0 16px"}}>Está bien si no las sabes, o si la hora sugerida no aplica. Pero con el día completo, el plan sale más preciso desde el primer intento.</p>
           <button onClick={onCompletarDia} style={{...btnPrimary,width:"100%",marginBottom:8}}>Quiero completar el día</button>
         </React.Fragment>)}
 
@@ -522,6 +561,7 @@ function App(){
   const [sending,setSending]=useState(false);
   const [sendError,setSendError]=useState(null);
   const [mostrarRevisionFinal,setMostrarRevisionFinal]=useState(false); // panel de revisión (correo + cobertura del día) antes de enviar de verdad
+  const [horasConfirmadas,setHorasConfirmadas]=useState({}); // 3 nov 2026: qué horas sugeridas confirmó el padre en PanelRevisionFinal
   const scrollRef=useRef(null);
   useEffect(()=>{ if(scrollRef.current) scrollRef.current.scrollTop=scrollRef.current.scrollHeight; },[messages,loading]);
 
@@ -783,7 +823,15 @@ function App(){
   // ANOTADO en el mismo texto que ve Peter, nunca en silencio.
   const confirmarYEnviar=()=>{
     const {faltantes}=coberturaDia(dx.cronologia_del_dia);
-    const resumenFaltantes=faltantes.map(f=>f.motivo==="sin_hora"?f.label+" (mencionado, sin hora exacta)":f.label).join(", ");
+    // NUEVO (3 nov 2026): si el padre confirmó la hora sugerida para un
+    // momento, se anota como hora aproximada CONFIRMADA (no como hueco) —
+    // Peter la ve distinta de un dato que de verdad falta.
+    const resumenFaltantes=faltantes.map(f=>{
+      if(f.motivo==="sin_hora" && horasConfirmadas[f.label] && HORA_SUGERIDA[f.label]){
+        return f.label+" (hora aproximada confirmada por el padre: "+HORA_SUGERIDA[f.label]+")";
+      }
+      return f.motivo==="sin_hora" ? f.label+" (mencionado, sin hora exacta)" : f.label;
+    }).join(", ");
     const dxFinal=faltantes.length>0
       ? {...dx, cronologia_del_dia:(dx.cronologia_del_dia||"")+"\n[Sin dato, sin hora exacta, o no compartido aún: "+resumenFaltantes+"]"}
       : dx;
@@ -791,6 +839,7 @@ function App(){
     setMostrarRevisionFinal(false);
     enviarDatos(dxFinal);
   };
+  const toggleHoraConfirmada=(label)=>setHorasConfirmadas(prev=>({...prev, [label]:!prev[label]}));
   const volverACompletarDia=()=>setMostrarRevisionFinal(false);
   const cambiarEmailEnRevision=(valor)=>setDx(prev=>({...prev, email_padre:valor}));
 
@@ -886,7 +935,7 @@ function App(){
       {sendError && <p style={{fontSize:12.5,color:P.clay,textAlign:"center"}}>{sendError}</p>}
       <p style={{fontSize:11,color:P.muted,textAlign:"center",lineHeight:1.5,marginTop:2}}>Esto acompaña y suma con su pediatra — no lo reemplaza.</p>
       <button onClick={()=>setStage("welcome")} style={{background:"none",border:"none",color:P.muted,fontSize:12.5,fontWeight:700,cursor:"pointer",alignSelf:"center",fontFamily:"'Nunito',sans-serif"}}>← Volver al inicio</button>
-      {mostrarRevisionFinal&&(<PanelRevisionFinal dx={dx} onCambiarEmail={cambiarEmailEnRevision} faltantes={coberturaDia(dx.cronologia_del_dia).faltantes} onCompletarDia={volverACompletarDia} onConfirmar={confirmarYEnviar} P={P} btnPrimary={btnPrimary}/>)}
+      {mostrarRevisionFinal&&(<PanelRevisionFinal dx={dx} onCambiarEmail={cambiarEmailEnRevision} faltantes={coberturaDia(dx.cronologia_del_dia).faltantes} onCompletarDia={volverACompletarDia} onConfirmar={confirmarYEnviar} horasConfirmadas={horasConfirmadas} onToggleHoraConfirmada={toggleHoraConfirmada} P={P} btnPrimary={btnPrimary}/>)}
     </div></Shell>
   );
 
@@ -955,7 +1004,7 @@ function App(){
           </div>
         </div>
       </div>)}
-      {mostrarRevisionFinal&&(<PanelRevisionFinal dx={dx} onCambiarEmail={cambiarEmailEnRevision} faltantes={coberturaDia(dx.cronologia_del_dia).faltantes} onCompletarDia={volverACompletarDia} onConfirmar={confirmarYEnviar} P={P} btnPrimary={btnPrimary}/>)}
+      {mostrarRevisionFinal&&(<PanelRevisionFinal dx={dx} onCambiarEmail={cambiarEmailEnRevision} faltantes={coberturaDia(dx.cronologia_del_dia).faltantes} onCompletarDia={volverACompletarDia} onConfirmar={confirmarYEnviar} horasConfirmadas={horasConfirmadas} onToggleHoraConfirmada={toggleHoraConfirmada} P={P} btnPrimary={btnPrimary}/>)}
     </Shell>
   );
 }

@@ -1241,6 +1241,14 @@ Un tercer hallazgo de la auditoría (Sofía Echeverry: omite por completo la sec
 
 **Verificación:** `node --check`; el caso real de Tomás (sin título) dispara, un caso con el título no dispara; la frase exacta de Joaquín ("deberían") dispara, "debería" singular (ya cubierto) sigue disparando, y "es un deber de los padres" (sustantivo, no debe confundirse con el verbo) no dispara. Re-corrida la suite completa de hoy — los fallos que aparecen son solo por fixtures viejas que nunca traían `resumenCronologico` con el título (porque probaban otra cosa), no regresiones: cada chequeo anterior sigue disparando exactamente lo que debía disparar.
 
+### 3 nov 2026 — Hora sugerida y confirmable en el panel de revisión, en vez de solo avisar que falta
+
+Probando de nuevo con el caso real de Josef vía `vita-demo-formulario-v2/`, el panel de revisión mostró "Media mañana" y "Almuerzo" como faltantes — mencionados en la cronología ("Lonchera en el colegio (media mañana)...", "Almuerzo en el colegio...") pero sin hora pegada. Leonardo pidió explícitamente que, para esos casos, el sistema proponga una hora típica y se la pida confirmar al padre antes de enviar, en vez de solo avisar el hueco.
+
+**Cambio:** nueva constante `HORA_SUGERIDA` (Desayuno 7-8am, Media mañana 9-10am, Almuerzo 12-1pm, Media tarde 3-4pm, Cena 6-7pm, Antes de dormir 8-9pm — deliberadamente angosta, distinta de `RANGO_HORAS` que es el respaldo ancho de `coberturaDia()`; no incluye "Al levantarse" porque casi nunca llega a "sin_hora"). En `PanelRevisionFinal`, cada momento con motivo "sin_hora" (nunca "no_mencionado" — ahí no hay nada que sugerir) y con hora sugerida disponible muestra una casilla "¿Fue como a las X?". Nuevo estado `horasConfirmadas` en `App`, con su toggle. Si el padre confirma, `confirmarYEnviar()` anota el momento como "hora aproximada confirmada por el padre: X" en vez del genérico "mencionado, sin hora exacta" — Peter ve la diferencia entre un hueco real y una hora aproximada que el padre sí validó. Mismo cambio en los dos formularios.
+
+**Verificación:** `@babel/standalone` sobre el `<script type="text/babel">` de ambos archivos, sin errores. Probado en el navegador de punta a punta (servidor estático local, `vita-demo-formulario-v2/`): formulario llenado con una cronología real que menciona "media mañana" y "almuerzo" sin hora — el panel de revisión mostró la casilla "¿Fue como a las 12:00–1:00 pm?" para Almuerzo, y al marcarla el estado quedó visiblemente confirmado (checkbox verde) antes de cualquier envío.
+
 ---
 
 ---
