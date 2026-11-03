@@ -573,6 +573,16 @@ arriba cuando hay conflicto (el texto de arriba fue escrito para adultos):
   ejercicios con minutos o repeticiones. TAMPOCO inventes condiciones que el formulario no reportó —
   cada sugerencia de movimiento se ancla a algo concreto que el formulario sí dijo; si no da pie a
   nada específico, queda en general sin inventar escenarios.
+- PROHIBIDA cualquier cifra de pasos o de minutos de movimiento (la fuente dice "al menos 10,000
+  pasos diarios" y "7 minutos de ejercicios de fuerza") — son metas de adulto, no se trasladan a
+  niños/as bajo ninguna forma, ni siquiera "ajustada" o "reducida" (3 nov 2026, Leonardo). El
+  movimiento se describe siempre sin número de pasos ni de minutos, como ya dice la regla del
+  Pilar 5 de arriba.
+- "BEBIDAS DURANTE LAS COMIDAS" NO ES UN ALIMENTO (3 nov 2026, Leonardo): la fuente la lista como
+  fila de su tabla INCLUIR/ELIMINAR (sección 7), pero es una regla de comportamiento/momento, no un
+  alimento — nunca se copia como ítem de ROJO, AMARILLO o VERDE en el semáforo. Va, como principio
+  general sin color, dentro de HÁBITOS Y VENTANA o del Pilar 1, igual que ya se hace con "el suero no
+  se toma durante la comida" (ver regla de arriba).
 - PROHIBIDOS los "6 pasos para restaurar la microbiota" de la fuente (levadura de cerveza cruda,
   vinagre de manzana en ayunas, queso azul obligatorio) — son protocolos de adulto, no aplican aquí.
 - PROHIBIDO mencionar o aplicar nada de las secciones de BioEmoción, biodescodificación o fase
@@ -1037,8 +1047,12 @@ aparece acá abajo — no los parafrasees, no les cambies el orden:
    usa SIEMPRE este encabezado nuevo) + Pilares — entre 2 y 4, SOLO los que el formulario respalda
    con datos reales Y que están en la FUENTE SRB adaptada: hidratación (suero casero, 2g/L para
    empezar), alimentación con semáforo personalizado (ver abajo), ritmo y ventana de alimentación,
-   movimiento como juego. EL SEMÁFORO SIEMPRE VA DENTRO DEL PILAR DE ALIMENTACIÓN, nunca como su
-   propio bloque aparte. El pilar de alimentación se titula SIEMPRE "Proteína y grasa, siempre"
+   movimiento como juego. El pilar de Movimiento es OBLIGATORIO, no opcional, cada vez que el
+   formulario reporte cualquier deporte, juego físico activo o actividad (fútbol, natación, baile,
+   bicicleta, patinar, recreo activo, lo que sea) — con ese dato disponible, omitirlo es un hueco del
+   plan, no una opción válida; solo se omite cuando el formulario de verdad no da ningún dato de
+   movimiento (3 nov 2026, Leonardo). EL SEMÁFORO SIEMPRE VA DENTRO DEL PILAR DE ALIMENTACIÓN, nunca
+   como su propio bloque aparte. El pilar de alimentación se titula SIEMPRE "Proteína y grasa, siempre"
    (nunca "Proteína
    primero") — ver ADAPTACIONES arriba, "PROTEÍNA Y GRASA, NUNCA PROTEÍNA SOLA" — y el semáforo va
    dentro de ese mismo pilar, como su desarrollo.
@@ -1311,7 +1325,17 @@ function revisarBorradorPediatrico(parsed) {
   // SRB"). Antes el prompt pedía justo lo contrario (citar "(SRB — ...)" al
   // final de cada hábito), así que es fácil que un borrador viejo o un
   // reintento herede la cita.
-  revisar(/\(srb\s*[—-]|según el srb|el srb dice|el srb establece|la fuente indica|\bsrb\b/i, "menciona el SRB o cita la fuente en el texto visible al padre");
+  // OJO — descontar primero el encabezado obligatorio de la sección 4
+  // ("PLAN BAJO EL SISTEMA DE REVERSIÓN BIOLÓGICA (SRB)", ver ESTRUCTURA FIJA
+  // DEL PLAN): desde que ese encabezado se volvió obligatorio (29-30 oct
+  // 2026) contiene él mismo la palabra "SRB", así que sin este descuento
+  // \bsrb\b se dispara en TODO plan real, sin que ningún reintento pueda
+  // evitarlo — el modelo no puede dejar de escribir un encabezado que el
+  // propio prompt le exige (bug encontrado el 3 nov 2026 al revisar por qué
+  // los reintentos no limpiaban todos los fallos).
+  const textoSinEncabezadoSRB = texto.replace(/PLAN BAJO EL SISTEMA DE REVERSI[ÓO]N BIOL[ÓO]GICA \(SRB\)/gi, " ");
+  const mSrb = textoSinEncabezadoSRB.match(/\(srb\s*[—-]|según el srb|el srb dice|el srb establece|la fuente indica|\bsrb\b/i);
+  if (mSrb) problemas.push("menciona el SRB o cita la fuente en el texto visible al padre → \"" + String(mSrb[0]).trim().slice(0, 70) + "\"");
   // "primera comida 06:00, última comida 19:00 → 13 horas" (caso de Sofía):
   // formato de campo interno, no lenguaje de padre. Se detectan las horas que
   // solo existen en reloj de 24h —00:00 a 09:59 con cero adelante, y 13:00 en
@@ -1322,6 +1346,11 @@ function revisarBorradorPediatrico(parsed) {
   revisar(/\bexcelente\b|\bperfect[oa]\b|sigue así|base sólida|qué bueno que|felicit/i, "lenguaje celebratorio (prohibido)");
   // Cifras del SRB de adultos que nunca van en un plan de niños.
   revisar(/1[.,]5 ?g|70 ?a ?100 ?g|60-80 ?%|2[.,]5 unidades|5 ?a ?7 ?g/i, "cifra del SRB de adultos");
+  // Cifra de pasos o minutos de movimiento copiada de la fuente de adultos
+  // (3 nov 2026: la fuente dice "al menos 10,000 pasos diarios" y "7 minutos
+  // de ejercicios de fuerza" — ver ADAPTACIONES_PEDIATRICAS, regla nueva de
+  // PASOS/MINUTOS). El movimiento pediátrico se describe siempre sin número.
+  revisar(/\b\d[\d.,]*\s*(?:mil\s+)?pasos\b|\b\d+\s*minutos?\s+(?:de\s+)?(?:ejercicios?|fuerza|movimiento)\b/i, "cifra de pasos o minutos de movimiento copiada de la fuente de adultos");
   revisar(/medicament|jarabe|pomada|vaporub|suplement/i, "menciona un medicamento o remedio");
   // Lenguaje psicológico/neurológico sin base en la fuente (30 oct 2026,
   // Leonardo, caso de Josef): el modelo conectó un ritual de sueño rígido
@@ -1428,6 +1457,46 @@ function revisarBorradorPediatrico(parsed) {
     const mVerdura = bloqueVerde.match(/\b(?:vegetales?|verduras?|zucchini|champi[ñn]ones|cebolla|espinaca|br[óo]coli|zanahoria|calabac[íi]n)\b/i);
     if (mVerdura) {
       problemas.push("menciona verdura/vegetal dentro del bloque VERDE del semáforo — las verduras nunca van en VERDE, solo AMARILLO (bien cocidas) o ROJO (crudas) → \"" + mVerdura[0] + "\"");
+    }
+  }
+  // Trigo colado FUERA del semáforo — en la sección "HÁBITOS Y VENTANA
+  // NUTRICIONAL PROPUESTA" (prosa previa al semáforo, donde esa sección
+  // tiene prohibido incluso escribir los colores, así que el chequeo de
+  // AMARILLO de arriba nunca la ve) o en una tarjeta del array "habitos"
+  // (3 nov 2026, extensión del mismo problema: el modelo presenta el trigo
+  // como "acompañante pequeño" antes de llegar al semáforo, no solo dentro
+  // de él). Mismo filtro de negaciones que arriba, para no disparar con la
+  // redacción correcta ("pasta de arroz, no de trigo").
+  const limpiarNegacionesTrigo = (s) => String(s)
+    .replace(/\b(?:no|sin|nunca|jam[áa]s)\s+(?:de\s+|es\s+)?trigo\b/gi, " ")
+    .replace(/\b(?:en\s+(?:vez|lugar)\s+de|alternativa)\b[^.\n]{0,45}\btrigo\b/gi, " ");
+  const idxHabitosHdr = (parsed.mensaje || "").search(/H[ÁA]BITOS Y VENTANA NUTRICIONAL PROPUESTA/i);
+  const idxPlanHdr = (parsed.mensaje || "").search(/PLAN BAJO EL SISTEMA DE REVERSI[ÓO]N BIOL[ÓO]GICA/i);
+  const seccionesFueraDeSemaforo = [];
+  if (idxHabitosHdr !== -1) {
+    seccionesFueraDeSemaforo.push((parsed.mensaje || "").slice(idxHabitosHdr, idxPlanHdr !== -1 ? idxPlanHdr : idxHabitosHdr + 1200));
+  }
+  (parsed.habitos || []).forEach(h => seccionesFueraDeSemaforo.push((h.titulo || "") + " " + (h.texto || "")));
+  for (const bloque of seccionesFueraDeSemaforo) {
+    const mTrigoFuera = limpiarNegacionesTrigo(bloque).match(/\bmasa\s+madre\b|\btrigo\b|\bbaguet\w*|\bcroissant\w*/i);
+    if (mTrigoFuera) {
+      problemas.push("hay trigo (o masa madre, que es trigo) fuera del semáforo — en HÁBITOS Y VENTANA o en una tarjeta de hábito, presentado como si fuera válido — el trigo va SIEMPRE en ROJO, sin importar la porción → \"" + mTrigoFuera[0] + "\"");
+      break;
+    }
+  }
+  // "Bebidas/líquidos durante las comidas" como ítem de un color del
+  // semáforo (3 nov 2026): la fuente la lista como fila de su tabla
+  // INCLUIR/ELIMINAR (sección 7), pero es una regla de comportamiento/momento,
+  // no un alimento — ver ADAPTACIONES_PEDIATRICAS, regla del mismo nombre.
+  // Cubre ROJO, AMARILLO y VERDE con un solo bloque desde el inicio del
+  // semáforo (🔴 ROJO) hasta ~600 caracteres después de 🟢 VERDE.
+  const idxRojoSemaforo = (parsed.mensaje || "").search(/🔴\s*ROJO/i);
+  if (idxRojoSemaforo !== -1) {
+    const finSemaforo = idxVerde !== -1 ? idxVerde + 600 : idxRojoSemaforo + 1800;
+    const bloqueSemaforoCompleto = (parsed.mensaje || "").slice(idxRojoSemaforo, finSemaforo);
+    const mBebidasEnSemaforo = bloqueSemaforoCompleto.match(/\b(?:bebidas|l[íi]quidos)\s+durante\s+las\s+comidas\b/i);
+    if (mBebidasEnSemaforo) {
+      problemas.push("\"bebidas/líquidos durante las comidas\" aparece como ítem de un color del semáforo — es una regla de comportamiento, no un alimento, y no debe listarse en ROJO/AMARILLO/VERDE → \"" + mBebidasEnSemaforo[0] + "\"");
     }
   }
   return problemas;
@@ -1549,11 +1618,11 @@ async function generarYVerificarBorrador(dx, env, idPlan) {
     // borrador no llega al panel sin pasar por acá. Dos capas —
     //   (a) reglas duras por código: palabras prohibidas, reglas narradas al
     //       padre, formato interno filtrado, cifras de adulto, ventana corta.
-    //       Si algo falla, se regenera hasta 2 veces más diciéndole qué
+    //       Si algo falla, se regenera hasta 3 veces más diciéndole qué
     //       corregir (ver MAX_INTENTOS abajo).
     //   (b) verificador de grounding contra la fuente SRB: es advisory, se
     //       anota en el log del Worker pero nunca descarta el borrador.
-    // Lo que sobreviva con problemas después de los 3 intentos se guarda
+    // Lo que sobreviva con problemas después de los 4 intentos se guarda
     // igual — mejor un borrador marcado en el log que ningún caso — pero sin
     // avisarlo en el texto que ve el equipo (29 oct 2026, Leonardo: nada de
     // mensajes de advertencia antes de aprobar).
@@ -1634,6 +1703,27 @@ async function generarYVerificarBorrador(dx, env, idPlan) {
           }
         }
       }
+      // Pilar de Movimiento omitido cuando el formulario SÍ reporta deporte o
+      // actividad física (3 nov 2026, Leonardo — ver instrucción reforzada
+      // en ESTRUCTURA FIJA DEL PLAN, sección 4: ese pilar es obligatorio, no
+      // opcional, cuando hay dato real de movimiento). Solo el código puede
+      // ver "dx" (el formulario crudo); "p" (el borrador) no lo trae, así
+      // que este chequeo vive acá, no en revisarBorradorPediatrico. Busca la
+      // palabra "movimiento" en el mensaje como proxy de que el pilar está —
+      // no exige el título exacto, porque ese no está fijado por el prompt.
+      // Se descuentan primero las negaciones ("no hace ningún deporte", "sin
+      // actividad física") — sin esto, un formulario que reporta justo lo
+      // contrario (sedentarismo) disparaba el chequeo igual, por traer la
+      // palabra "deporte" dentro de la negación, y obligaba al modelo a
+      // inventar un pilar de Movimiento sin ningún dato real detrás (lo que
+      // ya prohíbe ADAPTACIONES_PEDIATRICAS, regla de "Movimiento sin
+      // condiciones inventadas").
+      const textoFormulario = Object.values(dx || {}).filter(v => typeof v === "string").join(" ").toLowerCase()
+        .replace(/\b(?:no|sin|ning[uú]n[oa]?|nunca|jam[áa]s)\b[^.,;\n]{0,25}\b(?:deporte|ejercicio|actividad|movimiento)\w*/gi, " ");
+      const reportaMovimiento = /\bf[uú]tbol|\bdeporte|\bentrena|\bnata[cs]i[oó]n|\bpatina|\bbaile|\bgimnasia|\bbicicleta|\bbici\b|\bcorre\b|\bcorriendo\b|\bejercicio|\bjuega\s+(?:f[uú]tbol|basket|b[áa]squet|tenis)\b/i.test(textoFormulario);
+      if (reportaMovimiento && !/movimiento/i.test(p.mensaje || "")) {
+        fallos.push("el formulario reporta deporte o actividad física, pero el plan no incluye el pilar de Movimiento — con ese dato disponible, omitirlo no es válido (ver ESTRUCTURA FIJA DEL PLAN, sección 4)");
+      }
       return fallos;
     };
 
@@ -1641,12 +1731,14 @@ async function generarYVerificarBorrador(dx, env, idPlan) {
     // "si se detectó, de una vez corregirlo" — antes se rendía después de UN
     // reintento y dejaba la alarma [REVISIÓN AUTOMÁTICA] para que el equipo
     // corrigiera a mano algo que el propio sistema ya sabía que estaba mal).
-    // Máximo 3 intentos en total (1 inicial + 2 reintentos) — cada intento es
-    // una llamada real a Claude, así que no se alarga sin límite; si después
-    // de los 3 sigue con fallos, ahí sí se guarda marcado para revisión
-    // manual, igual que antes — mejor un borrador marcado que ningún caso.
+    // Máximo 4 intentos en total (1 inicial + 3 reintentos, subido de 3 el 3
+    // nov 2026 — Leonardo: el caso de Josef mostró que 3 no siempre alcanzan
+    // para limpiar todos los fallos) — cada intento es una llamada real a
+    // Claude, así que no se alarga sin límite; si después de los 4 sigue con
+    // fallos, ahí sí se guarda marcado para revisión manual, igual que antes
+    // — mejor un borrador marcado que ningún caso.
     let fallos = evaluar(parsed);
-    const MAX_INTENTOS = 3;
+    const MAX_INTENTOS = 4;
     for (let intento = 1; (!parsed || fallos.length > 0) && intento < MAX_INTENTOS; intento++) {
       const reintento = await pedirBorrador(fallos);
       const fallosReintento = evaluar(reintento);
@@ -1666,8 +1758,8 @@ async function generarYVerificarBorrador(dx, env, idPlan) {
       // minimalista y conciso, no añadas mensajes informativos o de
       // advertencia antes de aprobarlos"). Antes de esto, se rendía después
       // de UN reintento y dejaba el aviso ahí para que el equipo corrigiera
-      // a mano — ahora hay hasta 3 intentos (ver MAX_INTENTOS arriba), así
-      // que hace mucha menos falta. Lo que sí sobreviva después de los 3
+      // a mano — ahora hay hasta 4 intentos (ver MAX_INTENTOS arriba), así
+      // que hace mucha menos falta. Lo que sí sobreviva después de los 4
       // intentos queda solo en el log del Worker (console.log abajo), nunca
       // en el texto que ve el equipo.
       if (fallos.length > 0) {
