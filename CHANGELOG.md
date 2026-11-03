@@ -1188,6 +1188,14 @@ Leonardo probó el formulario de punta a punta con 8 casos sintéticos (generado
 
 **Verificación:** `node --check` no aplica a JSX — se extrajo el `<script type="text/babel">` de ambos archivos y se transformó con `@babel/standalone` (sin errores, los dos). Antes de tocar el código se reprodujo el patrón exacto con 6 frases naturales ("antes de irse a dormir...", "antes de que se acueste...", "en la tarde, a las 4pm...", etc.) contra la lógica original extraída a un script aparte — todas fallaban como "no_mencionado", confirmando la causa. Después del cambio, las 6 quedan cubiertas, y los casos de control (sin mención real, o mencionado sin hora cerca) siguen fallando como deben.
 
+### 3 nov 2026 — Mismo problema, tercera palabra: "descanso" (recreo de media mañana) tampoco calzaba
+
+Probando otro de los 8 casos sintéticos (Nicolás Herrera) después del fix anterior, el mismo bloqueo apareció una vez más, ahora solo en "Media mañana": la cronología decía *"A las 10:15 AM en el descanso compra en la cafetería escolar..."* — "descanso" es como muchos colegios colombianos llaman al recreo de media mañana, y no estaba entre las palabras clave (`media mañana|lonchera|refrigerio`).
+
+**Cambio:** se agrega `\bdescanso\b` a las palabras clave de "Media mañana", mismo cambio en los dos formularios.
+
+**Verificación:** reproducido el patrón exacto ("A las 10:15 AM en el descanso compra...") contra la lógica original — "no_mencionado"; con el cambio, "ok". Casos de control (sin mención, y la redacción ya cubierta "lonchera") sin cambios. `@babel/standalone` sobre el `<script type="text/babel">` de ambos archivos, sin errores.
+
 ---
 
 ---
