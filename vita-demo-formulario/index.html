@@ -210,7 +210,11 @@ const detectarRiesgoTextual=(text)=>{
 const PERIODOS_DIA = [
   { label:"Al levantarse", re:/levant|despert/i },
   { label:"Desayuno", re:/desayun/i },
-  { label:"Media mañana", re:/media ma[ñn]ana|lonchera|refrigerio/i },
+  // FIX (3 nov 2026, mismo día que el de abajo): un caso real decía "en el
+  // descanso compra en la cafetería escolar..." — "descanso" es como
+  // muchos colegios colombianos llaman al recreo de media mañana, y no
+  // calzaba con ninguna de las palabras clave anteriores.
+  { label:"Media mañana", re:/media ma[ñn]ana|lonchera|refrigerio|\bdescanso\b/i },
   { label:"Almuerzo", re:/almuerz/i },
   // FIX (3 nov 2026, encontrado probando con casos sintéticos): las frases
   // más naturales en español no calzaban con los patrones originales —
