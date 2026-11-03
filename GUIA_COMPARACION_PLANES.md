@@ -84,6 +84,7 @@
 - [ ] Ninguna alternativa a "suero o agua con electrolitos" ofrece agua SOLA — "agua" nunca aparece como alternativa suelta.
 - [ ] Regla de no tomar líquidos durante las comidas presente y consistente con cómo se describe el suero en otras secciones.
 - [ ] Receta completa (con medida) aparece **una sola vez en todo el plan**, acá.
+- [ ] La sal suma **exactamente 2 g por litro** — "un sobre de 1 g, dos veces" o "una cuchara medidora de 1 g, dos veces" son correctos; "un sobre partido en dos" (= 0,5 g) o "un sobre y medio" (= 1,5 g) son errores reales de matemática, no de estilo (encontrado en el caso de Josef, 2 nov 2026).
 
 ### 5.2 Pilar 2 — Proteína y grasa, siempre
 - [ ] Título EXACTO "Proteína y grasa, siempre" — nunca "Proteína primero" ni "Proteína de calidad" sola.
@@ -103,16 +104,16 @@
 - [ ] Verdura BIEN COCIDA — AMARILLO, sin restricción de cómo se sirve (plato aparte o acompañante, da igual).
 - [ ] Las verduras NUNCA van en VERDE.
 - [ ] Quesos: solo "queso azul" o "roquefort" nombrados específicamente (nunca "queso madurado/envejecido" genérico) — van en VERDE. Cualquier otro queso (parmesano, manchego, etc.) es ROJO, igual que el resto de lácteos no madurados (leche, queso fresco, yogur).
-- [ ] Trigo decide el color, no "pasta"/"pan" genérico — ROJO solo cuando es de trigo; pasta/pan de arroz, quinua o lentejas es AMARILLO.
+- [ ] Trigo decide el color, no "pasta"/"pan" genérico — ROJO solo cuando es de trigo; pasta/pan de arroz, quinua o lentejas es AMARILLO. **El trigo es trigo sin importar el acompañante** — "pan de masa madre sin mermelada" sigue siendo ROJO, quitarle la mermelada no lo pasa a AMARILLO (encontrado en el caso de Josef, 3 nov 2026).
 - [ ] Helados y salchipapas — SIEMPRE ROJO si el formulario los menciona.
-- [ ] Lonchera/merienda: regla de oro — si hace 3 comidas completas, NO merienda; si hace falta, solo huevo duro, pollo, queso azul/roquefort, aguacate, aceitunas o nueces (set completo, no solo nueces) — CERO harinas, CERO carbohidratos, CERO galletas, siempre con suero/electrolitos.
+- [ ] Lonchera/merienda: regla de oro — si hace 3 comidas completas, NO merienda; si hace falta, separa SIEMPRE proteína (huevo duro, pollo) de grasa de acompañante (aguacate, aceitunas, nueces, o queso azul/roquefort — el queso es GRASA, no proteína) — nunca una lista plana con "o". CERO harinas, CERO carbohidratos, CERO galletas, siempre con suero/electrolitos. Si hace falta merienda tanto en la mañana como en la tarde, debe ser el **mismo set completo en las dos**, nunca recortado en una (encontrado en el caso de Samuel, 30 oct 2026).
 
 ### 5.3 Pilar 3 — Ritmo y ventana de alimentación
 - [ ] Cena mínimo 3 horas antes de la hora real de dormir reportada — regla dura, misma cifra sin importar edad.
-- [ ] Sin narrar el cálculo interno ("mínimo de 12 horas", "por encima del máximo", "corrección de ventana", "margen seguro", "mínimo de 3 horas", etc.) — el padre nunca ve la regla, solo el resultado ya correcto.
+- [ ] Sin narrar el cálculo interno, en NINGUNA redacción — no solo "mínimo de 3 horas", también variantes como "las 3 horas que necesita", "deja 3 horas", "tres horas antes de que se duerma", "deducida del límite reportado". El padre nunca ve la regla, solo el resultado ya correcto.
 - [ ] Sin las palabras "ayuno", "ayunar", "ayuno nocturno", "autofagia" — aunque la fuente las use, están prohibidas (incluso citando o entre comillas).
-- [ ] La recuperación nocturna se explica en términos metabólicos/hepáticos ("le da al cuerpo la noche para recuperarse") — nunca en términos de sistema nervioso o psicología.
-- [ ] Pantallas: corte 1 hora antes de dormir (celular, tablet, TV, videojuegos) — hora calculada, no "reducir" vago. Alternativa: lectura en papel, juego libre, conversación.
+- [ ] La recuperación nocturna se explica en términos metabólicos/hepáticos ("le da al cuerpo la noche para recuperarse") — nunca en términos de sistema nervioso, neurología o psicología (ni para dormir ni para pantallas).
+- [ ] **Pantallas: nunca se omiten, en ningún plan.** Corte 1 hora antes de dormir (celular, tablet, TV, videojuegos) — hora calculada, no "reducir" vago. Si falta la hora de dormir, se enuncia igual el principio general en vez de omitirlo por completo (encontrado en el caso de Samuel, 30 oct 2026: el plan no mencionaba pantallas en ninguna parte). Alternativa: lectura en papel, juego libre, conversación.
 - [ ] "No comer después de las 6pm" de la fuente NO es un horario fijo para todos los casos — se calcula desde la hora real de dormir de cada niño/a, restando 3 horas.
 
 ### 5.4 Pilar 4 — Movimiento como juego
