@@ -1228,6 +1228,19 @@ Un séptimo caso sintético (Martina) rompió el patrón de los seis anteriores:
 
 **Verificación:** el código real se extrajo del archivo (no una copia de prueba aparte) y se corrió con los textos completos y reales de los 6 casos de hoy (Martina, Joaquín, Valeria, Nicolás, y dos controles equivalentes a Josef/Samuel/Sofía) — los 3 que de verdad fallaban (Martina, Joaquín, Valeria) quedan en cero faltantes. Dos controles de falso positivo: "onces a las 4pm" NO cuenta como Cena (fuera del rango, que empieza a las 6pm) y una siesta de mediodía ("duerme siesta de 1 a 3pm") sigue SIN contar como "Antes de dormir" nocturno — la precaución explícita de la vuelta anterior se mantiene. Un control con cronología genuinamente incompleta (solo desayuno y almuerzo reportados) sigue marcando los 4 períodos reales como faltantes. `@babel/standalone` sobre el `<script type="text/babel">` de ambos archivos, sin errores.
 
+### 3 nov 2026 — Auditoría de los 8 casos sintéticos completos (97.5/100 en promedio): un título que falta sin respaldo de código, y "deberían" en plural se le escapaba al chequeo de "debería"
+
+Con los 8 casos de prueba completos (Tomás, Mateo, Samuel Pineda, Nicolás, Valeria, Joaquín, Sofía Echeverry y Martina) auditados contra el manual v4.24 ya corregido, el promedio fue 97.5/100 — dos hallazgos resultaron reales y verificables contra el texto completo (`8 casos.docx`, convertido con `textutil`), no artificios del auditor:
+
+1. **"CRONOLOGÍA ACTUAL" faltante como título** — Tomás y Nicolás (2 de 8) arrancan `resumenCronologico` directo en la hora ("6:30 AM — se levanta..."), sin el título exacto que exige ESTRUCTURA FIJA DEL PLAN. Nada por código lo verificaba — dependía 100% de que el modelo se acordara.
+2. **"deberían" (plural) se le escapaba al chequeo de "debería"** — Joaquín: *"esas pausas deberían volverse menos frecuentes"*. El regex `/\bdeber[íi]a\b/i` (del 28 oct 2026) solo cubría la forma singular; el plural tiene una "n" extra después de la "a", así que el `\b` final nunca calzaba — mismo patrón de conjugación escapándose que ya apareció varias veces hoy en los formularios.
+
+Un tercer hallazgo de la auditoría (Sofía Echeverry: omite por completo la sección "PARA LA PRÓXIMA CITA CON EL PEDIATRA") se confirmó real contra el texto, pero NO se convierte en chequeo de código — esa sección es condicional por diseño ("si no aplica, se omite por completo"), así que exigirla siempre contradiría una decisión ya tomada; queda para que el equipo clínico decida caso por caso si de verdad no aplicaba acá. Un cuarto hallazgo (Joaquín: pescado clasificado en AMARILLO en vez de VERDE) es un error de contenido puntual, no un patrón repetible — no amerita regla nueva todavía.
+
+**Cambio:** nuevo chequeo en `revisarBorradorPediatrico` que exige el título "CRONOLOGÍA ACTUAL" al inicio de `resumenCronologico`. El regex de "debería" ahora es `/\bdeber[íi]an?\b/i`, cubriendo también el plural. Ambos en `worker/vita-proxy.js`.
+
+**Verificación:** `node --check`; el caso real de Tomás (sin título) dispara, un caso con el título no dispara; la frase exacta de Joaquín ("deberían") dispara, "debería" singular (ya cubierto) sigue disparando, y "es un deber de los padres" (sustantivo, no debe confundirse con el verbo) no dispara. Re-corrida la suite completa de hoy — los fallos que aparecen son solo por fixtures viejas que nunca traían `resumenCronologico` con el título (porque probaban otra cosa), no regresiones: cada chequeo anterior sigue disparando exactamente lo que debía disparar.
+
 ---
 
 ---

@@ -1287,6 +1287,16 @@ function revisarBorradorPediatrico(parsed) {
   const problemas = [];
   const revisar = (re, descripcion) => { const m = texto.match(re); if (m) problemas.push(descripcion + " → \"" + String(m[0]).trim().slice(0, 70) + "\""); };
 
+  // Título "CRONOLOGÍA ACTUAL" faltante (3 nov 2026, encontrado auditando el
+  // lote de 8 casos sintéticos: 2 de los 8 — Tomás y Nicolás — arrancaban
+  // directo en la hora, "6:30 AM — se levanta...", sin el título de la
+  // sección. ESTRUCTURA FIJA DEL PLAN lo exige como el primer título exacto
+  // de "resumenCronologico", pero hasta hoy nada por código lo verificaba —
+  // dependía 100% de que el modelo lo recordara.
+  if (!/CRONOLOG[ÍI]A ACTUAL/i.test(parsed.resumenCronologico || "")) {
+    problemas.push("falta el título \"CRONOLOGÍA ACTUAL\" al inicio de resumenCronologico — el relato debe empezar con ese título exacto, no directo en la hora");
+  }
+
   // "El ayuno nocturno no es opcional" salió en el borrador de Samuel, copiado
   // literal del Pilar 3 de la fuente. OJO: "en ayunas" es legítimo (el Paso 0
   // pregunta por insulina en ayunas), por eso no se usa \bayun para todo.
@@ -1375,7 +1385,12 @@ function revisarBorradorPediatrico(parsed) {
   revisar(/\bensalada\b/i, "menciona ensalada (verdura cruda — la regla nueva la pone en rojo)");
   // Reglas nuevas de la revisión en vivo del 28 oct 2026 (reunión de Leo con
   // Peter sobre un caso real, ver CHANGELOG).
-  revisar(/\bdeber[íi]a\b/i, "usa \"debería\" (prohibida — debe ser \"debe\" o \"no requiere\"/\"no necesita\")");
+  // FIX (3 nov 2026, auditoría de los 8 casos sintéticos, caso Joaquín):
+  // "esas pausas deberían volverse menos frecuentes" se coló porque el
+  // regex solo cubría la forma singular ("debería") — el plural
+  // ("deberían") tiene una "n" extra después de la "a", así que el \b final
+  // nunca calzaba.
+  revisar(/\bdeber[íi]an?\b/i, "usa \"debería\"/\"deberían\" (prohibida — debe ser \"debe\" o \"no requiere\"/\"no necesita\")");
   revisar(/van primero\b/i, "usa \"van primero\" (orden temporal confuso) — debe ser \"son prioritarias\"");
   // "**texto**" (28 oct 2026, Leonardo: se ve como asteriscos literales en
   // el panel de edición del equipo, que muestra el texto plano sin
