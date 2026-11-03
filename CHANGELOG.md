@@ -1158,6 +1158,16 @@ Además, al escribir el chequeo de Movimiento apareció un bug de fondo, sin rel
 
 **Verificación:** `node --check`, y cada regex nuevo probado por separado (extrayendo la función a un script aparte) contra el caso que debe disparar y contra la redacción correcta que NO debe — incluida la regresión del bug del encabezado "(SRB)" contra un plan limpio real.
 
+### 3 nov 2026 — Probando con los 3 casos reales regenerados: el filtro de negación de trigo tenía el mismo defecto que acababa de corregir del SRB
+
+Siguiendo el pedido de Leonardo ("prueba el formulario real antes de desplegar"), se desplegó la rama anterior y se regeneraron Josef, Samuel y Sofía con el código nuevo. Los 5 puntos de hoy funcionaron en los tres (Pilar 4 restituido en Samuel y Sofía, "10.000 pasos" fuera, nada de "bebidas durante las comidas" en el semáforo, el encabezado "(SRB)" sin disparar nada). Pero al correr el texto completo de los tres contra `revisarBorradorPediatrico` apareció un bug nuevo: el filtro de negaciones del trigo (tanto el de AMARILLO del 2 nov como el nuevo de hoy) solo reconocía "no/sin trigo" pegado — la redacción real del modelo casi siempre mete un sustantivo en medio ("no pan de trigo", "no sándwich de trigo, no pasta de trigo", "Sin pasta de trigo, sándwich de trigo ni empanadas de trigo"), así que las tres frases reales de Josef y Sofía habrían disparado un fallo falso.
+
+**Cambio:** un solo filtro `limpiarNegacionesTrigo` compartido por los dos chequeos (antes duplicado), que ahora opera a nivel de FRASE: si la frase (entre puntos, ";" o saltos de línea) contiene una negación en cualquier parte, se borra "trigo" en toda esa frase — así "no X, no Y de trigo, no Z de trigo" limpia los tres sin que un "no" de una frase distinta tape un trigo real en la frase siguiente.
+
+**Verificación:** `node --check`, la suite completa de la entrada anterior (sigue en verde), 7 casos nuevos con las frases EXACTAS de Josef/Samuel/Sofía (ya no disparan) más dos casos límite (una violación real sin negación sigue disparando; un "no" en una frase anterior no tapa una violación real en la frase siguiente), y las tres transcripciones completas de Josef/Samuel/Sofía corridas contra la función — sin ningún fallo nuevo falso.
+
+**Hallazgos aparte, fuera del alcance de hoy, reportados a Leonardo sin tocar código:** el plan de Samuel no menciona pantallas en ninguna parte (regla ya existente, no nueva — posible hueco real de contenido, no de código); y el chequeo de "ensalada" (28 oct 2026) tiene el mismo defecto que el de trigo tenía — no distingue cuándo "ensalada" aparece correctamente en ROJO o en la cronología descriptiva — encontrado en el caso de Sofía, pendiente de decisión sobre si se corrige ahora o después.
+
 ---
 
 ---
