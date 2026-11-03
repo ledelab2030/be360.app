@@ -234,7 +234,17 @@ const PERIODOS_DIA = [
   // y el verbo, y cubre también la conjugación "acuest-".
   { label:"Media tarde", re:/\btarde\b|\bonces\b|\bmerienda\b/i },
   { label:"Cena", re:/\bcena\b|comida de la noche/i },
-  { label:"Antes de dormir", re:/antes de[^.\n]{0,20}(?:dormir\w*|acostar\w*|acuest\w*|la cama)/i },
+  // FIX (3 nov 2026, segunda vuelta sobre este mismo período — caso real de
+  // Valeria): el relato ni siquiera usaba "antes de" — decía directo "9:00
+  // PM se acuesta, concilia sueño hacia las 10:00 PM", así que exigir ese
+  // prefijo literal seguía dejando afuera la forma más natural de contarlo.
+  // Ahora "acostarse"/"la cama" cuentan solos, igual que los demás períodos
+  // (palabra clave + hora cerca, sin exigir una frase completa alrededor).
+  // Deliberadamente NO se agrega "dormir"/"duerme" sueltos: en niños
+  // pequeños una siesta de mediodía ("duerme siesta de 1 a 3pm") no es el
+  // momento de "antes de dormir" nocturno, y marcarla como cubierta sería un
+  // falso positivo real, no solo teórico.
+  { label:"Antes de dormir", re:/acostar\w*|acuest\w*|\bla cama\b|antes de[^.\n]{0,20}dormir\w*/i },
 ];
 
 // NUEVO (8 sep 2026, pedido explícito de Peter en la reunión del 19 ago):
