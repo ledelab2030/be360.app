@@ -66,6 +66,9 @@ falso positivo:
     la categoría "pasta" o "pan" (ver (B), regla de TRIGO).
   * Algas marinas — VERDE. Están en la columna INCLUIR de (C), sección 7.
   * Queso azul o roquefort — VERDE, única excepción láctea (ver (B), regla de QUESOS).
+  * Fruta entera (no jugo) — AMARILLO, de acompañante de una comida con proteína y grasa, nunca
+    sola (ver (B), regla de FRUTA ENTERA — decisión del 3 nov 2026). El jugo de fruta sigue SIEMPRE
+    ROJO, sin excepción.
 
 CÓMO CALIFICAR
 - Un hallazgo solo resta si puedes citar la regla incumplida en (A), (B) o (C), con su nombre.
@@ -88,8 +91,5 @@ Estos aparecen como "hallazgo" en cada auditoría solo porque nunca se decidiero
 que Leonardo y Peter los cierren, el auditor debe reportarlos como *criterio a decidir*, no como
 incumplimiento:
 
-- **Fruta entera en AMARILLO, como acompañante de una comida con proteína y grasa.** Aparece de forma
-  consistente en las generaciones, pero ni (C) ni (B) la nombran explícitamente entre los
-  carbohidratos de acompañante (arroz, papa, plátano, arepa, pasta sin trigo). Pendiente de decisión.
 - **Tortilla o bollo de maíz.** Mismo caso que la arepa (maíz, no trigo), pero no está nombrado
   explícitamente en (B). Pendiente de decisión.
