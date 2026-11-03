@@ -1118,6 +1118,14 @@ Dos cosas más que salieron de esas auditorías: la "versión corregida" que pro
 
 **Verificación:** `node --check`, y los dos regex nuevos probados contra las redacciones correctas e incorrectas reales de los casos (la correcta no dispara, las tres incorrectas sí).
 
+### 3 nov 2026 — Pan de masa madre colado en AMARILLO: trigo verificado por código
+
+Nueva regeneración de Josef, auditada con Gemini (sin el prompt congelado — volvieron los mismos falsos positivos de tablas/cabecera/cierre/pasta-de-lentejas/algas, ya cerrados en `PROMPT_AUDITORIA_PLANES.md`). Pero esta vez el hallazgo principal era real: *"Pan de masa madre (sin mermelada, como acompañante pequeño)"* apareció en AMARILLO. El modelo razonó al revés — quitar la mermelada no cambia que la masa madre es trigo, y el trigo va SIEMPRE en ROJO (regla de Peter, 26 oct). Mismo patrón que el huevo migrando de color hace unos días: una regla de código, no solo de prompt, era necesaria.
+
+**Cambio:** nuevo chequeo en `revisarBorradorPediatrico` (`worker/vita-proxy.js`) que busca "trigo", "masa madre", "baguette" o "croissant" dentro del bloque AMARILLO del semáforo. Antes de buscar, se borran las menciones de trigo que son la redacción CORRECTA de las alternativas sin trigo ("no de trigo", "en vez de la pasta de trigo", "alternativa... a la pasta de trigo") — sin ese filtro, el chequeo habría marcado como error la propia regla que autoriza pasta de arroz/lentejas.
+
+**Verificación:** `node --check`, y el regex probado contra el caso real ("masa madre" dispara) y tres redacciones correctas de la regla de pasta sin trigo (ninguna dispara).
+
 ---
 
 ---

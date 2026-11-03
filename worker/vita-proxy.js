@@ -1395,6 +1395,26 @@ function revisarBorradorPediatrico(parsed) {
   if (!/pantalla/i.test(texto)) {
     problemas.push("el plan no menciona pantallas en ninguna parte — la pauta de corte antes de dormir va siempre, con hora exacta si el formulario la trae y como principio general si no");
   }
+  // Trigo colado en AMARILLO o en VERDE (2 nov 2026, caso de Josef: "Pan de
+  // masa madre (sin mermelada, como acompañante pequeño)" apareció en
+  // AMARILLO). La regla de Peter del 26 oct es taxativa — el TRIGO va
+  // SIEMPRE en ROJO, y la masa madre es trigo: el problema es el cereal, no
+  // la mermelada que lo acompaña. El modelo razonó al revés ("sin mermelada
+  // ya se puede"), igual que antes movió el huevo entre dos colores. Se
+  // revisa el bloque que arranca en AMARILLO hasta el final del semáforo.
+  const idxAmarillo = (parsed.mensaje || "").search(/🟡\s*AMARILLO/i);
+  if (idxAmarillo !== -1) {
+    // Se borran primero las menciones NEGADAS del trigo ("pasta de arroz o
+    // de lentejas, no de trigo"), que son la redacción CORRECTA de las
+    // alternativas y no deben disparar nada.
+    const bloqueAmarillo = (parsed.mensaje || "").slice(idxAmarillo, idxAmarillo + 900)
+      .replace(/\b(?:no|sin|nunca|jam[áa]s)\s+(?:de\s+|es\s+)?trigo\b/gi, " ")
+      .replace(/\b(?:en\s+(?:vez|lugar)\s+de|alternativa)\b[^.\n]{0,45}\btrigo\b/gi, " ");
+    const mTrigo = bloqueAmarillo.match(/\bmasa\s+madre\b|\btrigo\b|\bbaguet\w*|\bcroissant\w*/i);
+    if (mTrigo) {
+      problemas.push("hay trigo (o masa madre, que es trigo) dentro del bloque AMARILLO del semáforo — el trigo va SIEMPRE en ROJO, sin importar si se quita la mermelada o se sirve en porción pequeña → \"" + mTrigo[0] + "\"");
+    }
+  }
   const idxVerde = (parsed.mensaje || "").search(/🟢\s*VERDE/i);
   if (idxVerde !== -1) {
     const bloqueVerde = (parsed.mensaje || "").slice(idxVerde, idxVerde + 600);
