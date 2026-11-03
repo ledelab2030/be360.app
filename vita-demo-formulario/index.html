@@ -277,10 +277,70 @@ function tieneHoraCerca(texto, indexMatch){
   const fin=Math.min(texto.length,indexMatch+VENTANA_HORA);
   return TIME_PATTERN.test(texto.slice(inicio,fin));
 }
+
+// RESPALDO POR RANGO DE HORA (3 nov 2026, pedido explícito de Leonardo): cada
+// palabra clave nueva que se agregaba arriba resolvía un caso real y abría la
+// puerta al siguiente — "descanso", "la cama", "en la tarde"... No escala: el
+// vocabulario cambia de familia a familia y, más adelante, de país a país.
+// Caso que lo disparó (Martina): la cena nunca se nombró, el relato solo
+// decía "6:45 PM: sopa de lentejas, arepita, agua" — ninguna palabra clave
+// podía calzar porque no había ninguna que buscar.
+// La idea: cuando NINGUNA palabra clave calza, en vez de dar el período por
+// no mencionado, se revisa si el relato tiene AL MENOS una hora real dentro
+// del rango típico de ese momento — si la tiene, se da por cubierto igual.
+// La palabra clave sigue mandando cuando existe (es más precisa: ancla el
+// momento exacto, no solo un rango) — esto es solo el plan B, nunca la
+// reemplaza. Los rangos se solapan a propósito entre períodos vecinos (ej.
+// una cena a las 9:45pm también cae en el rango de "antes de dormir") — no
+// hace falta una asignación exclusiva, alcanza con que cada momento tenga
+// ALGÚN dato cerca.
+// "Cena" no tiene tope superior (pedido explícito de Leonardo: "cena es
+// cualquier comida entre las 6 y el resto del día" — familias que cenan
+// tarde no deberían quedar mal cubiertas por un límite arbitrario).
+const RANGO_HORAS = {
+  "Al levantarse": [4*60, 10*60],
+  "Desayuno": [5*60, 10*60+30],
+  "Media mañana": [8*60, 11*60+30],
+  "Almuerzo": [11*60, 15*60+30],
+  "Media tarde": [14*60+30, 18*60+30],
+  "Cena": [18*60, 23*60+59],
+  "Antes de dormir": [19*60, 23*60+59],
+};
+// Convierte UN fragmento de texto que ya se sabe que contiene una hora (ej.
+// "6:45 PM", "21:00") a minutos desde medianoche. Deliberadamente NO
+// resuelve "a las 7" en palabras sin meridiano (alternativa 3 de
+// TIME_PATTERN) — sin am/pm es ambiguo (¿7am o 7pm?), y esa forma es rara en
+// estos relatos; se prefiere no adivinar a asignar mal un período.
+function horaAMinutos(fragmento){
+  let m = fragmento.match(/\b([01]?\d|2[0-3])(?:[:.,]([0-5]\d))?\s*(am|pm|a\.?\s?m\.?|p\.?\s?m\.?)\b/i);
+  if (m) {
+    let h = parseInt(m[1],10);
+    const min = m[2] ? parseInt(m[2],10) : 0;
+    const esPM = /p/i.test(m[3]);
+    if (h === 12) h = esPM ? 12 : 0; else if (esPM) h += 12;
+    return h*60+min;
+  }
+  m = fragmento.match(/\b([01]?\d|2[0-3])[:.,]([0-5]\d)\b/);
+  if (m) return parseInt(m[1],10)*60+parseInt(m[2],10);
+  return null;
+}
+// Todas las horas reales del relato (con meridiano o HH:MM), convertidas a
+// minutos desde medianoche, para comparar contra RANGO_HORAS.
+function extraerHorasDelTexto(texto){
+  const re = /\b([01]?\d|2[0-3])(?:[:.,][0-5]\d)?\s*(?:am|pm|a\.?\s?m\.?|p\.?\s?m\.?)\b|\b([01]?\d|2[0-3])[:.,][0-5]\d\b/gi;
+  const out = [];
+  let m;
+  while ((m = re.exec(texto)) !== null) {
+    const min = horaAMinutos(m[0]);
+    if (min !== null) out.push({ index: m.index, minutos: min });
+  }
+  return out;
+}
 const coberturaDia=(texto)=>{
   const t=texto||"";
   const faltantes=[];
   let cubiertos=0;
+  const horasDelDia = extraerHorasDelTexto(t);
   for(const p of PERIODOS_DIA){
     // FIX (2 oct 2026, encontrado en vivo con Peter — caso Samuel): t.match(p.re) sin bandera
     // global solo devuelve la PRIMERA mención de la palabra clave. Un padre real mencionó
@@ -290,9 +350,12 @@ const coberturaDia=(texto)=>{
     // tenga una hora cerca.
     const reGlobal=new RegExp(p.re.source, p.re.flags.includes("g")?p.re.flags:p.re.flags+"g");
     const matches=[...t.matchAll(reGlobal)];
-    if(!matches.length){ faltantes.push({label:p.label, motivo:"no_mencionado"}); continue; }
-    if(!matches.some(m=>tieneHoraCerca(t, m.index))){ faltantes.push({label:p.label, motivo:"sin_hora"}); continue; }
-    cubiertos++;
+    if(matches.length && matches.some(m=>tieneHoraCerca(t, m.index))){ cubiertos++; continue; }
+    // Plan B: ninguna palabra clave calzó con una hora cerca — ¿hay alguna
+    // hora real del relato dentro del rango típico de este momento?
+    const rango = RANGO_HORAS[p.label];
+    if (rango && horasDelDia.some(h => h.minutos >= rango[0] && h.minutos <= rango[1])) { cubiertos++; continue; }
+    faltantes.push({label:p.label, motivo: matches.length ? "sin_hora" : "no_mencionado"});
   }
   return { cubiertos, total:PERIODOS_DIA.length, faltantes };
 };
