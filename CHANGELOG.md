@@ -1204,6 +1204,14 @@ Probando un cuarto caso sintético (Valeria Jaramillo), "Al levantarse" quedó m
 
 **Verificación:** reproducido el patrón exacto contra la lógica original — "no_mencionado"; con el cambio, "ok". Probado también "se levanta a las 6am" y "despertando a las 7" (ambos ya cubiertos, sin regresión) y un control sin mención real. `@babel/standalone` sobre el `<script type="text/babel">` de ambos archivos, sin errores.
 
+### 3 nov 2026 — Quinta vuelta: "Antes de dormir" seguía fallando en el mismo caso de Valeria, ahora porque el relato ni usaba "antes de"
+
+Después del fix de "Al levantarse", "Antes de dormir" se mantuvo marcado como faltante para Valeria — pero esta vez el texto real guardado en `cronologia_del_dia` (confirmado pidiéndole a Leonardo que extrajera el campo literal vía el modo formulario, no lo que Vita decía en el chat, que no es lo mismo que el `<dx>` oculto) decía *"9:00 PM se acuesta, concilia sueño hacia las 10:00 PM"* — sin la palabra "antes de" en ningún lado. El fix de hoy para este mismo período (PR anterior) seguía exigiendo el prefijo literal "antes de" antes del verbo; esta redacción, igual de natural, lo describe directo.
+
+**Cambio:** "acostar"/"acuest"/"la cama" ahora cuentan solos (palabra clave + hora cerca), igual que el resto de los períodos — ya no hace falta la frase completa "antes de + verbo". Deliberadamente NO se agregó "dormir"/"duerme" sueltos: en niños pequeños, una siesta de mediodía ("duerme siesta de 1 a 3pm") usa la misma palabra y NO es el momento de "antes de dormir" nocturno — agregarla habría sido un falso positivo real para uno de los 8 casos de prueba (el de 2-4 años con rutina de siesta).
+
+**Verificación:** reproducido el texto real de Valeria contra la lógica original ("no_mencionado") y con el cambio ("ok"); las 3 frases con "antes de" del fix anterior (irse a dormir, que se acueste, antes de acostarse) siguen funcionando sin regresión; probado explícitamente el caso de la siesta de mediodía para confirmar que SIGUE sin marcarse como cubierto; control sin mención real sin cambios. `@babel/standalone` sobre el `<script type="text/babel">` de ambos archivos, sin errores.
+
 ---
 
 ---
