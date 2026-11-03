@@ -208,7 +208,12 @@ const detectarRiesgoTextual=(text)=>{
 // igual para el modo chat (el modelo arma el texto) y el modo formulario (el
 // padre lo escribe directo) — es el mismo campo, la misma verificación.
 const PERIODOS_DIA = [
-  { label:"Al levantarse", re:/levant|despert/i },
+  // FIX (3 nov 2026, caso real de Valeria): "despertar" diptonga a
+  // "despierta/despiertas/despierto" en presente (e→ie) — "despert" como
+  // subcadena nunca calza con la forma conjugada que casi siempre usa el
+  // relato ("se despierta a las..."), solo con el infinitivo o el gerundio
+  // ("despertando"). Se agrega el radical diptongado.
+  { label:"Al levantarse", re:/levant|despert|despiert/i },
   { label:"Desayuno", re:/desayun/i },
   // FIX (3 nov 2026, mismo día que el de abajo): un caso real decía "en el
   // descanso compra en la cafetería escolar..." — "descanso" es como
