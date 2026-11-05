@@ -1249,6 +1249,19 @@ Probando de nuevo con el caso real de Josef vía `vita-demo-formulario-v2/`, el 
 
 **Verificación:** `@babel/standalone` sobre el `<script type="text/babel">` de ambos archivos, sin errores. Probado en el navegador de punta a punta (servidor estático local, `vita-demo-formulario-v2/`): formulario llenado con una cronología real que menciona "media mañana" y "almuerzo" sin hora — el panel de revisión mostró la casilla "¿Fue como a las 12:00–1:00 pm?" para Almuerzo, y al marcarla el estado quedó visiblemente confirmado (checkbox verde) antes de cualquier envío.
 
+### 5 nov 2026 — Prompt caching activado en las 3 llamadas directas a la API de Anthropic
+
+Anthropic le mandó a Leonardo un correo ("Your Claude API prompt cache hit rate is low") avisando que cachear contenido repetido podía ahorrar hasta 36% del gasto de API directa de su cuenta (Claude Code queda excluido, ya cachea solo). El Worker (`worker/vita-proxy.js`) llama a `api.anthropic.com/v1/messages` directo, sin SDK, en 3 lugares — ninguno tenía `cache_control`.
+
+**Cambio**, los 3 en `worker/vita-proxy.js`:
+1. **`pedirBorrador()` (generación principal, dentro de `generarYVerificarBorrador`)** — el de mayor impacto: `SRB_DRAFT_PROMPT` es texto fijo, idéntico en cada llamada de cada caso, y con `MAX_INTENTOS` subido a 4 hoy mismo, hasta 4 llamadas por caso comparten el mismo prefijo. `system` pasa de string plano a `[{type:"text", text:SRB_DRAFT_PROMPT, cache_control:{type:"ephemeral"}}]`. El "Formulario capturado" (que sí cambia) sigue yendo en `messages`, después del punto de corte.
+2. **`revisarGroundingConModelo()` (verificador advisory)** — acá el `system` es corto (no llega al mínimo cacheable por sí solo, 1024 tokens en Sonnet 4.6), pero (A) FUENTE SRB + (B) ADAPTACIONES son texto fijo y grandes, dentro del mensaje de usuario. Se parte `content` en dos bloques: el primero ((A)+(B), con el corte) y el segundo (C, el borrador — varía en cada caso, sin marcar). El corte cachea system+(A)+(B) juntos porque el orden de render es tools→system→messages.
+3. **Passthrough genérico `/chat`** (usado tanto por el chat de captura de Vita como por el seguimiento en `plan/`/`app/`) — `system` lo arma el frontend (el "BASE" de Vita, texto fijo dentro de una misma conversación) y llega como string; se envuelve igual que los otros dos, condicionado a que venga (si no, el campo se omite como antes).
+
+También se agregó un log de `usage.cache_creation_input_tokens` / `cache_read_input_tokens` / `input_tokens` después de cada llamada de generación — la propia guía de prompt caching de Anthropic es explícita: el único terreno firme para confirmar que el caché funciona es ese campo de la respuesta, nunca asumirlo solo porque el código tiene `cache_control`.
+
+**Verificación:** `node --check`. Las 3 formas de `body` se probaron contra `JSON.stringify`/`JSON.parse` para confirmar que el JSON final tiene exactamente la forma que pide la API (`system` como array con `cache_control`, el bloque variable sin marcar, y el caso sin `system` en el passthrough sigue omitiendo el campo igual que antes). **Pendiente:** confirmar con una regeneración real (vía `equipo/`) que `cache_read_input_tokens` sale mayor que cero en el segundo intento de un mismo caso — se le pidió a Leonardo que lo revise la próxima vez que regenere algo y comparta el log.
+
 ---
 
 ---
