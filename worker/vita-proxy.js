@@ -331,7 +331,15 @@ export default {
         body: JSON.stringify({
           model: body.model || "claude-sonnet-4-6",
           max_tokens: body.max_tokens || 1000,
-          system: body.system,
+          // PROMPT CACHING (5 nov 2026, ver nota en SRB_DRAFT_PROMPT más
+          // abajo): este es el passthrough genérico del chat de Vita — lo
+          // usan tanto la captura (vita-demo-formulario, con el "BASE" de
+          // Vita, texto fijo) como el seguimiento en plan/app. "system" lo
+          // arma el frontend y no cambia entre mensajes de una misma
+          // conversación, así que es tan cacheable como SRB_DRAFT_PROMPT —
+          // solo que acá no hay forma de saberlo por el código del Worker
+          // (no lee el contenido), así que se cachea siempre que venga.
+          system: body.system ? [{ type: "text", text: body.system, cache_control: { type: "ephemeral" } }] : undefined,
           messages: body.messages,
         }),
       });
@@ -1553,7 +1561,18 @@ async function revisarGroundingConModelo(parsed, env) {
         model: "claude-sonnet-4-6",
         max_tokens: 900,
         system: "Eres un verificador. Recibes (A) el texto fuente del SRB, (B) las adaptaciones pediátricas que ANULAN la fuente donde esta habla para adultos, y (C) un borrador de plan. Tu única tarea es listar afirmaciones concretas del borrador que no estén respaldadas NI por la fuente NI por las adaptaciones: dosis, cantidades, frecuencias, cifras, duraciones o mecanismos clínicos que ninguna de las dos diga. REGLA CLAVE: si el borrador sigue una adaptación pediátrica en vez de la fuente, eso es CORRECTO y NO se reporta — por ejemplo 2 g de sal por litro en lugar de 5 a 7, o una ventana de alimentación de 12 horas o menos en lugar de 4 a 6. Ignora el estilo, el tono y la estructura. Ignora datos que vengan del formulario de la familia (horarios, nombres, lo que come, lo que el padre reportó). Si todo está respaldado, devuelve una lista vacía. Responde SOLO este JSON crudo, sin backticks: {\"sinRespaldo\":[\"afirmación 1\",\"afirmación 2\"]}",
-        messages: [{ role: "user", content: "(A) FUENTE SRB:\n" + FUENTE_SRB_PEDIATRICA + "\n\n---\n\n(B) ADAPTACIONES PEDIÁTRICAS QUE ANULAN LA FUENTE:\n" + ADAPTACIONES_PEDIATRICAS + "\n\n---\n\n(C) BORRADOR A VERIFICAR:\n" + borrador }],
+        // PROMPT CACHING (5 nov 2026, ver nota en SRB_DRAFT_PROMPT más
+        // arriba): (A) y (B) son el mismo texto fijo en cada llamada — el
+        // system de acá es corto (no llega al mínimo cacheable por sí
+        // solo), así que el corte va al final de (A)+(B), DENTRO del
+        // mensaje de usuario — eso cachea system+(A)+(B) juntos, porque el
+        // orden de render es tools→system→messages y un punto de corte
+        // cachea todo lo que viene antes. (C), el borrador, cambia en cada
+        // caso — va en un bloque aparte, después del corte, sin marcar.
+        messages: [{ role: "user", content: [
+          { type: "text", text: "(A) FUENTE SRB:\n" + FUENTE_SRB_PEDIATRICA + "\n\n---\n\n(B) ADAPTACIONES PEDIÁTRICAS QUE ANULAN LA FUENTE:\n" + ADAPTACIONES_PEDIATRICAS + "\n\n---\n\n(C) BORRADOR A VERIFICAR:\n", cache_control: { type: "ephemeral" } },
+          { type: "text", text: borrador },
+        ] }],
       }),
     });
     const data = await upstream.json();
@@ -1622,7 +1641,19 @@ async function generarYVerificarBorrador(dx, env, idPlan) {
           // para cuando esa regla no baste.
           model: "claude-sonnet-4-6",
           max_tokens: 7000,
-          system: SRB_DRAFT_PROMPT,
+          // PROMPT CACHING (5 nov 2026, aviso de Anthropic: "prompt cache hit
+          // rate is low", hasta 36% de ahorro potencial en tráfico de API
+          // directa). SRB_DRAFT_PROMPT es texto fijo — idéntico byte a byte
+          // en TODA llamada, de cualquier caso, en cualquier intento — así
+          // que es el candidato ideal: se marca como bloque cacheable y el
+          // "Formulario capturado" (que sí cambia en cada llamada) va
+          // después del punto de corte, nunca adentro. Con hasta 4 intentos
+          // por caso desde hoy (MAX_INTENTOS), el ahorro se multiplica: solo
+          // el primer intento de cada caso paga el precio de escritura (~1.25x);
+          // los reintentos siguientes leen el caché (~0.1x). TTL por defecto
+          // (5 min) alcanza de sobra — los reintentos de un mismo caso van
+          // seguidos, nunca separados por minutos.
+          system: [{ type: "text", text: SRB_DRAFT_PROMPT, cache_control: { type: "ephemeral" } }],
           messages: [{ role: "user", content: "Formulario capturado (JSON):\n" + JSON.stringify(dx) +
             ((correcciones && correcciones.length)
               ? "\n\nTu intento anterior tuvo estos problemas. Vuelve a escribir el plan completo sin ellos:\n- " + correcciones.join("\n- ")
@@ -1633,6 +1664,13 @@ async function generarYVerificarBorrador(dx, env, idPlan) {
       console.log("[generarYVerificarBorrador] respuesta de Claude: HTTP " + upstream.status);
       const data = await upstream.json();
       if (data.error) console.log("[generarYVerificarBorrador] Claude devolvió error: " + JSON.stringify(data.error));
+      // Verificación de prompt caching (5 nov 2026) — la guía de Anthropic es
+      // explícita: "el único terreno firme es usage.cache_read_input_tokens",
+      // nunca dar el caché por hecho solo porque el código tiene cache_control.
+      // El primer intento de cada caso espera cache_creation_input_tokens alto
+      // (escribe el caché); los reintentos siguientes del MISMO caso deberían
+      // mostrar cache_read_input_tokens alto en vez de eso.
+      if (data.usage) console.log("[generarYVerificarBorrador] caché — creados: " + data.usage.cache_creation_input_tokens + ", leídos: " + data.usage.cache_read_input_tokens + ", sin caché: " + data.usage.input_tokens);
       const text = (data.content || []).filter(b => b.type === "text").map(b => b.text).join("\n");
       console.log("[generarYVerificarBorrador] stop_reason: " + data.stop_reason + ", texto recibido: " + text.length + " caracteres");
 
