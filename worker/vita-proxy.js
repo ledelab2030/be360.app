@@ -617,6 +617,28 @@ arriba cuando hay conflicto (el texto de arriba fue escrito para adultos):
   pan de arroz, quinua o lentejas es AMARILLO (acompañante, nunca base) — son alternativas válidas,
   no la misma regla que el trigo. Nombra siempre el ingrediente de origen ("pasta de trigo", nunca
   "pasta" sola) para que no quede ambiguo cuál color aplica.
+- PRINCIPIO DE RESPETO A LA RUTINA Y SUSTITUCIÓN DE INGREDIENTES (5 nov 2026, decisión de Peter y
+  Leonardo tras revisar en vivo el caso real de Josef — su primer borrador reemplazó el desayuno
+  habitual, pancakes y pan de masa madre, por una comida genérica de huevo con aguacate, en vez de
+  adaptar la misma preparación con ingredientes compatibles): al redactar HÁBITOS Y VENTANA
+  NUTRICIONAL PROPUESTA, respeta las preparaciones habituales que el niño/a ya disfruta en su
+  rutina y sustituye ÚNICAMENTE los ingredientes contrarios al SRB por equivalentes compatibles —
+  NUNCA cambies el tipo de plato ni agregues alimentos comodín de la lista VERDE (como aguacate,
+  aceitunas o nueces) si el formulario no los describe en ese momento del día:
+  1. Si consume panes o sándwiches de trigo: reemplaza la harina de trigo por pan sin trigo
+     (harina de arroz, quinua o sagú).
+  2. Si consume pancakes, tortas o wafles de trigo: mantén la preparación sustituyendo la masa por
+     harinas compatibles sin trigo (yuca, plátano verde o sagú), indicando huevo o proteína real
+     al lado para asegurar saciedad.
+  3. Si consume bebidas calientes o batidos con leche/azúcar (chocolate, cocoa, batidos
+     comerciales de proteína): mantén la bebida caliente pero prepárala en agua sola, suprimiendo
+     la leche animal/vegetal azucarada, los batidos con lactosuero y el azúcar/mermeladas.
+  4. Si consume quesos frescos en sus preparaciones: reemplaza por opciones grasas compatibles
+     afines a la preparación (mantequilla clarificada o queso azul/roquefort) o retira el lácteo
+     fresco manteniendo el relleno base.
+  5. CERO INGREDIENTES INVENTADOS: en la propuesta de cada comida, básate estrictamente en los
+     alimentos descritos en la cronología del paciente. No introduzcas "de oficio" alimentos de la
+     lista VERDE si el niño/a no los consume en ese horario.
 - CARBOHIDRATOS — SIEMPRE ACOMPAÑANTE: arroz, lentejas, patacones, papa (cocida, de acompañante —
   distinto de la papa cruda, que es ROJO por la regla de VERDURAS de arriba), arepa, tortilla o
   bollo de maíz (3 nov 2026, decisión explícita de Leonardo — mismo caso que la arepa: es maíz, no
@@ -1012,13 +1034,17 @@ OTRAS REGLAS DURAS, siempre:
 - Nunca inventes nada fuera de lo capturado en el formulario ni fuera de la FUENTE SRB de arriba.
 
 PARA LA PRÓXIMA CITA CON EL PEDIATRA (antes "Paso 0" — renombrado y movido al final del plan, 30 oct
-2026, pedido de Leonardo): SOLO consultivo, nunca mediciones en casa (nada de % de grasa corporal,
-tirillas de pH en orina, básculas). Máximo 2 preguntas para la PRÓXIMA CITA con el pediatra —
-"si ya tienes un examen reciente de X, compártelo; si no, puedes preguntarle a tu pediatra si vale
-la pena". Si el formulario no da pie a ningún indicador que esté genuinamente en la FUENTE SRB,
-omite esta sección por completo — no inventes una para rellenar. Va AL FINAL del plan, con su propio
-encabezado EXACTO "PARA LA PRÓXIMA CITA CON EL PEDIATRA", después de los pilares de la sección 4 —
-nunca dentro de "DIAGNÓSTICO BREVE" (ver ESTRUCTURA FIJA DEL PLAN más abajo).
+2026, pedido de Leonardo; vuelta OBLIGATORIA el 5 nov 2026 — decisión de Peter y Leonardo, Manual
+Maestro v4.25, tras una auditoría del mismo día que encontró un caso real con esta sección omitida
+por completo): SOLO consultivo, nunca mediciones en casa (nada de % de grasa corporal, tirillas de
+pH en orina, básculas). Máximo 2 preguntas para la PRÓXIMA CITA con el pediatra — "si ya tienes un
+examen reciente de X, compártelo; si no, puedes preguntarle a tu pediatra si vale la pena". ESTA
+SECCIÓN NUNCA SE OMITE: si el formulario no da pie a ningún indicador específico, usa la pregunta
+consultiva estándar sobre insulina en ayunas (ver REGLA MÁS IMPORTANTE DE TODAS arriba) — nunca
+inventes un indicador de más solo para justificar incluirla, pero tampoco la dejes afuera. Va AL
+FINAL del plan, con su propio encabezado EXACTO "PARA LA PRÓXIMA CITA CON EL PEDIATRA", después de
+los pilares de la sección 4 — nunca dentro de "DIAGNÓSTICO BREVE" (ver ESTRUCTURA FIJA DEL PLAN más
+abajo).
 
 ESTRUCTURA FIJA DEL PLAN (29-30 oct 2026, pedido de Leonardo): cuatro secciones fijas más una
 quinta condicional, en este orden exacto, cada una con su encabezado EXACTO en MAYÚSCULAS, tal cual
@@ -1065,10 +1091,10 @@ aparece acá abajo — no los parafrasees, no les cambies el orden:
    primero") — ver ADAPTACIONES arriba, "PROTEÍNA Y GRASA, NUNCA PROTEÍNA SOLA" — y el semáforo va
    dentro de ese mismo pilar, como su desarrollo.
 
-5. "PARA LA PRÓXIMA CITA CON EL PEDIATRA" (antes "PASO 0" — ver esa sección más arriba) — SOLO si
-   aplica (si no, se omite por completo). Va al final del plan, después de los pilares de la sección
-   4 — es la última sección que tú generas; después de esta no escribas nada más, el sistema agrega
-   un cierre fijo por fuera de lo que tú generas.
+5. "PARA LA PRÓXIMA CITA CON EL PEDIATRA" (antes "PASO 0" — ver esa sección más arriba) — OBLIGATORIA,
+   NUNCA se omite (5 nov 2026, Manual Maestro v4.25). Va al final del plan, después de los pilares de
+   la sección 4 — es la última sección que tú generas; después de esta no escribas nada más, el
+   sistema agrega un cierre fijo por fuera de lo que tú generas.
 
 CÁLCULO DE LA VENTANA DE ALIMENTACIÓN — esto se ha calculado mal antes, hazlo con cuidado. La ventana
 de alimentación (primera a última comida) es un MÁXIMO de 12 horas, no un mínimo — dicho desde el
@@ -1182,7 +1208,7 @@ eso tienen que coincidir exactamente con las horas que escribiste en las viñeta
 
 Recibirás el formulario capturado en JSON. RESPONDE ÚNICAMENTE con este JSON:
 {"resumenCronologico":"<CRONOLOGÍA ACTUAL>",
-"mensaje":"<las otras secciones completas, EN ESTE ORDEN EXACTO: DIAGNÓSTICO BREVE + HÁBITOS Y VENTANA NUTRICIONAL PROPUESTA + PLAN BAJO EL SISTEMA DE REVERSIÓN BIOLÓGICA (SRB) con los pilares + PARA LA PRÓXIMA CITA CON EL PEDIATRA (si aplica, va al final)>",
+"mensaje":"<las otras secciones completas, EN ESTE ORDEN EXACTO: DIAGNÓSTICO BREVE + HÁBITOS Y VENTANA NUTRICIONAL PROPUESTA + PLAN BAJO EL SISTEMA DE REVERSIÓN BIOLÓGICA (SRB) con los pilares + PARA LA PRÓXIMA CITA CON EL PEDIATRA (OBLIGATORIA, va al final, nunca se omite)>",
 "habitos":[{"titulo":"<3 a 5 palabras>","texto":"<1-2 frases, SIN cita ni mención del SRB/la fuente — ver TRAZABILIDAD arriba>"}],
 "ventanaActual":{"primeraComida":"<HH:MM>","ultimaComida":"<HH:MM>"},
 "ventanaPropuesta":{"primeraComida":"<HH:MM>","ultimaComida":"<HH:MM>"},
@@ -1303,6 +1329,16 @@ function revisarBorradorPediatrico(parsed) {
   // dependía 100% de que el modelo lo recordara.
   if (!/CRONOLOG[ÍI]A ACTUAL/i.test(parsed.resumenCronologico || "")) {
     problemas.push("falta el título \"CRONOLOGÍA ACTUAL\" al inicio de resumenCronologico — el relato debe empezar con ese título exacto, no directo en la hora");
+  }
+
+  // "PARA LA PRÓXIMA CITA CON EL PEDIATRA" faltante (5 nov 2026, Manual
+  // Maestro v4.25, decisión de Peter y Leonardo: esta sección pasó de
+  // condicional a OBLIGATORIA, después de que una auditoría del mismo día
+  // encontró un caso real (Sofía Echeverry) que la omitía por completo sin
+  // que nada lo detectara. Mismo patrón que el chequeo de "CRONOLOGÍA
+  // ACTUAL" de arriba — no depender solo de que el prompt lo recuerde.
+  if (!/PARA LA PR[ÓO]XIMA CITA CON EL PEDIATRA/i.test(parsed.mensaje || "")) {
+    problemas.push("falta la sección \"PARA LA PRÓXIMA CITA CON EL PEDIATRA\" — desde el 5 nov 2026 es obligatoria, nunca se omite");
   }
 
   // "El ayuno nocturno no es opcional" salió en el borrador de Samuel, copiado
