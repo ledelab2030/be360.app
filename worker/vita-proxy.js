@@ -681,6 +681,17 @@ arriba cuando hay conflicto (el texto de arriba fue escrito para adultos):
   menos. Si el formulario no trae una hora de dormir real, no inventes una — usa el campo
   "horaDormir" en "00:00" para decírselo al sistema, igual que ya haces con la ventana cuando faltan
   horas (ver más abajo).
+- DEPORTE EN LA TARDE O NOCHE — NUNCA CENA COMPLETA JUSTO ANTES DE ENTRENAR (7 nov 2026, caso real de
+  Samuel, sugerencia de Peter en sesión técnica): si el formulario reporta que el niño/a entrena o
+  tiene actividad física después de las 5:30-6:00 pm, PROHIBIDO proponer una cena completa (proteína
+  y grasa densa) en los 15-30 minutos antes de esa actividad — genera riesgo real de reflujo, náuseas
+  o malestar durante el esfuerzo, no es solo una cuestión de comodidad. En su lugar: la comida
+  completa del día debe quedar con AL MENOS 2 a 3 horas de distancia antes del entrenamiento; si el
+  horario escolar o deportivo no lo permite, propone una merienda ligera compatible con el semáforo
+  (ej. huevo duro, un puñado de nueces) antes de entrenar, y la cena completa INMEDIATAMENTE AL
+  TERMINAR la actividad — con el cierre de cocina a más tardar 1 hora después de que termine el
+  entrenamiento, nunca más tarde, para seguir respetando la regla de las 3 horas antes de dormir de
+  arriba.
 - PANTALLAS ANTES DE DORMIR — la fuente SRB solo dice "manejo de pantallas", sin cifra; la hora
   exacta de acá es una decisión explícita de Leonardo (29 oct 2026), no una inferencia: nada de
   pantallas (celular, tablet, TV, videojuegos) en la hora inmediatamente antes de que el niño/a se
@@ -1139,6 +1150,14 @@ MENOS 12 horas (misma regla, los dos extremos del día son complementarios dentr
    parte de nada. Cuando de verdad no hay ni hora ni límite del que deducir, en los campos de reloj
    de abajo pon exactamente "00:00" en las cuatro posiciones: eso le dice al sistema que no había
    datos, que es distinto de una ventana mal calculada.
+8. LA VENTANA PROPUESTA SIEMPRE LLEVA UN NÚMERO, AUNQUE LA ACTUAL QUEDE SIN CALCULAR (7 nov 2026,
+   caso real de Samuel): el punto 7 de arriba es sobre la ventana ACTUAL — si de verdad falta el dato
+   de origen (ej. no se reportó la hora del desayuno), ahí sí se marca como no calculable. Pero la
+   ventana PROPUESTA es una recomendación tuya, no una medición del formulario, así que SIEMPRE tiene
+   que llevar una cifra: asume una hora de desayuno razonable a partir de la hora real en que el
+   niño/a se levanta (normalmente entre 30 y 90 minutos después de levantarse) y calcula la ventana
+   propuesta con esa hora asumida. Nunca dejes la ventana PROPUESTA como "no calculable" — esa frase
+   solo es válida para la ventana actual.
 
 HORA DE DORMIR Y LAS 3 HORAS MÍNIMAS ANTES DE DORMIR — ver ADAPTACIONES PEDIÁTRICAS arriba, "RITMO Y
 SUEÑO". Misma lógica de cuidado que el cálculo de la ventana:
@@ -1192,6 +1211,17 @@ apareció en VERDE): las verduras (crudas o cocidas) NUNCA van en VERDE, sin exc
 ROJO, bien cocidas van AMARILLO. Esto es justo al revés de las grasas de arriba (que SIEMPRE son
 VERDE) — no las trates igual solo porque las dos reglas hablan de "estar bien cocido" o "ir de
 acompañante".
+EL SEMÁFORO ES EXCLUSIVO DE ALIMENTOS E INGREDIENTES FÍSICOS Y ESPECÍFICOS — NUNCA UNA CATEGORÍA
+ABSTRACTA (7 nov 2026, Gemini auditó dos casos reales con el mismo error: "agua sola" en el caso de
+Josef y "azúcares y carbohidratos refinados" en el caso de Samuel, ninguno de los dos es un alimento
+que se pueda comer o no comer). PROHIBIDO listar como ítem de ROJO/AMARILLO/VERDE una categoría
+nutricional, un macronutriente o un hábito de consumo — por ejemplo "azúcares refinados",
+"carbohidratos refinados", "comida chatarra", "agua sola", "fruta sola" o "bebidas durante las
+comidas". Si el formulario reporta algo así, usa el ALIMENTO CONCRETO que el padre nombró (ej. si
+dice "papitas fritas y pollo Frisby", el ítem del semáforo es "Papitas fritas y pollo Frisby", nunca
+"comida chatarra" ni "carbohidratos refinados"). Si quieres advertir sobre un hábito o una categoría
+general en vez de un alimento puntual, explícalo en el texto del Pilar que corresponda (Pilar 1 para
+hidratación, Pilar 2 para macronutrientes) — nunca como ítem de color.
 
 TRAZABILIDAD — SOLO PARA TI, NUNCA VISIBLE AL PADRE: cada hábito que escribas tiene que poder
 rastrearse a algo explícito de la FUENTE SRB o de las ADAPTACIONES de arriba — si no puedes señalar
@@ -1581,6 +1611,16 @@ function revisarBorradorPediatrico(parsed) {
     const mHabitoEnSemaforo = bloqueSemaforoCompleto.match(/\bagua\s+sola\b|\bfruta\s+sola\b/i);
     if (mHabitoEnSemaforo) {
       problemas.push("\"" + mHabitoEnSemaforo[0] + "\" aparece como ítem de un color del semáforo — ni \"agua sola\" ni \"fruta sola\" son alimentos físicos, son hábitos/combinaciones, y el semáforo es exclusivo de ingredientes → \"" + mHabitoEnSemaforo[0] + "\"");
+    }
+    // Categoría abstracta/macronutriente como ítem del semáforo (7 nov 2026,
+    // caso real de Samuel auditado por Gemini): "Azúcares y carbohidratos
+    // refinados" apareció en ROJO — mismo problema de fondo que "agua sola"
+    // arriba (no es un alimento concreto), pero una frase distinta, así que
+    // necesita su propio patrón. Ver la regla nueva en ADAPTACIONES_PEDIATRICAS,
+    // "EL SEMÁFORO ES EXCLUSIVO DE ALIMENTOS...".
+    const mAbstractoEnSemaforo = bloqueSemaforoCompleto.match(/\baz[uú]car(?:es)?(?:\s+y\s+carbohidratos)?\s+refinad\w*\b|\bcarbohidratos?\s+refinad\w*\b|\bcomida\s+chatarra\b/i);
+    if (mAbstractoEnSemaforo) {
+      problemas.push("\"" + mAbstractoEnSemaforo[0] + "\" aparece como ítem de un color del semáforo — es una categoría/macronutriente abstracto, no un alimento físico concreto → \"" + mAbstractoEnSemaforo[0] + "\"");
     }
   }
   return problemas;
