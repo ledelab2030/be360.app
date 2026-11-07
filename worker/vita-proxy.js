@@ -291,6 +291,12 @@ export default {
     // del chat de seguimiento sin tener que editar el Sheet a mano — mismo
     // principio que las rutas de arriba.
     if (url.pathname === "/panel/eliminar-novedad") return handlePanelAction(request, env, cors, "eliminar_novedad");
+    // NUEVO (6 nov 2026, pedido de Leonardo): borrado masivo en Aprobados —
+    // a diferencia de "descartar" (Pendientes), acá sí se espera que
+    // correo_enviado_ts tenga valor (así llega un caso a Aprobados), así que
+    // ese candado no aplica; el candado real vive en equipo/index.html
+    // (selección explícita + confirmación mostrando los nombres exactos).
+    if (url.pathname === "/panel/eliminar-aprobados") return handlePanelAction(request, env, cors, "eliminar_aprobados");
     // NUEVO (27 oct 2026, pedido de Leonardo): sección "Equipo" de
     // equipo/index.html — lista de solo lectura de quién tiene acceso.
     if (url.pathname === "/panel/equipo") return handlePanelAction(request, env, cors, "listar_equipo");

@@ -259,6 +259,11 @@ function doPost(e) {
     if (body.action === "aprobar_plan") return conPanelSecret(body, function () { return aprobarPlan(sheet, body); });
     if (body.action === "descartar_pendiente") return conPanelSecret(body, function () { return descartarPendiente(sheet, body); });
     if (body.action === "eliminar_novedad") return conPanelSecret(body, function () { return eliminarNovedad(sheet, body); });
+    // NUEVO (6 nov 2026, pedido de Leonardo): borrado masivo de casos ya
+    // aprobados — limpiar los sintéticos de auditoría del historial real.
+    // Ver eliminarAprobados() más abajo para el porqué de NO bloquear por
+    // correo_enviado_ts acá (a diferencia de descartarPendiente).
+    if (body.action === "eliminar_aprobados") return conPanelSecret(body, function () { return eliminarAprobados(sheet, body); });
     // NUEVO (27 oct 2026, pedido de Leonardo — sección "Equipo" de
     // equipo/index.html): lista de solo lectura de quién tiene acceso hoy.
     // No recibe "sheet" — vive en su propia pestaña, no en la de casos.
@@ -568,6 +573,31 @@ function descartarPendiente(sheet, body) {
   }
   sheet.deleteRow(found.row);
   return respond({ ok: true });
+}
+
+// Borra uno o varios casos YA aprobados — para limpiar casos de prueba
+// (sintéticos de auditoría) mezclados con los reales en el historial. A
+// diferencia de descartarPendiente() de arriba, acá correo_enviado_ts casi
+// siempre tiene valor — así es justamente como un caso llega a "aprobado" —
+// así que ese candado NO aplica (bloquear por eso haría la acción inútil en
+// Aprobados). El candado real vive en equipo/index.html: la selección
+// múltiple muestra los nombres exactos y pide confirmar antes de llamar
+// esta acción — acá ya se asume confirmado, igual que aprobarPlan() no
+// vuelve a preguntar. idPlanes es un array — se buscan TODAS las filas
+// primero y se borran de abajo hacia arriba, para que borrar una no corra
+// los índices de las que todavía faltan.
+function eliminarAprobados(sheet, body) {
+  var idPlanes = body.idPlanes;
+  if (!idPlanes || !idPlanes.length) return respond({ ok: false, error: "idPlanes faltante" }, 400);
+  var filas = [];
+  for (var i = 0; i < idPlanes.length; i++) {
+    var found = encontrarFilaPorIdPlan(sheet, idPlanes[i]);
+    if (!found) return respond({ ok: false, error: "no encontrado: " + idPlanes[i] }, 404);
+    filas.push(found.row);
+  }
+  filas.sort(function (a, b) { return b - a; });
+  for (var j = 0; j < filas.length; j++) sheet.deleteRow(filas[j]);
+  return respond({ ok: true, borrados: filas.length });
 }
 
 function guardarBorrador(sheet, body) {
