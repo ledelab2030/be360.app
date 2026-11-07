@@ -368,6 +368,18 @@ function App() {
   const [listaError, setListaError] = useState(null);
   const [historial, setHistorial] = useState(null);
   const [historialError, setHistorialError] = useState(null);
+  // Borrado masivo en Aprobados (6 nov 2026, pedido de Leonardo): limpiar
+  // casos de prueba (sintéticos de auditoría) mezclados con los reales en el
+  // historial. A diferencia de "descartar" en Pendientes, acá SÍ hay casos
+  // con correo ya enviado que se quieren borrar a propósito — el candado no
+  // puede ser "nunca si ya se envió correo" (eso bloquearía casi todo). El
+  // candado real es este: selección explícita + la confirmación de abajo
+  // muestra los nombres exactos antes de llamar al Worker.
+  const [modoSeleccionHistorial, setModoSeleccionHistorial] = useState(false);
+  const [seleccionHistorial, setSeleccionHistorial] = useState([]);
+  const [confirmandoEliminarHistorial, setConfirmandoEliminarHistorial] = useState(false);
+  const [eliminandoHistorial, setEliminandoHistorial] = useState(false);
+  const [eliminarHistorialError, setEliminarHistorialError] = useState(null);
   const [equipoLista, setEquipoLista] = useState(null);
   const [equipoError, setEquipoError] = useState(null);
 
@@ -431,6 +443,25 @@ function App() {
       setHistorialError(e.message === "PIN incorrecto" ? null : (e.message || "No se pudo cargar. Reintenta."));
       setStage(e.message === "PIN incorrecto" ? "cargando" : "historial");
     }
+  };
+
+  const toggleModoSeleccionHistorial = () => {
+    setModoSeleccionHistorial(m => !m);
+    setSeleccionHistorial([]); setConfirmandoEliminarHistorial(false); setEliminarHistorialError(null);
+  };
+  const toggleSeleccionHistorial = (idPlan) => {
+    setSeleccionHistorial(sel => sel.includes(idPlan) ? sel.filter(x => x !== idPlan) : [...sel, idPlan]);
+  };
+  const eliminarSeleccionHistorial = async () => {
+    if (eliminandoHistorial || !seleccionHistorial.length) return;
+    setEliminandoHistorial(true); setEliminarHistorialError(null);
+    try {
+      const data = await llamarPanel("eliminar-aprobados", { idPlanes: seleccionHistorial });
+      if (!data.ok) throw new Error(data.error || "error");
+      setHistorial(h => (h || []).filter(p => !seleccionHistorial.includes(p.idPlan)));
+      setSeleccionHistorial([]); setModoSeleccionHistorial(false); setConfirmandoEliminarHistorial(false);
+    } catch (e) { setEliminarHistorialError(e.message === "PIN incorrecto" ? null : (e.message || "No se pudo eliminar. Reintenta.")); }
+    finally { setEliminandoHistorial(false); }
   };
 
   // Equipo (27 oct 2026, pedido de Leonardo) — solo lectura: quién tiene
@@ -738,11 +769,17 @@ function App() {
     </ShellConBarra>
   );
 
-  // ---------- HISTORIAL (aprobados, solo lectura) ----------
+  // ---------- HISTORIAL (aprobados — solo lectura para editar el plan, con
+  // selección múltiple para borrar casos de prueba del historial real) ----------
   if (stage === "historial") return (
     <ShellConBarra sidebar={<SidebarDesktop {...sidebarProps}/>} topbar={<TopbarMobile tituloActual="Aprobados" {...sidebarProps}/>}>
-      <div>
+      <div style={{display:"flex", justifyContent:"space-between", alignItems:"center", gap:10, flexWrap:"wrap"}}>
         <h1 style={{fontFamily:"-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif", fontWeight:600, fontSize:26, margin:0, color:P.sageDeep}}>Aprobados {historial && historial.length ? "("+historial.length+")" : ""}</h1>
+        {!!(historial && historial.length) && (
+          <button onClick={toggleModoSeleccionHistorial} style={{background:"none", border:"1px solid "+(modoSeleccionHistorial?P.sageDeep:P.line), color:modoSeleccionHistorial?P.sageDeep:P.muted, borderRadius:999, padding:"7px 14px", fontSize:12.5, fontWeight:700, cursor:"pointer", fontFamily:"-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif"}}>
+            {modoSeleccionHistorial ? "Cancelar" : "Seleccionar"}
+          </button>
+        )}
       </div>
       {historialError && (
         <div style={{background:P.claySoft, border:"1px solid "+P.clay, borderRadius:14, padding:"12px 16px", fontSize:13, color:P.ink}}>
@@ -756,9 +793,14 @@ function App() {
         </div>
       )}
       <div style={{display:"flex", flexDirection:"column", gap:10}}>
-        {(historial||[]).map(p => (
-          <div key={p.idPlan} className="rise" onClick={()=>abrirDetalle(p.idPlan,"historial")} style={{background:P.panel, border:"1px solid "+(p.tieneNovedades?P.clay:P.line), borderRadius:16, padding:"14px 16px", cursor:"pointer", display:"flex", justifyContent:"space-between", alignItems:"center", gap:12}}>
-            <div style={{minWidth:0}}>
+        {(historial||[]).map(p => {
+          const seleccionado = seleccionHistorial.includes(p.idPlan);
+          return (
+          <div key={p.idPlan} className="rise" onClick={()=> modoSeleccionHistorial ? toggleSeleccionHistorial(p.idPlan) : abrirDetalle(p.idPlan,"historial")} style={{background:seleccionado?P.sageSoft:P.panel, border:"1px solid "+(seleccionado?P.sageDeep:(p.tieneNovedades?P.clay:P.line)), borderRadius:16, padding:"14px 16px", cursor:"pointer", display:"flex", justifyContent:"space-between", alignItems:"center", gap:12}}>
+            {modoSeleccionHistorial && (
+              <input type="checkbox" checked={seleccionado} onChange={()=>toggleSeleccionHistorial(p.idPlan)} onClick={e=>e.stopPropagation()} style={{width:18, height:18, flexShrink:0, accentColor:P.sage}}/>
+            )}
+            <div style={{minWidth:0, flex:1}}>
               <div style={{fontSize:15, fontWeight:800, color:P.ink, display:"flex", alignItems:"center", gap:8}}>
                 {p.nombreNino || "(sin nombre)"}{formatEdad(p.edad)}
                 {p.tieneNovedades && <span style={{background:P.claySoft, color:P.clay, fontSize:10.5, fontWeight:800, padding:"2px 8px", borderRadius:999, letterSpacing:".03em"}}>NOVEDAD</span>}
@@ -766,10 +808,35 @@ function App() {
               <div style={{fontSize:12.5, color:P.muted, marginTop:2}}>Padre/madre: {p.nombrePadre || "—"} · aprobado {relativeDate(p.correoEnviadoTs || p.timestamp)}</div>
               {huellaRegeneracion(p.regeneracionEstado) && <div style={{fontSize:11.5, color: huellaRegeneracion(p.regeneracionEstado).clay ? P.clay : P.sage, marginTop:4}}>{huellaRegeneracion(p.regeneracionEstado).texto}</div>}
             </div>
-            <div style={{color:P.sageDeep, fontSize:20, flexShrink:0}}>→</div>
+            {!modoSeleccionHistorial && <div style={{color:P.sageDeep, fontSize:20, flexShrink:0}}>→</div>}
           </div>
-        ))}
+          );
+        })}
       </div>
+      {modoSeleccionHistorial && seleccionHistorial.length > 0 && (
+        <div className="rise" style={{position:"sticky", bottom:14, background:P.panel, border:"1px solid "+P.line, borderRadius:16, padding:"14px 16px", boxShadow:"0 10px 30px rgba(40,42,36,.15)"}}>
+          {!confirmandoEliminarHistorial ? (
+            <div style={{display:"flex", justifyContent:"space-between", alignItems:"center", gap:12, flexWrap:"wrap"}}>
+              <span style={{fontSize:13.5, color:P.ink, fontWeight:700}}>{seleccionHistorial.length} seleccionado{seleccionHistorial.length===1?"":"s"}</span>
+              <button onClick={()=>setConfirmandoEliminarHistorial(true)} style={{background:P.clay, color:"#fff", border:"none", borderRadius:999, padding:"9px 18px", fontSize:13.5, fontWeight:700, cursor:"pointer", fontFamily:"-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif"}}>Eliminar seleccionados</button>
+            </div>
+          ) : (
+            <div>
+              <div style={{fontSize:13, color:P.ink, lineHeight:1.5, marginBottom:10}}>
+                ¿Eliminar permanentemente {seleccionHistorial.length} caso{seleccionHistorial.length===1?"":"s"}? No se puede deshacer.
+                <div style={{marginTop:6, color:P.muted}}>
+                  {(historial||[]).filter(p=>seleccionHistorial.includes(p.idPlan)).map(p=>p.nombreNino||"(sin nombre)").join(", ")}
+                </div>
+              </div>
+              {eliminarHistorialError && <div style={{color:P.clay, fontSize:12.5, marginBottom:8}}>{eliminarHistorialError}</div>}
+              <div style={{display:"flex", gap:10}}>
+                <button onClick={()=>setConfirmandoEliminarHistorial(false)} disabled={eliminandoHistorial} style={{...btnGhost}}>Cancelar</button>
+                <button onClick={eliminarSeleccionHistorial} disabled={eliminandoHistorial} style={{background:P.clay, color:"#fff", border:"none", borderRadius:999, padding:"9px 18px", fontSize:13.5, fontWeight:700, cursor:"pointer", fontFamily:"-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif", opacity:eliminandoHistorial?.7:1}}>{eliminandoHistorial?"Eliminando…":"Sí, eliminar"}</button>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
     </ShellConBarra>
   );
 
