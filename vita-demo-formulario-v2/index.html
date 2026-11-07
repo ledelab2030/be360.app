@@ -468,7 +468,7 @@ const MODE = "child"; // este demo SOLO captura para un hijo/a — no hay modo a
 // texto ya compilado.
 const ESTRUCTURADO_KEY = "vita_formulario_estructurado";
 const leerEstructurado=()=>{ try{ const s=localStorage.getItem(ESTRUCTURADO_KEY); return s?JSON.parse(s):{}; }catch(e){ return {}; } };
-const emptyEstructurado = { origenParto:"", origenLactancia:"", origenOtra:"", senalesChips:[], senalesMatiz:"", cronoDespierta:"", cronoAlmuerza:"", cronoCena:"", cronoDuerme:"", cronoFinde:"", cronoLonchera:"", cronoMatiz:"", suenoManual:"" };
+const emptyEstructurado = { origenParto:"", origenLactancia:"", origenOtra:"", senalesChips:[], senalesMatiz:"", cronoDespierta:"", cronoAlmuerza:"", cronoCena:"", cronoDuerme:"", cronoFinde:"", cronoLonchera:"", cronoMatiz:"", suenoManual:"", metasChips:[], metasOtra:"", preocupacionChips:[], preocupacionOtra:"", pantallasHoras:"", pantallasAntesDormir:"", pantallasMatiz:"", findeComidas:[], findeMatiz:"" };
 
 // "19:30" (valor nativo de <input type="time">) -> "7:30 PM" — se prefiere
 // sobre dejar el 24h crudo porque toda la historia de ajustes de
@@ -657,6 +657,134 @@ const BloqueCronologia=({e,set,P})=>(
   </div>
 );
 
+// ---------- Segunda ronda (7 nov 2026) — metas/preocupación, pantallas,
+// fin de semana. Construido sobre design-sprint/src/schemas/formulario_habitos.json
+// (revisión de Peter, jul-ago 2026): que_deseas_lograr y preocupacion_principal
+// las aprobó Peter el 31 jul 2026 para selección múltiple ("RESUELTO... Peter
+// de acuerdo") — la LISTA de opciones quedó abierta ("Peter la valida"), así
+// que las de acá son un punto de partida de Leonardo, no una lista cerrada.
+// horas_pantalla y comidas_finde SÍ tienen enum ya en el schema — se usan
+// verbatim. "Emociones" y "relajación" NO se tocan: ambas tienen una nota
+// explícita de Peter sin resolver (re-diseñar el fraseo con él, no eliminar
+// ni adivinar) — quedan en texto libre/matiz, igual que hoy.
+const METAS_OPCIONES = ["Mejorar la alimentación","Dormir mejor","Más energía, menos cansancio","Mejorar el ánimo","Mejorar la digestión","Mejorar la piel","Bajar la frecuencia de enfermedades","Rendimiento o concentración escolar"];
+const PREOCUPACION_OPCIONES = ["Su alimentación","Su sueño","Su peso o crecimiento","Su piel","Su ánimo o comportamiento","Su energía o cansancio","Infecciones frecuentes","Concentración o rendimiento escolar"];
+// Verbatim del schema (s9_mente_y_pantallas.horas_pantalla) — no inventada.
+const PANTALLAS_HORAS_OPCIONES = ["Menos de 1 hora","1 a 2 horas","2 a 4 horas","Más de 4 horas"];
+// Verbatim del schema (s8_fin_de_semana_y_gustos.comidas_finde), sin "Otros"
+// — el matiz de abajo ya cumple esa función.
+const FINDE_COMIDAS_OPCIONES = ["Perro caliente","Hamburguesa","Pizza","Sushi","Comida rápida en general","Dulces o postres","Gaseosas o jugos de caja","Ninguno"];
+
+function compilarMetas(e){
+  const partes=[];
+  if(e.metasChips && e.metasChips.length) partes.push("Quiere lograr: "+e.metasChips.join(", ")+".");
+  if(e.metasOtra && e.metasOtra.trim()) partes.push(e.metasOtra.trim());
+  return partes.join(" ");
+}
+function compilarPreocupacion(e){
+  const partes=[];
+  if(e.preocupacionChips && e.preocupacionChips.length) partes.push("Le preocupa principalmente: "+e.preocupacionChips.join(", ")+".");
+  if(e.preocupacionOtra && e.preocupacionOtra.trim()) partes.push(e.preocupacionOtra.trim());
+  return partes.join(" ");
+}
+function compilarPantallas(e){
+  const partes=[];
+  if(e.pantallasHoras) partes.push("Pantallas: "+e.pantallasHoras+" al día.");
+  if(e.pantallasAntesDormir==="si") partes.push("Usa pantallas en la hora antes de dormir.");
+  else if(e.pantallasAntesDormir==="no") partes.push("No usa pantallas en la hora antes de dormir.");
+  if(e.pantallasMatiz && e.pantallasMatiz.trim()) partes.push(e.pantallasMatiz.trim());
+  return partes.join(" ");
+}
+function compilarFinde(e){
+  const partes=[];
+  if(e.findeComidas && e.findeComidas.length) partes.push("Los fines de semana suele comer: "+e.findeComidas.join(", ")+".");
+  if(e.findeMatiz && e.findeMatiz.trim()) partes.push(e.findeMatiz.trim());
+  return partes.join(" ");
+}
+
+// Genérico: chips multi-select + "Otro" que destapa texto — Peter pidió
+// literal esta forma para que_deseas_lograr/preocupacion_principal (28 jul
+// 2026: "selección múltiple + opción 'Otro' para escribir"), a diferencia
+// de los bloques de la ronda anterior (que usan un matiz siempre visible,
+// sin chip "Otro" — ver CHANGELOG del 6 nov).
+const BloqueChipsOtro=({opciones,chips,setChips,otra,setOtra,P})=>{
+  const [otraAbierta,setOtraAbierta]=useState(!!otra);
+  const toggle=(item)=>{
+    const tiene=chips.includes(item);
+    setChips(tiene?chips.filter(x=>x!==item):[...chips,item]);
+  };
+  return (
+    <div style={{display:"flex",flexDirection:"column",gap:8}}>
+      <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+        {opciones.map(item=>(
+          <button key={item} type="button" onClick={()=>toggle(item)} style={chipBtnStyle(chips.includes(item),P)}>{item}</button>
+        ))}
+        <button type="button" onClick={()=>setOtraAbierta(v=>!v)} style={chipBtnStyle(otraAbierta,P)}>Otro</button>
+      </div>
+      {otraAbierta && (
+        <textarea value={otra} onChange={ev=>setOtra(ev.target.value)} rows={2} placeholder="Cuéntanos brevemente"
+          style={{border:"1px solid "+P.line,borderRadius:12,padding:"9px 11px",fontSize:13.5,fontFamily:"'Nunito',sans-serif",background:"#fff",color:P.ink,outline:"none",resize:"vertical"}}/>
+      )}
+    </div>
+  );
+};
+
+// ---------- Bloque: Mente y pantallas ----------
+const BloquePantallas=({e,set,P})=>(
+  <div style={{display:"flex",flexDirection:"column",gap:10}}>
+    <div>
+      <div style={{fontSize:11.5,fontWeight:800,color:P.muted,textTransform:"uppercase",letterSpacing:.3,marginBottom:6}}>Horas de pantalla al día</div>
+      <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+        {PANTALLAS_HORAS_OPCIONES.map(op=>(
+          <button key={op} type="button" onClick={()=>set({...e,pantallasHoras:e.pantallasHoras===op?"":op})} style={chipBtnStyle(e.pantallasHoras===op,P)}>{op}</button>
+        ))}
+      </div>
+    </div>
+    <div>
+      <div style={{fontSize:11.5,fontWeight:800,color:P.muted,textTransform:"uppercase",letterSpacing:.3,marginBottom:6}}>¿Usa pantallas en la hora antes de dormir?</div>
+      <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+        {[["si","Sí"],["no","No"]].map(([v,l])=>(
+          <button key={v} type="button" onClick={()=>set({...e,pantallasAntesDormir:e.pantallasAntesDormir===v?"":v})} style={chipBtnStyle(e.pantallasAntesDormir===v,P)}>{l}</button>
+        ))}
+      </div>
+    </div>
+    <div>
+      {/* "Relajación/respiración consciente" NO se convierte a toggle acá —
+          Peter anotó que no sabe si esa forma de preguntar aplica a esta
+          cultura/edad (31 jul 2026), pendiente de re-diseñar CON él. Queda
+          dentro de este matiz libre, igual que "tipo de contenido". */}
+      <div style={{fontSize:11.5,color:P.muted,marginBottom:4}}>¿Qué tipo de contenido ve, o practica algo de relajación/respiración? (opcional)</div>
+      <textarea value={e.pantallasMatiz} onChange={ev=>set({...e,pantallasMatiz:ev.target.value})} rows={2} placeholder="Opcional: escribe un detalle breve aquí"
+        style={{border:"1px solid "+P.line,borderRadius:12,padding:"9px 11px",fontSize:13.5,fontFamily:"'Nunito',sans-serif",background:"#fff",color:P.ink,outline:"none",resize:"vertical"}}/>
+    </div>
+  </div>
+);
+
+// ---------- Bloque: Fin de semana y gustos ----------
+const BloqueFinde=({e,set,P})=>{
+  const toggle=(item)=>{
+    const tiene=e.findeComidas.includes(item);
+    set({...e, findeComidas: tiene?e.findeComidas.filter(x=>x!==item):[...e.findeComidas,item]});
+  };
+  return (
+    <div style={{display:"flex",flexDirection:"column",gap:10}}>
+      <div>
+        <div style={{fontSize:11.5,fontWeight:800,color:P.muted,textTransform:"uppercase",letterSpacing:.3,marginBottom:6}}>¿Qué suele comer los fines de semana?</div>
+        <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+          {FINDE_COMIDAS_OPCIONES.map(item=>(
+            <button key={item} type="button" onClick={()=>toggle(item)} style={chipBtnStyle(e.findeComidas.includes(item),P)}>{item}</button>
+          ))}
+        </div>
+      </div>
+      <div>
+        <div style={{fontSize:11.5,color:P.muted,marginBottom:4}}>¿Algo le cae mal, o algo que le gusta y valdría la pena conservar? (opcional)</div>
+        <textarea value={e.findeMatiz} onChange={ev=>set({...e,findeMatiz:ev.target.value})} rows={2} placeholder="Opcional: escribe un detalle breve aquí"
+          style={{border:"1px solid "+P.line,borderRadius:12,padding:"9px 11px",fontSize:13.5,fontFamily:"'Nunito',sans-serif",background:"#fff",color:P.ink,outline:"none",resize:"vertical"}}/>
+      </div>
+    </div>
+  );
+};
+
 // Renderiza **negrita** como <strong>; conserva saltos de línea via white-space:pre-wrap.
 const renderRich = (text) => (text||"").split(/(\*\*[^*]+\*\*)/g).map((part,i)=>
   part.startsWith("**")&&part.endsWith("**")
@@ -802,6 +930,10 @@ function App(){
     const senalesTocado = !!((estructurado.senalesChips&&estructurado.senalesChips.length) || estructurado.senalesMatiz);
     const cronoTocado = !!(estructurado.cronoDespierta || estructurado.cronoAlmuerza || estructurado.cronoCena || estructurado.cronoFinde || estructurado.cronoLonchera || estructurado.cronoMatiz);
     const suenoTocado = !!(estructurado.cronoDuerme || estructurado.suenoManual);
+    const metasTocado = !!((estructurado.metasChips&&estructurado.metasChips.length) || estructurado.metasOtra);
+    const preocupacionTocado = !!((estructurado.preocupacionChips&&estructurado.preocupacionChips.length) || estructurado.preocupacionOtra);
+    const pantallasTocado = !!(estructurado.pantallasHoras || estructurado.pantallasAntesDormir || estructurado.pantallasMatiz);
+    const findeTocado = !!((estructurado.findeComidas&&estructurado.findeComidas.length) || estructurado.findeMatiz);
     setDx(prev=>{
       const next = {
         ...prev,
@@ -809,8 +941,13 @@ function App(){
         senales_observables: senalesTocado ? compilarSenales(estructurado) : prev.senales_observables,
         cronologia_del_dia: cronoTocado ? compilarCronologia(estructurado) : prev.cronologia_del_dia,
         sueno_y_movimiento: suenoTocado ? compilarSuenoYMovimiento(estructurado) : prev.sueno_y_movimiento,
+        que_deseas_lograr: metasTocado ? compilarMetas(estructurado) : prev.que_deseas_lograr,
+        preocupacion_principal: preocupacionTocado ? compilarPreocupacion(estructurado) : prev.preocupacion_principal,
+        mente_y_pantallas: pantallasTocado ? compilarPantallas(estructurado) : prev.mente_y_pantallas,
+        finde_y_gustos: findeTocado ? compilarFinde(estructurado) : prev.finde_y_gustos,
       };
-      if(prev.origen===next.origen && prev.senales_observables===next.senales_observables && prev.cronologia_del_dia===next.cronologia_del_dia && prev.sueno_y_movimiento===next.sueno_y_movimiento) return prev;
+      const igual = prev.origen===next.origen && prev.senales_observables===next.senales_observables && prev.cronologia_del_dia===next.cronologia_del_dia && prev.sueno_y_movimiento===next.sueno_y_movimiento && prev.que_deseas_lograr===next.que_deseas_lograr && prev.preocupacion_principal===next.preocupacion_principal && prev.mente_y_pantallas===next.mente_y_pantallas && prev.finde_y_gustos===next.finde_y_gustos;
+      if(igual) return prev;
       return next;
     });
   },[estructurado]);
@@ -1108,7 +1245,7 @@ function App(){
       <div style={{fontFamily:"'Fraunces',serif",fontSize:27,color:P.sageDeep,lineHeight:1.15,marginBottom:14}}>Hola, soy Vita</div>
       <p style={{fontSize:15,color:P.ink,lineHeight:1.6,maxWidth:360,marginBottom:16}}>Acompaño a las familias de Bienestar 360. Te pregunto por la rutina diaria de tu hijo o hija, y con eso el equipo clínico le prepara un plan de hábitos.</p>
       <p style={{fontSize:13,color:P.muted,lineHeight:1.6,maxWidth:340,marginBottom:26}}>Esto acompaña y suma con su pediatra — no lo reemplaza.</p>
-      <button onClick={()=> dx.consentimiento_ts ? goToChat() : setStage("consentimiento")} style={btnPrimary}>Comenzar →</button>
+      <button onClick={()=> dx.consentimiento_ts ? goToForm() : setStage("consentimiento")} style={btnPrimary}>Comenzar →</button>
     </div></Shell>
   );
 
@@ -1159,8 +1296,13 @@ function App(){
         <span style={{fontSize:13,color:P.ink,lineHeight:1.5}}>Opcional: también podemos usarla, sin nombres, para investigación y para mejorar los planes de otras familias. Si no marcas esto, igual recibes el plan.</span>
       </label>
 
-      <button onClick={empezarConversacion} disabled={!consentChecked} style={{...btnPrimary,alignSelf:"center",opacity:consentChecked?1:.5,cursor:consentChecked?"pointer":"default"}}>Empezar la conversación →</button>
-      <button onClick={empezarFormulario} disabled={!consentChecked} style={{background:"none",border:"none",color:consentChecked?P.sageDeep:P.muted,fontSize:12.5,fontWeight:700,marginTop:16,cursor:consentChecked?"pointer":"default",opacity:consentChecked?1:.6,textDecoration:"underline",alignSelf:"center",fontFamily:"'Nunito',sans-serif"}}>¿Prefieres llenarlo tú mismo? Ves todas las preguntas de una vez →</button>
+      {/* Formulario por default (7 nov 2026, pedido explícito de Leonardo:
+          "SOLAMENTE que el formulario fuera default", nada de texto nuevo
+          — se revirtió un primer intento que además cambiaba la copy sin
+          acordarlo). Mismo texto de siempre en los dos botones, solo se
+          intercambió cuál usa el estilo primario. */}
+      <button onClick={empezarFormulario} disabled={!consentChecked} style={{...btnPrimary,alignSelf:"center",opacity:consentChecked?1:.5,cursor:consentChecked?"pointer":"default"}}>¿Prefieres llenarlo tú mismo? Ves todas las preguntas de una vez →</button>
+      <button onClick={empezarConversacion} disabled={!consentChecked} style={{background:"none",border:"none",color:consentChecked?P.sageDeep:P.muted,fontSize:12.5,fontWeight:700,marginTop:16,cursor:consentChecked?"pointer":"default",opacity:consentChecked?1:.6,textDecoration:"underline",alignSelf:"center",fontFamily:"'Nunito',sans-serif"}}>Empezar la conversación →</button>
       <button onClick={()=>setStage("welcome")} style={{background:"none",border:"none",color:P.muted,fontSize:12.5,fontWeight:700,marginTop:14,cursor:"pointer",alignSelf:"center",fontFamily:"'Nunito',sans-serif"}}>← Volver</button>
     </div></Shell>
   );
@@ -1173,6 +1315,63 @@ function App(){
         <p style={{fontSize:12.5,color:P.muted,lineHeight:1.5,maxWidth:340,margin:"0 auto"}}>Llena lo que sepas — no tiene que quedar perfecto, el equipo lo revisa igual. ¿Prefieres <span onClick={goToChat} style={{color:P.sageDeep,fontWeight:700,textDecoration:"underline",cursor:"pointer"}}>conversar con Vita</span>? Lo que ya llenaste no se pierde.</p>
       </div>
       {FIELDS.map(f=>{
+        // Identidad (7 nov 2026): inputs de una línea en vez de textarea —
+        // nombre_nino y edad comparten fila. "edad" se salta acá (ya se
+        // dibuja junto a nombre_nino) para no duplicarla en el loop.
+        if(f.key==="edad") return null;
+        if(f.key==="nombre_padre") return (
+          <div key={f.key} style={{display:"flex",flexDirection:"column",gap:5}}>
+            <label style={{fontSize:13,fontWeight:800,color:P.sageDeep}}>{f.label}</label>
+            <input type="text" value={dx.nombre_padre} onChange={e=>setDx(prev=>({...prev,nombre_padre:e.target.value}))}
+              style={{border:"1px solid "+P.line,borderRadius:12,padding:"9px 11px",fontSize:13.5,fontFamily:"'Nunito',sans-serif",background:"#fff",color:P.ink,outline:"none"}}/>
+          </div>
+        );
+        if(f.key==="email_padre") return (
+          <div key={f.key} style={{display:"flex",flexDirection:"column",gap:5}}>
+            <label style={{fontSize:13,fontWeight:800,color:P.sageDeep}}>{f.label}</label>
+            {f.hint && <div style={{fontSize:11.5,color:P.muted,lineHeight:1.4}}>{f.hint}</div>}
+            <input type="email" value={dx.email_padre} onChange={e=>setDx(prev=>({...prev,email_padre:e.target.value}))}
+              style={{border:"1px solid "+P.line,borderRadius:12,padding:"9px 11px",fontSize:13.5,fontFamily:"'Nunito',sans-serif",background:"#fff",color:P.ink,outline:"none"}}/>
+          </div>
+        );
+        if(f.key==="nombre_nino") return (
+          <div key={f.key} style={{display:"grid",gridTemplateColumns:"7fr 3fr",gap:8}}>
+            <div style={{display:"flex",flexDirection:"column",gap:5}}>
+              <label style={{fontSize:13,fontWeight:800,color:P.sageDeep}}>{f.label}</label>
+              <input type="text" value={dx.nombre_nino} onChange={e=>setDx(prev=>({...prev,nombre_nino:e.target.value}))}
+                style={{border:"1px solid "+P.line,borderRadius:12,padding:"9px 11px",fontSize:13.5,fontFamily:"'Nunito',sans-serif",background:"#fff",color:P.ink,outline:"none"}}/>
+            </div>
+            <div style={{display:"flex",flexDirection:"column",gap:5}}>
+              <label style={{fontSize:13,fontWeight:800,color:P.sageDeep}}>Edad</label>
+              <input type="number" min="2" value={dx.edad} onChange={e=>setDx(prev=>({...prev,edad:e.target.value}))}
+                style={{border:"1px solid "+P.line,borderRadius:12,padding:"9px 11px",fontSize:13.5,fontFamily:"'Nunito',sans-serif",background:"#fff",color:P.ink,outline:"none"}}/>
+            </div>
+          </div>
+        );
+        if(f.key==="que_deseas_lograr") return (
+          <div key={f.key} style={{display:"flex",flexDirection:"column",gap:5}}>
+            <label style={{fontSize:13,fontWeight:800,color:P.sageDeep}}>{f.label}</label>
+            <BloqueChipsOtro opciones={METAS_OPCIONES} chips={estructurado.metasChips} setChips={c=>setEstructurado(prev=>({...prev,metasChips:c}))} otra={estructurado.metasOtra} setOtra={t=>setEstructurado(prev=>({...prev,metasOtra:t}))} P={P}/>
+          </div>
+        );
+        if(f.key==="preocupacion_principal") return (
+          <div key={f.key} style={{display:"flex",flexDirection:"column",gap:5}}>
+            <label style={{fontSize:13,fontWeight:800,color:P.sageDeep}}>{f.label}</label>
+            <BloqueChipsOtro opciones={PREOCUPACION_OPCIONES} chips={estructurado.preocupacionChips} setChips={c=>setEstructurado(prev=>({...prev,preocupacionChips:c}))} otra={estructurado.preocupacionOtra} setOtra={t=>setEstructurado(prev=>({...prev,preocupacionOtra:t}))} P={P}/>
+          </div>
+        );
+        if(f.key==="mente_y_pantallas") return (
+          <div key={f.key} style={{display:"flex",flexDirection:"column",gap:5}}>
+            <label style={{fontSize:13,fontWeight:800,color:P.sageDeep}}>{f.label}</label>
+            <BloquePantallas e={estructurado} set={setEstructurado} P={P}/>
+          </div>
+        );
+        if(f.key==="finde_y_gustos") return (
+          <div key={f.key} style={{display:"flex",flexDirection:"column",gap:5}}>
+            <label style={{fontSize:13,fontWeight:800,color:P.sageDeep}}>{f.label}</label>
+            <BloqueFinde e={estructurado} set={setEstructurado} P={P}/>
+          </div>
+        );
         // Origen, señales observadas y cronología pasan a chips/selectores
         // (6 nov 2026) — ver los bloques BloqueOrigen/BloqueSenales/
         // BloqueCronologia arriba. dx[f.key] se sigue compilando igual que
