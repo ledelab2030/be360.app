@@ -1340,6 +1340,16 @@ Gemini auditó capturas del formulario ya con los chips del PR anterior y encont
 
 **Verificación:** `@babel/standalone` sobre los dos archivos, sin errores. Los 4 compiladores nuevos probados en sandbox de Node contra casos vacíos (dan `""`) y casos completos (narrativa correcta: *"Quiere lograr: Dormir mejor, Mejorar la digestión."*, etc.). Probado en navegador con servidor local: identidad en una línea con nombre/edad en la misma fila, chips de metas/preocupación compilando a `dx.que_deseas_lograr`/`dx.preocupacion_principal` en vivo, chip "Otro" destapando el textarea correctamente, pantallas y fin de semana renderizando con los enums del schema, "Emociones" verificada visualmente intacta (texto libre, hint original). Sin errores de consola. No toca `coberturaDia()`/`faltanDatosDuros()` — ninguno de estos 4 campos participa en la verificación de horas, así que no hay riesgo nuevo ahí.
 
+### 7 nov 2026 — Formulario directo pasa a ser la vía por defecto, no el chat
+
+Con los chips de las dos rondas anteriores ya construidos, Leonardo pidió que el formulario directo fuera el camino por defecto — tiene sentido ahora que ya no es una pared de texto libre. Pedido explícito: **"SOLAMENTE que el formulario fuera default"**, nada de texto nuevo.
+
+Un primer intento además cambió la copy de los botones ("Comenzar →" y "¿Prefieres conversar con Vita? →") sin haberlo acordado — Leonardo lo frenó de inmediato ("tienes PROHIBIDO cambiar los textos de las pantallas sin consultarlo antes"). Se revirtió por completo: los dos botones de la pantalla de consentimiento vuelven a decir exactamente lo mismo de siempre ("¿Prefieres llenarlo tú mismo? Ves todas las preguntas de una vez →" y "Empezar la conversación →") — lo único que cambió es cuál de los dos usa el estilo de botón principal. En la bienvenida, un padre que ya aceptó el consentimiento antes (`dx.consentimiento_ts`) ahora cae directo en `goToForm()` en vez de `goToChat()` — ese botón ya decía "Comenzar →" desde antes, cero texto nuevo ahí tampoco.
+
+**Archivos:** `vita-demo-formulario/index.html` y su copia `-v2/`.
+
+**Verificación:** `@babel/standalone` sobre los dos archivos, sin errores. Probado en navegador: desde "Antes de empezar", el botón grande lleva al formulario con el texto original; un padre que ya había aceptado el consentimiento, al volver a la bienvenida, cae directo en el formulario sin pasar por el chat. Sin errores de consola.
+
 ---
 
 ---

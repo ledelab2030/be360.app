@@ -1245,7 +1245,7 @@ function App(){
       <div style={{fontFamily:"'Fraunces',serif",fontSize:27,color:P.sageDeep,lineHeight:1.15,marginBottom:14}}>Hola, soy Vita</div>
       <p style={{fontSize:15,color:P.ink,lineHeight:1.6,maxWidth:360,marginBottom:16}}>Acompaño a las familias de Bienestar 360. Te pregunto por la rutina diaria de tu hijo o hija, y con eso el equipo clínico le prepara un plan de hábitos.</p>
       <p style={{fontSize:13,color:P.muted,lineHeight:1.6,maxWidth:340,marginBottom:26}}>Esto acompaña y suma con su pediatra — no lo reemplaza.</p>
-      <button onClick={()=> dx.consentimiento_ts ? goToChat() : setStage("consentimiento")} style={btnPrimary}>Comenzar →</button>
+      <button onClick={()=> dx.consentimiento_ts ? goToForm() : setStage("consentimiento")} style={btnPrimary}>Comenzar →</button>
     </div></Shell>
   );
 
@@ -1296,8 +1296,13 @@ function App(){
         <span style={{fontSize:13,color:P.ink,lineHeight:1.5}}>Opcional: también podemos usarla, sin nombres, para investigación y para mejorar los planes de otras familias. Si no marcas esto, igual recibes el plan.</span>
       </label>
 
-      <button onClick={empezarConversacion} disabled={!consentChecked} style={{...btnPrimary,alignSelf:"center",opacity:consentChecked?1:.5,cursor:consentChecked?"pointer":"default"}}>Empezar la conversación →</button>
-      <button onClick={empezarFormulario} disabled={!consentChecked} style={{background:"none",border:"none",color:consentChecked?P.sageDeep:P.muted,fontSize:12.5,fontWeight:700,marginTop:16,cursor:consentChecked?"pointer":"default",opacity:consentChecked?1:.6,textDecoration:"underline",alignSelf:"center",fontFamily:"'Nunito',sans-serif"}}>¿Prefieres llenarlo tú mismo? Ves todas las preguntas de una vez →</button>
+      {/* Formulario por default (7 nov 2026, pedido explícito de Leonardo:
+          "SOLAMENTE que el formulario fuera default", nada de texto nuevo
+          — se revirtió un primer intento que además cambiaba la copy sin
+          acordarlo). Mismo texto de siempre en los dos botones, solo se
+          intercambió cuál usa el estilo primario. */}
+      <button onClick={empezarFormulario} disabled={!consentChecked} style={{...btnPrimary,alignSelf:"center",opacity:consentChecked?1:.5,cursor:consentChecked?"pointer":"default"}}>¿Prefieres llenarlo tú mismo? Ves todas las preguntas de una vez →</button>
+      <button onClick={empezarConversacion} disabled={!consentChecked} style={{background:"none",border:"none",color:consentChecked?P.sageDeep:P.muted,fontSize:12.5,fontWeight:700,marginTop:16,cursor:consentChecked?"pointer":"default",opacity:consentChecked?1:.6,textDecoration:"underline",alignSelf:"center",fontFamily:"'Nunito',sans-serif"}}>Empezar la conversación →</button>
       <button onClick={()=>setStage("welcome")} style={{background:"none",border:"none",color:P.muted,fontSize:12.5,fontWeight:700,marginTop:14,cursor:"pointer",alignSelf:"center",fontFamily:"'Nunito',sans-serif"}}>← Volver</button>
     </div></Shell>
   );
