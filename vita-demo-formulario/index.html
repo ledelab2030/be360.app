@@ -28,7 +28,7 @@
 <!-- Marcador de versión discreto, SOLO para pruebas (pedido de Leonardo, 2 oct 2026) — formato
      "PR#<último PR que tocó este archivo> · <fecha AAMMDD de ese PR>". Actualizar a mano en cada
      PR que cambie este archivo; no es visible a simple vista para el padre/madre que lo usa. -->
-<div style="position:fixed;bottom:4px;right:6px;font:10px/1 -apple-system,sans-serif;color:#D8CFBE;opacity:.55;pointer-events:none;z-index:9999;">PR#102 · 261026</div>
+<div style="position:fixed;bottom:4px;right:6px;font:10px/1 -apple-system,sans-serif;color:#D8CFBE;opacity:.55;pointer-events:none;z-index:9999;">PR#180 · 071126</div>
 <script type="text/babel">
 const { useState, useRef, useEffect } = React;
 
@@ -468,7 +468,7 @@ const MODE = "child"; // este demo SOLO captura para un hijo/a — no hay modo a
 // texto ya compilado.
 const ESTRUCTURADO_KEY = "vita_formulario_estructurado";
 const leerEstructurado=()=>{ try{ const s=localStorage.getItem(ESTRUCTURADO_KEY); return s?JSON.parse(s):{}; }catch(e){ return {}; } };
-const emptyEstructurado = { origenParto:"", origenLactancia:"", origenOtra:"", senalesChips:[], senalesMatiz:"", cronoDespierta:"", cronoAlmuerza:"", cronoCena:"", cronoDuerme:"", cronoFinde:"", cronoLonchera:"", cronoMatiz:"", suenoManual:"", metasChips:[], metasOtra:"", preocupacionChips:[], preocupacionOtra:"", pantallasHoras:"", pantallasAntesDormir:"", pantallasMatiz:"", findeComidas:[], findeMatiz:"" };
+const emptyEstructurado = { origenParto:"", origenLactancia:"", origenOtra:"", senalesChips:[], senalesMatiz:"", cronoDespierta:"", cronoDesayuna:"", cronoAlmuerza:"", cronoCena:"", cronoDuerme:"", cronoFinde:"", cronoLonchera:"", cronoLoncheraDetalle:"", cronoEntrenaSiNo:"", cronoEntrenaDeporte:"", cronoEntrenaDias:[], cronoEntrenaInicio:"", cronoEntrenaFin:"", cronoMatiz:"", suenoManual:"", metasChips:[], metasOtra:"", preocupacionChips:[], preocupacionOtra:"", pantallasHoras:"", pantallasAntesDormir:"", pantallasMatiz:"", findeComidas:[], findeMatiz:"" };
 
 // "19:30" (valor nativo de <input type="time">) -> "7:30 PM" — se prefiere
 // sobre dejar el 24h crudo porque toda la historia de ajustes de
@@ -519,6 +519,11 @@ function compilarSenales(e){
 function compilarCronologia(e){
   const partes=[];
   if(e.cronoDespierta) partes.push("Se levanta a las "+horaLegible(e.cronoDespierta)+".");
+  // "Desayuna..." (7 nov 2026, auditoría de Gemini sobre el caso de Samuel):
+  // antes faltaba un selector para esta hora, así que la ventana ACTUAL
+  // siempre quedaba "no calculable" cuando el padre no la mencionaba en el
+  // matiz libre. PERIODOS_DIA busca /desayun/i — "Desayuna" calza directo.
+  if(e.cronoDesayuna) partes.push("Desayuna a las "+horaLegible(e.cronoDesayuna)+".");
   if(e.cronoAlmuerza) partes.push("Almuerza a las "+horaLegible(e.cronoAlmuerza)+".");
   // "La cena termina..." a propósito, no "Termina de cenar...": PERIODOS_DIA
   // busca \bcena\b como palabra completa — "cenar" no calza (el límite de
@@ -530,6 +535,19 @@ function compilarCronologia(e){
   if(e.cronoLonchera==="casa") partes.push("La lonchera es de casa.");
   else if(e.cronoLonchera==="colegio") partes.push("La lonchera la compra en el colegio.");
   else if(e.cronoLonchera==="mixto") partes.push("La lonchera es mixta, a veces de casa y a veces del colegio.");
+  if(e.cronoLoncheraDetalle && e.cronoLoncheraDetalle.trim()) partes.push("Suele llevar o comprar: "+e.cronoLoncheraDetalle.trim()+".");
+  // Entrenamiento/deporte estructurado (7 nov 2026, auditoría de Gemini
+  // sobre el caso de Samuel): antes esto solo existía si el padre lo
+  // mencionaba en el matiz libre — el prompt ya tiene la regla nueva de
+  // "nunca cena completa justo antes de entrenar" (ver ADAPTACIONES_PEDIATRICAS,
+  // cambio v4.26), pero esa regla solo puede aplicarse si el horario llega
+  // claro en la cronología.
+  if(e.cronoEntrenaSiNo==="si" && e.cronoEntrenaDias && e.cronoEntrenaDias.length){
+    const deporte = (e.cronoEntrenaDeporte&&e.cronoEntrenaDeporte.trim()) ? e.cronoEntrenaDeporte.trim() : "deporte";
+    const dias = e.cronoEntrenaDias.join(" y ");
+    const horario = (e.cronoEntrenaInicio && e.cronoEntrenaFin) ? (" de "+horaLegible(e.cronoEntrenaInicio)+" a "+horaLegible(e.cronoEntrenaFin)) : "";
+    partes.push("Entrena "+deporte+" los "+dias+horario+".");
+  }
   if(e.cronoMatiz && e.cronoMatiz.trim()) partes.push(e.cronoMatiz.trim());
   return partes.join(" ");
 }
@@ -613,12 +631,26 @@ const BloqueSenales=({e,set,P})=>{
 };
 
 // ---------- Bloque: Cronología y ritmos ----------
-const BloqueCronologia=({e,set,P})=>(
+const DIAS_SEMANA = ["Lunes","Martes","Miércoles","Jueves","Viernes","Sábado","Domingo"];
+
+const BloqueCronologia=({e,set,P})=>{
+  const toggleDia=(d)=>{
+    const tiene=e.cronoEntrenaDias.includes(d);
+    set({...e, cronoEntrenaDias: tiene?e.cronoEntrenaDias.filter(x=>x!==d):[...e.cronoEntrenaDias,d]});
+  };
+  return (
   <div style={{display:"flex",flexDirection:"column",gap:10}}>
     <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
       <label style={{display:"flex",flexDirection:"column",gap:3}}>
         <span style={{fontSize:11,color:P.muted,fontWeight:700}}>Se levanta</span>
         <input type="time" value={e.cronoDespierta} onChange={ev=>set({...e,cronoDespierta:ev.target.value})} style={timeInputStyle}/>
+      </label>
+      {/* Desayuno (7 nov 2026, auditoría de Gemini): antes saltaba directo a
+          Almuerza, dejando la ventana ACTUAL siempre "no calculable" cuando
+          el padre no lo mencionaba aparte en el matiz. */}
+      <label style={{display:"flex",flexDirection:"column",gap:3}}>
+        <span style={{fontSize:11,color:P.muted,fontWeight:700}}>Desayuna</span>
+        <input type="time" value={e.cronoDesayuna} onChange={ev=>set({...e,cronoDesayuna:ev.target.value})} style={timeInputStyle}/>
       </label>
       <label style={{display:"flex",flexDirection:"column",gap:3}}>
         <span style={{fontSize:11,color:P.muted,fontWeight:700}}>Almuerza</span>
@@ -648,14 +680,56 @@ const BloqueCronologia=({e,set,P})=>(
           <button key={v} type="button" onClick={()=>set({...e,cronoLonchera:e.cronoLonchera===v?"":v})} style={chipBtnStyle(e.cronoLonchera===v,P)}>{l}</button>
         ))}
       </div>
+      {/* Micro-campo (7 nov 2026, auditoría de Gemini): ayuda a la regla de
+          sustitución ya existente en el prompt (anclar la MISMA preparación
+          que la familia reporta, no inventar otra) cuando hay una lonchera
+          elegida arriba. */}
+      {e.cronoLonchera && (
+        <input type="text" value={e.cronoLoncheraDetalle} onChange={ev=>set({...e,cronoLoncheraDetalle:ev.target.value})} placeholder="¿Qué suele llevar o comprar habitualmente? (opcional)"
+          style={{marginTop:8,border:"1px solid "+P.line,borderRadius:12,padding:"9px 11px",fontSize:13.5,fontFamily:"'Nunito',sans-serif",background:"#fff",color:P.ink,outline:"none",width:"100%"}}/>
+      )}
+    </div>
+    {/* Entrenamiento/deporte estructurado (7 nov 2026, auditoría de Gemini
+        sobre el caso de Samuel): alimenta directo la regla nueva del prompt
+        v4.26 — "nunca cena completa justo antes de entrenar" — que antes
+        dependía de que el padre lo escribiera en el matiz libre. */}
+    <div>
+      <div style={{fontSize:11.5,fontWeight:800,color:P.muted,textTransform:"uppercase",letterSpacing:.3,marginBottom:6}}>¿Entrena o hace deporte extracurricular?</div>
+      <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+        {[["si","Sí"],["no","No"]].map(([v,l])=>(
+          <button key={v} type="button" onClick={()=>set({...e,cronoEntrenaSiNo:e.cronoEntrenaSiNo===v?"":v})} style={chipBtnStyle(e.cronoEntrenaSiNo===v,P)}>{l}</button>
+        ))}
+      </div>
+      {e.cronoEntrenaSiNo==="si" && (
+        <div style={{display:"flex",flexDirection:"column",gap:8,marginTop:8}}>
+          <input type="text" value={e.cronoEntrenaDeporte} onChange={ev=>set({...e,cronoEntrenaDeporte:ev.target.value})} placeholder="¿Qué deporte?"
+            style={{border:"1px solid "+P.line,borderRadius:12,padding:"9px 11px",fontSize:13.5,fontFamily:"'Nunito',sans-serif",background:"#fff",color:P.ink,outline:"none"}}/>
+          <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+            {DIAS_SEMANA.map(d=>(
+              <button key={d} type="button" onClick={()=>toggleDia(d)} style={chipBtnStyle(e.cronoEntrenaDias.includes(d),P)}>{d}</button>
+            ))}
+          </div>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
+            <label style={{display:"flex",flexDirection:"column",gap:3}}>
+              <span style={{fontSize:11,color:P.muted,fontWeight:700}}>Empieza</span>
+              <input type="time" value={e.cronoEntrenaInicio} onChange={ev=>set({...e,cronoEntrenaInicio:ev.target.value})} style={timeInputStyle}/>
+            </label>
+            <label style={{display:"flex",flexDirection:"column",gap:3}}>
+              <span style={{fontSize:11,color:P.muted,fontWeight:700}}>Termina</span>
+              <input type="time" value={e.cronoEntrenaFin} onChange={ev=>set({...e,cronoEntrenaFin:ev.target.value})} style={timeInputStyle}/>
+            </label>
+          </div>
+        </div>
+      )}
     </div>
     <div>
-      <div style={{fontSize:11.5,color:P.muted,marginBottom:4}}>¿Algo específico sobre sus horarios o comidas intermedias? (opcional)</div>
-      <textarea value={e.cronoMatiz} onChange={ev=>set({...e,cronoMatiz:ev.target.value})} rows={2} placeholder="Ej. los jueves entrena y todo se atrasa una hora"
+      <div style={{fontSize:11.5,color:P.muted,marginBottom:4}}>¿Algo más específico sobre sus horarios o comidas intermedias? (opcional)</div>
+      <textarea value={e.cronoMatiz} onChange={ev=>set({...e,cronoMatiz:ev.target.value})} rows={2} placeholder="Opcional: escribe un detalle breve aquí"
         style={{border:"1px solid "+P.line,borderRadius:12,padding:"9px 11px",fontSize:13.5,fontFamily:"'Nunito',sans-serif",background:"#fff",color:P.ink,outline:"none",resize:"vertical"}}/>
     </div>
   </div>
-);
+  );
+};
 
 // ---------- Segunda ronda (7 nov 2026) — metas/preocupación, pantallas,
 // fin de semana. Construido sobre design-sprint/src/schemas/formulario_habitos.json
@@ -928,7 +1002,7 @@ function App(){
     try{ localStorage.setItem(ESTRUCTURADO_KEY, JSON.stringify(estructurado)); }catch(e){}
     const origenTocado = !!(estructurado.origenParto || estructurado.origenLactancia || estructurado.origenOtra);
     const senalesTocado = !!((estructurado.senalesChips&&estructurado.senalesChips.length) || estructurado.senalesMatiz);
-    const cronoTocado = !!(estructurado.cronoDespierta || estructurado.cronoAlmuerza || estructurado.cronoCena || estructurado.cronoFinde || estructurado.cronoLonchera || estructurado.cronoMatiz);
+    const cronoTocado = !!(estructurado.cronoDespierta || estructurado.cronoDesayuna || estructurado.cronoAlmuerza || estructurado.cronoCena || estructurado.cronoFinde || estructurado.cronoLonchera || estructurado.cronoLoncheraDetalle || estructurado.cronoEntrenaSiNo || (estructurado.cronoEntrenaDias&&estructurado.cronoEntrenaDias.length) || estructurado.cronoMatiz);
     const suenoTocado = !!(estructurado.cronoDuerme || estructurado.suenoManual);
     const metasTocado = !!((estructurado.metasChips&&estructurado.metasChips.length) || estructurado.metasOtra);
     const preocupacionTocado = !!((estructurado.preocupacionChips&&estructurado.preocupacionChips.length) || estructurado.preocupacionOtra);
