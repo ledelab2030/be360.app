@@ -452,6 +452,211 @@ const P = { bg:"#ECE5D8", panel:"#FBF8F1", ink:"#2C2A24", sage:"#5A7A5C", sageDe
 const emptyDx = FIELDS.reduce((a,f)=>({...a,[f.key]:""}),{});
 const MODE = "child"; // este demo SOLO captura para un hijo/a — no hay modo adulto.
 
+// ============================================================
+// FORMULARIO ESTRUCTURADO (6 nov 2026, feedback real de Jocelyn Gutiérrez y
+// Nicole Álvarez, auditado por Gemini contra el Manual Maestro v4.25,
+// validado en sesión con Peter). Tres campos de texto libre (origen,
+// señales observadas, cronología) pasan a chips/selectores — PERO el
+// contrato con el backend no cambia: cada bloque compila su selección al
+// MISMO texto narrativo que un padre habría escrito a mano, y ese texto es
+// lo único que viaja en dx[clave], exactamente como hoy. SRB_DRAFT_PROMPT,
+// el verificador del Worker y coberturaDia() de acá abajo no se tocan.
+//
+// El estado estructurado (qué chip quedó marcado, qué hora quedó elegida)
+// vive aparte de dx, en su propia clave de localStorage — así un padre que
+// recarga a mitad de camino sigue viendo sus chips marcados, no solo el
+// texto ya compilado.
+const ESTRUCTURADO_KEY = "vita_formulario_estructurado";
+const leerEstructurado=()=>{ try{ const s=localStorage.getItem(ESTRUCTURADO_KEY); return s?JSON.parse(s):{}; }catch(e){ return {}; } };
+const emptyEstructurado = { origenParto:"", origenLactancia:"", origenOtra:"", senalesChips:[], senalesMatiz:"", cronoDespierta:"", cronoAlmuerza:"", cronoCena:"", cronoDuerme:"", cronoFinde:"", cronoLonchera:"", cronoMatiz:"", suenoManual:"" };
+
+// "19:30" (valor nativo de <input type="time">) -> "7:30 PM" — se prefiere
+// sobre dejar el 24h crudo porque toda la historia de ajustes de
+// coberturaDia()/RE_HORA_DORMIR de arriba se probó contra relatos reales en
+// formato con meridiano ("9pm", "a las 7"), no HH:MM de 24h.
+function horaLegible(hhmm){
+  if(!hhmm) return "";
+  const [hStr,mStr] = hhmm.split(":");
+  let h = parseInt(hStr,10);
+  const esPM = h>=12;
+  let h12 = h%12; if(h12===0) h12=12;
+  return h12+":"+mStr+" "+(esPM?"PM":"AM");
+}
+
+function compilarOrigen(e){
+  const partes=[];
+  if(e.origenParto==="natural") partes.push("Parto natural.");
+  else if(e.origenParto==="cesarea") partes.push("Cesárea.");
+  if(e.origenLactancia==="no_tomo") partes.push("No tomó leche materna.");
+  else if(e.origenLactancia==="menos_6") partes.push("Lactancia materna menos de 6 meses.");
+  else if(e.origenLactancia==="6_a_12") partes.push("Lactancia materna entre 6 y 12 meses.");
+  else if(e.origenLactancia==="mas_12") partes.push("Lactancia materna más de 12 meses.");
+  if(e.origenOtra && e.origenOtra.trim()) partes.push(e.origenOtra.trim());
+  return partes.join(" ");
+}
+
+// Punto de partida propuesto por Leonardo (6 nov 2026) — construido sobre el
+// hint YA vigente de senales_observables (no inventado de cero) más lo que
+// se repitió en casos reales de esta semana. Pendiente de que Peter lo
+// recorte o ajuste; no es una lista clínica cerrada.
+const SENALES_OPCIONES = [
+  { grupo:"Digestivo", items:["Dolor o ardor de estómago","Gases","Estreñimiento"] },
+  { grupo:"Sueño y energía", items:["Sueño inquieto o despertares nocturnos","Cansancio al despertar","Fatiga durante el día"] },
+  { grupo:"Piel e inmune", items:["Piel irritada","Infecciones frecuentes"] },
+  { grupo:"Conducta y atención", items:["Ansiedad","Dificultad para concentrarse","Irritabilidad o rabietas"] },
+];
+function compilarSenales(e){
+  const partes=[];
+  if(e.senalesChips && e.senalesChips.length) partes.push("Presenta: "+e.senalesChips.join(", ")+".");
+  if(e.senalesMatiz && e.senalesMatiz.trim()) partes.push(e.senalesMatiz.trim());
+  return partes.join(" ");
+}
+
+// Despertar/almuerzo/cena compilan a cronologia_del_dia — igual que
+// coberturaDia() ya espera (ver PERIODOS_DIA arriba). La hora de dormir NO
+// va acá: faltanDatosDuros() la busca en sueno_y_movimiento, un campo
+// distinto — por eso vive en compilarDormir(), más abajo, separado.
+function compilarCronologia(e){
+  const partes=[];
+  if(e.cronoDespierta) partes.push("Se levanta a las "+horaLegible(e.cronoDespierta)+".");
+  if(e.cronoAlmuerza) partes.push("Almuerza a las "+horaLegible(e.cronoAlmuerza)+".");
+  // "La cena termina..." a propósito, no "Termina de cenar...": PERIODOS_DIA
+  // busca \bcena\b como palabra completa — "cenar" no calza (el límite de
+  // palabra cae en medio, entre la "a" y la "r").
+  if(e.cronoCena) partes.push("La cena termina a las "+horaLegible(e.cronoCena)+".");
+  if(e.cronoFinde==="igual") partes.push("El fin de semana cena y duerme a la misma hora.");
+  else if(e.cronoFinde==="varia_1_2") partes.push("El fin de semana varía 1 a 2 horas.");
+  else if(e.cronoFinde==="muy_irregular") partes.push("El fin de semana es muy irregular.");
+  if(e.cronoLonchera==="casa") partes.push("La lonchera es de casa.");
+  else if(e.cronoLonchera==="colegio") partes.push("La lonchera la compra en el colegio.");
+  else if(e.cronoLonchera==="mixto") partes.push("La lonchera es mixta, a veces de casa y a veces del colegio.");
+  if(e.cronoMatiz && e.cronoMatiz.trim()) partes.push(e.cronoMatiz.trim());
+  return partes.join(" ");
+}
+// Compila a sueno_y_movimiento (prefijo) — RE_HORA_DORMIR busca
+// duerme/acuesta/dormir/acostar/"la cama" con una hora cerca; "acuesta"
+// calza directo y la hora queda pegada.
+function compilarDormir(e){
+  if(!e.cronoDuerme) return "";
+  return "Se acuesta a las "+horaLegible(e.cronoDuerme)+".";
+}
+// sueno_y_movimiento = la hora compilada + lo que el padre agregue a mano
+// sobre cómo despierta, actividad física, dolor al moverse — nunca se
+// pierde lo uno por lo otro.
+function compilarSuenoYMovimiento(e){
+  return [compilarDormir(e), (e.suenoManual||"").trim()].filter(Boolean).join(" ");
+}
+
+const chipBtnStyle=(activo,P)=>({
+  background:activo?P.sage:"#fff", color:activo?"#fff":P.ink, border:"1px solid "+(activo?P.sage:P.line),
+  borderRadius:999, padding:"7px 13px", fontSize:12.5, fontWeight:700, cursor:"pointer",
+  fontFamily:"'Nunito',sans-serif", whiteSpace:"nowrap",
+});
+const timeInputStyle={ border:"1px solid #D8CFBE", borderRadius:10, padding:"8px 10px", fontSize:13.5, fontFamily:"'Nunito',sans-serif", background:"#fff", color:"#2C2A24", outline:"none" };
+
+// ---------- Bloque: Origen (nacimiento · lactancia) ----------
+const BloqueOrigen=({e,set,P})=>{
+  const [otraAbierta,setOtraAbierta]=useState(!!e.origenOtra);
+  return (
+    <div style={{display:"flex",flexDirection:"column",gap:10}}>
+      <div>
+        <div style={{fontSize:11.5,fontWeight:800,color:P.muted,textTransform:"uppercase",letterSpacing:.3,marginBottom:6}}>Tipo de nacimiento</div>
+        <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+          {[["natural","Parto natural"],["cesarea","Cesárea"]].map(([v,l])=>(
+            <button key={v} type="button" onClick={()=>set({...e,origenParto:e.origenParto===v?"":v})} style={chipBtnStyle(e.origenParto===v,P)}>{l}</button>
+          ))}
+        </div>
+      </div>
+      <div>
+        <div style={{fontSize:11.5,fontWeight:800,color:P.muted,textTransform:"uppercase",letterSpacing:.3,marginBottom:6}}>Lactancia materna</div>
+        <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+          {[["no_tomo","No tomó"],["menos_6","< 6 meses"],["6_a_12","6–12 meses"],["mas_12","> 12 meses"]].map(([v,l])=>(
+            <button key={v} type="button" onClick={()=>set({...e,origenLactancia:e.origenLactancia===v?"":v})} style={chipBtnStyle(e.origenLactancia===v,P)}>{l}</button>
+          ))}
+        </div>
+      </div>
+      {!otraAbierta ? (
+        <span onClick={()=>setOtraAbierta(true)} style={{fontSize:12,color:P.sageDeep,fontWeight:700,textDecoration:"underline",cursor:"pointer",alignSelf:"flex-start"}}>¿Prematuridad, UCI u otra situación? →</span>
+      ) : (
+        <textarea value={e.origenOtra} onChange={ev=>set({...e,origenOtra:ev.target.value})} rows={2} placeholder="Cuéntanos brevemente"
+          style={{border:"1px solid "+P.line,borderRadius:12,padding:"9px 11px",fontSize:13.5,fontFamily:"'Nunito',sans-serif",background:"#fff",color:P.ink,outline:"none",resize:"vertical"}}/>
+      )}
+    </div>
+  );
+};
+
+// ---------- Bloque: Señales observadas ----------
+const BloqueSenales=({e,set,P})=>{
+  const toggle=(item)=>{
+    const tiene=e.senalesChips.includes(item);
+    set({...e, senalesChips: tiene?e.senalesChips.filter(x=>x!==item):[...e.senalesChips,item]});
+  };
+  return (
+    <div style={{display:"flex",flexDirection:"column",gap:10}}>
+      {SENALES_OPCIONES.map(g=>(
+        <div key={g.grupo}>
+          <div style={{fontSize:11,fontWeight:800,color:P.muted,textTransform:"uppercase",letterSpacing:.3,marginBottom:6}}>{g.grupo}</div>
+          <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+            {g.items.map(item=>(
+              <button key={item} type="button" onClick={()=>toggle(item)} style={chipBtnStyle(e.senalesChips.includes(item),P)}>{item}</button>
+            ))}
+          </div>
+        </div>
+      ))}
+      <div>
+        <div style={{fontSize:11.5,color:P.muted,marginBottom:4}}>¿Algo específico sobre estos síntomas? (opcional — ej. "solo le pasa en la noche")</div>
+        <textarea value={e.senalesMatiz} onChange={ev=>set({...e,senalesMatiz:ev.target.value})} rows={2} placeholder="Opcional: escribe un detalle breve aquí"
+          style={{border:"1px solid "+P.line,borderRadius:12,padding:"9px 11px",fontSize:13.5,fontFamily:"'Nunito',sans-serif",background:"#fff",color:P.ink,outline:"none",resize:"vertical"}}/>
+      </div>
+    </div>
+  );
+};
+
+// ---------- Bloque: Cronología y ritmos ----------
+const BloqueCronologia=({e,set,P})=>(
+  <div style={{display:"flex",flexDirection:"column",gap:10}}>
+    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
+      <label style={{display:"flex",flexDirection:"column",gap:3}}>
+        <span style={{fontSize:11,color:P.muted,fontWeight:700}}>Se levanta</span>
+        <input type="time" value={e.cronoDespierta} onChange={ev=>set({...e,cronoDespierta:ev.target.value})} style={timeInputStyle}/>
+      </label>
+      <label style={{display:"flex",flexDirection:"column",gap:3}}>
+        <span style={{fontSize:11,color:P.muted,fontWeight:700}}>Almuerza</span>
+        <input type="time" value={e.cronoAlmuerza} onChange={ev=>set({...e,cronoAlmuerza:ev.target.value})} style={timeInputStyle}/>
+      </label>
+      <label style={{display:"flex",flexDirection:"column",gap:3}}>
+        <span style={{fontSize:11,color:P.muted,fontWeight:700}}>Termina de cenar</span>
+        <input type="time" value={e.cronoCena} onChange={ev=>set({...e,cronoCena:ev.target.value})} style={timeInputStyle}/>
+      </label>
+      <label style={{display:"flex",flexDirection:"column",gap:3}}>
+        <span style={{fontSize:11,color:P.muted,fontWeight:700}}>Se duerme</span>
+        <input type="time" value={e.cronoDuerme} onChange={ev=>set({...e,cronoDuerme:ev.target.value})} style={timeInputStyle}/>
+      </label>
+    </div>
+    <div>
+      <div style={{fontSize:11.5,fontWeight:800,color:P.muted,textTransform:"uppercase",letterSpacing:.3,marginBottom:6}}>¿Cena y duerme a la misma hora los fines de semana?</div>
+      <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+        {[["igual","Sí"],["varia_1_2","Varía 1–2 horas"],["muy_irregular","Muy irregular"]].map(([v,l])=>(
+          <button key={v} type="button" onClick={()=>set({...e,cronoFinde:e.cronoFinde===v?"":v})} style={chipBtnStyle(e.cronoFinde===v,P)}>{l}</button>
+        ))}
+      </div>
+    </div>
+    <div>
+      <div style={{fontSize:11.5,fontWeight:800,color:P.muted,textTransform:"uppercase",letterSpacing:.3,marginBottom:6}}>Lonchera escolar</div>
+      <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+        {[["casa","La lleva de casa"],["colegio","Compra en el colegio"],["mixto","Mixto"]].map(([v,l])=>(
+          <button key={v} type="button" onClick={()=>set({...e,cronoLonchera:e.cronoLonchera===v?"":v})} style={chipBtnStyle(e.cronoLonchera===v,P)}>{l}</button>
+        ))}
+      </div>
+    </div>
+    <div>
+      <div style={{fontSize:11.5,color:P.muted,marginBottom:4}}>¿Algo específico sobre sus horarios o comidas intermedias? (opcional)</div>
+      <textarea value={e.cronoMatiz} onChange={ev=>set({...e,cronoMatiz:ev.target.value})} rows={2} placeholder="Ej. los jueves entrena y todo se atrasa una hora"
+        style={{border:"1px solid "+P.line,borderRadius:12,padding:"9px 11px",fontSize:13.5,fontFamily:"'Nunito',sans-serif",background:"#fff",color:P.ink,outline:"none",resize:"vertical"}}/>
+    </div>
+  </div>
+);
+
 // Renderiza **negrita** como <strong>; conserva saltos de línea via white-space:pre-wrap.
 const renderRich = (text) => (text||"").split(/(\*\*[^*]+\*\*)/g).map((part,i)=>
   part.startsWith("**")&&part.endsWith("**")
@@ -555,6 +760,7 @@ function App(){
   const [loading,setLoading]=useState(false);
   const [dx,setDx]=useState(()=>{ const g=leerGuardado(); return (g&&g.dx)?g.dx:emptyDx; });
   const [dxAlPausar,setDxAlPausar]=useState(null); // snapshot de dx al salir del chat, para detectar si el formulario cambió algo mientras tanto
+  const [estructurado,setEstructurado]=useState(()=>({...emptyEstructurado, ...leerEstructurado()})); // chips/selectores de origen, señales y cronología — ver bloque arriba
   const [consentChecked,setConsentChecked]=useState(false); // checkbox de la pantalla de consentimiento
   const [consentInvestigacionChecked,setConsentInvestigacionChecked]=useState(false); // casilla SEPARADA y opcional (19 ago 2026) — investigación/mejora de otros planes, nunca condiciona el servicio
   // (pendingStage se quitó el 6 nov 2026 al fusionar consentimiento+intro — ver abajo)
@@ -575,6 +781,39 @@ function App(){
     if(stage==="welcome"||stage==="sent") return;
     try{ localStorage.setItem(GUARDADO_KEY, JSON.stringify({stage,messages,dx})); }catch(e){}
   },[stage,messages,dx]);
+
+  // Recompila origen/señales/cronología/sueño a partir de los chips cada vez
+  // que algo cambia — dx sigue siendo el único payload real hacia /log, los
+  // chips son solo la forma de llenarlo. Guarda el estado de los chips
+  // aparte (ESTRUCTURADO_KEY), para que recargar a mitad de camino no los
+  // borre.
+  //
+  // "Tocado" por bloque (no solo "¿compiló algo?"): un padre puede llegar acá
+  // con dx.origen/senales_observables/cronologia_del_dia ya escritos a mano
+  // en el chat ANTES de abrir el formulario — si este efecto sobrescribiera
+  // con "" apenas monta (porque el bloque de chips todavía está vacío),
+  // borraría ese texto sin que nadie lo haya tocado. Solo se escribe encima
+  // cuando el padre de verdad interactuó con ESE bloque de chips — si lo
+  // vuelve a dejar todo sin marcar después de haber usado los chips, ahí sí
+  // se refleja como vacío (eso sí fue una acción suya).
+  useEffect(()=>{
+    try{ localStorage.setItem(ESTRUCTURADO_KEY, JSON.stringify(estructurado)); }catch(e){}
+    const origenTocado = !!(estructurado.origenParto || estructurado.origenLactancia || estructurado.origenOtra);
+    const senalesTocado = !!((estructurado.senalesChips&&estructurado.senalesChips.length) || estructurado.senalesMatiz);
+    const cronoTocado = !!(estructurado.cronoDespierta || estructurado.cronoAlmuerza || estructurado.cronoCena || estructurado.cronoFinde || estructurado.cronoLonchera || estructurado.cronoMatiz);
+    const suenoTocado = !!(estructurado.cronoDuerme || estructurado.suenoManual);
+    setDx(prev=>{
+      const next = {
+        ...prev,
+        origen: origenTocado ? compilarOrigen(estructurado) : prev.origen,
+        senales_observables: senalesTocado ? compilarSenales(estructurado) : prev.senales_observables,
+        cronologia_del_dia: cronoTocado ? compilarCronologia(estructurado) : prev.cronologia_del_dia,
+        sueno_y_movimiento: suenoTocado ? compilarSuenoYMovimiento(estructurado) : prev.sueno_y_movimiento,
+      };
+      if(prev.origen===next.origen && prev.senales_observables===next.senales_observables && prev.cronologia_del_dia===next.cronologia_del_dia && prev.sueno_y_movimiento===next.sueno_y_movimiento) return prev;
+      return next;
+    });
+  },[estructurado]);
 
   const filled=FIELDS.filter(f=>dx[f.key]&&dx[f.key].trim()).length;
 
@@ -933,13 +1172,55 @@ function App(){
         <div style={{fontFamily:"'Fraunces',serif",fontSize:21,color:P.sageDeep,marginBottom:6}}>Formulario de Hábitos</div>
         <p style={{fontSize:12.5,color:P.muted,lineHeight:1.5,maxWidth:340,margin:"0 auto"}}>Llena lo que sepas — no tiene que quedar perfecto, el equipo lo revisa igual. ¿Prefieres <span onClick={goToChat} style={{color:P.sageDeep,fontWeight:700,textDecoration:"underline",cursor:"pointer"}}>conversar con Vita</span>? Lo que ya llenaste no se pierde.</p>
       </div>
-      {FIELDS.map(f=>(
-        <div key={f.key} style={{display:"flex",flexDirection:"column",gap:5}}>
-          <label style={{fontSize:13,fontWeight:800,color:P.sageDeep}}>{f.label}</label>
-          {f.hint && <div style={{fontSize:11.5,color:P.muted,lineHeight:1.4}}>{f.hint}</div>}
-          <textarea value={dx[f.key]} onChange={e=>setDx(prev=>({...prev,[f.key]:e.target.value}))} rows={f.key==="cronologia_del_dia"?4:(f.key==="nombre_padre"||f.key==="email_padre"||f.key==="nombre_nino"||f.key==="edad"?1:2)} style={{border:"1px solid "+P.line,borderRadius:12,padding:"9px 11px",fontSize:13.5,fontFamily:"'Nunito',sans-serif",background:"#fff",color:P.ink,outline:"none",resize:"vertical"}}/>
-        </div>
-      ))}
+      {FIELDS.map(f=>{
+        // Origen, señales observadas y cronología pasan a chips/selectores
+        // (6 nov 2026) — ver los bloques BloqueOrigen/BloqueSenales/
+        // BloqueCronologia arriba. dx[f.key] se sigue compilando igual que
+        // antes, solo cambia cómo se llena.
+        if(f.key==="origen") return (
+          <div key={f.key} style={{display:"flex",flexDirection:"column",gap:5}}>
+            <label style={{fontSize:13,fontWeight:800,color:P.sageDeep}}>{f.label}</label>
+            <BloqueOrigen e={estructurado} set={setEstructurado} P={P}/>
+          </div>
+        );
+        if(f.key==="senales_observables") return (
+          <div key={f.key} style={{display:"flex",flexDirection:"column",gap:5}}>
+            <label style={{fontSize:13,fontWeight:800,color:P.sageDeep}}>{f.label}</label>
+            <BloqueSenales e={estructurado} set={setEstructurado} P={P}/>
+          </div>
+        );
+        if(f.key==="cronologia_del_dia") return (
+          <div key={f.key} style={{display:"flex",flexDirection:"column",gap:5}}>
+            <label style={{fontSize:13,fontWeight:800,color:P.sageDeep}}>{f.label}</label>
+            <div style={{fontSize:11.5,color:P.muted,lineHeight:1.4}}>Horas aproximadas de su día — la hora en que termina de cenar es la más importante para el equipo.</div>
+            <BloqueCronologia e={estructurado} set={setEstructurado} P={P}/>
+          </div>
+        );
+        // sueno_y_movimiento: la hora de dormir ya se captura arriba, en el
+        // mismo bloque de Cronología (faltanDatosDuros() la exige en ESTE
+        // campo, no en cronologia_del_dia — ver compilarDormir()). Acá solo
+        // queda lo cualitativo: cómo despierta, actividad física, dolor al
+        // moverse. El textarea ya no apunta a dx directo — apunta a
+        // estructurado.suenoManual, y el efecto de arriba arma dx.sueno_y_movimiento
+        // pegando la hora compilada + esto.
+        if(f.key==="sueno_y_movimiento") return (
+          <div key={f.key} style={{display:"flex",flexDirection:"column",gap:5}}>
+            <label style={{fontSize:13,fontWeight:800,color:P.sageDeep}}>{f.label}</label>
+            {estructurado.cronoDuerme
+              ? <div style={{fontSize:11.5,color:P.sageDeep,lineHeight:1.4}}>✓ Hora de dormir ya registrada arriba, en Cronología.</div>
+              : <div style={{fontSize:11.5,color:P.muted,lineHeight:1.4}}>La hora de dormir se registra arriba, en Cronología. Acá cuéntanos cómo despierta, si se despierta en la noche, qué actividad física hace, si algo le duele al moverse.</div>}
+            <textarea value={estructurado.suenoManual} onChange={e=>setEstructurado(prev=>({...prev,suenoManual:e.target.value}))} rows={2}
+              style={{border:"1px solid "+P.line,borderRadius:12,padding:"9px 11px",fontSize:13.5,fontFamily:"'Nunito',sans-serif",background:"#fff",color:P.ink,outline:"none",resize:"vertical"}}/>
+          </div>
+        );
+        return (
+          <div key={f.key} style={{display:"flex",flexDirection:"column",gap:5}}>
+            <label style={{fontSize:13,fontWeight:800,color:P.sageDeep}}>{f.label}</label>
+            {f.hint && <div style={{fontSize:11.5,color:P.muted,lineHeight:1.4}}>{f.hint}</div>}
+            <textarea value={dx[f.key]} onChange={e=>setDx(prev=>({...prev,[f.key]:e.target.value}))} rows={f.key==="nombre_padre"||f.key==="email_padre"||f.key==="nombre_nino"||f.key==="edad"?1:2} style={{border:"1px solid "+P.line,borderRadius:12,padding:"9px 11px",fontSize:13.5,fontFamily:"'Nunito',sans-serif",background:"#fff",color:P.ink,outline:"none",resize:"vertical"}}/>
+          </div>
+        );
+      })}
       <button onClick={sendToReview} disabled={!puedeEnviar()||sending} style={{...btnPrimary,alignSelf:"center",marginTop:6,opacity:(!puedeEnviar()||sending)?.55:1,cursor:(!puedeEnviar()||sending)?"default":"pointer"}}>{sending?"Enviando…":"Enviar a revisión →"}</button>
       {!puedeEnviar() && <p style={{fontSize:11.5,color:P.muted,textAlign:"center"}}>Aún falta: {mensajeFaltante()}.</p>}
       {sendError && <p style={{fontSize:12.5,color:P.clay,textAlign:"center"}}>{sendError}</p>}
