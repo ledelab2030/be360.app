@@ -1398,6 +1398,18 @@ Texto nuevo: *"Acompaño a las familias de be360. En unos minutos te pregunto po
 
 **Verificación:** `@babel/standalone` sobre los dos archivos, sin errores.
 
+### 7 nov 2026 — Encabezado del formulario directo: separa las dos instrucciones en dos frases
+
+Gemini señaló que el encabezado de "Formulario de Hábitos" juntaba en una sola frase la instrucción de llenado y la invitación a cambiar al chat con Vita, compitiendo como dos llamados a la acción. Propuso 3 opciones de redacción; Leonardo eligió la C (ultracorta), manteniendo el nombre "Formulario de Hábitos" sin cambiar — coherente con que ese nombre es el término establecido del instrumento clínico en todo el proyecto, no solo una etiqueta de pantalla.
+
+Texto anterior: *"Llena lo que sepas — no tiene que quedar perfecto, el equipo lo revisa igual. ¿Prefieres conversar con Vita? Lo que ya llenaste no se pierde."*
+
+Texto nuevo: *"Completa los datos que tengas a mano — el equipo revisa todo igual. ¿Prefieres hacerlo guiado? Puedes conversar con Vita, sin perder tu progreso."* (ajustado de la opción C de Gemini: "el equipo" en vez de "nuestro equipo", para mantener la voz ya usada en el resto de la app).
+
+**Archivos:** `vita-demo-formulario/index.html` y su copia `-v2/`.
+
+**Verificación:** `@babel/standalone` sobre los dos archivos, sin errores.
+
 ---
 
 ---
