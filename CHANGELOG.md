@@ -1386,6 +1386,18 @@ Leonardo le mostró las dos rondas anteriores a Gemini, que auditó el flujo com
 
 **Verificación:** `@babel/standalone` sobre los dos archivos, sin errores, también después de actualizar el watermark. Compilador probado en sandbox de Node contra la lógica real extraída: un caso con los 5 horarios + lonchera + entrenamiento da `coberturaDia` → 7/7 (cobertura completa, incluyendo Media mañana y Media tarde, que antes solían quedar sin cubrir) y `faltanDatosDuros` → sin faltantes. Probado en navegador con servidor local: el 5º selector aparece en el lugar correcto, el micro-campo de lonchera aparece solo después de elegir una opción, los campos de entrenamiento aparecen solo al marcar "Sí", todo compila a `dx.cronologia_del_dia` en vivo con el texto esperado. Sin errores de consola.
 
+### 7 nov 2026 — Subtítulo de bienvenida: "be360" en vez de "Bienestar 360", y promesa de tiempo sin cifra fija
+
+Gemini propuso agregar "En menos de 5 minutos..." al subtítulo de la pantalla "Hola, soy Vita". Leonardo aprobó la idea con un ajuste — sin cifra específica, mismo criterio que ya se aplicó al quitar "Toma unos 20 minutos" de la pantalla de consentimiento (PR #175): una promesa de tiempo exacta genera más ansiedad si no se cumple, no menos. De paso, Leonardo pidió usar "be360" en vez de "Bienestar 360" en texto nuevo — alcance confirmado explícitamente como solo para esta pantalla, no un rebranding general (eso queda aparte, sin decidir todavía).
+
+Texto anterior: *"Acompaño a las familias de Bienestar 360. Te pregunto por la rutina diaria de tu hijo o hija, y con eso el equipo clínico le prepara un plan de hábitos."*
+
+Texto nuevo: *"Acompaño a las familias de be360. En unos minutos te pregunto por la rutina diaria de tu hijo o hija, y con eso el equipo clínico le prepara su plan personalizado de hábitos."*
+
+**Archivos:** `vita-demo-formulario/index.html` y su copia `-v2/`.
+
+**Verificación:** `@babel/standalone` sobre los dos archivos, sin errores.
+
 ---
 
 ---
