@@ -20,6 +20,7 @@
   .dot:nth-child(2){animation-delay:.2s}.dot:nth-child(3){animation-delay:.4s}
   @keyframes blink{0%,60%,100%{opacity:.25}30%{opacity:1}}
   .scroll::-webkit-scrollbar{width:8px}.scroll::-webkit-scrollbar-thumb{background:#D8CFBE;border-radius:8px}
+  details>summary{list-style:none}details>summary::-webkit-details-marker{display:none}
 </style>
 </head>
 <body>
@@ -90,7 +91,10 @@ const MODEL = "claude-sonnet-4-6";
 // assessment de RAI (Privacy → Consent management, score 0/4) — el más serio
 // de los 9 dimensiones evaluadas. Ambos caminos de entrada (chat directo o
 // formulario directo) pasan ahora por stage "consentimiento" una sola vez;
-// ver irCon()/aceptarConsentimiento() más abajo. Guarda la aceptación como
+// ver marcarConsentimiento()/empezarConversacion()/empezarFormulario() más
+// abajo (fusionado con la pantalla "Cómo vamos a hacerlo" el 6 nov 2026 —
+// eran dos pantallas con la misma idea de "reconstruimos tu día" repetida,
+// ver CHANGELOG). Guarda la aceptación como
 // dx.consentimiento_ts (timestamp ISO), que viaja con el resto de dx hacia
 // /log sin que el Worker necesite ningún cambio (dx pasa completo tal cual).
 // Pendiente de un humano: agregar la columna correspondiente en
@@ -134,7 +138,7 @@ Mientras recorres las áreas, SOLO escuchas y reconoces con calidez ("listo", "g
 
 Recorre las áreas en este orden, 1-2 preguntas por mensaje, en tono de conversación (no interrogatorio):
 
-0. CONTACTO: antes de empezar con el hijo/a, pregunta el nombre del padre/madre con quien hablas, y a qué correo le pueden escribir con el plan cuando esté listo. Encuádralo simple: "Antes de empezar, ¿cómo te llamas, y a qué correo te escribimos cuando tengamos su plan listo?" (una sola vez, no lo repitas).
+0. CONTACTO: antes de empezar con el hijo/a, pregunta el nombre del padre/madre con quien hablas — en su propio mensaje, no junto con nada más: "Antes de empezar, ¿cómo te llamas?". Cuando responda, en tu siguiente mensaje agradécele por su nombre y, aparte, pregúntale a qué correo le pueden escribir con el plan cuando esté listo (cada pregunta una sola vez, no las repitas).
 1. GENERAL: nombre del hijo/a, edad. Qué le gustaría lograr con el programa, y qué es lo que MÁS le preocupa hoy de su hijo/a (esto último es clave, pregúntalo con calma, dale espacio).
 2. ORIGEN: parto natural o cesárea; cuánto tiempo de lactancia materna (o si no tomó).
 3. SUEÑO Y MOVIMIENTO: a qué hora se duerme (cuando se apagan luces y pantallas) y a qué hora se levanta; cómo despierta (descansado / le cuesta / cansado); si se despierta en la noche; qué actividad física hace y cuántas veces por semana; si algo le duele al moverse. La hora de dormir es un dato duro (26 oct 2026, pedido de Peter) — si el padre responde algo vago ("temprano", "depende del día"), no sigas a la siguiente área todavía: pídele un aproximado concreto una vez más ("¿más o menos a las 8, a las 9?") antes de continuar.
@@ -553,7 +557,7 @@ function App(){
   const [dxAlPausar,setDxAlPausar]=useState(null); // snapshot de dx al salir del chat, para detectar si el formulario cambió algo mientras tanto
   const [consentChecked,setConsentChecked]=useState(false); // checkbox de la pantalla de consentimiento
   const [consentInvestigacionChecked,setConsentInvestigacionChecked]=useState(false); // casilla SEPARADA y opcional (19 ago 2026) — investigación/mejora de otros planes, nunca condiciona el servicio
-  const [pendingStage,setPendingStage]=useState("intro"); // a dónde ir después de aceptar (intro→chat, o form)
+  // (pendingStage se quitó el 6 nov 2026 al fusionar consentimiento+intro — ver abajo)
   const [showDx,setShowDx]=useState(false);
   const [error,setError]=useState(null);
   const [exported,setExported]=useState(false);
@@ -606,11 +610,7 @@ function App(){
   // (dx pasa completo tal cual a la hoja) — pendiente: agregar la columna
   // correspondiente en apps-script-formulario-v2.gs.txt para que quede
   // registrado también ahí, no solo viajando en el payload.
-  const irCon=(destino)=>{
-    if(dx.consentimiento_ts){ setStage(destino); return; }
-    setPendingStage(destino); setStage("consentimiento");
-  };
-  const aceptarConsentimiento=()=>{
+  const marcarConsentimiento=()=>{
     setDx(prev=>({...prev,
       consentimiento_ts:new Date().toISOString(),
       // Vacío si no marcó la casilla de investigación — igual que el resto
@@ -618,8 +618,14 @@ function App(){
       // preguntado". Nunca se infiere desde consentimiento_ts.
       consentimiento_investigacion_ts: consentInvestigacionChecked ? new Date().toISOString() : "",
     }));
-    setStage(pendingStage);
   };
+  // Los dos destinos posibles tras aceptar — antes vivían detrás de un
+  // pendingStage genérico que pasaba por la pantalla "intro" intermedia;
+  // ahora el consentimiento y el "cómo vamos a hacerlo" son una sola
+  // pantalla, así que aceptar va directo al destino (startOrResumeChat ya
+  // se define más abajo, pero por closure está disponible acá al ejecutarse).
+  const empezarConversacion=()=>{ marcarConsentimiento(); startOrResumeChat(); };
+  const empezarFormulario=()=>{ marcarConsentimiento(); setStage("form"); };
   const mensajeFaltante=()=>{
     const {camposFaltantes,opcFaltan}=faltantes();
     const {labels}=faltanDatosDuros(dx);
@@ -863,34 +869,40 @@ function App(){
       <div style={{fontFamily:"'Fraunces',serif",fontSize:27,color:P.sageDeep,lineHeight:1.15,marginBottom:14}}>Hola, soy Vita</div>
       <p style={{fontSize:15,color:P.ink,lineHeight:1.6,maxWidth:360,marginBottom:16}}>Acompaño a las familias de Bienestar 360. Te pregunto por la rutina diaria de tu hijo o hija, y con eso el equipo clínico le prepara un plan de hábitos.</p>
       <p style={{fontSize:13,color:P.muted,lineHeight:1.6,maxWidth:340,marginBottom:26}}>Esto acompaña y suma con su pediatra — no lo reemplaza.</p>
-      <button onClick={()=>irCon("intro")} style={btnPrimary}>Comenzar →</button>
+      <button onClick={()=> dx.consentimiento_ts ? goToChat() : setStage("consentimiento")} style={btnPrimary}>Comenzar →</button>
     </div></Shell>
   );
 
   if(stage==="consentimiento") return (
+    // Fusionada con la pantalla "Cómo vamos a hacerlo" el 6 nov 2026 (pedido
+    // de Leonardo, feedback de Jocelyn Gutiérrez vía Gemini): eran dos
+    // pantallas antes del primer mensaje de Vita, y las dos decían una
+    // versión de "reconstruimos tu día típico". El resto del texto legal
+    // (revisión humana, alcance con colegios, política completa) no
+    // desaparece — queda detrás de "Ver detalle legal completo", en vez de
+    // ocupar la pantalla entera antes del botón.
     <Shell><div className="rise scroll" style={{flex:1,overflowY:"auto",display:"flex",flexDirection:"column",justifyContent:"center",padding:"30px 26px"}}>
       <div style={{fontSize:40,marginBottom:12,textAlign:"center"}}>🌱</div>
       <div style={{fontFamily:"'Fraunces',serif",fontSize:23,color:P.sageDeep,lineHeight:1.2,marginBottom:16,textAlign:"center"}}>Antes de empezar</div>
-      <p style={{fontSize:14.5,color:P.ink,lineHeight:1.65,marginBottom:14}}>Esto es lo que hacemos con lo que nos cuentes:</p>
-      <div style={{background:P.sageSoft,borderRadius:16,padding:"16px",marginBottom:18}}>
-        <div style={{display:"flex",gap:11,marginBottom:12}}><div style={{fontSize:18,flexShrink:0}}>🩺</div><div style={{fontSize:13.5,color:P.ink,lineHeight:1.5}}>Un humano del equipo clínico revisa todo antes de que te llegue.</div></div>
-        <div style={{display:"flex",gap:11,marginBottom:12}}><div style={{fontSize:18,flexShrink:0}}>🔒</div><div style={{fontSize:13.5,color:P.ink,lineHeight:1.5}}>La usamos solo para preparar el plan de tu hijo o hija.</div></div>
-        {/* NUEVO (16 sept 2026, pedido de Leonardo): esto ya pasaba en panel-colegio
-            (agregados con umbral de privacidad, nunca datos individuales) pero no
-            estaba dicho en esta pantalla, y la frase de arriba ("no la compartimos
-            con nadie más") lo contradecía. No es opt-in: es parte del servicio que
-            el colegio ya contrató (ver propuestas BIS/Royal), igual que el punto de
-            arriba — por eso va en esta caja, no en la de investigación de abajo. */}
-        {/* Redactado en genérico (21 oct 2026, pedido de Leonardo): antes decía
-            "tu colegio" como un hecho, y en la ronda de validación las familias
-            no entran por ningún colegio — les sonaba a un dato que nosotros
-            dábamos por cierto sobre ellas. Ahora la frase es condicional y vale
-            igual para quien entra por un colegio y para quien no. */}
-        <div style={{display:"flex",gap:11,marginBottom:12}}><div style={{fontSize:18,flexShrink:0}}>🏫</div><div style={{fontSize:13.5,color:P.ink,lineHeight:1.5}}>Cuando el programa llega a través de un colegio, con el colegio compartimos solo reportes agregados y anónimos — nunca datos de tu hijo o hija.</div></div>
-        <div style={{display:"flex",gap:11}}><div style={{fontSize:18,flexShrink:0}}>✉️</div><div style={{fontSize:13.5,color:P.ink,lineHeight:1.5}}>Puedes pedirnos que la borremos cuando quieras, escribiendo a leonardo@ledelab.group.</div></div>
+      <div style={{background:P.sageSoft,borderRadius:16,padding:"16px",marginBottom:14}}>
+        <div style={{display:"flex",gap:11,marginBottom:12}}><div style={{fontSize:18,flexShrink:0}}>🔒</div><div style={{fontSize:13.5,color:P.ink,lineHeight:1.5}}>La usamos solo para preparar el plan de tu hijo o hija — puedes pedirnos que la borremos cuando quieras.</div></div>
+        <div style={{display:"flex",gap:11}}><div style={{fontSize:18,flexShrink:0}}>🌱</div><div style={{fontSize:13.5,color:P.ink,lineHeight:1.5}}>Reconstruimos su día típico. Toma unos minutos, y si te interrumpen, sigues después donde ibas.</div></div>
       </div>
-      <p style={{fontSize:12,color:P.muted,marginTop:-10,marginBottom:18,textAlign:"center"}}><a href="/terminos" target="_blank" rel="noopener" style={{color:P.sageDeep,fontWeight:700,textDecoration:"underline"}}>Lee la política completa →</a></p>
-      <label style={{display:"flex",gap:10,alignItems:"flex-start",marginBottom:20,cursor:"pointer"}}>
+      <details style={{marginBottom:18}}>
+        <summary style={{fontSize:12,color:P.sageDeep,fontWeight:700,textDecoration:"underline",cursor:"pointer",textAlign:"center"}}>Ver detalle legal completo →</summary>
+        <div style={{fontSize:12,color:P.muted,lineHeight:1.6,background:"#fff",border:"1px solid "+P.line,borderRadius:12,padding:"12px 14px",marginTop:10}}>
+          <p style={{margin:"0 0 8px"}}>🩺 Un humano del equipo clínico revisa todo antes de que te llegue — nunca reemplaza a tu pediatra.</p>
+          {/* Alcance con colegios (16 sept 2026, pedido de Leonardo): no es
+              opt-in, es parte del servicio que el colegio ya contrató (ver
+              propuestas BIS/Royal) — por eso va acá, no en la casilla de
+              investigación de abajo. Redactado en genérico (21 oct 2026):
+              condicional, vale igual para quien entra por un colegio y para
+              quien no. */}
+          <p style={{margin:"0 0 8px"}}>🏫 Cuando el programa llega a través de un colegio, con el colegio compartimos solo reportes agregados y anónimos — nunca datos de tu hijo o hija.</p>
+          <p style={{margin:0}}><a href="/terminos" target="_blank" rel="noopener" style={{color:P.sageDeep,fontWeight:700,textDecoration:"underline"}}>Lee la política completa →</a></p>
+        </div>
+      </details>
+      <label style={{display:"flex",gap:10,alignItems:"flex-start",marginBottom:16,cursor:"pointer"}}>
         <input type="checkbox" checked={consentChecked} onChange={e=>setConsentChecked(e.target.checked)} style={{marginTop:3,width:17,height:17,flexShrink:0,accentColor:P.sage}}/>
         <span style={{fontSize:13,color:P.ink,lineHeight:1.5}}>He leído esto y acepto que se use para preparar el plan de mi hijo o hija.</span>
       </label>
@@ -898,20 +910,18 @@ function App(){
       {/* NUEVO (19 ago 2026, pedido de Leonardo): casilla de investigación —
           SEPARADA de la de arriba a propósito. Desmarcada por defecto, nadie
           queda inscrito sin decidirlo explícitamente. No condiciona el
-          servicio (el botón de abajo se habilita solo con el checkbox
+          servicio (los botones de abajo se habilitan solo con el checkbox
           principal, este NO es requisito) — se lo digo dos veces al padre
-          (acá y en el texto de la casilla) para que quede claro. Mismo
-          estilo ícono+frase que los 3 puntos de arriba, para que no se
-          sienta pegado con cinta. Nunca menciona IA/modelo/tecnología —
-          misma regla dura que el resto de cara al padre. */}
-      {/* Se juntó el recuadro explicativo con el texto de la casilla (21 oct
-          2026): estaban separados y decían casi lo mismo dos veces seguidas. */}
+          (acá y en el texto de la casilla) para que quede claro. Nunca
+          menciona IA/modelo/tecnología — misma regla dura que el resto de
+          cara al padre. */}
       <label style={{display:"flex",gap:10,alignItems:"flex-start",marginBottom:20,cursor:"pointer"}}>
         <input type="checkbox" checked={consentInvestigacionChecked} onChange={e=>setConsentInvestigacionChecked(e.target.checked)} style={{marginTop:3,width:17,height:17,flexShrink:0,accentColor:P.sage}}/>
         <span style={{fontSize:13,color:P.ink,lineHeight:1.5}}>Opcional: también podemos usarla, sin nombres, para investigación y para mejorar los planes de otras familias. Si no marcas esto, igual recibes el plan.</span>
       </label>
 
-      <button onClick={aceptarConsentimiento} disabled={!consentChecked} style={{...btnPrimary,alignSelf:"center",opacity:consentChecked?1:.5,cursor:consentChecked?"pointer":"default"}}>Acepto y continúo →</button>
+      <button onClick={empezarConversacion} disabled={!consentChecked} style={{...btnPrimary,alignSelf:"center",opacity:consentChecked?1:.5,cursor:consentChecked?"pointer":"default"}}>Empezar la conversación →</button>
+      <button onClick={empezarFormulario} disabled={!consentChecked} style={{background:"none",border:"none",color:consentChecked?P.sageDeep:P.muted,fontSize:12.5,fontWeight:700,marginTop:16,cursor:consentChecked?"pointer":"default",opacity:consentChecked?1:.6,textDecoration:"underline",alignSelf:"center",fontFamily:"'Nunito',sans-serif"}}>¿Prefieres llenarlo tú mismo? Ves todas las preguntas de una vez →</button>
       <button onClick={()=>setStage("welcome")} style={{background:"none",border:"none",color:P.muted,fontSize:12.5,fontWeight:700,marginTop:14,cursor:"pointer",alignSelf:"center",fontFamily:"'Nunito',sans-serif"}}>← Volver</button>
     </div></Shell>
   );
@@ -947,26 +957,6 @@ function App(){
     </div></Shell>
   );
 
-  if(stage==="intro") return (
-    <Shell><div className="rise scroll" style={{flex:1,overflowY:"auto",display:"flex",flexDirection:"column",justifyContent:"center",padding:"30px 26px"}}>
-      <div style={{fontSize:40,marginBottom:12,textAlign:"center"}}>🌱</div>
-      <div style={{fontFamily:"'Fraunces',serif",fontSize:23,color:P.sageDeep,lineHeight:1.2,marginBottom:16,textAlign:"center"}}>Cómo vamos a hacerlo</div>
-      {/* Revisión de Leonardo (21 oct 2026): se quitó "al final tu información
-          queda registrada…" —ya lo dice el consentimiento, y la pantalla final
-          lo repite— y acá baja el acceso al formulario directo, que antes
-          estaba en la bienvenida. El tiempo se queda a propósito: el recorrido
-          ya guarda el avance en el dispositivo, pero igual conviene que el
-          padre sepa en qué se está metiendo antes de empezar. */}
-      <p style={{fontSize:14.5,color:P.ink,lineHeight:1.65,marginBottom:14}}>La energía, el ánimo y la atención de un niño dependen mucho de los hábitos de la casa: qué come, a qué hora, cuánto se mueve y cómo duerme.</p>
-      <div style={{background:P.sageSoft,borderRadius:16,padding:"16px",marginBottom:18}}>
-        <div style={{display:"flex",gap:11,marginBottom:12}}><div style={{fontSize:18,flexShrink:0}}>🕊️</div><div style={{fontSize:13.5,color:P.ink,lineHeight:1.5}}>Reconstruimos un día normal de tu hijo o hija, desde que despierta hasta que se duerme. Con calma, sin juzgar.</div></div>
-        <div style={{display:"flex",gap:11}}><div style={{fontSize:18,flexShrink:0}}>💬</div><div style={{fontSize:13.5,color:P.ink,lineHeight:1.5}}>Toma unos 20 minutos. Si te interrumpen, tu avance queda guardado en este dispositivo y puedes seguir después.</div></div>
-      </div>
-      <button onClick={startOrResumeChat} style={{...btnPrimary,alignSelf:"center"}}>Empezar la conversación →</button>
-      <button onClick={()=>irCon("form")} style={{background:"none",border:"none",color:P.sageDeep,fontSize:12.5,fontWeight:700,marginTop:16,cursor:"pointer",textDecoration:"underline",alignSelf:"center",fontFamily:"'Nunito',sans-serif"}}>¿Prefieres llenarlo tú mismo? Ves todas las preguntas de una vez →</button>
-      <button onClick={()=>setStage("welcome")} style={{background:"none",border:"none",color:P.muted,fontSize:12.5,fontWeight:700,marginTop:14,cursor:"pointer",alignSelf:"center",fontFamily:"'Nunito',sans-serif"}}>← Volver</button>
-    </div></Shell>
-  );
 
   return (
     <Shell>
