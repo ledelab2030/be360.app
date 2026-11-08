@@ -244,7 +244,41 @@ var COLS = {
   // encontrado en vivo: Leonardo pidió regenerar un caso real y el contenido
   // no cambió, sin ningún rastro de qué pasó.
   regeneracion_estado: 30,
+  // NUEVO (8 nov 2026, pedido de Leonardo): número de caso legible para el
+  // equipo ("Caso #7"), asignado UNA SOLA VEZ, en el momento en que el
+  // borrador se genera por primera vez — no al llenar el formulario (un
+  // formulario sin borrador generado nunca llegó a ser un caso "activo"
+  // para el equipo) ni en cada reintento (ver guardarBorrador(), mismo
+  // principio de idempotencia que ya protege a id_plan). Vacío en las
+  // filas de prueba/debug viejas y en cualquier fila anterior a este
+  // cambio que nunca se reprocese — no se rellena retroactivamente salvo
+  // por el backfill puntual de backfillConsecutivosIniciales(), más abajo.
+  consecutivo: 31,
 };
+
+// Asigna el siguiente consecutivo libre a una fila, bajo un lock para que
+// dos generaciones casi simultáneas nunca repitan número. Calcula el
+// máximo ya usado en la columna + 1 en vez de guardar un contador aparte
+// en PropertiesService -- así el número nunca puede desincronizarse de lo
+// que el Sheet realmente tiene (si alguna fila se borra o se corrige a
+// mano, el siguiente cálculo ya lo refleja solo).
+function asignarConsecutivo(sheet, rowNum) {
+  var lock = LockService.getScriptLock();
+  lock.waitLock(10000);
+  try {
+    var data = sheet.getDataRange().getValues();
+    var max = 0;
+    for (var r = 1; r < data.length; r++) {
+      var v = Number(data[r][COLS.consecutivo]);
+      if (v > max) max = v;
+    }
+    var consecutivo = max + 1;
+    sheet.getRange(rowNum, COLS.consecutivo + 1).setValue(consecutivo);
+    return consecutivo;
+  } finally {
+    lock.releaseLock();
+  }
+}
 
 function doPost(e) {
   try {
@@ -423,6 +457,7 @@ function listarPendientes(sheet) {
     if (data[r][COLS.decision] === "pendiente_aprobacion") {
       out.push({
         idPlan: data[r][COLS.id_plan],
+        consecutivo: data[r][COLS.consecutivo] || null,
         nombreNino: data[r][COLS.nombre_nino],
         edad: data[r][COLS.edad],
         nombrePadre: data[r][COLS.nombre_padre],
@@ -446,6 +481,7 @@ function listarHistorial(sheet) {
     if (data[r][COLS.decision] === "aprobado") {
       out.push({
         idPlan: data[r][COLS.id_plan],
+        consecutivo: data[r][COLS.consecutivo] || null,
         nombreNino: data[r][COLS.nombre_nino],
         edad: data[r][COLS.edad],
         nombrePadre: data[r][COLS.nombre_padre],
@@ -496,6 +532,7 @@ function detallePlan(sheet, body) {
   return respond({
     ok: true,
     idPlan: idPlan,
+    consecutivo: v[COLS.consecutivo] || null,
     decision: v[COLS.decision],
     nombreNino: v[COLS.nombre_nino], edad: v[COLS.edad],
     nombrePadre: v[COLS.nombre_padre], emailPadre: v[COLS.email_padre],
@@ -634,9 +671,10 @@ function guardarBorrador(sheet, body) {
       sheet.getRange(rowNum, COLS.decision + 1).setValue("pendiente_aprobacion");
       sheet.getRange(rowNum, COLS.borrador_texto + 1).setValue(body.mensaje || "");
       sheet.getRange(rowNum, COLS.estado + 1).setValue("borrador_listo");
+      var consecutivo = asignarConsecutivo(sheet, rowNum);
       SpreadsheetApp.flush();
       enviarSolicitudVerificacion(sheet, rowNum, idPlan);
-      return respond({ ok: true, idPlan: idPlan, row: rowNum });
+      return respond({ ok: true, idPlan: idPlan, row: rowNum, consecutivo: consecutivo });
     }
   }
   return respond({ ok: false, error: "no se encontró la fila con ese ts" }, 404);
@@ -1307,4 +1345,55 @@ function resumenColegio(sheet, body) {
   out.porEdad = porEdad;
   out.evolucionMensual = porMes;
   return respond(out);
+}
+
+// ============================================================
+// MANTENIMIENTO MANUAL — funciones que se corren a mano desde este editor
+// (Ejecutar ▸ elegir la función ▸ Ejecutar), NUNCA expuestas por doPost,
+// para que no se puedan disparar por accidente desde afuera.
+// ============================================================
+
+// Backfill único (8 nov 2026, pedido de Leonardo): asigna consecutivo a
+// los primeros 5 casos reales, que ya existían antes de que esta columna
+// existiera. Identificados por id_plan (no por nombre, que puede tener
+// variantes de escritura) para que el match nunca sea ambiguo. Corre UNA
+// SOLA VEZ -- es seguro volver a correrla por error: cualquier fila que
+// ya tenga consecutivo se salta, así que nunca reasigna ni duplica.
+function backfillConsecutivosIniciales() {
+  var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheets()[0];
+  var data = sheet.getDataRange().getValues();
+
+  // Orden pedido por Leonardo: 1) Nelly/su hijo, 2) Jocelyn/su hijo,
+  // 3) Nicole/su hijo, 4) Margarita/su hija, 5) Margarita/su otro hijo.
+  var ordenIdPlan = [
+    "735e8073e75d497e",
+    "c39c3745eeed4a7d",
+    "f52dcc706a354dce",
+    "c33a3c79073f455b",
+    "2692d466a5b24e6f",
+  ];
+
+  var resultado = [];
+  ordenIdPlan.forEach(function (idPlan, i) {
+    var consecutivo = i + 1;
+    var encontrado = false;
+    for (var r = 1; r < data.length; r++) {
+      if (String(data[r][COLS.id_plan]) === idPlan) {
+        var rowNum = r + 1;
+        var yaTenia = data[r][COLS.consecutivo];
+        if (!yaTenia) {
+          sheet.getRange(rowNum, COLS.consecutivo + 1).setValue(consecutivo);
+          resultado.push("OK: consecutivo " + consecutivo + " -> fila " + rowNum + " (idPlan " + idPlan + ")");
+        } else {
+          resultado.push("SALTADO (ya tenía consecutivo " + yaTenia + "): fila " + rowNum + " (idPlan " + idPlan + ")");
+        }
+        encontrado = true;
+        break;
+      }
+    }
+    if (!encontrado) resultado.push("NO ENCONTRADO: idPlan " + idPlan + " (consecutivo " + consecutivo + " sin asignar)");
+  });
+
+  Logger.log(resultado.join("\n"));
+  return resultado;
 }
