@@ -757,7 +757,7 @@ function App() {
         {(pendientes||[]).map(p => (
           <div key={p.idPlan} className="rise" onClick={()=>abrirDetalle(p.idPlan,"pendientes")} style={{background:P.panel, border:"1px solid "+P.line, borderRadius:16, padding:"14px 16px", cursor:"pointer", display:"flex", justifyContent:"space-between", alignItems:"center", gap:12}}>
             <div style={{minWidth:0}}>
-              <div style={{fontSize:15, fontWeight:800, color:P.ink}}>{p.nombreNino || "(sin nombre)"}{formatEdad(p.edad)}</div>
+              <div style={{fontSize:15, fontWeight:800, color:P.ink}}>{p.consecutivo && <span style={{color:P.sageDeep}}>#{p.consecutivo} · </span>}{p.nombreNino || "(sin nombre)"}{formatEdad(p.edad)}</div>
               <div style={{fontSize:12.5, color:P.muted, marginTop:2}}>Padre/madre: {p.nombrePadre || "—"} · {relativeDate(p.timestamp)}</div>
               {p.preocupacionPrincipal && <div style={{fontSize:12.5, color:P.ink, marginTop:5, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap"}}>{p.preocupacionPrincipal}</div>}
               {huellaRegeneracion(p.regeneracionEstado) && <div style={{fontSize:11.5, color: huellaRegeneracion(p.regeneracionEstado).clay ? P.clay : P.sage, marginTop:4}}>{huellaRegeneracion(p.regeneracionEstado).texto}</div>}
@@ -802,7 +802,7 @@ function App() {
             )}
             <div style={{minWidth:0, flex:1}}>
               <div style={{fontSize:15, fontWeight:800, color:P.ink, display:"flex", alignItems:"center", gap:8}}>
-                {p.nombreNino || "(sin nombre)"}{formatEdad(p.edad)}
+                {p.consecutivo && <span style={{color:P.sageDeep}}>#{p.consecutivo} · </span>}{p.nombreNino || "(sin nombre)"}{formatEdad(p.edad)}
                 {p.tieneNovedades && <span style={{background:P.claySoft, color:P.clay, fontSize:10.5, fontWeight:800, padding:"2px 8px", borderRadius:999, letterSpacing:".03em"}}>NOVEDAD</span>}
               </div>
               <div style={{fontSize:12.5, color:P.muted, marginTop:2}}>Padre/madre: {p.nombrePadre || "—"} · aprobado {relativeDate(p.correoEnviadoTs || p.timestamp)}</div>
@@ -860,7 +860,7 @@ function App() {
         </div>
 
         <div>
-          <h1 style={{fontFamily:"-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif", fontWeight:600, fontSize:24, margin:0, color:P.sageDeep}}>{detalle.nombreNino || "(sin nombre)"}{formatEdad(detalle.edad)}</h1>
+          <h1 style={{fontFamily:"-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif", fontWeight:600, fontSize:24, margin:0, color:P.sageDeep}}>{detalle.consecutivo && <span>#{detalle.consecutivo} · </span>}{detalle.nombreNino || "(sin nombre)"}{formatEdad(detalle.edad)}</h1>
           <div style={{fontSize:13, color:P.muted, marginTop:4}}>Padre/madre: {detalle.nombrePadre || "—"} · {detalle.emailPadre || "sin correo"}</div>
           <div style={{fontSize:11.5, color:detalle.consentimientoTs?P.sageDeep:P.clay, marginTop:4}}>{detalle.consentimientoTs ? ("✓ Consentimiento aceptado "+relativeDate(detalle.consentimientoTs)) : "⚠ Sin registro de consentimiento (caso previo al 9 ago, creado por una prueba directa sin pasar por el formulario real, o un caso real que hay que revisar)"}</div>
           {soloLectura && <div style={{display:"inline-block", marginTop:8, background:P.sageSoft, color:P.sageDeep, fontSize:11.5, fontWeight:800, padding:"4px 10px", borderRadius:999}}>✓ Aprobado</div>}

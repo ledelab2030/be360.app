@@ -1476,6 +1476,18 @@ Se reemplazó el contenido completo de `vita-demo-formulario-v2/index.html` por 
 
 **Verificación:** probado en navegador con servidor local — la URL `vita-demo-formulario-v2/` redirige automáticamente y termina en `https://be360.app`, sin errores de consola.
 
+### 8 nov 2026 — Consecutivo de caso: un número legible para el equipo, por fila
+
+Leonardo pidió empezar a numerar los casos de forma consecutiva — para referirse a ellos como "Caso #3" en vez de por nombre en conversaciones internas, grants o con Peter — asignado desde el momento en que se genera el borrador por primera vez (no al llenar el formulario, que no siempre llega a convertirse en un caso). Dio los primeros 5 casos reales en orden explícito para numerarlos retroactivos.
+
+**Diseño:** nueva columna `consecutivo` en el Sheet (índice 31). `asignarConsecutivo(sheet, rowNum)` calcula el máximo ya usado en la columna + 1, bajo `LockService.getScriptLock()` para que dos generaciones casi simultáneas nunca repitan número — se prefirió esto a un contador aparte en PropertiesService porque así el número nunca puede desincronizarse de lo que el Sheet realmente tiene. Se llama desde `guardarBorrador()`, solo en la rama de borrador genuinamente nuevo (mismo principio de idempotencia que ya protege a `id_plan`: un reintento nunca vuelve a asignar). El número viaja en la respuesta de `listar_pendientes`, `listar_historial` y `detalle_plan`, y en `equipo/` aparece como "#N ·" antes del nombre del niño/a, en las listas de Pendientes/Historial y en el encabezado del detalle.
+
+**Backfill de los 5 casos iniciales:** función `backfillConsecutivosIniciales()`, agregada al final del Apps Script en una sección nueva de "mantenimiento manual" — se corre una sola vez a mano desde el editor (Ejecutar ▸ elegir la función), nunca expuesta por `doPost`. Identifica cada fila por su `id_plan` (no por nombre, que puede tener variantes de escritura) contra una lista fija de 5 ids en el orden que pidió Leonardo, y se salta cualquier fila que ya tenga consecutivo — segura de correr dos veces por error. **No se corrió todavía** — queda pendiente de que Leonardo la ejecute después de pegar y desplegar esta versión del Apps Script.
+
+**Archivos:** `worker/apps-script-formulario-v2.gs.txt`, `equipo/index.html`.
+
+**Verificación:** `node --check` sobre el Apps Script. `@babel/standalone` sobre `equipo/index.html`, sin errores. La lógica de `backfillConsecutivosIniciales()` se probó aparte, en Node, contra una copia de solo lectura de los datos reales del Sheet (descargada y borrada de inmediato después de verificar) — confirmó que los 5 `id_plan` dados se encuentran y producen exactamente el orden 1-5 pedido. No se pudo probar `asignarConsecutivo()` en vivo (depende de `LockService`/`SpreadsheetApp`, no disponibles fuera de Apps Script) — **falta probarlo con un caso real después del despliegue**, generando un borrador de punta a punta y confirmando que el consecutivo aparece en `equipo/`.
+
 ---
 
 ---
