@@ -1464,6 +1464,18 @@ Texto nuevo, aprobado por Leonardo: *"Acompaño a las familias a construir hábi
 
 **Verificación:** `@babel/standalone` sobre los dos archivos, sin errores. Probado en navegador con servidor local: texto correcto, espaciado limpio sin la frase que se quitó, sin errores de consola.
 
+### 8 nov 2026 — `vita-demo-formulario-v2/` retirado como enlace de validación, ahora redirige a `be360.app`
+
+Leonardo pidió dejar un solo formulario en producción (`vita-demo-formulario/`) y que `vita-demo-formulario-v2/` redirija a `be360.app` en vez de seguir sirviendo una copia aparte. Antes de tocar nada se revisó quién más depende de esa URL: ninguna otra página del sitio enlaza a `vita-demo-formulario-v2/` directamente (`grep` sobre todo el repo), y el Worker (`vita-proxy.js`) acepta el campo `producto:"formulario_pediatrico_v2"` por compatibilidad con filas ya guardadas en el Sheet, pero no depende de que la página siga existiendo — nada se rompe del lado del backend.
+
+Se reemplazó el contenido completo de `vita-demo-formulario-v2/index.html` por una página mínima de redirección (`meta http-equiv="refresh"` + `location.replace` a `https://be360.app/`) — ya no carga React/Babel ni `shared/formulario-fields.js`, ni envía nada al Worker. Se dejó la URL viva (no se borró el archivo) para no romper ningún enlace viejo ya compartido con ese path.
+
+`CLAUDE.md` actualizado: la sección 1 ya no describe `vita-demo-formulario-v2/` como "enlace de validación" (ese rol ya no existe), y la sección 7 (Enlaces) refleja que `vita-demo-formulario/` es el único formulario en pie.
+
+**Archivos:** `vita-demo-formulario-v2/index.html`, `CLAUDE.md`.
+
+**Verificación:** probado en navegador con servidor local — la URL `vita-demo-formulario-v2/` redirige automáticamente y termina en `https://be360.app`, sin errores de consola.
+
 ---
 
 ---
