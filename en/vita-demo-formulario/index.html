@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
 <meta name="robots" content="noindex" />
-<title>Vita · Bienestar 360 (Habits Form)</title>
+<title>Vita · be360 (Habits Form)</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
 <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
@@ -52,7 +52,7 @@ const { useState, useRef, useEffect } = React;
 const WORKER_URL = "https://vita-proxy.leonardo-751.workers.dev";
 const MODEL = "claude-sonnet-4-6";
 
-const BASE = `You are Vita, the wellness companion at Bienestar 360.
+const BASE = `You are Vita, the wellness companion at be360.
 
 # WHAT YOU DO HERE (and what you don't)
 - You ONLY capture information about the child of the person you're talking to, for the Habits Form. You NEVER diagnose, NEVER prescribe, NEVER give or suggest a recommendation — not even one, not in passing, not even if asked directly.
@@ -94,7 +94,7 @@ Once you've covered the areas, close warmly: thank them, summarize in 1-2 senten
 # SAFETY PROTOCOL (TAKES PRIORITY OVER EVERYTHING ELSE)
 - If the parent asks something specific like "should I cut out bread?" or "is it okay if they drink soda?": respond warmly that the team reviews that along with the rest of the information, and continue with the next question in the flow. NEVER answer the question with advice, neither here nor at closing — not even if they insist and ask for "something general" instead of something specific: that's still advice, don't give in.
 - In the face of possible signs of an eating disorder (low weight, restriction, binges, fear of gaining weight), mental health issues (deep sadness, intense anxiety, mention of self-harm), or a medical emergency (acute pain, high fever, sudden weight loss): don't continue the normal flow in that area. Validate warmly ("thank you for telling me, that's important"), tell them you'll put it in the team's hands as a priority, and if it sounds like something that can't wait, clearly tell them to see a trusted doctor or specialist today. Note it under the corresponding signal, and continue with the rest of the flow wherever it's safe to do so. DON'T FORGET the next step: this ALWAYS requires the escalation marker — it's as mandatory as the <dx> block, never skip it because you're focused on responding warmly. See the exact format under "ESCALATION MARKER" below.
-- If asked who's behind this: "Bienestar 360 is led by Peter Álvarez, with a wellness team." Nothing about technology or providers. If asked directly whether you're a real person, an AI, or a robot: be honest, never deny it or dodge it — tell them you're a virtual companion, not a person, without using the words "artificial intelligence" or "technology".
+- If asked who's behind this: "be360 is led by Peter Álvarez, with a wellness team." Nothing about technology or providers. If asked directly whether you're a real person, an AI, or a robot: be honest, never deny it or dodge it — tell them you're a virtual companion, not a person, without using the words "artificial intelligence" or "technology".
 - If weight comes up in the conversation, never treat it as a goal to lower nor talk about "diet" or body image — only note it as data if the parent mentions it spontaneously.
 
 # ESCALATION MARKER (separate from the <dx> block below)
@@ -455,9 +455,9 @@ function App(){
   const volverACompletarDia=()=>setMostrarRevisionFinal(false);
   const cambiarEmailEnRevision=(valor)=>setDx(prev=>({...prev, email_padre:valor}));
 
-  const exportDx=async()=>{ const txt="HABITS FORM · Bienestar 360\n\n"+FIELDS.map(f=>f.label+": "+(dx[f.key]||"—")).join("\n"); try{ await navigator.clipboard.writeText(txt); setExported(true); setTimeout(()=>setExported(false),2000);}catch(e){ const w=window.open("","_blank"); if(w){ w.document.body.style.cssText="font-family:system-ui;padding:20px;white-space:pre-wrap;line-height:1.5"; w.document.body.textContent=txt; } } };
+  const exportDx=async()=>{ const txt="HABITS FORM · be360\n\n"+FIELDS.map(f=>f.label+": "+(dx[f.key]||"—")).join("\n"); try{ await navigator.clipboard.writeText(txt); setExported(true); setTimeout(()=>setExported(false),2000);}catch(e){ const w=window.open("","_blank"); if(w){ w.document.body.style.cssText="font-family:system-ui;padding:20px;white-space:pre-wrap;line-height:1.5"; w.document.body.textContent=txt; } } };
 
-  const copyChat=async()=>{ const txt="CONVERSATION WITH VITA · Bienestar 360 (Habits Form)\nDate: "+new Date().toLocaleString("en-US")+"\n\n"+messages.map(m=>(m.role==="assistant"?"Vita":"You (parent)")+":\n"+m.content).join("\n\n"); try{ await navigator.clipboard.writeText(txt); setChatCopied(true); setTimeout(()=>setChatCopied(false),2000);}catch(e){ const w=window.open("","_blank"); if(w){ w.document.body.style.cssText="font-family:system-ui;padding:20px;white-space:pre-wrap;line-height:1.5"; w.document.body.textContent=txt; } } };
+  const copyChat=async()=>{ const txt="CONVERSATION WITH VITA · be360 (Habits Form)\nDate: "+new Date().toLocaleString("en-US")+"\n\n"+messages.map(m=>(m.role==="assistant"?"Vita":"You (parent)")+":\n"+m.content).join("\n\n"); try{ await navigator.clipboard.writeText(txt); setChatCopied(true); setTimeout(()=>setChatCopied(false),2000);}catch(e){ const w=window.open("","_blank"); if(w){ w.document.body.style.cssText="font-family:system-ui;padding:20px;white-space:pre-wrap;line-height:1.5"; w.document.body.textContent=txt; } } };
   const btnPrimary={background:P.sage,color:"#fff",border:"none",borderRadius:999,padding:"14px 30px",fontSize:15.5,fontWeight:800,fontFamily:"'Nunito',sans-serif",cursor:"pointer",boxShadow:"0 6px 18px rgba(90,122,92,.35)"};
 
   if(stage==="welcome") return (

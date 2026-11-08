@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
 <meta name="robots" content="noindex" />
-<title>Vita · Bienestar 360</title>
+<title>Vita · be360</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
 <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
@@ -30,7 +30,7 @@ const { useState, useRef, useEffect } = React;
 const WORKER_URL = "https://vita-proxy.leonardo-751.workers.dev";
 const MODEL = "claude-sonnet-4-6";
 
-const BASE = `Eres Vita, acompañante de bienestar de Bienestar 360.
+const BASE = `Eres Vita, acompañante de bienestar de be360.
 
 # QUÉ ERES / QUÉ NO
 - Intervención conductual preventiva basada en evidencia para reducir factores inflamatorios modificables.
@@ -79,7 +79,7 @@ Hay situaciones que NO te corresponden: ahí derivas, no aconsejas.
 - Banderas: trastorno de conducta alimentaria (bajo peso, restricción, atracones/purgas, miedo a engordar, antecedente psiquiátrico por comer poco); salud mental (tristeza profunda, ansiedad intensa, mención de hacerse daño, retraimiento); urgencia médica (dolor agudo, fiebre alta, pérdida de peso brusca).
 - Ante señales de trastorno alimentario: NUNCA des consejos de dieta, calorías, peso, ayuno ni ejercicio. Valida con calidez y deriva a profesional (psicología/psiquiatría/nutrición clínica).
 - BARANDAL DEL MARCO: en perfiles sensibles — personas jóvenes, embarazo o lactancia, diabéticos en insulina, personas con inmunosupresores o corticoides, o cualquier condición diagnosticada — NO empujes ayunos prolongados ni reducción agresiva de carbohidratos; sugiere con suavidad y recuerda hacerlo con acompañamiento médico. NUNCA sugieras suspender ni reducir medicación. En modo familia (niños): con capture-only ya no prescribes nada en ningún modo (ver CIERRE) — este barandal aplica igual si el padre pregunta algo puntual a mitad de la captura: nunca respondas con un consejo sobre ayuno, restricción de carbohidratos o alimentación del niño, ni de pasada; deriva esa pregunta al cierre/equipo y sigue con la siguiente pregunta del recorrido.
-- RUTINA: recomienda al adulto responsable que ÉL MISMO contacte al profesional apropiado (un pediatra como primer paso). NO ofrezcas que Bienestar 360 agende, coordine o remita médicos: aún no existe una red de profesionales, así que nunca prometas ese servicio. En una conversación posterior sí puedes preguntar con calidez si ya hizo el contacto.
+- RUTINA: recomienda al adulto responsable que ÉL MISMO contacte al profesional apropiado (un pediatra como primer paso). NO ofrezcas que be360 agende, coordine o remita médicos: aún no existe una red de profesionales, así que nunca prometas ese servicio. En una conversación posterior sí puedes preguntar con calidez si ya hizo el contacto.
 - URGENCIA (riesgo de hacerse daño, crisis): la seguridad va por encima de todo. Recomienda contactar de inmediato la línea de emergencias local o acudir a urgencias y apoyarse en una persona de confianza ahora. No intentes manejar la crisis; no agendes "para después".
 - Si el sujeto es menor de edad: todo contacto con terceros pasa SIEMPRE por el adulto responsable.
 - Si es mayor de edad: los datos íntimos se manejan idealmente con el consentimiento de esa persona.
@@ -216,9 +216,9 @@ function App(){
   };
 
   const saveDx=()=>{ try{ localStorage.setItem("vita_dx_"+Date.now(), JSON.stringify({mode,dx})); setSaved(true); setTimeout(()=>setSaved(false),1800);}catch(e){} };
-  const exportDx=async()=>{ const txt="DIAGNÓSTICO DE ESTILO DE VIDA · Bienestar 360\nModo: "+(mode==="adult"?"Adulto":"Familia / hijo")+"\n\n"+FIELDS.map(f=>f.label+": "+(dx[f.key]||"—")).join("\n"); try{ await navigator.clipboard.writeText(txt); setExported(true); setTimeout(()=>setExported(false),2000);}catch(e){ const w=window.open("","_blank"); if(w){ w.document.body.style.cssText="font-family:system-ui;padding:20px;white-space:pre-wrap;line-height:1.5"; w.document.body.textContent=txt; } } };
+  const exportDx=async()=>{ const txt="DIAGNÓSTICO DE ESTILO DE VIDA · be360\nModo: "+(mode==="adult"?"Adulto":"Familia / hijo")+"\n\n"+FIELDS.map(f=>f.label+": "+(dx[f.key]||"—")).join("\n"); try{ await navigator.clipboard.writeText(txt); setExported(true); setTimeout(()=>setExported(false),2000);}catch(e){ const w=window.open("","_blank"); if(w){ w.document.body.style.cssText="font-family:system-ui;padding:20px;white-space:pre-wrap;line-height:1.5"; w.document.body.textContent=txt; } } };
 
-  const copyChat=async()=>{ const lbl=mode==="adult"?"Tú":"Tú (mamá/papá)"; const txt="CONVERSACIÓN CON VITA · Bienestar 360\nModo: "+(mode==="adult"?"Adulto":"Familia / hijo")+"\nFecha: "+new Date().toLocaleString("es-CO")+"\n\n"+messages.map(m=>(m.role==="assistant"?"🌱 Vita":lbl)+":\n"+m.content).join("\n\n")+"\n\n— Esto suma con tu médico, no lo reemplaza."; try{ await navigator.clipboard.writeText(txt); setChatCopied(true); setTimeout(()=>setChatCopied(false),2000);}catch(e){ const w=window.open("","_blank"); if(w){ w.document.body.style.cssText="font-family:system-ui;padding:20px;white-space:pre-wrap;line-height:1.5"; w.document.body.textContent=txt; } } };
+  const copyChat=async()=>{ const lbl=mode==="adult"?"Tú":"Tú (mamá/papá)"; const txt="CONVERSACIÓN CON VITA · be360\nModo: "+(mode==="adult"?"Adulto":"Familia / hijo")+"\nFecha: "+new Date().toLocaleString("es-CO")+"\n\n"+messages.map(m=>(m.role==="assistant"?"🌱 Vita":lbl)+":\n"+m.content).join("\n\n")+"\n\n— Esto suma con tu médico, no lo reemplaza."; try{ await navigator.clipboard.writeText(txt); setChatCopied(true); setTimeout(()=>setChatCopied(false),2000);}catch(e){ const w=window.open("","_blank"); if(w){ w.document.body.style.cssText="font-family:system-ui;padding:20px;white-space:pre-wrap;line-height:1.5"; w.document.body.textContent=txt; } } };
   const btnPrimary={background:P.sage,color:"#fff",border:"none",borderRadius:999,padding:"14px 30px",fontSize:15.5,fontWeight:800,fontFamily:"'Nunito',sans-serif",cursor:"pointer",boxShadow:"0 6px 18px rgba(90,122,92,.35)"};
   const cardBtn={background:P.panel,border:"1.5px solid "+P.line,borderRadius:18,padding:"18px 16px",cursor:"pointer",fontFamily:"'Nunito',sans-serif",boxShadow:"0 2px 8px rgba(40,42,36,.08)"};
 

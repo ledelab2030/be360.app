@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
 <meta name="robots" content="noindex" />
-<title>Tu plan · Bienestar 360</title>
+<title>Tu plan · be360</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
 <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
@@ -110,7 +110,7 @@ const buildSeguimientoPrompt = (data) => {
   const nombreNino = data.nombreNino || "tu hijo/a";
   const habitos = (data.plan && data.plan.habitos) || [];
   const habitosTexto = habitos.map((h, i) => (i + 1) + ". " + h.titulo + ": " + h.texto).join("\n") || "(sin hábitos registrados)";
-  return `Eres Vita, el acompañante de bienestar de Bienestar 360. Hablas con el padre/madre de ${nombreNino} para acompañar el plan de hábitos YA APROBADO por Peter Álvarez.
+  return `Eres Vita, el acompañante de bienestar de be360. Hablas con el padre/madre de ${nombreNino} para acompañar el plan de hábitos YA APROBADO por Peter Álvarez.
 
 # EL PLAN APROBADO DE ${nombreNino.toUpperCase()} (tu única fuente — no inventes nada fuera de esto, no propongas hábitos nuevos, no cambies el plan)
 ${habitosTexto}
@@ -129,7 +129,7 @@ CONSULTIVA, NO PROACTIVA (26 oct 2026, pedido de Peter — minuta "Tono de acomp
 - Pide hablar con una persona directamente: responde con honestidad que por ahora no tienes una forma de conectarlo directamente con el equipo, sin prometer que le vas a avisar a nadie ni que alguien lo va a contactar. NO agregues ningún marcador (mismo motivo que arriba: todavía no hay dónde registrarlo).
 - El padre/madre comparte un dato nuevo relevante para el plan (ej. la hora real de dormir, una excepción recurrente de horario, una restricción nueva — lo que haga falta para ajustar el plan más adelante): agradece el dato con calidez y pregúntale si hay algo más que quiera agregar o actualizar antes de pasárselo al equipo — NO agregues el marcador todavía en este turno, falta confirmar que no hay más.
 - El padre/madre confirma que eso es todo (dice algo como "no", "eso es todo", "nada más", "ya", o responde a tu pregunta de arriba sin agregar nada nuevo): dile que lo registras para que el equipo lo tenga en cuenta, y agrega, en la misma línea: <escalar>dato_nuevo|RESUMEN</escalar> — donde RESUMEN junta TODO lo que compartió sobre el tema en la conversación (no solo este último mensaje), completo por sí solo (no asumas que quien lo lea vio el resto de la conversación).
-- Si preguntan quién está detrás: "Bienestar 360 lo lidera Peter Álvarez, con un equipo de bienestar."
+- Si preguntan quién está detrás: "be360 lo lidera Peter Álvarez, con un equipo de bienestar."
 - Para todo lo demás (check-ins normales, contar cómo les fue, dudas que sí puedes responder con el plan de arriba): NO agregues ningún marcador.`;
 };
 
@@ -293,7 +293,7 @@ function descargarPdf(nombreNino, mensaje) {
   y += 22;
   doc.setFont(undefined, "normal"); doc.setFontSize(10.5);
   doc.setTextColor(140, 132, 115);
-  doc.text("Revisado y aprobado por Peter Álvarez — Bienestar 360", PDF_MARGIN, y);
+  doc.text("Revisado y aprobado por Peter Álvarez — be360", PDF_MARGIN, y);
   doc.setTextColor(44, 42, 36);
   y += 26;
 
@@ -311,7 +311,7 @@ function descargarPdf(nombreNino, mensaje) {
     if (color) doc.setTextColor(44, 42, 36);
   });
 
-  doc.save("plan-" + (nombreNino || "bienestar360").trim().replace(/\s+/g, "-").toLowerCase() + ".pdf");
+  doc.save("plan-" + (nombreNino || "be360").trim().replace(/\s+/g, "-").toLowerCase() + ".pdf");
 }
 
 function App() {

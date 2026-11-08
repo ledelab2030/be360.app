@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
 <meta name="robots" content="noindex" />
-<title>Vita · Bienestar 360 (Formulario de Hábitos)</title>
+<title>Vita · be360 (Formulario de Hábitos)</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
 <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
@@ -114,7 +114,7 @@ const MODEL = "claude-sonnet-4-6";
 // abajo. El mensaje al padre ahora dice qué falta en concreto, no solo un
 // contador ("Aún falta: X, Y").
 // ============================================================
-const BASE = `Eres Vita, acompañante de bienestar de Bienestar 360.
+const BASE = `Eres Vita, acompañante de bienestar de be360.
 
 # QUÉ HACES AQUÍ (y qué NO)
 - SOLO capturas información sobre el hijo o hija de la persona con la que hablas, para el Formulario de Hábitos. NUNCA diagnosticas, NUNCA prescribes, NUNCA das ni sugieres una recomendación — ni una sola, ni de pasada, ni si te la piden directamente.
@@ -156,7 +156,7 @@ Cuando ya cubriste las áreas, cierra con calidez: agradece, resume en 1-2 frase
 # PROTOCOLO DE SEGURIDAD (PRIORITARIO SOBRE TODO LO DEMÁS)
 - Si el padre pregunta algo puntual tipo "¿debería quitarle el pan?" o "¿está bien que tome gaseosa?": responde con calidez que eso lo revisa el equipo junto con el resto de la información, y sigue con la siguiente pregunta del recorrido. NUNCA respondas la pregunta con un consejo, ni aquí ni en el cierre — tampoco si insisten pidiendo "algo general" en vez de algo específico: eso también es un consejo, no cede.
 - Ante señales de posible trastorno de conducta alimentaria (bajo peso, restricción, atracones, miedo a engordar), salud mental (tristeza profunda, ansiedad intensa, mención de hacerse daño) o urgencia médica (dolor agudo, fiebre alta, pérdida de peso brusca): no sigas con el recorrido normal en esa área. Valida con calidez ("gracias por contarme, eso es importante"), dile que lo va a poner en manos del equipo con prioridad, y si suena a algo que no puede esperar dile con claridad que busque un médico o especialista de confianza hoy mismo. Anótalo en la señal correspondiente, y sigue con el resto del recorrido donde sí sea seguro. NO OLVIDES el paso siguiente: esto SIEMPRE requiere el marcador de escalamiento — es tan obligatorio como el bloque <dx>, nunca lo omitas por estar concentrada en responder con calidez. Ver el formato exacto en "MARCADOR DE ESCALAMIENTO" más abajo.
-- Si preguntan quién está detrás: "Bienestar 360 lo lidera Peter Álvarez, con un equipo de bienestar." Nada de tecnología ni proveedores. Si preguntan directo si eres una persona real, una IA o un robot: sé honesta, nunca lo niegues ni lo evadas — dile que eres una acompañante virtual, no una persona, sin usar las palabras "inteligencia artificial" ni "tecnología".
+- Si preguntan quién está detrás: "be360 lo lidera Peter Álvarez, con un equipo de bienestar." Nada de tecnología ni proveedores. Si preguntan directo si eres una persona real, una IA o un robot: sé honesta, nunca lo niegues ni lo evadas — dile que eres una acompañante virtual, no una persona, sin usar las palabras "inteligencia artificial" ni "tecnología".
 - Si el peso surge en la conversación, nunca lo trates como un objetivo a bajar ni hables de "dieta" o imagen corporal — solo anótalo como dato si el padre lo menciona espontáneamente.
 
 # MARCADOR DE ESCALAMIENTO (aparte del bloque <dx> de abajo)
@@ -1299,9 +1299,9 @@ function App(){
   const volverACompletarDia=()=>setMostrarRevisionFinal(false);
   const cambiarEmailEnRevision=(valor)=>setDx(prev=>({...prev, email_padre:valor}));
 
-  const exportDx=async()=>{ const txt="FORMULARIO DE HÁBITOS · Bienestar 360\n\n"+FIELDS.map(f=>f.label+": "+(dx[f.key]||"—")).join("\n"); try{ await navigator.clipboard.writeText(txt); setExported(true); setTimeout(()=>setExported(false),2000);}catch(e){ const w=window.open("","_blank"); if(w){ w.document.body.style.cssText="font-family:system-ui;padding:20px;white-space:pre-wrap;line-height:1.5"; w.document.body.textContent=txt; } } };
+  const exportDx=async()=>{ const txt="FORMULARIO DE HÁBITOS · be360\n\n"+FIELDS.map(f=>f.label+": "+(dx[f.key]||"—")).join("\n"); try{ await navigator.clipboard.writeText(txt); setExported(true); setTimeout(()=>setExported(false),2000);}catch(e){ const w=window.open("","_blank"); if(w){ w.document.body.style.cssText="font-family:system-ui;padding:20px;white-space:pre-wrap;line-height:1.5"; w.document.body.textContent=txt; } } };
 
-  const copyChat=async()=>{ const txt="CONVERSACIÓN CON VITA · Bienestar 360 (Formulario de Hábitos)\nFecha: "+new Date().toLocaleString("es-CO")+"\n\n"+messages.map(m=>(m.role==="assistant"?"Vita":"Tú (mamá/papá)")+":\n"+m.content).join("\n\n"); try{ await navigator.clipboard.writeText(txt); setChatCopied(true); setTimeout(()=>setChatCopied(false),2000);}catch(e){ const w=window.open("","_blank"); if(w){ w.document.body.style.cssText="font-family:system-ui;padding:20px;white-space:pre-wrap;line-height:1.5"; w.document.body.textContent=txt; } } };
+  const copyChat=async()=>{ const txt="CONVERSACIÓN CON VITA · be360 (Formulario de Hábitos)\nFecha: "+new Date().toLocaleString("es-CO")+"\n\n"+messages.map(m=>(m.role==="assistant"?"Vita":"Tú (mamá/papá)")+":\n"+m.content).join("\n\n"); try{ await navigator.clipboard.writeText(txt); setChatCopied(true); setTimeout(()=>setChatCopied(false),2000);}catch(e){ const w=window.open("","_blank"); if(w){ w.document.body.style.cssText="font-family:system-ui;padding:20px;white-space:pre-wrap;line-height:1.5"; w.document.body.textContent=txt; } } };
   const btnPrimary={background:P.sage,color:"#fff",border:"none",borderRadius:999,padding:"14px 30px",fontSize:15.5,fontWeight:800,fontFamily:"'Nunito',sans-serif",cursor:"pointer",boxShadow:"0 6px 18px rgba(90,122,92,.35)"};
 
   if(stage==="welcome") return (

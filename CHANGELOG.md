@@ -1432,6 +1432,24 @@ Propiedad GA4 nueva, "be360", creada bajo la cuenta "ledelab" (ID de cuenta 3620
 
 **Verificación:** probado en navegador con servidor local — `window.gtag` queda definido como función y `window.dataLayer` existe tras cargar la página, confirmando que el tag se instaló y ejecutó correctamente. Sin errores de consola.
 
+### 8 nov 2026 — El home enlaza directo a Vita, copy simplificado, y rebrand completo a "be360"
+
+Leonardo preguntó si el botón "Quiero probarlo" del home debía enlazar directo al formulario real en vez de abrir un mailto — así es como se va a compartir el enlace en los chats de WhatsApp con las familias de validación. Antes era mailto a propósito: el formulario corre con la API de Anthropic de Leonardo, sin control de acceso por usuario, así que exponerlo ampliamente es un riesgo de costo/abuso real. Leonardo decidió aceptar ese riesgo para esta etapa (distribución acotada, no promoción masiva ni SEO todavía) y pidió revisarlo antes de compartir el home más ampliamente.
+
+**Cambio 1 — enlace directo:** "Quiero probarlo" pasa de `mailto:...` a `/vita-demo-formulario/`, con un comentario en el código explicando la decisión y su alcance.
+
+**Cambio 2 — simplificación de copy:** de paso, Leonardo pidió revisar el home por simplificar. Se quitó la palabra "diagnóstico" (dos apariciones — hero y FAQ — ya se había retirado del lenguaje clínico hacia familias en otras pantallas, por el mismo criterio de "no diagnostica" de las reglas duras del SRB) y se cambió "hijo/a" por "hijo o hija" en todo el archivo, siguiendo la regla de voz ya acordada con Gemini el 8 nov (ver `COLABORACION_GEMINI_CCODE.md`).
+
+**Cambio 3 — rebrand completo a "be360", en todo el producto:** Leonardo confirmó quitar "Bienestar 360"/"bienestar360" de **todo** el sitio (no solo el home) en favor de "be360" exclusivamente, "hasta nueva orden" — y que el dominio `bienestar360.co` no se publique en ninguna parte (sigue resolviendo, solo el correo de ese dominio está caído por facturas vencidas; Leonardo decide después si se vuelve a usar). Se barrió todo el repo (`grep -rli` sobre `.html`, `.js` y `.gs.txt`, excluyendo `vita-demo-3k9x/`, `vita-demo-srb-1/` y `-2/` por instrucción explícita de "no tocar") y se corrigieron las 16 páginas encontradas:
+
+`index.html`, `vita-demo-formulario/` + `-v2/`, `app/`, `plan/`, `equipo/`, `talentos/`, `javier-institute/` + `nucleo/` (idénticos), `vita-demo-srb-3/`, `panel-colegio/`, `panel-colegio-proyeccion/`, `terminos/`, `verificar/`, `en/` + `en/vita-demo-formulario/`.
+
+Todas las menciones de marca visibles (títulos, `og:title`, remitente y firma de los correos de aprobación en `worker/apps-script-formulario-v2.gs.txt`, el prompt de voz de Vita en los 3 modos — captura, seguimiento y el demo general —, PDFs, y el footer de `terminos/`/`talentos/`/`en/`) pasaron a "be360". Donde el footer solo tenía el enlace a `bienestar360.co` (home, `en/`) se quitó entero, con un comentario explicando por qué (ese dominio solo redirige de vuelta a `be360.app`); donde ya existía un enlace propio a `be360.app` junto al de `bienestar360.co` (`talentos/`) se dejó el primero y se quitó solo el segundo. Las dos menciones de `peter@bienestar360.co`/`bienestar360.co` dentro de **comentarios** del Apps Script (explicando por qué ese correo se quitó del destinatario de la notificación a Peter, ver §Pendientes) se dejaron intactas a propósito — son historial técnico, no contenido público.
+
+**Archivos:** los 16 de arriba. **`worker/apps-script-formulario-v2.gs.txt` necesita el pegado manual + Implementar → Nueva versión de Leonardo** para que el remitente/firma de los correos reales a familias (`name:`/firma `"be360"`) tomen efecto — hasta entonces los correos de aprobación siguen saliendo como "Bienestar 360".
+
+**Verificación:** `node --check` sobre el Apps Script. `@babel/standalone` sobre los 9 archivos con JSX (`vita-demo-formulario/` + `-v2/`, `app/`, `plan/`, `equipo/`, `en/vita-demo-formulario/`, `vita-demo-srb-3/`, `panel-colegio/`, `panel-colegio-proyeccion/`), sin errores. `node --check` sobre los bloques `<script>` planos de `javier-institute/`, `nucleo/` y `verificar/`. Barrido final de `grep` confirmando que ninguna mención de marca visible quedó pendiente (solo las de comentarios de código, no renderizados). Probado en navegador con servidor local: `vita-demo-formulario/` y `terminos/` muestran "be360" en título y contenido, el enlace de borrado de datos en `terminos/` sigue apuntando a `leonardo@ledelab.group` (no al correo caído de `bienestar360.co`), sin errores de consola.
+
 ---
 
 ---
