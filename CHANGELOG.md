@@ -1422,6 +1422,16 @@ Se le agregó scroll (`className="rise scroll"`, `overflowY:"auto"`) a esta pant
 
 **Verificación:** `@babel/standalone` sobre los dos archivos, sin errores. Probado en navegador con servidor local: los 3 pasos se ven alineados a la izquierda dentro de la pantalla centrada, cabe sin recortarse, sin errores de consola.
 
+### 8 nov 2026 — Google Analytics (GA4) en el home público
+
+Leonardo pidió agregar Google Analytics a be360.app. Antes de tocar código: ¿dónde, y afecta el consentimiento? Se acotó a **solo el home público** (`index.html` en la raíz, la página de marketing genérica, sin ningún campo de captura) — a propósito **no** se agregó a `vita-demo-formulario/`, `equipo/`, `app/` ni `plan/`, que sí manejan información de salud de niños y cuyo consentimiento hoy no menciona ningún tipo de analítica. Agregarlo ahí exigiría primero actualizar lo que dice esa pantalla.
+
+Propiedad GA4 nueva, "be360", creada bajo la cuenta "ledelab" (ID de cuenta 362022122) — Leonardo decidió no usar una cuenta aparte por ahora. ID de medición: `G-8ZTTZPZEWB`.
+
+**Archivo:** `index.html` (raíz del repo, el home) — snippet estándar de `gtag.js` en el `<head>`, con "Medición mejorada" activada (vistas de página, desplazamientos, clics de salida, etc., automático).
+
+**Verificación:** probado en navegador con servidor local — `window.gtag` queda definido como función y `window.dataLayer` existe tras cargar la página, confirmando que el tag se instaló y ejecutó correctamente. Sin errores de consola.
+
 ---
 
 ---
