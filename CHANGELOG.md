@@ -1450,6 +1450,20 @@ Todas las menciones de marca visibles (títulos, `og:title`, remitente y firma d
 
 **Verificación:** `node --check` sobre el Apps Script. `@babel/standalone` sobre los 9 archivos con JSX (`vita-demo-formulario/` + `-v2/`, `app/`, `plan/`, `equipo/`, `en/vita-demo-formulario/`, `vita-demo-srb-3/`, `panel-colegio/`, `panel-colegio-proyeccion/`), sin errores. `node --check` sobre los bloques `<script>` planos de `javier-institute/`, `nucleo/` y `verificar/`. Barrido final de `grep` confirmando que ninguna mención de marca visible quedó pendiente (solo las de comentarios de código, no renderizados). Probado en navegador con servidor local: `vita-demo-formulario/` y `terminos/` muestran "be360" en título y contenido, el enlace de borrado de datos en `terminos/` sigue apuntando a `leonardo@ledelab.group` (no al correo caído de `bienestar360.co`), sin errores de consola.
 
+### 8 nov 2026 — Pantalla de bienvenida: corrige la mezcla de voz que el PR #182 no resolvió del todo
+
+Leonardo auditó el PR #184 ya en producción (grabó y transcribió su propia revisión) y, de paso, volvió sobre la pantalla "Hola, soy Vita" del PR #182: la encontró con fricción — frases defensivas ("que sí se sostienen"), "sin plataformas complicadas" (una objeción que nadie planteó), la mención de marca "de be360", la palabra "clínico", la frase de minutos/pediatra antes del botón, y una mezcla de voz (abre en 1ra persona "Acompaño" y salta a plural "Conocemos/Preparamos/Guiamos" en los 3 pasos — "decidamos una sola voz"). Gemini coincidió con cada punto y propuso un texto nuevo (ver `COLABORACION_GEMINI_CCODE.md`, entrada del 8 nov).
+
+**Hallazgo antes de construir:** la propuesta de Gemini no corregía la mezcla de voz — la empeoraba (yo/nosotros/tú/equipo en 3ra persona/yo/equipo, en 4 líneas) — y de paso cambiaba el paso 1 (de describir el servicio a instruir al padre) y quitaba "sostenibles" del paso 2, sin que Leonardo lo pidiera. Hay además una razón clínica para separar las voces, no solo de estilo: Vita no debe sonar como si ella sola preparara el plan — eso lo hace el equipo, con aprobación de Peter (HITL, regla dura firmada) — así que la solución es que Vita narre todo en 1ra persona y mencione al equipo en 3ra persona solo para el paso que de verdad hace el equipo.
+
+Texto anterior (PR #182): *"Acompaño a las familias de be360 a construir hábitos de sueño, alimentación y movimiento que sí se sostienen en el hogar."* + "1. Conocemos su rutina... 2. Preparamos su plan: el equipo clínico organiza... 3. Acompañamiento continuo: guiamos a la familia paso a paso, sin plataformas complicadas." + "Toma solo unos minutos. Esto acompaña y suma con su pediatra — no lo reemplaza." antes del botón.
+
+Texto nuevo, aprobado por Leonardo: *"Acompaño a las familias a construir hábitos de sueño, alimentación y movimiento para su bienestar."* + "1. **Conozco su rutina:** me cuentas el día a día de tu hijo o hija en el Formulario de Hábitos. 2. **El equipo prepara su plan:** organiza pautas prácticas y microcambios sostenibles para la casa. 3. **Te acompaño paso a paso**, con el apoyo del equipo." Se quitó la frase de minutos/pediatra antes del botón — "Comenzar →" queda igual.
+
+**Archivos:** `vita-demo-formulario/index.html` y su copia `-v2/`.
+
+**Verificación:** `@babel/standalone` sobre los dos archivos, sin errores. Probado en navegador con servidor local: texto correcto, espaciado limpio sin la frase que se quitó, sin errores de consola.
+
 ---
 
 ---
