@@ -961,7 +961,7 @@ function enviarPlanAprobado(sheet, row) {
 
   MailApp.sendEmail({
     to: emailPadre,
-    name: "Bienestar 360",
+    name: "be360",
     subject: "El plan de " + (nombreNino || "tu hijo/a") + " ya está listo",
     body:
       "Hola" + (nombrePadre ? " " + nombrePadre : "") + ",\n\n" +
@@ -970,7 +970,7 @@ function enviarPlanAprobado(sheet, row) {
       "Puedes marcar tu progreso y escribirle a Vita cuando quieras aquí:\n" +
       planUrl + "\n\n" +
       "Esto acompaña y suma con su pediatra — no lo reemplaza.\n\n" +
-      "— El equipo de Bienestar 360",
+      "— El equipo de be360",
   });
 
   // A partir del 11 ago 2026, esta confirmación también le llega a Peter, no
@@ -1155,7 +1155,7 @@ function enviarSolicitudVerificacion(sheet, row, idPlan) {
     var verificarUrl = "https://be360.app/verificar/?id=" + idPlan;
     MailApp.sendEmail({
       to: emailPadre,
-      name: "Bienestar 360",
+      name: "be360",
       subject: "Un paso más para el plan de " + (nombreNino || "tu hijo/a"),
       body:
         "Hola" + (nombrePadre ? " " + nombrePadre : "") + ",\n\n" +
@@ -1164,7 +1164,7 @@ function enviarSolicitudVerificacion(sheet, row, idPlan) {
         verificarUrl + "\n\n" +
         "Tienes " + HORAS_PLAZO_VERIFICACION + " horas para hacerlo — si no lo confirmas en ese tiempo, " +
         "la información que compartiste se elimina y no se prepara ningún plan.\n\n" +
-        "— El equipo de Bienestar 360",
+        "— El equipo de be360",
     });
   } catch (err) {
     // No relanzar: un error aquí no debe romper la generación del borrador.
