@@ -28,7 +28,7 @@
 <!-- Marcador de versión discreto, SOLO para pruebas (pedido de Leonardo, 2 oct 2026) — formato
      "PR#<último PR que tocó este archivo> · <fecha AAMMDD de ese PR>". Actualizar a mano en cada
      PR que cambie este archivo; no es visible a simple vista para el padre/madre que lo usa. -->
-<div style="position:fixed;bottom:4px;right:6px;font:10px/1 -apple-system,sans-serif;color:#D8CFBE;opacity:.55;pointer-events:none;z-index:9999;">SRB v2 · PR#181 · 071126</div>
+<div style="position:fixed;bottom:4px;right:6px;font:10px/1 -apple-system,sans-serif;color:#D8CFBE;opacity:.55;pointer-events:none;z-index:9999;">SRB v2 · PR#182 · 081126</div>
 <script type="text/babel">
 const { useState, useRef, useEffect } = React;
 
@@ -1305,20 +1305,36 @@ function App(){
   const btnPrimary={background:P.sage,color:"#fff",border:"none",borderRadius:999,padding:"14px 30px",fontSize:15.5,fontWeight:800,fontFamily:"'Nunito',sans-serif",cursor:"pointer",boxShadow:"0 6px 18px rgba(90,122,92,.35)"};
 
   if(stage==="welcome") return (
-    <Shell><div style={{flex:1,display:"flex",flexDirection:"column",justifyContent:"center",alignItems:"center",padding:"32px 26px",textAlign:"center"}}>
+    <Shell><div className="rise scroll" style={{flex:1,overflowY:"auto",display:"flex",flexDirection:"column",justifyContent:"center",alignItems:"center",padding:"32px 26px",textAlign:"center"}}>
       <div style={{fontSize:52,marginBottom:14}}>🌱</div>
-      {/* Reescrita (21 oct 2026, revisión de Leonardo pantalla por pantalla).
-          El texto anterior venía del commit original del demo (5 ago) y nunca
-          se revisó: le pedía algo al padre antes de presentarse. Ahora dice
-          quién es Vita y para qué estamos acá. Se quitó "al final tu
-          información queda registrada…" porque lo mismo se decía cuatro veces
-          en el flujo, y mejor dicho, en el consentimiento. La nota del
-          pediatra sube para que se lea ANTES de decidir empezar, no después
-          del botón en gris pequeño. El acceso al formulario directo se movió a
-          la pantalla de intro, para dejar una sola decisión acá. */}
-      <div style={{fontFamily:"'Fraunces',serif",fontSize:27,color:P.sageDeep,lineHeight:1.15,marginBottom:14}}>Hola, soy Vita</div>
-      <p style={{fontSize:15,color:P.ink,lineHeight:1.6,maxWidth:360,marginBottom:16}}>Acompaño a las familias de be360. En unos minutos te pregunto por la rutina diaria de tu hijo o hija, y con eso el equipo clínico le prepara su plan personalizado de hábitos.</p>
-      <p style={{fontSize:13,color:P.muted,lineHeight:1.6,maxWidth:340,marginBottom:26}}>Esto acompaña y suma con su pediatra — no lo reemplaza.</p>
+      {/* Reescrita (21 oct 2026, revisión de Leonardo pantalla por pantalla)
+          y de nuevo (8 nov 2026, propuesta de Gemini, aprobada por Leonardo
+          — "reemplaza"): agrega el lema y los 3 pasos de cómo funciona, que
+          antes no estaban acá. Revisado contra las reglas fijas del
+          proyecto (ver COLABORACION_GEMINI_CCODE.md, entrada del 8 nov):
+          "hijo o hija" no "hijo(a)", "el equipo clínico" no "nuestro
+          equipo", "Formulario de Hábitos" sin cambiar de nombre, "be360" no
+          "Bienestar 360", sin cifra de tiempo. El botón se queda en
+          "Comenzar →" — mismo texto que ya usan welcome/consentimiento en
+          el resto del flujo, no la alternativa larga que proponía Gemini. */}
+      <div style={{fontFamily:"'Fraunces',serif",fontSize:27,color:P.sageDeep,lineHeight:1.15,marginBottom:6}}>Hola, soy Vita</div>
+      <div style={{fontFamily:"'Fraunces',serif",fontSize:15,color:P.sage,fontStyle:"italic",marginBottom:14}}>Cuerpo sano, mente brillante.</div>
+      <p style={{fontSize:14.5,color:P.ink,lineHeight:1.6,maxWidth:360,marginBottom:16}}>Acompaño a las familias de be360 a construir hábitos de sueño, alimentación y movimiento que sí se sostienen en el hogar.</p>
+      <div style={{textAlign:"left",maxWidth:360,width:"100%",marginBottom:16,display:"flex",flexDirection:"column",gap:12}}>
+        <div style={{display:"flex",gap:11}}>
+          <div style={{fontFamily:"'Fraunces',serif",color:P.sage,fontWeight:700,fontSize:16,flexShrink:0,width:18}}>1</div>
+          <div style={{fontSize:13.5,color:P.ink,lineHeight:1.5}}><strong>Conocemos su rutina:</strong> mapeamos el día a día de tu hijo o hija con el Formulario de Hábitos.</div>
+        </div>
+        <div style={{display:"flex",gap:11}}>
+          <div style={{fontFamily:"'Fraunces',serif",color:P.sage,fontWeight:700,fontSize:16,flexShrink:0,width:18}}>2</div>
+          <div style={{fontSize:13.5,color:P.ink,lineHeight:1.5}}><strong>Preparamos su plan:</strong> el equipo clínico organiza pautas prácticas y microcambios sostenibles para la casa.</div>
+        </div>
+        <div style={{display:"flex",gap:11}}>
+          <div style={{fontFamily:"'Fraunces',serif",color:P.sage,fontWeight:700,fontSize:16,flexShrink:0,width:18}}>3</div>
+          <div style={{fontSize:13.5,color:P.ink,lineHeight:1.5}}><strong>Acompañamiento continuo:</strong> guiamos a la familia paso a paso, sin plataformas complicadas.</div>
+        </div>
+      </div>
+      <p style={{fontSize:13,color:P.muted,lineHeight:1.6,maxWidth:340,marginBottom:26}}>Toma solo unos minutos. Esto acompaña y suma con su pediatra — no lo reemplaza.</p>
       <button onClick={()=> dx.consentimiento_ts ? goToForm() : setStage("consentimiento")} style={btnPrimary}>Comenzar →</button>
     </div></Shell>
   );

@@ -1410,6 +1410,18 @@ Texto nuevo: *"Completa los datos que tengas a mano — el equipo revisa todo ig
 
 **Verificación:** `@babel/standalone` sobre los dos archivos, sin errores.
 
+### 8 nov 2026 — Pantalla de bienvenida reemplazada: lema + 3 pasos
+
+Gemini propuso una versión nueva de la pantalla "Hola, soy Vita" — lema ("Cuerpo sano, mente brillante.") + 3 pasos de cómo funciona be360, como parte del mismo trabajo de los mensajes de WhatsApp (ver `COLABORACION_GEMINI_CCODE.md`, entrada del 8 nov). Leonardo confirmó explícitamente reemplazar la versión actual (no solo agregar el lema o solo el subtítulo corto de ayer).
+
+Verificado contra las reglas fijas del proyecto antes de construir: "hijo o hija" (no "hijo(a)"), "el equipo clínico" (no "nuestro equipo"), "Formulario de Hábitos" sin renombrar, "be360" (no "Bienestar 360"), sin cifra de tiempo específica. El botón se queda en "Comenzar →" — mismo texto que ya usa el resto del flujo (welcome/consentimiento), no la alternativa larga que también proponía Gemini ("Conocer la rutina de mi hijo o hija →").
+
+Se le agregó scroll (`className="rise scroll"`, `overflowY:"auto"`) a esta pantalla — antes no lo necesitaba por ser más corta, con el contenido nuevo (lema + 3 pasos) podía quedar más alta que el viewport en pantallas chicas.
+
+**Archivos:** `vita-demo-formulario/index.html` y su copia `-v2/`.
+
+**Verificación:** `@babel/standalone` sobre los dos archivos, sin errores. Probado en navegador con servidor local: los 3 pasos se ven alineados a la izquierda dentro de la pantalla centrada, cabe sin recortarse, sin errores de consola.
+
 ---
 
 ---
