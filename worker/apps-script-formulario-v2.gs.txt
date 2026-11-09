@@ -254,7 +254,104 @@ var COLS = {
   // cambio que nunca se reprocese — no se rellena retroactivamente salvo
   // por el backfill puntual de backfillConsecutivosIniciales(), más abajo.
   consecutivo: 31,
+  // NUEVO (8 nov 2026, pedido de Leonardo): recordatorios pendientes por
+  // caso, append-only salvo el campo "resuelto" de cada item (JSON, array
+  // de {id, tipo, texto, creadoTs, resueltoTs, resueltoMotivo}). Dos tipos:
+  // "proxima_cita" — la pregunta de la sección "PARA LA PRÓXIMA CITA CON EL
+  // PEDIATRA" del plan, extraída al aprobar, para que el equipo (y Vita en
+  // el chat de seguimiento) sepan que falta confirmar si la familia
+  // preguntó — y "novedad_pendiente" — se crea junto con cada novedad
+  // dato_nuevo, para que el equipo decida si amerita regenerar el plan.
+  // Ninguno se regenera ni se resuelve solo: siempre es una acción humana
+  // del equipo (resolver_recordatorio) o, para proxima_cita, una respuesta
+  // de la familia en el chat de Vita (ver notificarEscalamiento, que la
+  // resuelve automáticamente cuando llega un dato_nuevo nuevo).
+  recordatorios_json: 32,
 };
+
+// Extrae el texto de la sección obligatoria "PARA LA PRÓXIMA CITA CON EL
+// PEDIATRA" de un borrador ya generado (ver ESTRUCTURA FIJA DEL PLAN en
+// vita-proxy.js — SRB_DRAFT_PROMPT exige ese encabezado EXACTO, siempre al
+// final). Devuelve "" si no se encuentra (casos viejos, de antes del 5 nov,
+// cuando la sección todavía no era obligatoria) — nunca inventa un texto.
+function extraerProximaCita(borradorTexto) {
+  var texto = String(borradorTexto || "");
+  var m = texto.match(/PARA LA PRÓXIMA CITA CON EL PEDIATRA\**:?\s*\n+([\s\S]*)$/i);
+  if (!m) return "";
+  return m[1].replace(/^\*+|\*+$/g, "").trim();
+}
+
+// Agrega un recordatorio nuevo a la fila (rowNum, 1-based) — siempre sin
+// resolver al crearse. No pisa los que ya existen, igual que novedades_json.
+function agregarRecordatorio(sheet, rowNum, tipo, texto) {
+  if (!texto) return;
+  var actuales = [];
+  try { actuales = JSON.parse(sheet.getRange(rowNum, COLS.recordatorios_json + 1).getValue() || "[]"); } catch (ex) {}
+  actuales.push({
+    id: Utilities.getUuid().replace(/-/g, "").slice(0, 12),
+    tipo: tipo,
+    texto: texto,
+    creadoTs: new Date().toISOString(),
+    resueltoTs: null,
+    resueltoMotivo: null,
+  });
+  sheet.getRange(rowNum, COLS.recordatorios_json + 1).setValue(JSON.stringify(actuales));
+}
+
+// Marca resueltos todos los recordatorios de un tipo que sigan pendientes en
+// una fila (usado para auto-resolver "proxima_cita" cuando llega una
+// respuesta nueva por el chat — ver notificarEscalamiento). Si no hay
+// ninguno pendiente de ese tipo, no hace nada.
+function resolverRecordatoriosPorTipo(sheet, rowNum, tipo, motivo) {
+  var actuales = [];
+  try { actuales = JSON.parse(sheet.getRange(rowNum, COLS.recordatorios_json + 1).getValue() || "[]"); } catch (ex) {}
+  var huboCambio = false;
+  actuales.forEach(function (r) {
+    if (r.tipo === tipo && !r.resueltoTs) {
+      r.resueltoTs = new Date().toISOString();
+      r.resueltoMotivo = motivo;
+      huboCambio = true;
+    }
+  });
+  if (huboCambio) sheet.getRange(rowNum, COLS.recordatorios_json + 1).setValue(JSON.stringify(actuales));
+}
+
+// Acción de panel (8 nov 2026): el equipo resuelve un recordatorio a mano —
+// "confirmado_manual" (proxima_cita: el equipo ya sabe que se preguntó, por
+// fuera del chat) o "descartado" (novedad_pendiente: no amerita regenerar).
+// Nunca dispara una regeneración por sí sola -- eso lo hace el botón
+// "Regenerar" normal del panel, que ya exige confirmación aparte.
+function resolverRecordatorio(sheet, body) {
+  var idPlan = body.idPlan, recordatorioId = body.recordatorioId, motivo = body.motivo;
+  if (!idPlan || !recordatorioId) return respond({ ok: false, error: "idPlan o recordatorioId faltante" }, 400);
+  var found = encontrarFilaPorIdPlan(sheet, idPlan);
+  if (!found) return respond({ ok: false, error: "no encontrado" }, 404);
+  var actuales = [];
+  try { actuales = JSON.parse(found.values[COLS.recordatorios_json] || "[]"); } catch (ex) {}
+  var encontrado = false;
+  actuales.forEach(function (r) {
+    if (r.id === recordatorioId) {
+      r.resueltoTs = new Date().toISOString();
+      r.resueltoMotivo = motivo || "resuelto";
+      encontrado = true;
+    }
+  });
+  if (!encontrado) return respond({ ok: false, error: "recordatorio no encontrado" }, 404);
+  sheet.getRange(found.row, COLS.recordatorios_json + 1).setValue(JSON.stringify(actuales));
+  SpreadsheetApp.flush();
+  return respond({ ok: true });
+}
+
+// true si el valor crudo de la celda recordatorios_json trae al menos un
+// recordatorio sin resolver — para el badge rápido en listarPendientes()/
+// listarHistorial(), sin que el panel tenga que abrir el detalle de cada
+// caso solo para saber si hay algo pendiente.
+function hayRecordatoriosPendientes(recordatoriosJsonCrudo) {
+  if (!recordatoriosJsonCrudo) return false;
+  var lista = [];
+  try { lista = JSON.parse(recordatoriosJsonCrudo); } catch (ex) { return false; }
+  return lista.some(function (r) { return !r.resueltoTs; });
+}
 
 // Asigna el siguiente consecutivo libre a una fila, bajo un lock para que
 // dos generaciones casi simultáneas nunca repitan número. Calcula el
@@ -293,6 +390,7 @@ function doPost(e) {
     if (body.action === "aprobar_plan") return conPanelSecret(body, function () { return aprobarPlan(sheet, body); });
     if (body.action === "descartar_pendiente") return conPanelSecret(body, function () { return descartarPendiente(sheet, body); });
     if (body.action === "eliminar_novedad") return conPanelSecret(body, function () { return eliminarNovedad(sheet, body); });
+    if (body.action === "resolver_recordatorio") return conPanelSecret(body, function () { return resolverRecordatorio(sheet, body); });
     // NUEVO (6 nov 2026, pedido de Leonardo): borrado masivo de casos ya
     // aprobados — limpiar los sintéticos de auditoría del historial real.
     // Ver eliminarAprobados() más abajo para el porqué de NO bloquear por
@@ -465,6 +563,7 @@ function listarPendientes(sheet) {
         timestamp: data[r][COLS.timestamp],
         verificacionTs: data[r][COLS.verificacion_ts],
         regeneracionEstado: data[r][COLS.regeneracion_estado],
+        tieneRecordatoriosPendientes: hayRecordatoriosPendientes(data[r][COLS.recordatorios_json]),
       });
     }
   }
@@ -494,6 +593,7 @@ function listarHistorial(sheet) {
         // pendiente todavía no se puede aprobar, así que la familia nunca
         // llega a /plan/ ni al chat (doGet responde 403 hasta aprobar).
         tieneNovedades: !!(data[r][COLS.novedades_json] && data[r][COLS.novedades_json] !== "[]"),
+        tieneRecordatoriosPendientes: hayRecordatoriosPendientes(data[r][COLS.recordatorios_json]),
         regeneracionEstado: data[r][COLS.regeneracion_estado],
       });
     }
@@ -529,6 +629,10 @@ function detallePlan(sheet, body) {
   // caso — ver registrarNovedad(). Vacío en casos sin novedades todavía.
   var novedades = [];
   try { novedades = JSON.parse(v[COLS.novedades_json] || "[]"); } catch (ex) {}
+  // NUEVO (8 nov 2026): recordatorios pendientes del caso -- ver
+  // agregarRecordatorio()/resolverRecordatorio() más arriba.
+  var recordatorios = [];
+  try { recordatorios = JSON.parse(v[COLS.recordatorios_json] || "[]"); } catch (ex) {}
   return respond({
     ok: true,
     idPlan: idPlan,
@@ -548,6 +652,7 @@ function detallePlan(sheet, body) {
     verificacionTs: v[COLS.verificacion_ts],
     camposSnapshot: camposSnapshot,
     novedades: novedades,
+    recordatorios: recordatorios,
     regeneracionEstado: v[COLS.regeneracion_estado],
   });
 }
@@ -584,8 +689,15 @@ function aprobarPlan(sheet, body) {
   }
   var row = found.row;
   if (body.plan) sheet.getRange(row, COLS.plan_json + 1).setValue(JSON.stringify(body.plan));
+  var mensajeFinal = typeof body.mensaje === "string" ? body.mensaje : found.values[COLS.borrador_texto];
   if (typeof body.mensaje === "string") sheet.getRange(row, COLS.borrador_texto + 1).setValue(body.mensaje);
   sheet.getRange(row, COLS.decision + 1).setValue("aprobado");
+  // Recordatorio de seguimiento (8 nov 2026, pedido de Leonardo): se crea al
+  // aprobar, con el texto final que de verdad le va a llegar a la familia
+  // (el editado en el panel si Peter lo cambió, no el original) -- así el
+  // equipo y Vita saben qué falta confirmar en el seguimiento. "" si el
+  // plan no trae la sección (casos de antes del 5 nov) -- no se crea nada.
+  agregarRecordatorio(sheet, row, "proxima_cita", extraerProximaCita(mensajeFinal));
   SpreadsheetApp.flush();
   var resultado = enviarPlanAprobado(sheet, row);
   return respond({ ok: true, envio: resultado });
@@ -734,8 +846,11 @@ function marcarRegeneracion(sheet, body) {
 // rastro que no avisar nada.
 function notificarEscalamiento(sheet, body) {
   try {
+    // A Peter también (8 nov 2026, pedido de Leonardo) -- antes solo
+    // llegaba a Leonardo; una novedad puede ser clínicamente relevante y
+    // Peter no se enteraba salvo que Leonardo se la reenviara.
     MailApp.sendEmail({
-      to: "leonardo@ledelab.group",
+      to: "leonardo@ledelab.group,peter.alvarez.mora@gmail.com",
       subject: "🚨 Vita escaló algo — " + (body.motivo || "sin especificar") + (body.nombreNino ? " — " + body.nombreNino : ""),
       body:
         "Motivo: " + (body.motivo || "sin especificar") + "\n" +
@@ -745,6 +860,23 @@ function notificarEscalamiento(sheet, body) {
     });
     if (body.idPlan) {
       try { registrarNovedad(sheet, body.idPlan, body.motivo, body.mensajePadre); } catch (exNovedad) {}
+      // Recordatorios (8 nov 2026, pedido de Leonardo): un dato_nuevo real
+      // (no una urgencia, que ya se maneja aparte por su propio canal) crea
+      // un recordatorio para que el equipo decida si amerita regenerar el
+      // plan -- nunca se regenera solo. Y si había un recordatorio de
+      // "proxima_cita" sin resolver para este caso, se da por respondido:
+      // cualquier dato_nuevo después de esa pregunta cierra ese hilo, sea
+      // cual sea la respuesta -- el equipo siempre puede revisar el detalle
+      // completo en el panel si hace falta más contexto.
+      if (body.motivo === "dato_nuevo") {
+        try {
+          var found = encontrarFilaPorIdPlan(sheet, body.idPlan);
+          if (found) {
+            agregarRecordatorio(sheet, found.row, "novedad_pendiente", body.mensajePadre || "");
+            resolverRecordatoriosPorTipo(sheet, found.row, "proxima_cita", "respondido_por_chat");
+          }
+        } catch (exRecordatorio) {}
+      }
     }
     return respond({ ok: true });
   } catch (err) {
@@ -895,6 +1027,18 @@ function doGet(e) {
         try { novedades = JSON.parse(data[r][COLS.novedades_json] || "[]"); } catch (ex) {}
         var chatHistory = [];
         try { chatHistory = JSON.parse(data[r][COLS.chat_json] || "[]"); } catch (ex) {}
+        // NUEVO (8 nov 2026, pedido de Leonardo): solo el texto de los
+        // recordatorios "proxima_cita" sin resolver -- nunca los de
+        // "novedad_pendiente", que son internos del equipo (si regenerar el
+        // plan o no) y no le corresponden a la familia. Vita los usa en el
+        // chat de seguimiento para preguntar si ya hablaron con el
+        // pediatra; ver buildSeguimientoPrompt() en app/index.html.
+        var recordatoriosProximaCita = [];
+        try {
+          JSON.parse(data[r][COLS.recordatorios_json] || "[]").forEach(function (rec) {
+            if (rec.tipo === "proxima_cita" && !rec.resueltoTs) recordatoriosProximaCita.push(rec.texto);
+          });
+        } catch (ex) {}
         // NUEVO (28 oct 2026, pedido de Leonardo — Progreso v1, línea de
         // etapas): fechas que ya existían en el Sheet, nunca expuestas antes
         // en /plan — el padre ya las conoce (cuándo llenó el formulario,
@@ -913,6 +1057,7 @@ function doGet(e) {
           plan: plan,
           novedades: novedades,
           chatHistory: chatHistory,
+          recordatoriosProximaCita: recordatoriosProximaCita,
           timestamp: data[r][COLS.timestamp] || "",
           correoEnviadoTs: data[r][COLS.correo_enviado_ts] || "",
         });
@@ -1053,7 +1198,13 @@ function onAprobado(e) {
     if (!e || !e.range) return;
     if (e.range.getColumn() !== COLS.decision + 1) return; // solo nos importa "decision"
     if (String(e.value || "").trim() !== "aprobado") return;
-    enviarPlanAprobado(e.range.getSheet(), e.range.getRow());
+    var sheet = e.range.getSheet(), row = e.range.getRow();
+    // Mismo recordatorio de seguimiento que crea aprobarPlan() -- esta vía
+    // (editar "decision" a mano en el Sheet) existe en paralelo al panel,
+    // así que necesita la misma lógica para no dejar casos sin recordatorio
+    // solo por el camino que se usó para aprobar.
+    agregarRecordatorio(sheet, row, "proxima_cita", extraerProximaCita(sheet.getRange(row, COLS.borrador_texto + 1).getValue()));
+    enviarPlanAprobado(sheet, row);
   } catch (err) {
     // No relanzar: un error aquí no debe romper la edición del Sheet.
   }
