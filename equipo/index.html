@@ -404,6 +404,7 @@ function App() {
   const [mostrarReferenciaVita, setMostrarReferenciaVita] = useState(false);
   const [regenerando, setRegenerando] = useState(false);
   const [regeneradoOk, setRegeneradoOk] = useState(false);
+  const [resolviendoRecordatorio, setResolviendoRecordatorio] = useState(false);
 
   const llamarPanel = async (ruta, extra) => {
     const res = await fetch(WORKER_URL + "/panel/" + ruta, {
@@ -622,12 +623,24 @@ function App() {
   // a la familia. No hace falta quedarse en esta pantalla — se puede navegar
   // a otra sección de inmediato, el vigilante de arriba (useEffect) avisa
   // con una notificación cuando termine.
-  const regenerar = async () => {
+  // informacionNueva/recordatorioId (8 nov 2026, pedido de Leonardo): cuando
+  // se regenera desde el botón "Regenerar con esto" de un recordatorio de
+  // novedad, el texto viaja al Worker (ver SRB_DRAFT_PROMPT, sección NUEVA
+  // INFORMACIÓN DEL SEGUIMIENTO) y, si la regeneración se encoló bien, el
+  // recordatorio se marca resuelto ("regenerado") de una vez — nunca al
+  // revés (nunca se regenera solo porque un recordatorio existe).
+  const regenerar = async (informacionNueva, recordatorioId) => {
     if (regenerando) return;
     setRegenerando(true); setAccionError(null); setRegeneradoOk(false);
     try {
-      const data = await llamarPanel("regenerar", { idPlan: detalle.idPlan });
+      const data = await llamarPanel("regenerar", { idPlan: detalle.idPlan, ...(informacionNueva ? { informacionNueva } : {}) });
       if (!data.ok) throw new Error(data.error || "error");
+      if (recordatorioId) {
+        try {
+          await llamarPanel("resolver-recordatorio", { idPlan: detalle.idPlan, recordatorioId, motivo: "regenerado" });
+          setDetalle(d => ({ ...d, recordatorios: (d.recordatorios||[]).map(r => r.id === recordatorioId ? { ...r, resueltoTs: new Date().toISOString(), resueltoMotivo: "regenerado" } : r) }));
+        } catch (e) {}
+      }
       setRegeneradoOk(true); setConfirmandoRegenerar(false);
       try {
         const seguidos = JSON.parse(localStorage.getItem(REGEN_TRACK_KEY) || "[]");
@@ -637,6 +650,20 @@ function App() {
       if (typeof Notification !== "undefined" && Notification.permission === "default") Notification.requestPermission();
     } catch (e) { setAccionError(e.message === "PIN incorrecto" ? null : (e.message || "No se pudo regenerar. Reintenta.")); }
     finally { setRegenerando(false); }
+  };
+
+  // Resuelve un recordatorio SIN regenerar -- "Marcar como respondido"
+  // (proxima_cita, confirmado a mano por el equipo) o "Descartar" (novedad
+  // que no amerita actualizar el plan).
+  const resolverRecordatorioAccion = async (recordatorioId, motivo) => {
+    if (resolviendoRecordatorio) return;
+    setResolviendoRecordatorio(true); setAccionError(null);
+    try {
+      const data = await llamarPanel("resolver-recordatorio", { idPlan: detalle.idPlan, recordatorioId, motivo });
+      if (!data.ok) throw new Error(data.error || "error");
+      setDetalle(d => ({ ...d, recordatorios: (d.recordatorios||[]).map(r => r.id === recordatorioId ? { ...r, resueltoTs: new Date().toISOString(), resueltoMotivo: motivo } : r) }));
+    } catch (e) { setAccionError(e.message === "PIN incorrecto" ? null : (e.message || "No se pudo resolver. Reintenta.")); }
+    finally { setResolviendoRecordatorio(false); }
   };
 
   const borrarNovedad = async (index) => {
@@ -757,7 +784,10 @@ function App() {
         {(pendientes||[]).map(p => (
           <div key={p.idPlan} className="rise" onClick={()=>abrirDetalle(p.idPlan,"pendientes")} style={{background:P.panel, border:"1px solid "+P.line, borderRadius:16, padding:"14px 16px", cursor:"pointer", display:"flex", justifyContent:"space-between", alignItems:"center", gap:12}}>
             <div style={{minWidth:0}}>
-              <div style={{fontSize:15, fontWeight:800, color:P.ink}}>{p.consecutivo && <span style={{color:P.sageDeep}}>#{p.consecutivo} · </span>}{p.nombreNino || "(sin nombre)"}{formatEdad(p.edad)}</div>
+              <div style={{fontSize:15, fontWeight:800, color:P.ink, display:"flex", alignItems:"center", gap:8}}>
+                <span>{p.consecutivo && <span style={{color:P.sageDeep}}>#{p.consecutivo} · </span>}{p.nombreNino || "(sin nombre)"}{formatEdad(p.edad)}</span>
+                {p.tieneRecordatoriosPendientes && <span style={{background:P.sageSoft, color:P.sageDeep, fontSize:10.5, fontWeight:800, padding:"2px 8px", borderRadius:999, letterSpacing:".03em"}}>RECORDATORIO</span>}
+              </div>
               <div style={{fontSize:12.5, color:P.muted, marginTop:2}}>Padre/madre: {p.nombrePadre || "—"} · {relativeDate(p.timestamp)}</div>
               {p.preocupacionPrincipal && <div style={{fontSize:12.5, color:P.ink, marginTop:5, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap"}}>{p.preocupacionPrincipal}</div>}
               {huellaRegeneracion(p.regeneracionEstado) && <div style={{fontSize:11.5, color: huellaRegeneracion(p.regeneracionEstado).clay ? P.clay : P.sage, marginTop:4}}>{huellaRegeneracion(p.regeneracionEstado).texto}</div>}
@@ -804,6 +834,7 @@ function App() {
               <div style={{fontSize:15, fontWeight:800, color:P.ink, display:"flex", alignItems:"center", gap:8}}>
                 {p.consecutivo && <span style={{color:P.sageDeep}}>#{p.consecutivo} · </span>}{p.nombreNino || "(sin nombre)"}{formatEdad(p.edad)}
                 {p.tieneNovedades && <span style={{background:P.claySoft, color:P.clay, fontSize:10.5, fontWeight:800, padding:"2px 8px", borderRadius:999, letterSpacing:".03em"}}>NOVEDAD</span>}
+                {p.tieneRecordatoriosPendientes && <span style={{background:P.sageSoft, color:P.sageDeep, fontSize:10.5, fontWeight:800, padding:"2px 8px", borderRadius:999, letterSpacing:".03em"}}>RECORDATORIO</span>}
               </div>
               <div style={{fontSize:12.5, color:P.muted, marginTop:2}}>Padre/madre: {p.nombrePadre || "—"} · aprobado {relativeDate(p.correoEnviadoTs || p.timestamp)}</div>
               {huellaRegeneracion(p.regeneracionEstado) && <div style={{fontSize:11.5, color: huellaRegeneracion(p.regeneracionEstado).clay ? P.clay : P.sage, marginTop:4}}>{huellaRegeneracion(p.regeneracionEstado).texto}</div>}
@@ -849,6 +880,7 @@ function App() {
       </Shell>
     );
     const novedades = detalle.novedades || [];
+    const recordatoriosPendientes = (detalle.recordatorios || []).filter(r => !r.resueltoTs);
     return (
       <ShellDetalle>
         <div style={{display:"flex", justifyContent:"space-between", alignItems:"center", gap:10}}>
@@ -865,6 +897,26 @@ function App() {
           <div style={{fontSize:11.5, color:detalle.consentimientoTs?P.sageDeep:P.clay, marginTop:4}}>{detalle.consentimientoTs ? ("✓ Consentimiento aceptado "+relativeDate(detalle.consentimientoTs)) : "⚠ Sin registro de consentimiento (caso previo al 9 ago, creado por una prueba directa sin pasar por el formulario real, o un caso real que hay que revisar)"}</div>
           {soloLectura && <div style={{display:"inline-block", marginTop:8, background:P.sageSoft, color:P.sageDeep, fontSize:11.5, fontWeight:800, padding:"4px 10px", borderRadius:999}}>✓ Aprobado</div>}
         </div>
+
+        {recordatoriosPendientes.length > 0 && (
+          <div style={{background:P.sageSoft, border:"1px solid "+P.sage, borderRadius:16, padding:"14px 16px", display:"flex", flexDirection:"column", gap:10}}>
+            <div style={{fontSize:13, fontWeight:800, color:P.sageDeep}}>Recordatorios pendientes ({recordatoriosPendientes.length})</div>
+            {recordatoriosPendientes.map((r) => (
+              <div key={r.id} style={{background:P.panelRaised, border:"1px solid "+P.line, borderRadius:12, padding:"10px 12px"}}>
+                <div style={{fontSize:11, color:P.muted, marginBottom:4}}>{relativeDate(r.creadoTs)} · {r.tipo === "proxima_cita" ? "próxima cita con el pediatra" : "información nueva sin revisar"}</div>
+                <div style={{fontSize:13.5, color:P.ink, lineHeight:1.5, marginBottom:8}}>{r.texto}</div>
+                {r.tipo === "proxima_cita" ? (
+                  <span onClick={()=>!resolviendoRecordatorio && resolverRecordatorioAccion(r.id, "confirmado_manual")} style={{fontSize:11.5, color:P.sageDeep, fontWeight:800, textDecoration:"underline", cursor:"pointer"}}>{resolviendoRecordatorio?"Guardando…":"Marcar como respondido"}</span>
+                ) : (
+                  <span style={{display:"flex", gap:14}}>
+                    <span onClick={()=>!regenerando && !resolviendoRecordatorio && regenerar(r.texto, r.id)} style={{fontSize:11.5, color:P.sageDeep, fontWeight:800, textDecoration:"underline", cursor:"pointer"}}>{regenerando?"Encolando…":"Regenerar con esto"}</span>
+                    <span onClick={()=>!resolviendoRecordatorio && resolverRecordatorioAccion(r.id, "descartado")} style={{fontSize:11.5, color:P.muted, textDecoration:"underline", cursor:"pointer"}}>{resolviendoRecordatorio?"Guardando…":"Descartar"}</span>
+                  </span>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
 
         {novedades.length > 0 && (
           <div style={{background:P.claySoft, border:"1px solid "+P.clay, borderRadius:16, padding:"14px 16px", display:"flex", flexDirection:"column", gap:10}}>
@@ -990,7 +1042,7 @@ function App() {
                 ¿Regenerar el plan de {detalle.nombreNino || "este niño/a"} con el prompt actual? Vuelve a llamar al modelo con los mismos datos del formulario{detalle.correoEnviadoTs ? " — este caso ya está aprobado y la familia puede estar viendo el plan actual; el nuevo contenido queda en pendiente de aprobación hasta que lo revises y apruebes otra vez" : ""}.
               </div>
               <div style={{display:"flex", gap:8}}>
-                <button onClick={regenerar} disabled={regenerando} style={{...btnPrimary, opacity:regenerando?.7:1}}>{regenerando?"Encolando…":"Sí, regenerar"}</button>
+                <button onClick={()=>regenerar()} disabled={regenerando} style={{...btnPrimary, opacity:regenerando?.7:1}}>{regenerando?"Encolando…":"Sí, regenerar"}</button>
                 <button onClick={()=>setConfirmandoRegenerar(false)} style={btnGhost}>Cancelar</button>
               </div>
             </div>

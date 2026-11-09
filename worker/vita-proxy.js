@@ -291,6 +291,11 @@ export default {
     // del chat de seguimiento sin tener que editar el Sheet a mano — mismo
     // principio que las rutas de arriba.
     if (url.pathname === "/panel/eliminar-novedad") return handlePanelAction(request, env, cors, "eliminar_novedad");
+    // NUEVO (8 nov 2026, pedido de Leonardo): resolver un recordatorio
+    // pendiente del caso (confirmar "proxima_cita" a mano, o descartar una
+    // "novedad_pendiente" sin regenerar) — mismo principio que las rutas de
+    // arriba.
+    if (url.pathname === "/panel/resolver-recordatorio") return handlePanelAction(request, env, cors, "resolver_recordatorio");
     // NUEVO (6 nov 2026, pedido de Leonardo): borrado masivo en Aprobados —
     // a diferencia de "descartar" (Pendientes), acá sí se espera que
     // correo_enviado_ts tenga valor (así llega un caso a Aprobados), así que
@@ -1112,6 +1117,16 @@ aparece acá abajo — no los parafrasees, no les cambies el orden:
    NUNCA se omite (5 nov 2026, Manual Maestro v4.25). Va al final del plan, después de los pilares de
    la sección 4 — es la última sección que tú generas; después de esta no escribas nada más, el
    sistema agrega un cierre fijo por fuera de lo que tú generas.
+
+NUEVA INFORMACIÓN DEL SEGUIMIENTO (8 nov 2026, pedido de Leonardo — SOLO si el formulario trae el
+campo "informacion_nueva_seguimiento"; la gran mayoría de los casos NO lo trae, ignora esta sección
+por completo si no está): el equipo decidió regenerar este plan porque la familia compartió algo
+nuevo por el chat de seguimiento, después de la aprobación original. Incorpora esa información donde
+corresponda del plan (cronología, hábitos, el pilar que aplique) exactamente con la misma regla que
+cualquier otro dato del formulario — nunca inventes nada fuera de lo que dice ahí ni fuera de la
+FUENTE SRB. Si contradice algo del formulario original, prioriza la información nueva (es más
+reciente). Si no aplica claramente a ningún pilar o sección existente, puedes mencionarla brevemente
+en "DIAGNÓSTICO BREVE" en vez de forzarla en otra parte.
 
 CÁLCULO DE LA VENTANA DE ALIMENTACIÓN — esto se ha calculado mal antes, hazlo con cuidado. La ventana
 de alimentación (primera a última comida) es un MÁXIMO de 12 horas, no un mínimo — dicho desde el
@@ -2258,7 +2273,7 @@ async function handleRegenerar(request, env, cors) {
   const jsonHeaders = { ...cors, "Content-Type": "application/json" };
   try {
     const body = await request.json();
-    const { panelSecret, idPlan } = body || {};
+    const { panelSecret, idPlan, informacionNueva } = body || {};
     if (!idPlan) {
       return new Response(JSON.stringify({ ok: false, error: "idPlan faltante" }), { status: 400, headers: jsonHeaders });
     }
@@ -2291,6 +2306,13 @@ async function handleRegenerar(request, env, cors) {
       mente_y_pantallas: detalle.menteYPantallas || "", emociones: detalle.emociones || "",
       nombre_padre: detalle.nombrePadre || "", email_padre: detalle.emailPadre || "",
     };
+    // NUEVO (8 nov 2026, pedido de Leonardo): cuando el equipo regenera a
+    // partir de un recordatorio de novedad ("Regenerar con esto" en
+    // equipo/), el texto de la novedad viaja acá -- ver cómo lo usa
+    // SRB_DRAFT_PROMPT (sección NUEVA INFORMACIÓN DEL SEGUIMIENTO). Nunca
+    // se agrega sola: siempre es una acción explícita del equipo, con el
+    // botón correspondiente en el panel.
+    if (informacionNueva) dx.informacion_nueva_seguimiento = String(informacionNueva);
 
     if (!env.GENERADOR_BORRADORES) {
       return new Response(JSON.stringify({ ok: false, error: "GENERADOR_BORRADORES no disponible" }), { status: 500, headers: jsonHeaders });
