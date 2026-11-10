@@ -1541,6 +1541,16 @@ Además, **control de alucinaciones en detalles de preparación** (Peter, revisa
 
 ---
 
+### 10 nov 2026 — Hidratación durante el deporte, nuevo campo del formulario estructurado
+
+Primer ajuste de formulario de la ronda de hoy: la regla nueva del prompt (ver entrada anterior, "solo hidratación, nunca comida adicional antes de entrenar") solo puede aplicarse de forma anclada si el formulario dice qué toma hoy el niño/a durante el entrenamiento — antes no se preguntaba. Chip de selección única (suero casero / agua sola / bebida deportiva comercial / bebida energizante), visible solo cuando ya se marcó que el niño/a entrena, mismo patrón que el resto de "El día en orden".
+
+**Archivos:** `vita-demo-formulario/index.html` (`emptyEstructurado` con `cronoEntrenaHidratacion`, chip nuevo en el bloque de entrenamiento, `compilarCronologia()` agrega la frase correspondiente).
+
+**Verificación:** el bloque `<script type="text/babel">` completo se transformó con `@babel/standalone` sin errores. `compilarCronologia()` extraída y probada en sandbox de Node con las 4 opciones del chip más el caso sin seleccionar — las 5 compilan correctamente, y el caso vacío omite la frase en vez de dejar un hueco.
+
+---
+
 ## Lo que enseña este historial
 
 Tres patrones que se repiten y conviene tener presentes:

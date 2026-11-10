@@ -468,7 +468,7 @@ const MODE = "child"; // este demo SOLO captura para un hijo/a — no hay modo a
 // texto ya compilado.
 const ESTRUCTURADO_KEY = "vita_formulario_estructurado";
 const leerEstructurado=()=>{ try{ const s=localStorage.getItem(ESTRUCTURADO_KEY); return s?JSON.parse(s):{}; }catch(e){ return {}; } };
-const emptyEstructurado = { origenParto:"", origenLactancia:"", origenOtra:"", senalesChips:[], senalesMatiz:"", cronoDespierta:"", cronoDesayuna:"", cronoAlmuerza:"", cronoCena:"", cronoDuerme:"", cronoFinde:"", cronoLonchera:"", cronoLoncheraDetalle:"", cronoEntrenaSiNo:"", cronoEntrenaDeporte:"", cronoEntrenaDias:[], cronoEntrenaInicio:"", cronoEntrenaFin:"", cronoMatiz:"", suenoManual:"", metasChips:[], metasOtra:"", preocupacionChips:[], preocupacionOtra:"", pantallasHoras:"", pantallasAntesDormir:"", pantallasMatiz:"", findeComidas:[], findeMatiz:"" };
+const emptyEstructurado = { origenParto:"", origenLactancia:"", origenOtra:"", senalesChips:[], senalesMatiz:"", cronoDespierta:"", cronoDesayuna:"", cronoAlmuerza:"", cronoCena:"", cronoDuerme:"", cronoFinde:"", cronoLonchera:"", cronoLoncheraDetalle:"", cronoEntrenaSiNo:"", cronoEntrenaDeporte:"", cronoEntrenaDias:[], cronoEntrenaInicio:"", cronoEntrenaFin:"", cronoEntrenaHidratacion:"", cronoMatiz:"", suenoManual:"", metasChips:[], metasOtra:"", preocupacionChips:[], preocupacionOtra:"", pantallasHoras:"", pantallasAntesDormir:"", pantallasMatiz:"", findeComidas:[], findeMatiz:"" };
 
 // "19:30" (valor nativo de <input type="time">) -> "7:30 PM" — se prefiere
 // sobre dejar el 24h crudo porque toda la historia de ajustes de
@@ -547,6 +547,15 @@ function compilarCronologia(e){
     const dias = e.cronoEntrenaDias.join(" y ");
     const horario = (e.cronoEntrenaInicio && e.cronoEntrenaFin) ? (" de "+horaLegible(e.cronoEntrenaInicio)+" a "+horaLegible(e.cronoEntrenaFin)) : "";
     partes.push("Entrena "+deporte+" los "+dias+horario+".");
+    // Hidratación durante el deporte (10 nov 2026, sesión de revisión de
+    // casos reales con Peter): antes no se preguntaba, y el prompt ya tiene
+    // la regla de reemplazar bebidas energizantes/deportivas comerciales por
+    // suero casero (ver ADAPTACIONES_PEDIATRICAS) — pero esa regla solo
+    // puede aplicarse de forma anclada si el formulario dice qué toma hoy.
+    if(e.cronoEntrenaHidratacion==="suero") partes.push("Durante el entrenamiento toma suero casero.");
+    else if(e.cronoEntrenaHidratacion==="agua") partes.push("Durante el entrenamiento toma agua sola.");
+    else if(e.cronoEntrenaHidratacion==="deportiva") partes.push("Durante el entrenamiento toma bebidas deportivas comerciales (tipo Gatorade o Powerade).");
+    else if(e.cronoEntrenaHidratacion==="energizante") partes.push("Durante el entrenamiento toma bebidas energizantes (tipo Red Bull o Monster).");
   }
   if(e.cronoMatiz && e.cronoMatiz.trim()) partes.push(e.cronoMatiz.trim());
   return partes.join(" ");
@@ -718,6 +727,14 @@ const BloqueCronologia=({e,set,P})=>{
               <span style={{fontSize:11,color:P.muted,fontWeight:700}}>Termina</span>
               <input type="time" value={e.cronoEntrenaFin} onChange={ev=>set({...e,cronoEntrenaFin:ev.target.value})} style={timeInputStyle}/>
             </label>
+          </div>
+          <div>
+            <div style={{fontSize:11,color:P.muted,marginBottom:4,fontWeight:700}}>¿Qué toma para hidratarse mientras entrena?</div>
+            <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+              {[["suero","Suero casero"],["agua","Agua sola"],["deportiva","Bebida deportiva (Gatorade, Powerade...)"],["energizante","Bebida energizante (Red Bull, Monster...)"]].map(([v,l])=>(
+                <button key={v} type="button" onClick={()=>set({...e,cronoEntrenaHidratacion:e.cronoEntrenaHidratacion===v?"":v})} style={chipBtnStyle(e.cronoEntrenaHidratacion===v,P)}>{l}</button>
+              ))}
+            </div>
           </div>
         </div>
       )}
