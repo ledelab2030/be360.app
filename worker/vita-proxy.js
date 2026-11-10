@@ -329,6 +329,15 @@ export default {
     // de Peter). Mismo patrón de passthrough genérico que /panel/* y /verificar.
     if (url.pathname === "/panel-colegio/resumen") return handlePanelAction(request, env, cors, "resumen_colegio");
 
+    // NUEVO (10 nov 2026, pedido de Leonardo): documentos/index.html — lista
+    // de documentos clínicos (SRB, reglas duras) para que Peter los consulte
+    // en línea con su historial de versiones, SIN el PIN de equipo/. A
+    // propósito fuera del prefijo /panel/* (no es passthrough de un dato
+    // protegido): Apps Script responde "listar_documentos" sin exigir
+    // panelSecret ni SHARED_SECRET — ver la nota junto a esa acción en
+    // worker/apps-script-formulario-v2.gs.txt.
+    if (url.pathname === "/documentos-data") return handlePanelAction(request, env, cors, "listar_documentos");
+
     try {
       const body = await request.json();
 

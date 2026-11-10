@@ -1508,6 +1508,18 @@ Leonardo compartió un ejemplo real (ver punto 23 de Pendientes conocidos, corre
 
 ---
 
+### 10 nov 2026 — `documentos/index.html`: historial de versiones del SRB y reglas duras, para que Peter lo consulte en línea
+
+Leonardo pidió un repositorio donde Peter (y quien más haga falta) pueda consultar los documentos clínicos — el SRB pediátrico, las reglas duras, sus distintas versiones — y su estado, sin depender de que alguien le reenvíe un link de Drive cada vez. Decisión tomada con Leonardo: página aparte (`documentos/index.html`, no una pestaña de `equipo/`) y **sin el PIN de equipo/** — a propósito, porque no expone ningún dato de ningún niño, solo metadata de documentos (nombre, versión, estado, fecha, link de Drive); mantenida a mano en una pestaña nueva del Sheet ("Documentos"), igual que ya funciona "Equipo".
+
+- **Apps Script:** `listarDocumentos()` — mismo patrón que `listarEquipo()`: si la pestaña "Documentos" no existe, la crea con encabezados (Nombre, Versión, Estado, Fecha, Link) la primera vez que se llama; ignora filas sin nombre (separador a mano). Nueva acción `listar_documentos` en `doPost`, deliberadamente SIN `conPanelSecret` ni el `SHARED_SECRET` del Worker — mismo criterio que `verificar_codigo`/`resumen_colegio`: pública porque lo que expone no es sensible.
+- **Worker:** nueva ruta `/documentos-data`, fuera del prefijo `/panel/*` para no confundirla con las rutas protegidas por PIN — un passthrough genérico más, vía `handlePanelAction`.
+- **`documentos/index.html`:** página nueva, vanilla JS (mismo criterio que `verificar/index.html`: una sola lista, no necesita React/Babel), mismo sistema visual (paleta sage/cream, Fraunces/Nunito). Cada documento se muestra como una tarjeta con nombre, versión, una etiqueta de estado (firmado/pendiente de firma/borrador, coloreada) y un botón "Abrir" que lleva al Google Doc.
+
+**Archivos:** `worker/apps-script-formulario-v2.gs.txt` (`listarDocumentos()`, ruta `listar_documentos` en `doPost`), `worker/vita-proxy.js` (ruta `/documentos-data`), `documentos/index.html` (nuevo).
+
+**Verificación:** `node --check` sobre ambos archivos del Worker/Apps Script. La página se abrió en el navegador: el estado de error se confirmó real (la ruta todavía no está desplegada — Apps Script se pega a mano, ver §5 de `CLAUDE.md`), y el estado con datos se verificó inyectando documentos de prueba en memoria (nunca datos reales) para confirmar que las tarjetas, las etiquetas de estado y los links se ven bien. **Pendiente, solo se puede probar después de desplegar:** pegar la versión nueva del Apps Script, crear la pestaña "Documentos" (se crea sola en la primera llamada) y cargarla a mano con las filas de los documentos que ya existen (SRB v5 y v7 en Drive, reglas duras firmadas) para confirmar el camino real de punta a punta.
+
 ---
 
 ## Lo que enseña este historial
