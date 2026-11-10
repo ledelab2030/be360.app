@@ -413,6 +413,15 @@ function doPost(e) {
     // ahora es también lo que usa conPanelSecret() para las demás acciones.
     if (body.action === "login_equipo") return loginEquipo(body);
 
+    // NUEVO (10 nov 2026, pedido de Leonardo): lista de documentos clínicos
+    // (SRB, reglas duras, sus versiones) para que Peter — y quien más haga
+    // falta — los consulte en documentos/index.html SIN el PIN de equipo/.
+    // A propósito SIN conPanelSecret ni SHARED_SECRET: no expone ningún dato
+    // de ningún niño, solo metadata de documentos (nombre, versión, estado,
+    // link de Drive) que ya vive en una pestaña separada del Sheet. Mismo
+    // criterio que verificar_codigo/resumen_colegio: pública a propósito.
+    if (body.action === "listar_documentos") return listarDocumentos();
+
     // Verificación de código de colegio — viene de verificar/index.html (una
     // página pública, el padre la abre desde el correo). NO usa SHARED_SECRET
     // ni PANEL_SECRET: la protección es la misma que ya usa /plan — hace
@@ -993,6 +1002,36 @@ function listarEquipo() {
     });
   }
   return respond({ ok: true, equipo: out });
+}
+
+// NUEVO (10 nov 2026, pedido de Leonardo): pestaña "Documentos" — una fila
+// por documento clínico (SRB pediátrico, reglas duras, sus versiones), se
+// llena a mano en Sheets igual que "Equipo". Columnas: Nombre | Versión |
+// Estado | Fecha | Link. "Fecha" es texto libre (ej. "9 nov 2026"), no se
+// parsea — es solo para mostrar. Filas sin Nombre se ignoran (separador a
+// mano). Ver documentos/index.html, que consume esto vía /documentos-data.
+function listarDocumentos() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var hoja = ss.getSheetByName("Documentos");
+  if (!hoja) {
+    hoja = ss.insertSheet("Documentos");
+    hoja.appendRow(["Nombre", "Versión", "Estado", "Fecha", "Link"]);
+    hoja.setFrozenRows(1);
+    SpreadsheetApp.flush();
+  }
+  var data = hoja.getDataRange().getValues();
+  var out = [];
+  for (var r = 1; r < data.length; r++) {
+    if (!data[r][0]) continue; // fila vacía (ej. separador a mano) — se ignora
+    out.push({
+      nombre: data[r][0] || "",
+      version: data[r][1] || "",
+      estado: data[r][2] || "",
+      fecha: data[r][3] || "",
+      link: data[r][4] || "",
+    });
+  }
+  return respond({ ok: true, documentos: out });
 }
 
 function doGet(e) {

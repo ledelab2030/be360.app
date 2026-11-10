@@ -1508,6 +1508,18 @@ Leonardo compartió un ejemplo real (ver punto 23 de Pendientes conocidos, corre
 
 ---
 
+### 10 nov 2026 — `documentos/index.html`: historial de versiones del SRB y reglas duras, para que Peter lo consulte en línea
+
+Leonardo pidió un repositorio donde Peter (y quien más haga falta) pueda consultar los documentos clínicos — el SRB pediátrico, las reglas duras, sus distintas versiones — y su estado, sin depender de que alguien le reenvíe un link de Drive cada vez. Decisión tomada con Leonardo: página aparte (`documentos/index.html`, no una pestaña de `equipo/`) y **sin el PIN de equipo/** — a propósito, porque no expone ningún dato de ningún niño, solo metadata de documentos (nombre, versión, estado, fecha, link de Drive); mantenida a mano en una pestaña nueva del Sheet ("Documentos"), igual que ya funciona "Equipo".
+
+- **Apps Script:** `listarDocumentos()` — mismo patrón que `listarEquipo()`: si la pestaña "Documentos" no existe, la crea con encabezados (Nombre, Versión, Estado, Fecha, Link) la primera vez que se llama; ignora filas sin nombre (separador a mano). Nueva acción `listar_documentos` en `doPost`, deliberadamente SIN `conPanelSecret` ni el `SHARED_SECRET` del Worker — mismo criterio que `verificar_codigo`/`resumen_colegio`: pública porque lo que expone no es sensible.
+- **Worker:** nueva ruta `/documentos-data`, fuera del prefijo `/panel/*` para no confundirla con las rutas protegidas por PIN — un passthrough genérico más, vía `handlePanelAction`.
+- **`documentos/index.html`:** página nueva, vanilla JS (mismo criterio que `verificar/index.html`: una sola lista, no necesita React/Babel), mismo sistema visual (paleta sage/cream, Fraunces/Nunito). Cada documento se muestra como una tarjeta con nombre, versión, una etiqueta de estado (firmado/pendiente de firma/borrador, coloreada) y un botón "Abrir" que lleva al Google Doc.
+
+**Archivos:** `worker/apps-script-formulario-v2.gs.txt` (`listarDocumentos()`, ruta `listar_documentos` en `doPost`), `worker/vita-proxy.js` (ruta `/documentos-data`), `documentos/index.html` (nuevo).
+
+**Verificación:** `node --check` sobre ambos archivos del Worker/Apps Script. La página se abrió en el navegador: el estado de error se confirmó real (la ruta todavía no está desplegada — Apps Script se pega a mano, ver §5 de `CLAUDE.md`), y el estado con datos se verificó inyectando documentos de prueba en memoria (nunca datos reales) para confirmar que las tarjetas, las etiquetas de estado y los links se ven bien. **Pendiente, solo se puede probar después de desplegar:** pegar la versión nueva del Apps Script, crear la pestaña "Documentos" (se crea sola en la primera llamada) y cargarla a mano con las filas de los documentos que ya existen (SRB v5 y v7 en Drive, reglas duras firmadas) para confirmar el camino real de punta a punta.
+
 ---
 
 ## Lo que enseña este historial
@@ -1576,6 +1588,16 @@ Tres patrones que se repiten y conviene tener presentes:
     1. Hay opciones de selección (chips) que no permiten agregar algo que no esté en la lista — sin identificar todavía cuáles específicamente; falta revisar campo por campo en `shared/formulario-fields.js` y agregar una opción "Otro" con texto libre donde falte.
     2. Leonardo cree que conviene cambiar algunas de esas selecciones abiertas (chips) por un menú desplegable (`<select>`) — sin decidir todavía en cuáles campos aplica; antes de construir, confirmar con él cuáles, porque el diseño de chips actual se eligió a propósito en rondas anteriores (más fácil de tocar en móvil, multi-selección visible de un vistazo) y cambiarlo de vuelta a dropdown en algunos campos podría ser un paso atrás si no se acota bien.
     3. Agregar, al final del formulario, un campo abierto de "otros comentarios o información adicional que quieran añadir" — este sí está bien definido, listo para construirse en la próxima ronda de chips.
+
+25. 🔴 **CRÍTICO — conseguir una fuente sostenible de créditos de la API de Anthropic (pedido 9 nov).** Todo el sistema (generación de borradores, el chat en vivo de captura, el chat de seguimiento de Vita) depende de una sola API key de Anthropic, pagada con fondos propios de Leonardo. El 8-9 nov hubo una pausa de varias horas por falta de recarga de créditos — esta vez no se perdió ningún caso real (verificado en los logs del Worker, ver más abajo), pero el riesgo estructural sigue: cualquier pausa futura, más larga o en un momento con más tráfico real, puede dejar a una familia a mitad de conversación con Vita sin que quede ningún rastro del intento fallido (a diferencia de un formulario ya enviado, que si acaso se queda "pendiente" sin borrador — ver punto 16 — una conversación que nunca llegó a enviarse no genera ninguna fila en el Sheet).
+
+    **Investigado el 9 nov, antes de decidir nada:**
+    - **Programa propio de Anthropic ("Claude for Startups"):** cerrado ahora mismo — "la cohorte actual está llena, no aceptan nuevas aplicaciones" (confirmado en la página oficial, no solo en resúmenes de terceros). Se puede suscribir al newsletter en `claude.com/programs/startups` para enterarse cuando reabra.
+    - **AWS Activate + Amazon Bedrock:** sí cubre Claude (a diferencia de Google for Startups y Microsoft for Startups, que **no** cubren Claude en absoluto). Nivel de entrada "Activate Founders" (autofinanciado, sin necesitar aceleradora ni VC): US$1,000 a ~US$5,000. Niveles mayores (hasta US$200,000) piden estar respaldado por una aceleradora/inversionista con Org ID. Aplicar en `aws.amazon.com/startups/credits` (AWS Builder ID + perfil de startup), respuesta en 5-10 días hábiles.
+    - **Ojo, esto no es un cambio de facturación simple:** el Worker llama directo a la API de Anthropic (`api.anthropic.com`, header `x-api-key`). Usar créditos de AWS exigiría migrar esas llamadas a Amazon Bedrock — otra forma de autenticación (AWS SigV4) y otros nombres de modelo — un cambio de código real en `worker/vita-proxy.js`, no una decisión de un día. No se ha tocado nada de esto todavía — es investigación, no implementación.
+    - Pendiente de decisión de Leonardo: suscribirse al newsletter de Anthropic (gratis, sin esfuerzo), aplicar a AWS Activate Founders en paralelo (no excluyente), y/o seguir recargando de fondos propios mientras tanto.
+
+    **Verificación de la pausa del 8-9 nov (antes de este punto):** se revisaron los logs de Observability del Worker en Cloudflare (`vita-proxy`, últimos 3 días) — las 19 llamadas de generación de borrador entre el 7 y 8 de nov respondieron HTTP 200 sin excepción, incluidas varias dentro de la ventana reportada (12:00-12:13 y 17:42-17:45 hora Colombia del domingo). Búsqueda de "overloaded" y "credit balance" en esos mismos logs: cero resultados. No se encontró ningún caso real sin borrador por esta causa.
 
 ---
 
