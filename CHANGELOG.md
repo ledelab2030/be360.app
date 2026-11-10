@@ -1522,6 +1522,25 @@ Leonardo pidió un repositorio donde Peter (y quien más haga falta) pueda consu
 
 ---
 
+### 10 nov 2026 — Seis reglas clínicas nuevas en el prompt de generación, de la sesión de revisión de 4 casos reales del mismo día
+
+Reunión de Peter y Leonardo revisando en vivo 4 casos reales (números de caso 2 a 5). A diferencia de otras rondas, esta vez las reglas quedaron primero documentadas en el SRB (v7.1, en `pruebas/` localmente y publicado en Drive) pero NO en el prompt real de generación — se encontró el hueco revisando antes de pasar a los ajustes de formulario que Leonardo pidió a continuación. El SRB es la referencia; `SRB_DRAFT_PROMPT`/`ADAPTACIONES_PEDIATRICAS` es lo que de verdad genera los planes, así que sin este cambio los casos regenerados habrían seguido saliendo sin las reglas nuevas.
+
+1. **Aceites saludables en verde** — aceite de oliva virgen extra, aceite de coco virgen y aceite de aguacate, confirmados por Peter en vivo (antes no estaban en ninguna versión del SRB ni del prompt, pese a que las aceitunas y el aguacate enteros sí). Sin la restricción de "solo en frío" que se había propuesto — Peter la rechazó explícitamente.
+2. **Grasa agregada opcional cuando la proteína ya trae grasa** — huevo entero o carnes con grasa no necesitan aceite/aguacate/aceitunas de acompañante; sigue siendo prioritaria solo con proteína magra (pechuga, lomo limpio, atún).
+3. **Avena sin gluten certificada → amarillo, no rojo** — junto con yuca, plátano, papa y arroz. El rojo queda estrictamente para trigo (gluten) y ultraprocesados.
+4. **No imponer un desayuno que el niño/a no hace** — si el formulario reporta que la primera ingesta real es un líquido de camino al colegio o la merienda escolar, el plan nunca inventa un desayuno temprano en casa; ancla la primera comida al primer momento real reportado (encontrado en uno de los casos reales auditados: el borrador proponía desayuno a las 5:45am aunque la familia reportó que el niño no desayuna en casa).
+5. **Solo hidratación antes/durante/después del deporte** — si ya hubo una comida completa con 3+ horas de margen antes de entrenar, prohibido sugerir comida sólida adicional; instrucción explícita reforzada por Leonardo el mismo día: nunca una comida entre el almuerzo y la cena antes del deporte de la tarde. Prohibidas explícitamente tanto las bebidas energizantes (Red Bull, Monster) como las deportivas comerciales (Gatorade, Powerade) — el suero casero cumple esa función sin azúcar añadida. Complementa, sin reemplazar, la regla ya existente del 7 nov sobre la cena completa antes de entrenar en la tarde/noche.
+6. **Nota del pediatra: solicitud directa, no pregunta dubitativa** — el texto estándar de respaldo pasa de "puedes preguntarle a tu pediatra si vale la pena pedirlo" a "Solicita a tu pediatra una orden para medir la insulina en ayunas...".
+
+Además, **control de alucinaciones en detalles de preparación** (Peter, revisando por qué uno de los borradores sugería huevos "fritos en mantequilla" sin que el formulario lo dijera): nueva regla dura que prohíbe inventar un método de preparación no reportado, y prohíbe que la frase interna "no especificado en el formulario" llegue al texto que lee la familia.
+
+**Archivos:** `worker/vita-proxy.js` (`ADAPTACIONES_PEDIATRICAS`: nuevas reglas de aceites/grasa/avena/desayuno/deporte; `SRB_DRAFT_PROMPT`: texto nuevo de la nota del pediatra, nueva regla de control de alucinaciones en "OTRAS REGLAS DURAS").
+
+**Verificación:** `node --check` sobre `vita-proxy.js`. Confirmado con `grep` que las seis reglas y el texto nuevo del pediatra quedan dentro de los template literals correctos (`ADAPTACIONES_PEDIATRICAS` vs. el resto de `SRB_DRAFT_PROMPT`), sin romper el cierre de ningún backtick. **Pendiente, solo se puede probar en producción:** regenerar los 4 casos reales desde `equipo/` una vez desplegado, y confirmar con Peter que los nuevos borradores sí incorporan las seis reglas.
+
+---
+
 ## Lo que enseña este historial
 
 Tres patrones que se repiten y conviene tener presentes:
