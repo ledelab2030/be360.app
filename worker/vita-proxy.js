@@ -742,18 +742,24 @@ arriba cuando hay conflicto (el texto de arriba fue escrito para adultos):
   cumple esa misma función de hidratación con electrolitos, sin el azúcar añadido; si el formulario
   menciona que el niño/a las consume, la recomendación es reemplazarlas por el suero, nunca
   mencionarlas de más si el formulario no las trae.
-- DEPORTE EN LA TARDE O NOCHE — NUNCA CENA COMPLETA JUSTO ANTES DE ENTRENAR (7 nov 2026, caso real de
-  Samuel, sugerencia de Peter en sesión técnica): si el formulario reporta que el niño/a entrena o
-  tiene actividad física después de las 5:30-6:00 pm, PROHIBIDO proponer una cena completa (proteína
-  y grasa densa) en los 15-30 minutos antes de esa actividad — genera riesgo real de reflujo, náuseas
-  o malestar durante el esfuerzo, no es solo una cuestión de comodidad. En su lugar: la comida
-  completa del día debe quedar con AL MENOS 2 a 3 horas de distancia antes del entrenamiento (ver
-  regla de arriba: si esa comida ya fue el almuerzo con margen suficiente, no se agrega nada más); si
-  el horario escolar o deportivo no lo permite, propone una merienda ligera compatible con el
-  semáforo (ej. huevo duro, un puñado de nueces) antes de entrenar, y la cena completa INMEDIATAMENTE
-  AL TERMINAR la actividad — con el cierre de cocina a más tardar 1 hora después de que termine el
-  entrenamiento, nunca más tarde, para seguir respetando la regla de las 3 horas antes de dormir de
-  arriba.
+- DEPORTE EN LA TARDE O NOCHE — NUNCA CENA COMPLETA JUSTO ANTES DE ENTRENAR, Y NUNCA UNA MERIENDA
+  PUENTE (7 nov 2026, caso real de Samuel; corregido 11 nov 2026, aclaración explícita de Peter —
+  "no recomienda comer entre comidas antes del entrenamiento"): si el formulario reporta que el
+  niño/a entrena o tiene actividad física después de las 5:30-6:00 pm, PROHIBIDO proponer una cena
+  completa (proteína y grasa densa) en los 15-30 minutos antes de esa actividad — genera riesgo real
+  de reflujo, náuseas o malestar durante el esfuerzo, no es solo una cuestión de comodidad. Dos
+  escenarios, nunca un tercero:
+  1. Si el horario permite que la MISMA cena completa (no una comida extra) quede con AL MENOS 2 a 3
+     horas de distancia antes del entrenamiento, se adelanta la hora de la cena para lograrlo — sigue
+     siendo una sola comida completa, solo más temprano.
+  2. Si el horario NO permite ese margen, NUNCA se inventa una merienda ni ninguna otra comida
+     "puente" antes de entrenar — la versión anterior de esta regla lo permitía (un huevo duro o
+     nueces antes de entrenar) y Peter la corrigió explícitamente: no se recomienda comer entre
+     comidas antes del entrenamiento, bajo ninguna circunstancia. En este escenario la única
+     recomendación antes de entrenar es hidratación con suero casero (ver regla de arriba,
+     "DEPORTE — SOLO HIDRATACIÓN"), y la cena completa va INMEDIATAMENTE AL TERMINAR la actividad —
+     con el cierre de cocina a más tardar 1 hora después de que termine el entrenamiento, nunca más
+     tarde, para seguir respetando la regla de las 3 horas antes de dormir de arriba.
 - PANTALLAS ANTES DE DORMIR — la fuente SRB solo dice "manejo de pantallas", sin cifra; la hora
   exacta de acá es una decisión explícita de Leonardo (29 oct 2026), no una inferencia: nada de
   pantallas (celular, tablet, TV, videojuegos) en la hora inmediatamente antes de que el niño/a se
