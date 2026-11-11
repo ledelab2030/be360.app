@@ -1569,6 +1569,18 @@ Construido a partir de la propuesta revisada con Leonardo (ver `pruebas/2026.11.
 
 ---
 
+### 11 nov 2026 — Corrección: nunca una merienda "puente" antes de entrenar, ni siquiera cuando el horario no da margen
+
+Al auditar con Gemini el caso regenerado de Juan Ignacio bajo el Manual Maestro v4.26 (actualizado el mismo día con las reglas del 10 nov), Leonardo le pidió a Peter una aclaración puntual sobre el manejo deportivo. Peter confirmó: no recomienda comer entre comidas antes del entrenamiento, bajo ninguna circunstancia — ni siquiera como una merienda ligera "puente" cuando el horario no permite adelantar la cena.
+
+Esto corrige la regla "DEPORTE EN LA TARDE O NOCHE" (7 nov 2026), que todavía tenía esa rama: *"si el horario escolar o deportivo no lo permite, propone una merienda ligera... (ej. huevo duro, un puñado de nueces) antes de entrenar"*. Esa rama contradecía directamente la regla nueva del mismo 10 nov ("DEPORTE — SOLO HIDRATACIÓN, NUNCA COMIDA ADICIONAL ANTES DE ENTRENAR") en el único caso que no cubría: cuando el horario NO da el margen de 2-3h. Ahora quedan solo dos escenarios, nunca un tercero: (1) si el horario permite adelantar la MISMA cena completa para que quede con 2-3h de margen, se adelanta; (2) si no, NUNCA se inventa una comida puente — solo hidratación con suero antes de entrenar, cena completa inmediatamente al terminar.
+
+**Archivos:** `worker/vita-proxy.js` (`ADAPTACIONES_PEDIATRICAS`, regla "DEPORTE EN LA TARDE O NOCHE" reescrita).
+
+**Verificación:** `node --check` sobre `vita-proxy.js`. **Pendiente, solo se puede probar en producción:** regenerar los 4 casos reales con esta corrección antes de que Peter los revise — la regeneración de las 1pm quedó con la versión anterior de esta regla (la merienda puente todavía estaba permitida), así que conviene volver a regenerarlos después de este deploy.
+
+---
+
 ## Lo que enseña este historial
 
 Tres patrones que se repiten y conviene tener presentes:
