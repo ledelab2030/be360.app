@@ -787,6 +787,7 @@ function App() {
               <div style={{fontSize:15, fontWeight:800, color:P.ink, display:"flex", alignItems:"center", gap:8}}>
                 <span>{p.consecutivo && <span style={{color:P.sageDeep}}>#{p.consecutivo} · </span>}{p.nombreNino || "(sin nombre)"}{formatEdad(p.edad)}</span>
                 {p.tieneRecordatoriosPendientes && <span style={{background:P.sageSoft, color:P.sageDeep, fontSize:10.5, fontWeight:800, padding:"2px 8px", borderRadius:999, letterSpacing:".03em"}}>RECORDATORIO</span>}
+                {p.tieneFeedbackFormulario && <span style={{background:P.line, color:P.muted, fontSize:10.5, fontWeight:800, padding:"2px 8px", borderRadius:999, letterSpacing:".03em"}}>FEEDBACK</span>}
               </div>
               <div style={{fontSize:12.5, color:P.muted, marginTop:2}}>Padre/madre: {p.nombrePadre || "—"} · {relativeDate(p.timestamp)}</div>
               {p.preocupacionPrincipal && <div style={{fontSize:12.5, color:P.ink, marginTop:5, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap"}}>{p.preocupacionPrincipal}</div>}
@@ -835,6 +836,7 @@ function App() {
                 {p.consecutivo && <span style={{color:P.sageDeep}}>#{p.consecutivo} · </span>}{p.nombreNino || "(sin nombre)"}{formatEdad(p.edad)}
                 {p.tieneNovedades && <span style={{background:P.claySoft, color:P.clay, fontSize:10.5, fontWeight:800, padding:"2px 8px", borderRadius:999, letterSpacing:".03em"}}>NOVEDAD</span>}
                 {p.tieneRecordatoriosPendientes && <span style={{background:P.sageSoft, color:P.sageDeep, fontSize:10.5, fontWeight:800, padding:"2px 8px", borderRadius:999, letterSpacing:".03em"}}>RECORDATORIO</span>}
+                {p.tieneFeedbackFormulario && <span style={{background:P.line, color:P.muted, fontSize:10.5, fontWeight:800, padding:"2px 8px", borderRadius:999, letterSpacing:".03em"}}>FEEDBACK</span>}
               </div>
               <div style={{fontSize:12.5, color:P.muted, marginTop:2}}>Padre/madre: {p.nombrePadre || "—"} · aprobado {relativeDate(p.correoEnviadoTs || p.timestamp)}</div>
               {huellaRegeneracion(p.regeneracionEstado) && <div style={{fontSize:11.5, color: huellaRegeneracion(p.regeneracionEstado).clay ? P.clay : P.sage, marginTop:4}}>{huellaRegeneracion(p.regeneracionEstado).texto}</div>}
@@ -937,6 +939,18 @@ function App() {
                 <div style={{fontSize:13.5, color:P.ink, lineHeight:1.5}}>{n.resumen || "(sin resumen)"}</div>
               </div>
             ))}
+          </div>
+        )}
+
+        {/* Feedback sobre LLENAR el formulario (10 nov 2026, pedido de
+            Leonardo) — a propósito separado del "Formulario completo" de
+            abajo, que es contexto clínico del niño/a. Esto es sobre el
+            PROCESO, nunca viajó al prompt de generación (ver
+            COLS.feedback_formulario). */}
+        {detalle.feedbackFormulario && (
+          <div style={{background:P.panel, border:"1px solid "+P.line, borderRadius:16, padding:"14px 16px"}}>
+            <div style={{fontSize:13, fontWeight:800, color:P.muted, marginBottom:6}}>Feedback de la familia sobre llenar el formulario</div>
+            <div style={{fontSize:13.5, color:P.ink, lineHeight:1.5}}>{detalle.feedbackFormulario}</div>
           </div>
         )}
 

@@ -1551,6 +1551,24 @@ Primer ajuste de formulario de la ronda de hoy: la regla nueva del prompt (ver e
 
 ---
 
+### 10 nov 2026 — Contenido de las comidas en el formulario estructurado, cafetería del colegio, y feedback sobre llenar el formulario (separado del plan)
+
+Construido a partir de la propuesta revisada con Leonardo (ver `pruebas/2026.11.11-formulario-contenido-comidas-propuesta.md`). El formulario estructurado capturaba horas de cada comida pero nunca su contenido — causa directa de que Peter encontrara un caso real con "no especificado en el formulario": no es que el dato se perdiera, nunca se preguntó.
+
+**Contenido de desayuno/almuerzo/cena**, en escogencia múltiple (pedido explícito de Peter: "ojalá de escogencia", nunca texto libre) — grupos de chips (proteína, carbohidrato, verdura, lácteo, fruta/grasa en desayuno) consolidados de la tabla INCLUIR/ELIMINAR del SRB (`FUENTE_SRB_PEDIATRICA`/`ADAPTACIONES_PEDIATRICAS`) más lo que los casos reales ya auditados vienen reportando. Cada bloque lleva "Otro" de texto libre y un chip de cantidad (poca/normal/bastante) + cifra exacta opcional. La grasa opcional-si-la-proteína-ya-trae-grasa (Fase 0) NO necesita campo nuevo: se infiere en la generación a partir de qué proteína se marcó acá.
+
+**Cafetería del colegio** (pedido explícito de Peter en la sesión del 10 nov — "habrá que indagar qué venden para orientarlo mejor"): si la lonchera es de colegio o mixta, pregunta qué suele vender la cafetería que el niño/a compra o le gusta, en chips + Otro; si es de casa o mixta, qué suele llevar. El texto libre que ya existía (`cronoLoncheraDetalle`) se conserva como el "Otro" de todo el bloque, no se pierde nada.
+
+**Cierre de "El día en orden"** reetiquetado al texto exacto que pidió Leonardo — mismo campo (`cronoMatiz`), ahora presentado como el cierre general de la sección en vez de uno más entre varios.
+
+**Feedback sobre llenar el formulario**, nuevo campo en el panel de revisión final, ANTES de enviar — arquitectura importante: viaja como campo HERMANO de `dx`, nunca dentro de él. `dx` completo se serializa tal cual hacia el prompt de Claude (`JSON.stringify(dx)` en `generarYVerificarBorrador`), así que meter ahí un comentario sobre LLENAR el formulario expondría ese texto al generador de planes sin ningún motivo. Columna nueva en el Sheet (`COLS.feedback_formulario`), visible solo al equipo en `equipo/` (badge "FEEDBACK" en las listas + nota aparte en el detalle, fuera del "Formulario completo").
+
+**Archivos:** `vita-demo-formulario/index.html` (grupos de chips nuevos y sus claves en `emptyEstructurado`, `GrupoChipsMulti`/`BloqueContenidoComida` genéricos, `compilarContenidoComida()`, `PanelRevisionFinal` con el campo de feedback, `enviarDatos()` manda `feedbackFormulario` como hermano de `dx`), `worker/vita-proxy.js` (`handleLog` reenvía `feedbackFormulario` como hermano, nunca mezclado con `dx`), `worker/apps-script-formulario-v2.gs.txt` (`COLS.feedback_formulario`, columna en el `appendRow` por defecto, expuesto en `detallePlan`/`listarPendientes`/`listarHistorial`), `equipo/index.html` (badge "FEEDBACK", nota de detalle).
+
+**Verificación:** `node --check` sobre ambos archivos del Worker/Apps Script. `@babel/standalone` sobre `vita-demo-formulario/index.html` y `equipo/index.html`, sin errores. `compilarCronologia()`/`compilarContenidoComida()` extraídas y probadas en sandbox de Node con un caso completo (las 3 comidas, lonchera mixta con cafetería, cantidad con cifra exacta) y un caso vacío — ambos compilan correctamente. **Bug real encontrado y corregido durante esta misma verificación:** la primera versión del cambio reemplazaba sin querer la frase "Desayuna a las X" (la hora) por el contenido de la comida, en vez de agregar las dos — habría roto el cálculo de la ventana actual (`coberturaDia()` depende de encontrar esa hora). Se restauró la frase de la hora antes de agregar el contenido; vuelto a probar, correcto. **Pendiente, solo se puede probar en producción:** pegar el Apps Script actualizado y confirmar el camino real completo (llenar el formulario con contenido de comidas + cafetería + feedback, y ver las tres cosas reflejadas correctamente en `equipo/`).
+
+---
+
 ## Lo que enseña este historial
 
 Tres patrones que se repiten y conviene tener presentes:
