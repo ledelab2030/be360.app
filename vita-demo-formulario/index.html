@@ -468,7 +468,19 @@ const MODE = "child"; // este demo SOLO captura para un hijo/a — no hay modo a
 // texto ya compilado.
 const ESTRUCTURADO_KEY = "vita_formulario_estructurado";
 const leerEstructurado=()=>{ try{ const s=localStorage.getItem(ESTRUCTURADO_KEY); return s?JSON.parse(s):{}; }catch(e){ return {}; } };
-const emptyEstructurado = { origenParto:"", origenLactancia:"", origenOtra:"", senalesChips:[], senalesMatiz:"", cronoDespierta:"", cronoDesayuna:"", cronoAlmuerza:"", cronoCena:"", cronoDuerme:"", cronoFinde:"", cronoLonchera:"", cronoLoncheraDetalle:"", cronoEntrenaSiNo:"", cronoEntrenaDeporte:"", cronoEntrenaDias:[], cronoEntrenaInicio:"", cronoEntrenaFin:"", cronoEntrenaHidratacion:"", cronoMatiz:"", suenoManual:"", metasChips:[], metasOtra:"", preocupacionChips:[], preocupacionOtra:"", pantallasHoras:"", pantallasAntesDormir:"", pantallasMatiz:"", findeComidas:[], findeMatiz:"" };
+const emptyEstructurado = { origenParto:"", origenLactancia:"", origenOtra:"", senalesChips:[], senalesMatiz:"", cronoDespierta:"", cronoDesayuna:"", cronoAlmuerza:"", cronoCena:"", cronoDuerme:"", cronoFinde:"", cronoLonchera:"", cronoLoncheraDetalle:"", cronoLoncheraCasaChips:[], cronoLoncheraCafeteriaChips:[],
+  // Contenido de las comidas (10 nov 2026, pedido de Peter tras un caso real
+  // sin contenido, solo horas — ver propuesta en pruebas/). Escogencia
+  // múltiple, no texto libre, por pedido explícito de Peter.
+  cronoDesayunoProteina:[], cronoDesayunoCarbo:[], cronoDesayunoLacteo:[], cronoDesayunoFruta:[], cronoDesayunoGrasa:[], cronoDesayunoOtro:"", cronoDesayunoCantidad:"", cronoDesayunoCantidadOtro:"",
+  cronoAlmuerzoProteina:[], cronoAlmuerzoCarbo:[], cronoAlmuerzoVerdura:[], cronoAlmuerzoLacteo:[], cronoAlmuerzoOtro:"", cronoAlmuerzoCantidad:"", cronoAlmuerzoCantidadOtro:"",
+  cronoCenaProteina:[], cronoCenaCarbo:[], cronoCenaVerdura:[], cronoCenaLacteo:[], cronoCenaOtro:"", cronoCenaCantidad:"", cronoCenaCantidadOtro:"",
+  cronoEntrenaSiNo:"", cronoEntrenaDeporte:"", cronoEntrenaDias:[], cronoEntrenaInicio:"", cronoEntrenaFin:"", cronoEntrenaHidratacion:"", cronoMatiz:"", suenoManual:"", metasChips:[], metasOtra:"", preocupacionChips:[], preocupacionOtra:"", pantallasHoras:"", pantallasAntesDormir:"", pantallasMatiz:"", findeComidas:[], findeMatiz:"",
+  // Feedback sobre el PROCESO de llenar el formulario (10 nov 2026) — a
+  // propósito FUERA de cualquier campo que alimente dx: nunca debe llegar al
+  // prompt de generación (ver enviarDatos() y handleLog en el Worker), solo
+  // al equipo en equipo/.
+  feedbackFormulario:"" };
 
 // "19:30" (valor nativo de <input type="time">) -> "7:30 PM" — se prefiere
 // sobre dejar el 24h crudo porque toda la historia de ajustes de
@@ -516,6 +528,23 @@ function compilarSenales(e){
 // coberturaDia() ya espera (ver PERIODOS_DIA arriba). La hora de dormir NO
 // va acá: faltanDatosDuros() la busca en sueno_y_movimiento, un campo
 // distinto — por eso vive en compilarDormir(), más abajo, separado.
+// Compila un bloque de contenido de comida (grupos de chips + Otro +
+// cantidad) a UNA frase — mismo texto narrativo que un padre habría escrito
+// a mano, mismo contrato que el resto de compilarCronologia (10 nov 2026).
+function compilarContenidoComida(e, etiqueta, grupos, claveOtro, claveCantidad, claveCantidadOtro){
+  const items=[];
+  grupos.forEach(g=>{
+    const sel=(e[g.clave]||[]).filter(x=>x!=="Ninguna"&&x!=="Ninguno");
+    if(sel.length) items.push(sel.join(", "));
+  });
+  if(e[claveOtro] && e[claveOtro].trim()) items.push(e[claveOtro].trim());
+  if(!items.length) return "";
+  let frase = etiqueta+": "+items.join("; ")+".";
+  const cantidadLabel = { poca:"poca cantidad", normal:"una porción normal", bastante:"bastante cantidad" }[e[claveCantidad]];
+  if(e[claveCantidadOtro] && e[claveCantidadOtro].trim()) frase += " Cantidad: "+e[claveCantidadOtro].trim()+".";
+  else if(cantidadLabel) frase += " Cantidad: "+cantidadLabel+".";
+  return frase;
+}
 function compilarCronologia(e){
   const partes=[];
   if(e.cronoDespierta) partes.push("Se levanta a las "+horaLegible(e.cronoDespierta)+".");
@@ -523,19 +552,29 @@ function compilarCronologia(e){
   // antes faltaba un selector para esta hora, así que la ventana ACTUAL
   // siempre quedaba "no calculable" cuando el padre no la mencionaba en el
   // matiz libre. PERIODOS_DIA busca /desayun/i — "Desayuna" calza directo.
+  // OJO: esta frase de la HORA tiene que quedar siempre, aparte del
+  // contenido de abajo — coberturaDia() depende de encontrarla.
   if(e.cronoDesayuna) partes.push("Desayuna a las "+horaLegible(e.cronoDesayuna)+".");
+  const contDesayuno = compilarContenidoComida(e,"Desayuno",GRUPOS_DESAYUNO,"cronoDesayunoOtro","cronoDesayunoCantidad","cronoDesayunoCantidadOtro");
+  if(contDesayuno) partes.push(contDesayuno);
   if(e.cronoAlmuerza) partes.push("Almuerza a las "+horaLegible(e.cronoAlmuerza)+".");
+  const contAlmuerzo = compilarContenidoComida(e,"Almuerzo",GRUPOS_ALMUERZO,"cronoAlmuerzoOtro","cronoAlmuerzoCantidad","cronoAlmuerzoCantidadOtro");
+  if(contAlmuerzo) partes.push(contAlmuerzo);
   // "La cena termina..." a propósito, no "Termina de cenar...": PERIODOS_DIA
   // busca \bcena\b como palabra completa — "cenar" no calza (el límite de
   // palabra cae en medio, entre la "a" y la "r").
   if(e.cronoCena) partes.push("La cena termina a las "+horaLegible(e.cronoCena)+".");
+  const contCena = compilarContenidoComida(e,"Cena",GRUPOS_CENA,"cronoCenaOtro","cronoCenaCantidad","cronoCenaCantidadOtro");
+  if(contCena) partes.push(contCena);
   if(e.cronoFinde==="igual") partes.push("El fin de semana cena y duerme a la misma hora.");
   else if(e.cronoFinde==="varia_1_2") partes.push("El fin de semana varía 1 a 2 horas.");
   else if(e.cronoFinde==="muy_irregular") partes.push("El fin de semana es muy irregular.");
   if(e.cronoLonchera==="casa") partes.push("La lonchera es de casa.");
   else if(e.cronoLonchera==="colegio") partes.push("La lonchera la compra en el colegio.");
   else if(e.cronoLonchera==="mixto") partes.push("La lonchera es mixta, a veces de casa y a veces del colegio.");
-  if(e.cronoLoncheraDetalle && e.cronoLoncheraDetalle.trim()) partes.push("Suele llevar o comprar: "+e.cronoLoncheraDetalle.trim()+".");
+  if(e.cronoLoncheraCasaChips && e.cronoLoncheraCasaChips.length) partes.push("De casa suele llevar: "+e.cronoLoncheraCasaChips.join(", ")+".");
+  if(e.cronoLoncheraCafeteriaChips && e.cronoLoncheraCafeteriaChips.length) partes.push("De la cafetería del colegio suele comprar, o le gusta: "+e.cronoLoncheraCafeteriaChips.join(", ")+".");
+  if(e.cronoLoncheraDetalle && e.cronoLoncheraDetalle.trim()) partes.push("Sobre la lonchera, además: "+e.cronoLoncheraDetalle.trim()+".");
   // Entrenamiento/deporte estructurado (7 nov 2026, auditoría de Gemini
   // sobre el caso de Samuel): antes esto solo existía si el padre lo
   // mencionaba en el matiz libre — el prompt ya tiene la regla nueva de
@@ -639,6 +678,85 @@ const BloqueSenales=({e,set,P})=>{
   );
 };
 
+// ---------- Grupo de chips de selección múltiple genérico (10 nov 2026) —
+// opera sobre cualquier clave array de `e`, para no repetir el patrón de
+// toggle (ya usado arriba para senalesChips/cronoEntrenaDias) una vez por
+// cada grupo de contenido de comida.
+const GrupoChipsMulti=({e,set,clave,titulo,opciones,P})=>{
+  const toggle=(item)=>{
+    const actual=e[clave]||[];
+    const tiene=actual.includes(item);
+    set({...e,[clave]: tiene?actual.filter(x=>x!==item):[...actual,item]});
+  };
+  return (
+    <div>
+      <div style={{fontSize:11,color:P.muted,marginBottom:4,fontWeight:700}}>{titulo}</div>
+      <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+        {opciones.map(o=>(
+          <button key={o} type="button" onClick={()=>toggle(o)} style={chipBtnStyle((e[clave]||[]).includes(o),P)}>{o}</button>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+const CANTIDAD_OPCIONES = [["poca","Poca cantidad"],["normal","Una porción normal"],["bastante","Bastante"]];
+
+// Contenido de una comida (desayuno/almuerzo/cena) — grupos de chips de
+// escogencia múltiple (10 nov 2026, pedido de Peter: "ojalá de escogencia",
+// nunca texto libre, tras encontrar un caso real sin contenido de comidas,
+// solo horas — ver propuesta completa en pruebas/). Cada grupo viene de la
+// tabla INCLUIR/ELIMINAR del SRB (FUENTE_SRB_PEDIATRICA/ADAPTACIONES_PEDIATRICAS
+// en worker/vita-proxy.js) + lo que los casos reales ya auditados vienen
+// reportando — nunca un alimento inventado fuera de esas dos fuentes.
+// SIEMPRE lleva "Otro" de texto libre, para no bloquear un caso que no calce.
+const BloqueContenidoComida=({e,set,P,titulo,grupos,claveOtro,claveCantidad,claveCantidadOtro})=>(
+  <div style={{display:"flex",flexDirection:"column",gap:8,marginTop:4,paddingTop:10,borderTop:"1px dashed "+P.line}}>
+    <div style={{fontSize:11.5,fontWeight:800,color:P.muted,textTransform:"uppercase",letterSpacing:.3}}>{titulo}</div>
+    {grupos.map(g=>(
+      <GrupoChipsMulti key={g.clave} e={e} set={set} clave={g.clave} titulo={g.titulo} opciones={g.opciones} P={P}/>
+    ))}
+    <input type="text" value={e[claveOtro]} onChange={ev=>set({...e,[claveOtro]:ev.target.value})} placeholder="¿Algo más que no esté en las listas? (opcional)"
+      style={{border:"1px solid "+P.line,borderRadius:12,padding:"9px 11px",fontSize:13.5,fontFamily:"'Nunito',sans-serif",background:"#fff",color:P.ink,outline:"none"}}/>
+    <div>
+      <div style={{fontSize:11,color:P.muted,marginBottom:4,fontWeight:700}}>¿Qué cantidad suele comer?</div>
+      <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+        {CANTIDAD_OPCIONES.map(([v,l])=>(
+          <button key={v} type="button" onClick={()=>set({...e,[claveCantidad]:e[claveCantidad]===v?"":v})} style={chipBtnStyle(e[claveCantidad]===v,P)}>{l}</button>
+        ))}
+      </div>
+      <input type="text" value={e[claveCantidadOtro]} onChange={ev=>set({...e,[claveCantidadOtro]:ev.target.value})} placeholder="O una cifra exacta, si la sabes (opcional, ej. '2 unidades')"
+        style={{marginTop:6,border:"1px solid "+P.line,borderRadius:12,padding:"9px 11px",fontSize:13.5,fontFamily:"'Nunito',sans-serif",background:"#fff",color:P.ink,outline:"none",width:"100%"}}/>
+    </div>
+  </div>
+);
+
+// Opciones de cada grupo — consolidadas de FUENTE_SRB_PEDIATRICA/
+// ADAPTACIONES_PEDIATRICAS y de lo que los casos reales ya auditados
+// reportan con frecuencia (ver pruebas/2026.11.11-formulario-contenido-
+// comidas-propuesta.md para el detalle fuente por fuente).
+const GRUPOS_DESAYUNO = [
+  { clave:"cronoDesayunoProteina", titulo:"Proteína", opciones:["Huevo","Pollo","Carnes rojas","Pescado o mariscos","Ninguna"] },
+  { clave:"cronoDesayunoCarbo", titulo:"Carbohidrato (acompañante)", opciones:["Pan de trigo","Avena (sin gluten)","Arepa","Yuca","Plátano","Papa","Arroz","Ninguno"] },
+  { clave:"cronoDesayunoLacteo", titulo:"Lácteo", opciones:["Leche","Yogur","Queso fresco","Queso azul o roquefort","Ninguno"] },
+  { clave:"cronoDesayunoFruta", titulo:"Fruta", opciones:["Fruta entera","Jugo de fruta","Ninguna"] },
+  { clave:"cronoDesayunoGrasa", titulo:"Grasa (si quieres precisar)", opciones:["Aguacate","Aceitunas","Aceite de oliva, coco o aguacate","Mantequilla","Ninguna"] },
+];
+const GRUPOS_ALMUERZO = [
+  { clave:"cronoAlmuerzoProteina", titulo:"Proteína", opciones:["Carnes rojas","Pollo","Pescado o mariscos","Huevo","Ninguna"] },
+  { clave:"cronoAlmuerzoCarbo", titulo:"Carbohidrato (acompañante)", opciones:["Arroz","Papa","Yuca","Plátano o patacón","Arepa","Lentejas","Pasta de trigo","Ninguno"] },
+  { clave:"cronoAlmuerzoVerdura", titulo:"Verdura", opciones:["Cruda o en ensalada","Bien cocida","Ninguna"] },
+  { clave:"cronoAlmuerzoLacteo", titulo:"Lácteo", opciones:["Leche","Yogur","Queso fresco","Queso azul o roquefort","Ninguno"] },
+];
+const GRUPOS_CENA = [
+  { clave:"cronoCenaProteina", titulo:"Proteína", opciones:["Carnes rojas","Pollo","Pescado o mariscos","Huevo","Ninguna"] },
+  { clave:"cronoCenaCarbo", titulo:"Carbohidrato (acompañante)", opciones:["Arroz","Papa","Yuca","Plátano o patacón","Arepa","Lentejas","Pasta de trigo","Ninguno"] },
+  { clave:"cronoCenaVerdura", titulo:"Verdura", opciones:["Cruda o en ensalada","Bien cocida","Ninguna"] },
+  { clave:"cronoCenaLacteo", titulo:"Lácteo", opciones:["Leche","Yogur","Queso fresco","Queso azul o roquefort","Ninguno"] },
+];
+const LONCHERA_CASA_OPCIONES = ["Fruta entera","Nueces (pistacho, marañón)","Empanada (sin trigo)","Huevo duro","Queso azul o roquefort","Ninguna"];
+const LONCHERA_CAFETERIA_OPCIONES = ["Empanadas","Papas o snacks fritos","Jugo o gaseosa","Dulces o chocolates","Comida preparada (ej. arroz con algo)","No sabe bien qué venden","Ninguna"];
+
 // ---------- Bloque: Cronología y ritmos ----------
 const DIAS_SEMANA = ["Lunes","Martes","Miércoles","Jueves","Viernes","Sábado","Domingo"];
 
@@ -674,6 +792,12 @@ const BloqueCronologia=({e,set,P})=>{
         <input type="time" value={e.cronoDuerme} onChange={ev=>set({...e,cronoDuerme:ev.target.value})} style={timeInputStyle}/>
       </label>
     </div>
+    <BloqueContenidoComida e={e} set={set} P={P} titulo="¿Qué suele desayunar?" grupos={GRUPOS_DESAYUNO}
+      claveOtro="cronoDesayunoOtro" claveCantidad="cronoDesayunoCantidad" claveCantidadOtro="cronoDesayunoCantidadOtro"/>
+    <BloqueContenidoComida e={e} set={set} P={P} titulo="¿Qué suele almorzar?" grupos={GRUPOS_ALMUERZO}
+      claveOtro="cronoAlmuerzoOtro" claveCantidad="cronoAlmuerzoCantidad" claveCantidadOtro="cronoAlmuerzoCantidadOtro"/>
+    <BloqueContenidoComida e={e} set={set} P={P} titulo="¿Qué suele cenar?" grupos={GRUPOS_CENA}
+      claveOtro="cronoCenaOtro" claveCantidad="cronoCenaCantidad" claveCantidadOtro="cronoCenaCantidadOtro"/>
     <div>
       <div style={{fontSize:11.5,fontWeight:800,color:P.muted,textTransform:"uppercase",letterSpacing:.3,marginBottom:6}}>¿Cena y duerme a la misma hora los fines de semana?</div>
       <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
@@ -689,12 +813,26 @@ const BloqueCronologia=({e,set,P})=>{
           <button key={v} type="button" onClick={()=>set({...e,cronoLonchera:e.cronoLonchera===v?"":v})} style={chipBtnStyle(e.cronoLonchera===v,P)}>{l}</button>
         ))}
       </div>
-      {/* Micro-campo (7 nov 2026, auditoría de Gemini): ayuda a la regla de
-          sustitución ya existente en el prompt (anclar la MISMA preparación
-          que la familia reporta, no inventar otra) cuando hay una lonchera
-          elegida arriba. */}
+      {(e.cronoLonchera==="casa"||e.cronoLonchera==="mixto") && (
+        <div style={{marginTop:8}}>
+          <GrupoChipsMulti e={e} set={set} clave="cronoLoncheraCasaChips" titulo="¿Qué suele llevar de casa?" opciones={LONCHERA_CASA_OPCIONES} P={P}/>
+        </div>
+      )}
+      {/* Pregunta de la cafetería (10 nov 2026, pedido de Peter en sesión de
+          revisión de casos reales — "habrá que empezar a indagar qué venden
+          en el colegio para orientarlo mejor"): clínicamente relevante
+          porque cambia qué tan controlable es por la familia. */}
+      {(e.cronoLonchera==="colegio"||e.cronoLonchera==="mixto") && (
+        <div style={{marginTop:8}}>
+          <GrupoChipsMulti e={e} set={set} clave="cronoLoncheraCafeteriaChips" titulo="¿Qué suele vender la cafetería que compra, o que más le gusta?" opciones={LONCHERA_CAFETERIA_OPCIONES} P={P}/>
+        </div>
+      )}
+      {/* Micro-campo, ahora el "Otro" de todo el bloque de lonchera (7 nov
+          2026, auditoría de Gemini) — ayuda a la regla de sustitución ya
+          existente en el prompt (anclar la MISMA preparación que la familia
+          reporta, no inventar otra). */}
       {e.cronoLonchera && (
-        <input type="text" value={e.cronoLoncheraDetalle} onChange={ev=>set({...e,cronoLoncheraDetalle:ev.target.value})} placeholder="¿Qué suele llevar o comprar habitualmente? (opcional)"
+        <input type="text" value={e.cronoLoncheraDetalle} onChange={ev=>set({...e,cronoLoncheraDetalle:ev.target.value})} placeholder="¿Algo más que no esté en las listas? (opcional)"
           style={{marginTop:8,border:"1px solid "+P.line,borderRadius:12,padding:"9px 11px",fontSize:13.5,fontFamily:"'Nunito',sans-serif",background:"#fff",color:P.ink,outline:"none",width:"100%"}}/>
       )}
     </div>
@@ -740,7 +878,11 @@ const BloqueCronologia=({e,set,P})=>{
       )}
     </div>
     <div>
-      <div style={{fontSize:11.5,color:P.muted,marginBottom:4}}>¿Algo más específico sobre sus horarios o comidas intermedias? (opcional)</div>
+      {/* Reetiquetado 10 nov 2026 (pedido de Leonardo) de "¿Algo más
+          específico sobre sus horarios o comidas intermedias?" — mismo
+          campo, mismo dato (cronoMatiz → cronologia_del_dia), ahora como el
+          cierre general de esta sección en vez de uno más entre varios. */}
+      <div style={{fontSize:11.5,color:P.muted,marginBottom:4}}>¿Algo más que quieras agregar sobre su rutina del día a día? (opcional)</div>
       <textarea value={e.cronoMatiz} onChange={ev=>set({...e,cronoMatiz:ev.target.value})} rows={2} placeholder="Opcional: escribe un detalle breve aquí"
         style={{border:"1px solid "+P.line,borderRadius:12,padding:"9px 11px",fontSize:13.5,fontFamily:"'Nunito',sans-serif",background:"#fff",color:P.ink,outline:"none",resize:"vertical"}}/>
     </div>
@@ -908,7 +1050,7 @@ const formatoEmailValido=(email)=>/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test((email||"").
 // así — el correo, en cambio, no tiene una opción de "continuar sin
 // arreglarlo" si el formato se ve roto, porque ahí no hay ambigüedad
 // posible: sin un correo con formato válido, la entrega no puede funcionar.
-const PanelRevisionFinal=({dx,onCambiarEmail,faltantes,onCompletarDia,onConfirmar,horasConfirmadas,onToggleHoraConfirmada,P,btnPrimary})=>{
+const PanelRevisionFinal=({dx,onCambiarEmail,faltantes,onCompletarDia,onConfirmar,horasConfirmadas,onToggleHoraConfirmada,P,btnPrimary,feedbackFormulario,onCambiarFeedbackFormulario})=>{
   const emailOk=formatoEmailValido(dx.email_padre);
   return (
     <div style={{position:"absolute",inset:0,background:"rgba(40,42,36,.55)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:20,padding:20}}>
@@ -950,6 +1092,15 @@ const PanelRevisionFinal=({dx,onCambiarEmail,faltantes,onCompletarDia,onConfirma
           <p style={{fontSize:12.5,color:P.muted,lineHeight:1.5,margin:"12px 0 16px"}}>Está bien si no las sabes, o si la hora sugerida no aplica. Pero con el día completo, el plan sale más preciso desde el primer intento.</p>
           <button onClick={onCompletarDia} style={{...btnPrimary,width:"100%",marginBottom:8}}>Quiero completar el día</button>
         </React.Fragment>)}
+
+        {/* Feedback sobre el PROCESO de llenar el formulario (10 nov 2026,
+            pedido de Leonardo) — a propósito separado de todo lo de arriba,
+            que es sobre el niño/a. Esto es para el equipo, nunca para Vita
+            ni para el generador de planes (ver enviarDatos()/handleLog). */}
+        <div style={{height:1,background:P.line,margin:"14px 0"}}/>
+        <label style={{fontSize:12,fontWeight:800,color:P.sageDeep,display:"block",marginBottom:5}}>¿Quieres compartir algo sobre tu experiencia llenando este formulario? (opcional)</label>
+        <textarea value={feedbackFormulario||""} onChange={e=>onCambiarFeedbackFormulario(e.target.value)} rows={2} placeholder="Opcional: lo que fue fácil, lo que fue confuso, lo que faltó..."
+          style={{width:"100%",border:"1px solid "+P.line,borderRadius:12,padding:"9px 11px",fontSize:13.5,fontFamily:"'Nunito',sans-serif",background:"#fff",color:P.ink,outline:"none",resize:"vertical",marginBottom:14}}/>
 
         <button onClick={onConfirmar} disabled={!emailOk} style={{...btnPrimary,width:"100%",opacity:emailOk?1:.5,cursor:emailOk?"pointer":"default"}}>{faltantes&&faltantes.length>0?"Confirmar y enviar así →":"Confirmar y enviar →"}</button>
       </div>
@@ -1273,8 +1424,14 @@ function App(){
       // usó ESTE padre al llenar, tal cual estaba hoy — así, si mañana
       // cambia un hint en shared/formulario-fields.js, el panel sigue
       // mostrando la pregunta exacta que él vio, no la versión nueva.
+      // feedbackFormulario viaja SEPARADO de dx a propósito (10 nov 2026) —
+      // dx completo se serializa tal cual hacia el prompt de Claude
+      // (ver generarYVerificarBorrador en el Worker); meter ahí el feedback
+      // sobre LLENAR el formulario lo expondría al generador de planes, que
+      // nunca debe verlo. Como campo hermano, el Worker lo guarda en su
+      // propia columna del Sheet sin que pase por dx en ningún momento.
       const res=await fetch(WORKER_URL+"/log",{ method:"POST", headers:{"Content-Type":"application/json"},
-        body:JSON.stringify({ producto:"formulario", mode:MODE, dx:dxFinal, ts:new Date().toISOString(), camposSnapshot:FIELDS }) });
+        body:JSON.stringify({ producto:"formulario", mode:MODE, dx:dxFinal, ts:new Date().toISOString(), camposSnapshot:FIELDS, feedbackFormulario:estructurado.feedbackFormulario||"" }) });
       const data=await res.json().catch(()=>({}));
       if(!res.ok || data.ok===false) throw new Error("log failed");
       borrarGuardado(); // ya está en manos del equipo: no tiene sentido seguir guardándolo en el dispositivo
@@ -1537,7 +1694,7 @@ function App(){
       {sendError && <p style={{fontSize:12.5,color:P.clay,textAlign:"center"}}>{sendError}</p>}
       <p style={{fontSize:11,color:P.muted,textAlign:"center",lineHeight:1.5,marginTop:2}}>Esto acompaña y suma con su pediatra — no lo reemplaza.</p>
       <button onClick={()=>setStage("welcome")} style={{background:"none",border:"none",color:P.muted,fontSize:12.5,fontWeight:700,cursor:"pointer",alignSelf:"center",fontFamily:"'Nunito',sans-serif"}}>← Volver al inicio</button>
-      {mostrarRevisionFinal&&(<PanelRevisionFinal dx={dx} onCambiarEmail={cambiarEmailEnRevision} faltantes={coberturaDia(dx.cronologia_del_dia).faltantes} onCompletarDia={volverACompletarDia} onConfirmar={confirmarYEnviar} horasConfirmadas={horasConfirmadas} onToggleHoraConfirmada={toggleHoraConfirmada} P={P} btnPrimary={btnPrimary}/>)}
+      {mostrarRevisionFinal&&(<PanelRevisionFinal dx={dx} onCambiarEmail={cambiarEmailEnRevision} faltantes={coberturaDia(dx.cronologia_del_dia).faltantes} onCompletarDia={volverACompletarDia} onConfirmar={confirmarYEnviar} horasConfirmadas={horasConfirmadas} onToggleHoraConfirmada={toggleHoraConfirmada} P={P} btnPrimary={btnPrimary} feedbackFormulario={estructurado.feedbackFormulario} onCambiarFeedbackFormulario={t=>setEstructurado(prev=>({...prev,feedbackFormulario:t}))}/>)}
     </div></Shell>
   );
 
@@ -1586,7 +1743,7 @@ function App(){
           </div>
         </div>
       </div>)}
-      {mostrarRevisionFinal&&(<PanelRevisionFinal dx={dx} onCambiarEmail={cambiarEmailEnRevision} faltantes={coberturaDia(dx.cronologia_del_dia).faltantes} onCompletarDia={volverACompletarDia} onConfirmar={confirmarYEnviar} horasConfirmadas={horasConfirmadas} onToggleHoraConfirmada={toggleHoraConfirmada} P={P} btnPrimary={btnPrimary}/>)}
+      {mostrarRevisionFinal&&(<PanelRevisionFinal dx={dx} onCambiarEmail={cambiarEmailEnRevision} faltantes={coberturaDia(dx.cronologia_del_dia).faltantes} onCompletarDia={volverACompletarDia} onConfirmar={confirmarYEnviar} horasConfirmadas={horasConfirmadas} onToggleHoraConfirmada={toggleHoraConfirmada} P={P} btnPrimary={btnPrimary} feedbackFormulario={estructurado.feedbackFormulario} onCambiarFeedbackFormulario={t=>setEstructurado(prev=>({...prev,feedbackFormulario:t}))}/>)}
     </Shell>
   );
 }

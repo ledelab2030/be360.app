@@ -384,7 +384,7 @@ async function handleLog(request, env, cors, ctx) {
   const jsonHeaders = { ...cors, "Content-Type": "application/json" };
   try {
     const body = await request.json();
-    const { mode, dx, ts, producto, camposSnapshot } = body || {};
+    const { mode, dx, ts, producto, camposSnapshot, feedbackFormulario } = body || {};
     const tsFinal = ts || new Date().toISOString();
 
     if (!dx || typeof dx !== "object") {
@@ -428,6 +428,14 @@ async function handleLog(request, env, cors, ctx) {
         // tiene sentido para "formulario"/"formulario_pediatrico_v2"; el
         // schema viejo (srb3) no lo manda y Apps Script lo guarda vacío.
         camposSnapshot: esFormulario ? (camposSnapshot || null) : null,
+        // Feedback sobre LLENAR el formulario (10 nov 2026, pedido de
+        // Leonardo) — a propósito como campo HERMANO de dx, nunca dentro de
+        // él: dx completo viaja tal cual hacia el prompt de Claude
+        // (ver JSON.stringify(dx) en generarYVerificarBorrador), así que
+        // meter esto ahí lo expondría al generador. Apps Script lo guarda en
+        // su propia columna (ver COLS.feedback_formulario) y nunca se reenvía
+        // a generarBorradorAutomatico/el Durable Object más abajo.
+        feedbackFormulario: esFormulario ? (feedbackFormulario || "") : "",
       }),
     });
 

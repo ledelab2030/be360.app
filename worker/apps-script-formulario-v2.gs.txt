@@ -267,6 +267,17 @@ var COLS = {
   // de la familia en el chat de Vita (ver notificarEscalamiento, que la
   // resuelve automáticamente cuando llega un dato_nuevo nuevo).
   recordatorios_json: 32,
+  // NUEVO (10 nov 2026, pedido de Leonardo): feedback de la familia sobre el
+  // PROCESO de llenar el formulario (no sobre el niño/a) — "¿Quieres
+  // compartir algo sobre tu experiencia llenando este formulario?", en
+  // PanelRevisionFinal de vita-demo-formulario/index.html. A propósito en su
+  // propia columna, nunca mezclado con dx: handleLog en el Worker lo manda
+  // como campo HERMANO de dx, nunca dentro de él, porque dx completo viaja
+  // tal cual al prompt de Claude (JSON.stringify(dx) en
+  // generarYVerificarBorrador) — meterlo ahí lo expondría al generador de
+  // planes, que no tiene nada que ver con esto. Solo lo ve el equipo, en
+  // equipo/ (ver detallePlan, listarPendientes, listarHistorial).
+  feedback_formulario: 33,
 };
 
 // Extrae el texto de la sección obligatoria "PARA LA PRÓXIMA CITA CON EL
@@ -485,7 +496,18 @@ function doPost(e) {
       // momento de esta captura (ver COLS.campos_snapshot). Vacío si el
       // Worker no lo mandó (ej. producto="srb3", o una versión vieja del
       // frontend que todavía no lo envía).
-      body.camposSnapshot ? JSON.stringify(body.camposSnapshot) : ""
+      body.camposSnapshot ? JSON.stringify(body.camposSnapshot) : "",
+      // Columnas 28 a 32 (novedades_json, chat_json, regeneracion_estado,
+      // consecutivo, recordatorios_json) se llenan después, por otras
+      // acciones — vacías en la fila recién creada, mismo criterio que
+      // siempre. appendRow es posicional: hay que mantener el hueco para que
+      // feedback_formulario (33) caiga en su columna real, no en la de
+      // novedades_json.
+      "", "", "", "", "",
+      // NUEVO (10 nov 2026, pedido de Leonardo): feedback sobre llenar el
+      // formulario (ver COLS.feedback_formulario) — llega como campo
+      // HERMANO de dx, nunca dentro de él (ver handleLog en vita-proxy.js).
+      body.feedbackFormulario || ""
     ]);
     var lastRow = sheet.getLastRow();
     SpreadsheetApp.flush();
@@ -573,6 +595,7 @@ function listarPendientes(sheet) {
         verificacionTs: data[r][COLS.verificacion_ts],
         regeneracionEstado: data[r][COLS.regeneracion_estado],
         tieneRecordatoriosPendientes: hayRecordatoriosPendientes(data[r][COLS.recordatorios_json]),
+        tieneFeedbackFormulario: !!(data[r][COLS.feedback_formulario] && String(data[r][COLS.feedback_formulario]).trim()),
       });
     }
   }
@@ -603,6 +626,7 @@ function listarHistorial(sheet) {
         // llega a /plan/ ni al chat (doGet responde 403 hasta aprobar).
         tieneNovedades: !!(data[r][COLS.novedades_json] && data[r][COLS.novedades_json] !== "[]"),
         tieneRecordatoriosPendientes: hayRecordatoriosPendientes(data[r][COLS.recordatorios_json]),
+        tieneFeedbackFormulario: !!(data[r][COLS.feedback_formulario] && String(data[r][COLS.feedback_formulario]).trim()),
         regeneracionEstado: data[r][COLS.regeneracion_estado],
       });
     }
@@ -663,6 +687,10 @@ function detallePlan(sheet, body) {
     novedades: novedades,
     recordatorios: recordatorios,
     regeneracionEstado: v[COLS.regeneracion_estado],
+    // NUEVO (10 nov 2026): feedback de la familia sobre llenar el
+    // formulario — nota aparte para el equipo, nunca parte del plan ni del
+    // prompt de generación (ver COLS.feedback_formulario).
+    feedbackFormulario: v[COLS.feedback_formulario] || "",
   });
 }
 
