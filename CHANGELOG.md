@@ -1571,7 +1571,7 @@ Construido a partir de la propuesta revisada con Leonardo (ver `pruebas/2026.11.
 
 ### 11 nov 2026 — Corrección: nunca una merienda "puente" antes de entrenar, ni siquiera cuando el horario no da margen
 
-Al auditar con Gemini el caso regenerado de Juan Ignacio bajo el Manual Maestro v4.26 (actualizado el mismo día con las reglas del 10 nov), Leonardo le pidió a Peter una aclaración puntual sobre el manejo deportivo. Peter confirmó: no recomienda comer entre comidas antes del entrenamiento, bajo ninguna circunstancia — ni siquiera como una merienda ligera "puente" cuando el horario no permite adelantar la cena.
+Al auditar con Gemini uno de los casos regenerados bajo el Manual Maestro v4.26 (actualizado el mismo día con las reglas del 10 nov), Leonardo le pidió a Peter una aclaración puntual sobre el manejo deportivo. Peter confirmó: no recomienda comer entre comidas antes del entrenamiento, bajo ninguna circunstancia — ni siquiera como una merienda ligera "puente" cuando el horario no permite adelantar la cena.
 
 Esto corrige la regla "DEPORTE EN LA TARDE O NOCHE" (7 nov 2026), que todavía tenía esa rama: *"si el horario escolar o deportivo no lo permite, propone una merienda ligera... (ej. huevo duro, un puñado de nueces) antes de entrenar"*. Esa rama contradecía directamente la regla nueva del mismo 10 nov ("DEPORTE — SOLO HIDRATACIÓN, NUNCA COMIDA ADICIONAL ANTES DE ENTRENAR") en el único caso que no cubría: cuando el horario NO da el margen de 2-3h. Ahora quedan solo dos escenarios, nunca un tercero: (1) si el horario permite adelantar la MISMA cena completa para que quede con 2-3h de margen, se adelanta; (2) si no, NUNCA se inventa una comida puente — solo hidratación con suero antes de entrenar, cena completa inmediatamente al terminar.
 
@@ -1619,6 +1619,22 @@ Pendiente dejado en la entrada anterior: el botón decía *"¿Prefieres llenarlo
 **Archivos:** `vita-demo-formulario/index.html`.
 
 **Verificación:** `@babel/standalone` sobre el script completo, sin errores.
+
+---
+
+### 12 nov 2026 — Verificación por código de que la hora de cena sea la misma en todo el plan
+
+Segunda vez que una auditoría de Gemini sobre el mismo caso real encuentra el mismo patrón: el modelo escribe una hora de cena en "Hábitos", otra distinta en "Pilar 3", y usa una tercera en el cálculo de la ventana propuesta — una de ellas (6:30 pm) violando el techo real de 12 horas (da 12h45 desde la primera comida a las 5:45am). Las comprobaciones existentes (`horasDeVentana`/`horasAntesDeDormir`) solo verifican el NÚMERO que el modelo reporta en `ventanaPropuesta.ultimaComida` — nunca se fijan en que el texto libre puede mencionar una hora de cena distinta en otra sección. Pedido explícito de Leonardo: que sea definitivo, no un parche de redacción — la instrucción del prompt ("que no queden dos horas distintas para la cena") ya existía y ya falló dos veces en producción real.
+
+**Diseño:** en vez de intentar decidir si dos menciones de hora "son la misma cena" (frágil con texto libre — un plan real puede tener legítimamente horas distintas para días con y sin entrenamiento), `revisarHorasDeCenaEnTexto()` revisa CADA hora mencionada cerca de "cena"/"última comida"/"cierre de cocina" contra los dos límites duros directamente (`MAX_VENTANA_HORAS` desde la primera comida, `MIN_HORAS_CENA_DORMIR` antes de dormir) — cualquier hora que rompa uno de los dos es un fallo real, sin importar si "coincide" con otra mención. Se suma al mismo ciclo de reintentos que ya existe (hasta `MAX_INTENTOS`), con la misma red de seguridad de siempre: si después de los reintentos sigue fallando, el caso se guarda igual, marcado para revisión manual — nunca se pierde un caso por esto.
+
+**Alcance a propósito:** solo revisa `mensaje` + `habitos` (la propuesta), nunca `resumenCronologico` (lo que la familia YA hace hoy, que puede durar más de 12h sin ser un error — ese es justo el problema que el plan corrige).
+
+**Tensión clínica sin resolver, para que Peter/Leonardo decidan:** en días de entrenamiento, la regla de "cena inmediatamente al terminar el entrenamiento" puede empujar la cena más tarde que lo que permite el techo de 12h de ventana (si el entrenamiento termina tarde). El prompt no dice hoy qué gana cuando las dos reglas chocan. Esta verificación nueva va a hacer visible esa tensión cada vez que ocurra en un caso real (vía reintentos, y si no se resuelve, vía el marcado de revisión manual) — en vez de dejarla pasar en silencio como hasta ahora. No se resolvió unilateralmente en código.
+
+**Archivos:** `worker/vita-proxy.js` (`revisarHorasDeCenaEnTexto()`, `horaLibreAMinutos()`, `RE_CENA_ANCLA`, `RE_HORA_12H`, llamada nueva dentro de `evaluar()`).
+
+**Verificación:** `node --check`. Probado en sandbox de Node con el texto REAL del borrador del caso que trajo la auditoría de Gemini: detecta correctamente las dos horas que violan el techo (6:00 pm → 12h15, 6:30 pm → 12h45), cero falsos positivos contra las otras ~8 horas mencionadas en el mismo texto (receso, almuerzo, merienda, hora de dormir, fin de semana). Probado también contra una versión corregida (una sola hora, 5:30 pm, en las tres secciones) — cero fallos, confirmando que un plan ya consistente no dispara nada. Caso aparte confirmado: "dormirse a las 9:30 pm — la última comida debe quedar antes de las 6:30 pm" — sin el descarte explícito de horas precedidas por "dormir"/"acostar", la función original capturaba la hora de dormir como si fuera de cena (falso positivo real, encontrado y corregido en esta misma verificación antes de desplegar).
 
 ---
 
