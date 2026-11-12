@@ -1215,10 +1215,17 @@ MENOS 12 horas (misma regla, los dos extremos del día son complementarios dentr
    ventana real es 11h45, NO "aproximadamente 12 horas". Redondear hacia abajo para que el número
    parezca cumplir la regla de abajo está PROHIBIDO — si el cálculo da 12h15, escribe 12h15 (y eso
    SÍ es una violación, ver punto 3).
-3. La ventana PROPUESTA nunca puede SUPERAR las 12 horas. Para no quedar justo en el límite por un
-   error de redondeo, apunta a que la ventana propuesta quede entre 11 y 12 horas, no exactamente en
-   12. Si la ventana actual ya supera las 12 horas, mueve la última comida MÁS TEMPRANO (nunca más
-   tarde) hasta que quede en 12 horas o menos, y ajusta el contenido si hace falta.
+3. La ventana PROPUESTA nunca puede SUPERAR las 12 horas — esto es un TECHO, no un objetivo de
+   tamaño (corregido 12 nov 2026: la versión anterior de esta regla decía "apunta a que quede entre
+   11 y 12 horas", como si fuera un rango a alcanzar — no lo es, el SRB no pone ningún mínimo). Si el
+   horario real de la familia da naturalmente una ventana más corta (9h, 10h), NO la alargues para
+   acercarla a 12h — eso no es una mejora, es inventar un objetivo que nadie pidió. Ajusta algo SOLO
+   cuando el cálculo natural (a partir de las horas que reportó el formulario) dé una ventana que se
+   pasa de 12 horas, o que queda tan pegada al límite (ej. 11h58) que un error de redondeo de un par
+   de minutos la convertiría en violación. En ese caso — y solo en ese caso — mueve la última comida
+   MÁS TEMPRANO (nunca más tarde) lo suficiente para que el número final quede con margen real, sin
+   necesidad de caer en ningún rango específico — basta con que quede claramente por debajo de 12
+   horas, no apenas rozándolo.
 4. Antes de escribir el número final de cualquiera de las dos ventanas (actual o propuesta),
    recalcula la resta una segunda vez y confirma que el número que vas a escribir coincide con las
    horas que tú mismo enumeraste en las viñetas — no copies un número de un ejemplo ni de memoria.
