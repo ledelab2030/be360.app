@@ -1654,6 +1654,22 @@ Revisando tres casos reales más (auditados por Gemini el mismo día) apareció 
 
 ---
 
+### 12 nov 2026 — Consolidado de la revisión de 5 casos reales: dos chequeos nuevos por código + dos aclaraciones del prompt
+
+Cierre de la revisión de los 5 casos reales auditados por Gemini bajo el Manual Maestro v4.26 (2 rondas del mismo caso + 3 casos más). Dos hallazgos que no tenían respaldo de código todavía:
+
+**1. "No especificado en el formulario" seguía filtrándose al texto que lee la familia**, pese a que la regla de control de alucinaciones (10 nov) ya lo prohibía por texto — misma lección que la hora de cena: una instrucción sola no basta, hace falta un chequeo determinista. Nuevo patrón en `revisarBorradorPediatrico()` que detecta la frase (y variantes como "sin especificar"/"sin dato") en cualquier parte del borrador.
+
+**2. Fruta cruda mezclada con verdura cruda en 🔴 ROJO** — un plan real escribió "verduras y frutas crudas solas como merienda" en el mismo ítem. La fruta entera nunca se clasifica por cruda/cocida en el SRB (eso es solo para verduras) — se clasifica por entera (amarillo) vs. jugo (rojo). Nuevo chequeo que revisa el bloque ROJO del semáforo en busca de esta confusión, más una aclaración explícita agregada a la regla "FRUTA ENTERA" en `ADAPTACIONES_PEDIATRICAS`.
+
+**3. Preferencia reportada por la familia, ignorada en silencio** (sin chequeo de código — no es verificable por patrón, es una decisión de contenido): un caso reportó explícitamente que solo le gustan "los quesos madurados" como algo que quisiera conservar, justo cuando esa categoría genérica ya no es la excepción láctea (solo queso azul/roquefort lo es). El plan nunca se lo aclaró a la familia. Nueva regla en `ADAPTACIONES_PEDIATRICAS`: cuando el formulario nombra explícitamente un alimento que el niño/a disfruta y ahora cae en una regla que lo restringe, el plan debe aclararlo, nunca omitirlo en silencio.
+
+**Archivos:** `worker/vita-proxy.js` (`revisarBorradorPediatrico()`: dos patrones nuevos — nota interna filtrada, fruta cruda en rojo; `ADAPTACIONES_PEDIATRICAS`: aclaración en "FRUTA ENTERA", regla nueva "CUANDO EL FORMULARIO REPORTA UNA PREFERENCIA QUE AHORA CHOCA CON UNA REGLA").
+
+**Verificación:** `node --check`. Los dos chequeos de código probados en sandbox de Node contra el texto real de los casos que los originaron — ambos detectan correctamente el problema real, y un caso de control limpio (sin ninguno de los dos problemas) no dispara ningún falso positivo. La regla de preferencias (punto 3) y la aclaración de fruta en el prompt no tienen chequeo de código — dependen de que el modelo las siga, igual que la mayoría de reglas de contenido; quedan para la próxima ronda de auditoría confirmar que se cumplen en la práctica.
+
+---
+
 ## Lo que enseña este historial
 
 Tres patrones que se repiten y conviene tener presentes:
