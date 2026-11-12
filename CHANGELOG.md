@@ -1612,6 +1612,16 @@ El formulario estructurado (chips) venía como una sola página larga con los 13
 
 ---
 
+### 12 nov 2026 — Corrige el texto del botón de consentimiento, ya no describía el formulario por pasos
+
+Pendiente dejado en la entrada anterior: el botón decía *"¿Prefieres llenarlo tú mismo? Ves todas las preguntas de una vez →"* — cierto cuando el formulario era un solo scroll largo, falso desde la Fase 3a (una pantalla por sección). Pedido explícito de Leonardo para corregirlo. Nuevo texto: *"¿Prefieres llenarlo tú mismo? Avanza pregunta por pregunta →"*.
+
+**Archivos:** `vita-demo-formulario/index.html`.
+
+**Verificación:** `@babel/standalone` sobre el script completo, sin errores.
+
+---
+
 ## Lo que enseña este historial
 
 Tres patrones que se repiten y conviene tener presentes:
