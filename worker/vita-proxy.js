@@ -720,6 +720,22 @@ arriba cuando hay conflicto (el texto de arriba fue escrito para adultos):
   menos. Si el formulario no trae una hora de dormir real, no inventes una — usa el campo
   "horaDormir" en "00:00" para decírselo al sistema, igual que ya haces con la ventana cuando faltan
   horas (ver más abajo).
+- CUANDO LAS 3 HORAS DE VERDAD NO ALCANZAN (12 nov 2026, decisión explícita de Leonardo, tras
+  encontrar el mismo problema en varios casos reales: un entrenamiento u otro compromiso de ESE día
+  empuja la cena tan tarde que ni adelantándola al máximo real caben las 3 horas, o la ventana de
+  alimentación se pasa de 12h): el deber del plan es SIEMPRE dar la recomendación ideal primero —
+  nunca te rindas y pongas la hora tardía como si fuera la meta. El orden es:
+  1. Intenta adelantar la cena lo más posible dentro de lo que el horario real del día permite (ej.
+     el entrenamiento, un plan de última hora) — nunca "para cuando se pueda", siempre la hora más
+     temprana que de verdad quepa ese día.
+  2. Si aun adelantándola al máximo real NO se alcanzan las 3 horas antes de dormir (o la ventana se
+     pasa de 12h), usa esa hora más temprana posible de todas formas — PERO agrega, en la misma
+     frase, una advertencia explícita de que ese día no se cumple el margen ideal. Frase obligatoria
+     (literal, para que el equipo pueda detectarla por código): "no alcanza el margen ideal de 3
+     horas antes de dormir". Nunca presentes esa hora tardía como si cumpliera la regla — adviértela
+     siempre que no la cumple.
+  Esto es distinto de inventar una excepción silenciosa: la familia debe poder leer, en el propio
+  plan, que ese día en particular no alcanza el ideal y por qué.
 - NO IMPONER UN DESAYUNO QUE NO EXISTE (10 nov 2026, Peter, en sesión de revisión de casos reales): si
   el formulario reporta que el niño/a NO desayuna en casa — su primera ingesta real es, por ejemplo,
   un líquido justo al salir o la merienda del colegio a media mañana — PROHIBIDO inventar o sugerir
@@ -759,7 +775,10 @@ arriba cuando hay conflicto (el texto de arriba fue escrito para adultos):
      recomendación antes de entrenar es hidratación con suero casero (ver regla de arriba,
      "DEPORTE — SOLO HIDRATACIÓN"), y la cena completa va INMEDIATAMENTE AL TERMINAR la actividad —
      con el cierre de cocina a más tardar 1 hora después de que termine el entrenamiento, nunca más
-     tarde, para seguir respetando la regla de las 3 horas antes de dormir de arriba.
+     tarde, para seguir respetando la regla de las 3 horas antes de dormir de arriba. Si ni así
+     alcanzan las 3 horas (entrenamiento que termina muy tarde), aplica "CUANDO LAS 3 HORAS DE VERDAD
+     NO ALCANZAN" más arriba — adelanta al máximo real y, si no basta, advierte explícitamente que
+     ese día no se cumple el margen ideal.
 - PANTALLAS ANTES DE DORMIR — la fuente SRB solo dice "manejo de pantallas", sin cifra; la hora
   exacta de acá es una decisión explícita de Leonardo (29 oct 2026), no una inferencia: nada de
   pantallas (celular, tablet, TV, videojuegos) en la hora inmediatamente antes de que el niño/a se
@@ -1463,8 +1482,16 @@ function horasAntesDeDormir(ventanaPropuesta, horaDormir) {
 // Alcance a propósito: SOLO "mensaje" + "habitos" (la propuesta), NUNCA
 // "resumenCronologico" (lo que la familia YA hace hoy, que puede durar más
 // de 12h sin que sea un error — ese es justo el problema que el plan corrige).
-const RE_CENA_ANCLA = /\bcena\b|última comida|cierre de cocina/i;
+const RE_CENA_ANCLA = /\bcena\b|última comida|cierre de cocina|cocina cerrad/i;
 const RE_HORA_12H = /\b(1[0-2]|0?[1-9])(?::([0-5]\d))?\s*(a\.?\s?m\.?|p\.?\s?m\.?)\b/gi;
+// Excepción explícita (12 nov 2026, decisión de Leonardo): un día puede no
+// alcanzar el margen ideal por el horario real (deporte, un plan de última
+// hora) — eso está permitido SI el plan lo advierte con la frase obligatoria
+// del prompt ("CUANDO LAS 3 HORAS DE VERDAD NO ALCANZAN", ver
+// ADAPTACIONES_PEDIATRICAS). Si la advertencia está cerca de la hora en
+// cuestión, no es un fallo — es la excepción ya reconocida y explicada a la
+// familia, no un error silencioso.
+const RE_ADVERTENCIA_NO_IDEAL = /no alcanza[^.]{0,40}margen ideal/i;
 function horaLibreAMinutos(h, min, meridiano) {
   let hh = Number(h);
   const mm = min ? Number(min) : 0;
@@ -1483,8 +1510,13 @@ function revisarHorasDeCenaEnTexto(textoPropuesta, ventanaPropuesta, horaDormir)
   if (primeraMin === null && dormirMin === null) return problemas; // sin dato suficiente, nada que revisar
   const vistos = new Set(); // no repetir el mismo texto de hora dos veces
   const fragmentos = String(textoPropuesta || "").split(/\n+|(?<=[.;])\s+/);
-  for (const frag of fragmentos) {
+  for (let i = 0; i < fragmentos.length; i++) {
+    const frag = fragmentos[i];
     if (!RE_CENA_ANCLA.test(frag)) continue;
+    // La advertencia obligatoria puede caer en la misma frase o en la
+    // siguiente (ej. "...cierra a las 8:30 pm. No alcanza el margen ideal de
+    // 3 horas antes de dormir.") — se busca en ambas antes de descartar.
+    const advertida = RE_ADVERTENCIA_NO_IDEAL.test(frag) || RE_ADVERTENCIA_NO_IDEAL.test(fragmentos[i + 1] || "");
     RE_HORA_12H.lastIndex = 0;
     let m;
     while ((m = RE_HORA_12H.exec(frag)) !== null) {
@@ -1497,6 +1529,10 @@ function revisarHorasDeCenaEnTexto(textoPropuesta, ventanaPropuesta, horaDormir)
       if (/dormir|dormirse|acostar|duerme/i.test(contexto)) continue;
       if (vistos.has(horaTexto)) continue;
       vistos.add(horaTexto);
+      // Excepción reconocida (12 nov 2026): si el plan ya advirtió
+      // explícitamente que ese día no alcanza el margen ideal, esta hora NO
+      // es un fallo — es la excepción que Leonardo pidió permitir.
+      if (advertida) continue;
       const horaMin = horaLibreAMinutos(m[1], m[2], m[3]);
       if (primeraMin !== null) {
         let ventanaSiEstaHora = horaMin - primeraMin;
