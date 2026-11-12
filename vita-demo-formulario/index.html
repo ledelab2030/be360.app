@@ -450,6 +450,11 @@ const OPCIONALES = ["que_deseas_lograr","preocupacion_principal","origen","sueno
 const MIN_OPCIONALES = 4; // de los 9 restantes, para que el panorama no sea solo la cronología sola
 const P = { bg:"#ECE5D8", panel:"#FBF8F1", ink:"#2C2A24", sage:"#5A7A5C", sageDeep:"#3E5A40", sageSoft:"#DCE7D6", user:"#C9DDB8", clay:"#B5764A", line:"#D8CFBE", muted:"#8A8473" };
 const emptyDx = FIELDS.reduce((a,f)=>({...a,[f.key]:""}),{});
+// Pantallas del formulario directo (12 nov 2026) — una por campo visible,
+// SALTANDO "edad" (se dibuja junto a nombre_nino en la misma pantalla, no
+// por separado — ver renderCampoFormulario). El contrato con dx no cambia:
+// esto solo decide CUÁNTAS pantallas hay y en qué orden, no qué se guarda.
+const CAMPOS_VISIBLES = FIELDS.filter(f=>f.key!=="edad");
 const MODE = "child"; // este demo SOLO captura para un hijo/a — no hay modo adulto.
 
 // ============================================================
@@ -1142,6 +1147,11 @@ function App(){
   const [sendError,setSendError]=useState(null);
   const [mostrarRevisionFinal,setMostrarRevisionFinal]=useState(false); // panel de revisión (correo + cobertura del día) antes de enviar de verdad
   const [horasConfirmadas,setHorasConfirmadas]=useState({}); // 3 nov 2026: qué horas sugeridas confirmó el padre en PanelRevisionFinal
+  // Formulario directo: una pantalla por sección en vez de un solo scroll
+  // largo (12 nov 2026, pedido de Leonardo/Peter — mismo patrón que apps
+  // como BEND). Índice sobre CAMPOS_VISIBLES (FIELDS sin "edad", que se
+  // dibuja junto a nombre_nino en su misma pantalla, no por separado).
+  const [pasoForm,setPasoForm]=useState(()=>{ const g=leerGuardado(); return (g&&typeof g.pasoForm==="number")?g.pasoForm:0; });
   const scrollRef=useRef(null);
   useEffect(()=>{ if(scrollRef.current) scrollRef.current.scrollTop=scrollRef.current.scrollHeight; },[messages,loading]);
 
@@ -1149,8 +1159,8 @@ function App(){
   // que guardar) ni en "sent" (ya se envió y el guardado se borra ahí mismo).
   useEffect(()=>{
     if(stage==="welcome"||stage==="sent") return;
-    try{ localStorage.setItem(GUARDADO_KEY, JSON.stringify({stage,messages,dx})); }catch(e){}
-  },[stage,messages,dx]);
+    try{ localStorage.setItem(GUARDADO_KEY, JSON.stringify({stage,messages,dx,pasoForm})); }catch(e){}
+  },[stage,messages,dx,pasoForm]);
 
   // Recompila origen/señales/cronología/sueño a partir de los chips cada vez
   // que algo cambia — dx sigue siendo el único payload real hacia /log, los
@@ -1477,6 +1487,10 @@ function App(){
 
   const copyChat=async()=>{ const txt="CONVERSACIÓN CON VITA · be360 (Formulario de Hábitos)\nFecha: "+new Date().toLocaleString("es-CO")+"\n\n"+messages.map(m=>(m.role==="assistant"?"Vita":"Tú (mamá/papá)")+":\n"+m.content).join("\n\n"); try{ await navigator.clipboard.writeText(txt); setChatCopied(true); setTimeout(()=>setChatCopied(false),2000);}catch(e){ const w=window.open("","_blank"); if(w){ w.document.body.style.cssText="font-family:system-ui;padding:20px;white-space:pre-wrap;line-height:1.5"; w.document.body.textContent=txt; } } };
   const btnPrimary={background:P.sage,color:"#fff",border:"none",borderRadius:999,padding:"14px 30px",fontSize:15.5,fontWeight:800,fontFamily:"'Nunito',sans-serif",cursor:"pointer",boxShadow:"0 6px 18px rgba(90,122,92,.35)"};
+  // Botón "Atrás" del formulario por pasos (12 nov 2026) — mismo tamaño que
+  // btnPrimary para que la fila no salte de alto, pero sin relleno, para no
+  // competir visualmente con el botón primario de "Siguiente"/"Enviar".
+  const btnGhostForm={background:"none",color:P.sageDeep,border:"1px solid "+P.line,borderRadius:999,padding:"14px 20px",fontSize:14,fontWeight:700,fontFamily:"'Nunito',sans-serif",cursor:"pointer"};
 
   if(stage==="welcome") return (
     <Shell><div className="rise scroll" style={{flex:1,overflowY:"auto",display:"flex",flexDirection:"column",justifyContent:"center",alignItems:"center",padding:"32px 26px",textAlign:"center"}}>
@@ -1576,14 +1590,51 @@ function App(){
     </div></Shell>
   );
 
-  if(stage==="form") return (
-    <Shell><div className="rise scroll" style={{flex:1,overflowY:"auto",padding:"26px 22px 18px",display:"flex",flexDirection:"column",gap:16}}>
-      <div style={{textAlign:"center",marginBottom:2}}>
-        <div style={{fontSize:36,marginBottom:8}}>🌱</div>
-        <div style={{fontFamily:"'Fraunces',serif",fontSize:21,color:P.sageDeep,marginBottom:6}}>Formulario de Hábitos</div>
-        <p style={{fontSize:12.5,color:P.muted,lineHeight:1.5,maxWidth:340,margin:"0 auto"}}>Completa los datos que tengas a mano — el equipo revisa todo igual. ¿Prefieres hacerlo guiado? Puedes <span onClick={goToChat} style={{color:P.sageDeep,fontWeight:700,textDecoration:"underline",cursor:"pointer"}}>conversar con Vita</span>, sin perder tu progreso.</p>
+  if(stage==="form"){
+    const totalPasos=CAMPOS_VISIBLES.length;
+    const campoActual=CAMPOS_VISIBLES[pasoForm]||CAMPOS_VISIBLES[0];
+    const esUltimoPaso=pasoForm>=totalPasos-1;
+    const irA=(i)=>setPasoForm(Math.max(0,Math.min(totalPasos-1,i)));
+    const irSiguiente=()=>irA(pasoForm+1);
+    const irAtras=()=>irA(pasoForm-1);
+    // Deslizar con el dedo (12 nov 2026, pedido de Leonardo/Peter — una
+    // pantalla por sección, estilo apps como BEND) — umbral de 40px para no
+    // disparar con un scroll vertical normal dentro de la misma pantalla.
+    let touchX0=null;
+    const onTouchStart=(ev)=>{ touchX0=ev.touches[0].clientX; };
+    const onTouchEnd=(ev)=>{
+      if(touchX0===null) return;
+      const dx2=ev.changedTouches[0].clientX-touchX0;
+      touchX0=null;
+      if(Math.abs(dx2)<40) return;
+      if(dx2<0) irSiguiente(); else irAtras();
+    };
+    return (
+    <Shell><div className="rise" style={{flex:1,display:"flex",flexDirection:"column",minHeight:0}}>
+      <div style={{padding:"18px 22px 0"}}>
+        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:10,marginBottom:10}}>
+          <button onClick={()=>setStage("welcome")} title="Volver al inicio" style={{background:"none",border:"none",color:P.muted,fontSize:13,cursor:"pointer",padding:0}}>←</button>
+          <div style={{fontSize:11.5,color:P.muted,fontWeight:700}}>Paso {pasoForm+1} de {totalPasos}</div>
+          <span onClick={goToChat} style={{fontSize:11.5,color:P.sageDeep,fontWeight:700,textDecoration:"underline",cursor:"pointer"}}>Hacerlo conversando →</span>
+        </div>
+        {/* Puntos de progreso, clicables — navegación libre, sin bloqueo por
+            campos incompletos (eso es responsabilidad de puedeEnviar() al
+            final, no de esta barra). */}
+        <div style={{display:"flex",gap:5,marginBottom:14,flexWrap:"wrap"}}>
+          {CAMPOS_VISIBLES.map((f,i)=>(
+            <span key={f.key} onClick={()=>irA(i)} title={f.label} style={{flex:1,minWidth:10,height:5,borderRadius:999,background:i<=pasoForm?P.sage:P.line,cursor:"pointer"}}/>
+          ))}
+        </div>
+        {pasoForm===0 && (
+          <div style={{textAlign:"center",marginBottom:14}}>
+            <div style={{fontSize:30,marginBottom:6}}>🌱</div>
+            <div style={{fontFamily:"'Fraunces',serif",fontSize:19,color:P.sageDeep,marginBottom:4}}>Formulario de Hábitos</div>
+            <p style={{fontSize:12,color:P.muted,lineHeight:1.5,maxWidth:340,margin:"0 auto"}}>Completa los datos que tengas a mano — el equipo revisa todo igual.</p>
+          </div>
+        )}
       </div>
-      {FIELDS.map(f=>{
+      <div onTouchStart={onTouchStart} onTouchEnd={onTouchEnd} className="scroll" style={{flex:1,overflowY:"auto",padding:"0 22px 18px",display:"flex",flexDirection:"column",gap:16}}>
+      {[campoActual].map(f=>{
         // Identidad (7 nov 2026): inputs de una línea en vez de textarea —
         // nombre_nino y edad comparten fila. "edad" se salta acá (ya se
         // dibuja junto a nombre_nino) para no duplicarla en el loop.
@@ -1689,14 +1740,23 @@ function App(){
           </div>
         );
       })}
-      <button onClick={sendToReview} disabled={!puedeEnviar()||sending} style={{...btnPrimary,alignSelf:"center",marginTop:6,opacity:(!puedeEnviar()||sending)?.55:1,cursor:(!puedeEnviar()||sending)?"default":"pointer"}}>{sending?"Enviando…":"Enviar a revisión →"}</button>
-      {!puedeEnviar() && <p style={{fontSize:11.5,color:P.muted,textAlign:"center"}}>Aún falta: {mensajeFaltante()}.</p>}
-      {sendError && <p style={{fontSize:12.5,color:P.clay,textAlign:"center"}}>{sendError}</p>}
-      <p style={{fontSize:11,color:P.muted,textAlign:"center",lineHeight:1.5,marginTop:2}}>Esto acompaña y suma con su pediatra — no lo reemplaza.</p>
-      <button onClick={()=>setStage("welcome")} style={{background:"none",border:"none",color:P.muted,fontSize:12.5,fontWeight:700,cursor:"pointer",alignSelf:"center",fontFamily:"'Nunito',sans-serif"}}>← Volver al inicio</button>
+      </div>
+      <div style={{padding:"12px 22px 18px",borderTop:"1px solid "+P.line,display:"flex",flexDirection:"column",gap:8}}>
+        {esUltimoPaso && !puedeEnviar() && <p style={{fontSize:11.5,color:P.muted,textAlign:"center",margin:0}}>Aún falta: {mensajeFaltante()}.</p>}
+        {esUltimoPaso && sendError && <p style={{fontSize:12.5,color:P.clay,textAlign:"center",margin:0}}>{sendError}</p>}
+        <div style={{display:"flex",gap:10}}>
+          <button onClick={irAtras} disabled={pasoForm===0} style={{...btnGhostForm,visibility:pasoForm===0?"hidden":"visible"}}>← Atrás</button>
+          {esUltimoPaso ? (
+            <button onClick={sendToReview} disabled={!puedeEnviar()||sending} style={{...btnPrimary,flex:1,opacity:(!puedeEnviar()||sending)?.55:1,cursor:(!puedeEnviar()||sending)?"default":"pointer"}}>{sending?"Enviando…":"Enviar a revisión →"}</button>
+          ) : (
+            <button onClick={irSiguiente} style={{...btnPrimary,flex:1}}>Siguiente →</button>
+          )}
+        </div>
+        {esUltimoPaso && <p style={{fontSize:11,color:P.muted,textAlign:"center",lineHeight:1.5,margin:0}}>Esto acompaña y suma con su pediatra — no lo reemplaza.</p>}
+      </div>
       {mostrarRevisionFinal&&(<PanelRevisionFinal dx={dx} onCambiarEmail={cambiarEmailEnRevision} faltantes={coberturaDia(dx.cronologia_del_dia).faltantes} onCompletarDia={volverACompletarDia} onConfirmar={confirmarYEnviar} horasConfirmadas={horasConfirmadas} onToggleHoraConfirmada={toggleHoraConfirmada} P={P} btnPrimary={btnPrimary} feedbackFormulario={estructurado.feedbackFormulario} onCambiarFeedbackFormulario={t=>setEstructurado(prev=>({...prev,feedbackFormulario:t}))}/>)}
     </div></Shell>
-  );
+  );}
 
   if(stage==="sent") return (
     <Shell><div style={{flex:1,display:"flex",flexDirection:"column",justifyContent:"center",alignItems:"center",padding:"32px 26px",textAlign:"center"}}>

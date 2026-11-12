@@ -1593,6 +1593,25 @@ Revisando con Leonardo por qué Gemini auditaba la ventana contra un rango "10 a
 
 ---
 
+### 12 nov 2026 — Fase 3a: el formulario estructurado pasa de un solo scroll a una pantalla por sección
+
+El formulario estructurado (chips) venía como una sola página larga con los 13 campos uno debajo del otro — y acababa de crecer bastante con el contenido de comidas (Fase 1, 11 nov). Pedido de Leonardo/Peter: una pantalla por sección, estilo apps como BEND, no todo de una vez.
+
+- **`CAMPOS_VISIBLES`** — `FIELDS` sin "edad" (se dibuja junto a `nombre_nino` en la misma pantalla, no aparte), define cuántas pantallas hay y en qué orden.
+- **`pasoForm`** — índice de la pantalla actual, persistido en el mismo `GUARDADO_KEY` de siempre (junto a `stage`/`messages`/`dx`) — recargar a mitad de camino deja al padre en la misma pantalla donde iba, no al principio.
+- **Navegación:** "← Atrás" / "Siguiente →" (oculto "Atrás" en la primera pantalla), más una barra de puntos de progreso, clicable, para saltar directo a cualquier pantalla — sin bloqueo por campos incompletos, eso sigue siendo responsabilidad de `puedeEnviar()` solo al final, igual que antes.
+- **Deslizar con el dedo** (swipe) para avanzar/retroceder, con un umbral de 40px para no disparar con el scroll vertical normal dentro de una misma pantalla (algunas, como "El día en orden", siguen siendo más largas que la pantalla y se scrollean verticalmente igual).
+- En la última pantalla, "Siguiente" se reemplaza por "Enviar a revisión →" (mismo botón y misma validación de siempre) + el aviso de "Aún falta..." si corresponde.
+- El contrato con `dx`/`compilarCronologia()`/`sendToReview()`/`PanelRevisionFinal` no cambió en nada — esto es solo la capa de presentación, reorganiza CÓMO se ven los mismos campos, no QUÉ se guarda ni cómo se valida.
+
+**Pendiente, NO resuelto en este cambio:** el botón de la pantalla de consentimiento todavía dice *"¿Prefieres llenarlo tú mismo? Ves todas las preguntas de una vez →"* — esa frase ya no es cierta (ahora es una pantalla a la vez). No se tocó la copy sin confirmar con Leonardo primero.
+
+**Archivos:** `vita-demo-formulario/index.html` (`CAMPOS_VISIBLES`, estado `pasoForm` + persistencia, navegación por pasos con swipe, `btnGhostForm`, reestructuración del stage `"form"`).
+
+**Verificación:** `@babel/standalone` sobre el script completo, sin errores. Probado en vivo en el navegador (servidor local `python3 -m http.server`, `.claude/launch.json`): consentimiento → formulario por pasos, click en un chip persiste solo en su propia pantalla (confirmado que "Huevo" en Desayuno no afecta a "Huevo" en Almuerzo/Cena, son grupos independientes), salto directo por los puntos de progreso, llegada a la última pantalla con el botón y el aviso de campos faltantes correctos, y recarga de página confirmando que `pasoForm` persiste (quedó en "Paso 13 de 13" después de recargar). Sin errores en consola.
+
+---
+
 ## Lo que enseña este historial
 
 Tres patrones que se repiten y conviene tener presentes:
