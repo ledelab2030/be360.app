@@ -1581,6 +1581,18 @@ Esto corrige la regla "DEPORTE EN LA TARDE O NOCHE" (7 nov 2026), que todavía t
 
 ---
 
+### 12 nov 2026 — La ventana propuesta ya no tiene un piso artificial de 11 horas
+
+Revisando con Leonardo por qué Gemini auditaba la ventana contra un rango "10 a 12" en vez de "11 a 12", se encontró el problema de raíz: ninguno de los dos números viene del SRB. La fuente/adaptación pediátrica solo dice *"NUNCA debe superar las 12 horas. Es un MÁXIMO, no un mínimo"* — sin piso. El "11 a 12" era una instrucción de ingeniería (margen de redondeo cerca del techo) escrita como si fuera un objetivo de tamaño a alcanzar, lo que podía llevar a Claude a alargar innecesariamente una ventana que el horario real de la familia ya daba más corta (9h, 10h) — exactamente lo que "respetar la rutina real" prohíbe.
+
+**Corrección:** el punto 3 de "CÁLCULO DE LA VENTANA DE ALIMENTACIÓN" ahora dice explícitamente que el techo de 12h nunca es un objetivo de tamaño, y que el ajuste (mover la última comida más temprano) solo aplica cuando el cálculo natural se pasa de 12h o queda peligrosamente pegado al límite — nunca para estirar una ventana corta hacia arriba. Sin rango a alcanzar, solo margen real cuando hace falta.
+
+**Archivos:** `worker/vita-proxy.js` (`SRB_DRAFT_PROMPT`, "CÁLCULO DE LA VENTANA DE ALIMENTACIÓN" punto 3 reescrito).
+
+**Verificación:** `node --check` sobre `vita-proxy.js`. **Pendiente:** avisarle a quien mantiene la rúbrica de auditoría de Gemini que el criterio pasa a ser simplemente "≤ 12 horas", sin tratar ningún rango como objetivo de aprobación.
+
+---
+
 ## Lo que enseña este historial
 
 Tres patrones que se repiten y conviene tener presentes:
