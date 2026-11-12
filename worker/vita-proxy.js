@@ -640,6 +640,17 @@ arriba cuando hay conflicto (el texto de arriba fue escrito para adultos):
   lácteos comerciales) sigue ROJO firme — nunca "se reducen poco a poco", se eliminan. Queso
   azul/roquefort va en 🟢 VERDE (prioridad en cada comida) — es la única excepción láctea, no una
   concesión de "con moderación".
+- CUANDO EL FORMULARIO REPORTA UNA PREFERENCIA QUE AHORA CHOCA CON UNA REGLA (12 nov 2026, caso real
+  auditado por Gemini: la familia reportó explícitamente "no le gusta el queso común, solo los
+  madurados" como algo que le gusta y valdría la pena conservar — el plan nunca lo mencionó,
+  dejando a la familia sin saber que "madurado" genérico ya no es la excepción). Cuando el
+  formulario nombra explícitamente un alimento o categoría como algo que el niño/a disfruta y la
+  familia quisiera conservar, y ese alimento ahora cae en una regla que lo restringe (como el caso
+  de los quesos madurados, arriba), NO lo omitas en silencio — menciónalo brevemente donde
+  corresponda del plan, aclarando qué sí aplica de esa categoría (ej. "de los quesos madurados que
+  disfruta, el azul o roquefort sigue siendo válido; el resto se trata como lácteo no madurado").
+  Es la diferencia entre callar una pérdida y explicarla — la familia reportó algo que quiere
+  conservar, y el plan le debe una respuesta directa sobre eso, no silencio.
 - ACEITES SALUDABLES EN VERDE (10 nov 2026, confirmado por Peter en vivo en sesión de revisión de
   casos): aceite de oliva virgen extra, aceite de coco virgen y aceite de aguacate van en 🟢 VERDE,
   igual que las aceitunas y el aguacate enteros — son grasas saludables básicas del sistema. NO
@@ -696,7 +707,12 @@ arriba cuando hay conflicto (el texto de arriba fue escrito para adultos):
   ("agua con azúcar concentrada"). La fruta entera (no jugo) va en AMARILLO, con la MISMA regla que
   arroz/papa/plátano/arepa: SIEMPRE de acompañante de una comida con proteína y grasa, NUNCA sola
   como merienda ni como base. El jugo de fruta sigue SIEMPRE ROJO, sin excepción — ahí sí lo dice la
-  fuente explícitamente.
+  fuente explícitamente. LA FRUTA NUNCA SE CLASIFICA POR CRUDA/COCIDA (12 nov 2026, caso real
+  auditado por Gemini: un plan escribió "verduras y frutas crudas" juntas en ROJO, mezclando dos
+  reglas distintas) — esa distinción es SOLO para verduras (cruda=ROJO, cocida=AMARILLO). La fruta
+  se clasifica SOLO por entera (AMARILLO) vs. jugo (ROJO); nunca la agrupes junto a "verduras
+  crudas" en el mismo ítem del semáforo, ni des a entender que la fruta fresca entera está
+  prohibida.
 - CHATARRA EXPLÍCITA EN ROJO: aunque no estén en la tabla original de la fuente, helados y
   salchipapas van SIEMPRE en ROJO si el formulario los menciona — nunca en amarillo.
 - LONCHERA Y MERIENDAS — REGLA DE ORO: si el niño/a hace sus 3 comidas principales completas, la
@@ -1838,7 +1854,27 @@ function revisarBorradorPediatrico(parsed) {
     if (mAbstractoEnSemaforo) {
       problemas.push("\"" + mAbstractoEnSemaforo[0] + "\" aparece como ítem de un color del semáforo — es una categoría/macronutriente abstracto, no un alimento físico concreto → \"" + mAbstractoEnSemaforo[0] + "\"");
     }
+    // Fruta cruda confundida con verdura cruda en ROJO (12 nov 2026, caso
+    // real auditado por Gemini): el plan escribió "Verduras y frutas crudas
+    // solas como merienda" en 🔴 — pero la fruta entera NUNCA se clasifica
+    // por cruda/cocida en el SRB, solo por entera (AMARILLO, de acompañante)
+    // vs. jugo (ROJO). Mezclarla con las verduras crudas puede hacerle creer
+    // a la familia que la fruta fresca está prohibida, cuando no lo está.
+    // Bloque SOLO de ROJO (hasta el inicio de AMARILLO si se encontró).
+    const bloqueRojo = (parsed.mensaje || "").slice(idxRojoSemaforo, idxAmarillo > idxRojoSemaforo ? idxAmarillo : idxRojoSemaforo + 900);
+    const mFrutaCruda = bloqueRojo.match(/frutas?\s+crudas?|crudas?\s+(?:y|,)?\s*frutas?/i);
+    if (mFrutaCruda) {
+      problemas.push("\"fruta cruda\" aparece en 🔴 ROJO, mezclada con verduras crudas — la fruta entera nunca se clasifica por cruda/cocida, solo por entera (AMARILLO, de acompañante) o jugo (ROJO) → \"" + mFrutaCruda[0] + "\"");
+    }
   }
+  // "No especificado en el formulario" u otra nota interna de ausencia de
+  // dato, filtrada al texto que lee la familia (12 nov 2026, caso real
+  // auditado por Gemini — ya existía la regla en el prompt, control de
+  // alucinaciones del 10 nov, pero igual se coló, misma lección que la hora
+  // de cena: una instrucción de texto sola no basta). Si falta el contenido
+  // de una comida, la regla pide omitirla del todo, nunca narrar la
+  // ausencia del dato como si fuera parte del plan.
+  revisar(/no\s+especific\w*(?:\s+\w+){0,4}\s+(?:en\s+el\s+)?formulario|sin\s+especificar(?:\s+\w+){0,4}\s+(?:en\s+el\s+)?formulario|sin\s+dato\s+(?:en\s+el\s+)?formulario/i, "muestra una nota interna de ausencia de dato (\"no especificado en el formulario\" o similar) como si fuera parte del plan — si falta el contenido de una comida, se omite esa comida, nunca se narra el hueco");
   return problemas;
 }
 
