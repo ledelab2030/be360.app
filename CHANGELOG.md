@@ -1638,6 +1638,22 @@ Segunda vez que una auditoría de Gemini sobre el mismo caso real encuentra el m
 
 ---
 
+### 12 nov 2026 — La ventana/margen antes de dormir puede no alcanzarse un día puntual, SI el plan lo advierte explícitamente
+
+Revisando tres casos reales más (auditados por Gemini el mismo día) apareció el mismo patrón de inconsistencia de horario de cena una y otra vez, casi siempre ligado a entrenamientos que terminan tarde. Leonardo aclaró la política: el deber del plan es SIEMPRE dar la recomendación ideal primero (adelantar la cena al máximo real posible ese día) — pero si el horario real de ESE día (deporte, un plan de última hora) de verdad no permite las 3 horas antes de dormir ni el techo de 12h, está bien usar la hora más temprana posible siempre que el plan lo advierta explícitamente a la familia, en vez de presentarlo en silencio como si cumpliera la regla.
+
+**Prompt:** nueva regla "CUANDO LAS 3 HORAS DE VERDAD NO ALCANZAN" en `ADAPTACIONES_PEDIATRICAS` — adelantar al máximo real primero; si ni así alcanza, usar esa hora de todas formas pero con una frase de advertencia obligatoria y literal ("no alcanza el margen ideal de 3 horas antes de dormir"), para que nunca quede como una excepción silenciosa. Referenciada también desde la regla de deporte nocturno.
+
+**Verificador (`revisarHorasDeCenaEnTexto`, de ayer):** dos ajustes.
+1. **Bug encontrado al probar con uno de los tres casos nuevos:** el ancla de texto solo reconocía "cierre de cocina" — un plan real decía "Cocina cerrada a las 9:00 PM" (mismo significado, orden distinto) y pasaba sin detectarse, con un margen real de **0 horas** antes de dormir. Se amplió el ancla para cubrir esta variante.
+2. **Excepción nueva:** si el plan ya advirtió explícitamente ("no alcanza el margen ideal...") cerca de la hora en cuestión, ya no se marca como fallo — es la excepción que Leonardo acaba de autorizar, no un error.
+
+**Archivos:** `worker/vita-proxy.js` (`ADAPTACIONES_PEDIATRICAS`: regla nueva + referencia desde la regla de deporte nocturno; `RE_CENA_ANCLA` ampliado, `RE_ADVERTENCIA_NO_IDEAL` nuevo, `revisarHorasDeCenaEnTexto()` con la excepción).
+
+**Verificación:** `node --check`. Probado en sandbox de Node con 3 escenarios: (1) el texto real con la variante "Cocina cerrada" — ahora sí detecta el margen de 0h antes de dormir, que antes pasaba inadvertido; (2) un texto con la advertencia explícita presente — cero fallos, confirmando que la excepción funciona; (3) el mismo texto SIN la advertencia — sigue marcando fallo. Se repitió además toda la batería de pruebas de la entrada anterior (casos ya probados) — sin regresiones. **Pendiente, solo se puede probar en producción:** regenerar los casos reales que mostraron este patrón y confirmar que, cuando de verdad no se puede cumplir el ideal, el plan advierte en vez de quedar en silencio.
+
+---
+
 ## Lo que enseña este historial
 
 Tres patrones que se repiten y conviene tener presentes:
