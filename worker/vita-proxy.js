@@ -1441,6 +1441,88 @@ function horasAntesDeDormir(ventanaPropuesta, horaDormir) {
   return diff / 60;
 }
 
+// CONSISTENCIA DE LA HORA DE CENA EN TODO EL TEXTO (12 nov 2026, pedido de
+// Leonardo — caso real auditado dos veces por Gemini con el
+// mismo patrón: el modelo escribe una hora de cena en HÁBITOS, otra distinta
+// en PILAR 3, y usa una tercera en el cálculo de la ventana propuesta. Las
+// comprobaciones de arriba (horasDeVentana/horasAntesDeDormir) solo verifican
+// EL NÚMERO que el modelo reporta en ventanaPropuesta.ultimaComida — nunca se
+// fijan en que el TEXTO LIBRE (Hábitos, Pilar 3) puede mencionar una hora de
+// cena distinta, que puede violar el techo de 12h o el mínimo de 3h antes de
+// dormir sin que ningún chequeo lo note.
+//
+// Diseño: en vez de intentar decidir si dos menciones de hora "son la misma
+// cena" (frágil con texto libre — un plan real puede tener legítimamente dos
+// horas de cena distintas, una para días con entrenamiento y otra sin él),
+// se revisa CADA hora mencionada cerca de la palabra cena/última comida
+// contra los dos límites duros directamente (MAX_VENTANA_HORAS desde la
+// primera comida, MIN_HORAS_CENA_DORMIR antes de dormir). Cualquier hora que
+// rompa uno de los dos, en cualquier sección, es un fallo real — sin importar
+// si "coincide" con alguna otra mención.
+//
+// Alcance a propósito: SOLO "mensaje" + "habitos" (la propuesta), NUNCA
+// "resumenCronologico" (lo que la familia YA hace hoy, que puede durar más
+// de 12h sin que sea un error — ese es justo el problema que el plan corrige).
+const RE_CENA_ANCLA = /\bcena\b|última comida|cierre de cocina/i;
+const RE_HORA_12H = /\b(1[0-2]|0?[1-9])(?::([0-5]\d))?\s*(a\.?\s?m\.?|p\.?\s?m\.?)\b/gi;
+function horaLibreAMinutos(h, min, meridiano) {
+  let hh = Number(h);
+  const mm = min ? Number(min) : 0;
+  const esPM = /p/i.test(meridiano);
+  if (hh === 12) hh = esPM ? 12 : 0; else if (esPM) hh += 12;
+  return hh * 60 + mm;
+}
+function revisarHorasDeCenaEnTexto(textoPropuesta, ventanaPropuesta, horaDormir) {
+  const problemas = [];
+  const aMinutosHHMM = (hm) => {
+    const m = String(hm || "").match(/^(\d{1,2}):(\d{2})$/);
+    return m ? Number(m[1]) * 60 + Number(m[2]) : null;
+  };
+  const primeraMin = ventanaPropuesta ? aMinutosHHMM(ventanaPropuesta.primeraComida) : null;
+  const dormirMin = (horaDormir && horaDormir !== "00:00") ? aMinutosHHMM(horaDormir) : null;
+  if (primeraMin === null && dormirMin === null) return problemas; // sin dato suficiente, nada que revisar
+  const vistos = new Set(); // no repetir el mismo texto de hora dos veces
+  const fragmentos = String(textoPropuesta || "").split(/\n+|(?<=[.;])\s+/);
+  for (const frag of fragmentos) {
+    if (!RE_CENA_ANCLA.test(frag)) continue;
+    RE_HORA_12H.lastIndex = 0;
+    let m;
+    while ((m = RE_HORA_12H.exec(frag)) !== null) {
+      const horaTexto = m[0].trim();
+      // Descarta horas que en realidad describen OTRO momento mencionado en
+      // la misma frase — típicamente la hora de dormir ("dormirse a las
+      // 9:30 pm — la última comida debe quedar antes de las 6:30 pm" trae
+      // "última comida", pero "9:30 pm" es la hora de dormir, no de cena).
+      const contexto = frag.slice(Math.max(0, m.index - 20), m.index);
+      if (/dormir|dormirse|acostar|duerme/i.test(contexto)) continue;
+      if (vistos.has(horaTexto)) continue;
+      vistos.add(horaTexto);
+      const horaMin = horaLibreAMinutos(m[1], m[2], m[3]);
+      if (primeraMin !== null) {
+        let ventanaSiEstaHora = horaMin - primeraMin;
+        if (ventanaSiEstaHora < 0) ventanaSiEstaHora += 24 * 60;
+        if (ventanaSiEstaHora > MAX_VENTANA_HORAS * 60) {
+          const hh = Math.floor(ventanaSiEstaHora / 60), mi = ventanaSiEstaHora % 60;
+          problemas.push("el texto menciona la cena/última comida a las \"" + horaTexto + "\", lo que da una ventana de " +
+            hh + "h" + String(mi).padStart(2, "0") + " desde la primera comida (" + (ventanaPropuesta && ventanaPropuesta.primeraComida) +
+            "), por encima del máximo de " + MAX_VENTANA_HORAS + " horas — usa la MISMA hora de cena en todas las secciones (Hábitos, Pilar 3, Ventana propuesta), nunca una distinta en cada una");
+        }
+      }
+      if (dormirMin !== null) {
+        let margen = dormirMin - horaMin;
+        if (margen < 0) margen += 24 * 60;
+        if (margen < MIN_HORAS_CENA_DORMIR * 60) {
+          const hh = Math.floor(margen / 60), mi = margen % 60;
+          problemas.push("el texto menciona la cena/última comida a las \"" + horaTexto + "\", lo que deja solo " +
+            hh + "h" + String(mi).padStart(2, "0") + " antes de dormir (" + horaDormir +
+            "), por debajo del mínimo de " + MIN_HORAS_CENA_DORMIR + " horas — usa la MISMA hora de cena en todas las secciones");
+        }
+      }
+    }
+  }
+  return problemas;
+}
+
 // REVISIÓN AUTOMÁTICA DEL BORRADOR (21 oct 2026, pedido de Leonardo) — corre
 // entre generar y guardar, para que los errores no lleguen al panel de Peter.
 // Antes esto no era posible: la generación vivía en ctx.waitUntil, con ~30s de
@@ -1976,6 +2058,11 @@ async function generarYVerificarBorrador(dx, env, idPlan) {
       if (reportaMovimiento && !/movimiento/i.test(p.mensaje || "")) {
         fallos.push("el formulario reporta deporte o actividad física, pero el plan no incluye el pilar de Movimiento — con ese dato disponible, omitirlo no es válido (ver ESTRUCTURA FIJA DEL PLAN, sección 4)");
       }
+      // Consistencia de la hora de cena en todo el texto (12 nov 2026, ver
+      // revisarHorasDeCenaEnTexto arriba) — a propósito SOLO "mensaje" +
+      // "habitos" (la propuesta), nunca resumenCronologico.
+      const textoPropuesta = [p.mensaje || "", (p.habitos || []).map(h => (h.titulo || "") + " " + (h.texto || "")).join(" ")].join("\n");
+      fallos.push(...revisarHorasDeCenaEnTexto(textoPropuesta, p.ventanaPropuesta, p.horaDormir));
       return fallos;
     };
 
