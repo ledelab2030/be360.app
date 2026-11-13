@@ -738,6 +738,12 @@ arriba cuando hay conflicto (el texto de arriba fue escrito para adultos):
   merienda, sin excepción. Usa este set completo, no solo nueces — y si tanto la media mañana como
   la media tarde necesitan merienda, usa el MISMO set completo en las dos, nunca lo recortes en una
   y lo dejes completo en la otra (30 oct 2026).
+  LA GRASA DE ACOMPAÑANTE NO ES PAREJA ENTRE LAS DOS OPCIONES DE PROTEÍNA (12 nov 2026, caso real
+  auditado: un plan le puso aguacate/aceitunas/nueces por igual a "huevo duro o tiras de pollo",
+  cuando el huevo entero YA trae grasa — ver "GRASA AGREGADA: OPCIONAL..." arriba): si ofreces las
+  dos opciones de proteína de esta merienda, la grasa de acompañante es OPCIONAL cuando la familia
+  elige huevo duro (ya trae grasa natural) y PRIORITARIA cuando elige tiras de pollo (proteína
+  magra) — nunca escribas una sola instrucción de grasa que aplique igual a las dos.
 - RITMO Y SUEÑO — REGLA DURA, MISMA CIFRA SIN IMPORTAR EDAD: tiene que haber un MÍNIMO DE 3 HORAS
   entre la hora de la última comida (normalmente la cena) y la hora en que el niño/a se duerme — esta
   regla NO depende de la edad, es la misma cifra que para adultos. "No comer después de las 6pm" de

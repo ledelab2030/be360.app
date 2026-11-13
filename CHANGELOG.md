@@ -1730,6 +1730,19 @@ Leonardo regeneró el mismo caso una tercera vez (ya con las correcciones de la 
 
 ---
 
+### 13 nov 2026 — De los 2 hallazgos de Gemini que quedaron pendientes, solo 1 era un bug real
+
+Leonardo pidió resolver de una vez los 2 hallazgos de Gemini que la entrada anterior dejó como "pendiente de prompt" — con razón, no deberían quedar abiertos con gente usando la aplicación. Al volver a verificarlos contra el prompt real (no contra la memoria de la ronda anterior), solo uno era un bug real:
+
+1. **Real, corregido:** la regla de "LONCHERA Y MERIENDAS" le decía al generador que ofreciera "huevo duro o tiras de pollo" como proteína de merienda con UNA sola instrucción de grasa de acompañante aplicada a las dos por igual. Pero la regla de "GRASA AGREGADA" (10 nov) dice que la grasa es opcional cuando la proteína ya trae grasa (huevo entero) y prioritaria cuando es magra (pollo) — la regla de meriendas nunca hacía esa distinción entre sus dos opciones. Agregada una aclaración explícita en el mismo bloque.
+2. **Falso positivo, no se toca:** Gemini marcó como error que el plan eliminara el formato sándwich en la merienda de la tarde en vez de sustituir el pan. Pero la regla de meriendas dice, explícita y deliberadamente desde el 30 oct ("CERO harinas, CERO carbohidratos... en cualquier merienda, sin excepción"), que ninguna merienda lleva pan, ni sustituido — es una regla más estricta que la de "sustituye, no elimines" que sí aplica a comidas principales como el desayuno. "Corregir" esto sería meter un sándwich en una merienda, justo lo que esa regla prohíbe a propósito. Queda sin cambios.
+
+**Archivos:** `worker/vita-proxy.js` (regla de "LONCHERA Y MERIENDAS" ampliada con la distinción de grasa según la proteína elegida).
+
+**Verificación:** `node --check`. Cambio de prompt únicamente (texto de instrucción al generador) — no hay chequeo de código nuevo que probar en sandbox; se confirma en la próxima regeneración real.
+
+---
+
 ### 13 nov 2026 — Generador alternativo con Gemini, elegible por caso (nunca reemplaza a Claude)
 
 Pedido de Leonardo, tras comparar varias veces en esta misma sesión el borrador de Claude contra una auditoría externa de Gemini: poder generar un caso CON Gemini directamente, en vez de pegar el texto a mano en un chat para comparar. Decisión explícita (vía pregunta estructurada): alternativa elegible caso por caso, nunca un reemplazo automático ni un respaldo silencioso — y empezar con el modelo más liviano de Gemini ("vamos mirando" si hace falta subir).
