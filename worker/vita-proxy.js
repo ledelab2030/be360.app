@@ -115,10 +115,15 @@ const LIMITE_POR_MINUTO = 30; // por IP — generoso para una familia usando el 
 
 // Generador alternativo con Gemini (13 nov 2026, pedido de Leonardo) — ver
 // generarYVerificarBorrador(..., motor). Empieza con el modelo más liviano
-// de la familia 2.5 a propósito (decisión explícita de Leonardo: "empecemos
-// con el más liviano y vamos mirando") — subir a un modelo más grande es
-// cambiar esta constante, no tocar el resto del código.
-const GEMINI_MODEL = "gemini-2.5-flash";
+// disponible a propósito (decisión explícita de Leonardo: "empecemos con el
+// más liviano y vamos mirando") — subir a un modelo más grande es cambiar
+// esta constante, no tocar el resto del código.
+// "gemini-2.5-flash" (primer intento real, 13 nov 2026) ya no está
+// disponible para cuentas nuevas — la propia API respondió 404 pidiendo
+// migrar a "gemini-3.8-flash" ("Please update your code to use
+// models/gemini-3.8-flash"). Mismo nivel "flash" (liviano), solo la
+// familia cambió.
+const GEMINI_MODEL = "gemini-3.8-flash";
 
 // Durable Object: una instancia por IP (env.RATE_LIMITER.idFromName(ip)).
 // Cloudflare garantiza que las peticiones a la MISMA instancia se procesan

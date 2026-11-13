@@ -1759,6 +1759,20 @@ Pedido de Leonardo, tras comparar varias veces en esta misma sesión el borrador
 
 ---
 
+### 13 nov 2026 — Primera prueba real con Gemini: 3 problemas reales, ninguno en el código del PR anterior
+
+Probar el camino real (`wrangler tail` en vivo + regenerar un caso de verdad desde `equipo/`) encontró 3 problemas, en cascada, antes de que la generación con Gemini funcionara — ninguno estaba en la lógica que se mergeó en el PR anterior.
+
+1. **El primer `GEMINI_API_KEY` quedó vacío por un error de proceso, no de código.** `wrangler secret put` pide el valor por un prompt interactivo oculto. Cuando el primer intento de Leonardo falló por estar en la carpeta equivocada, se corrigió corriendo el comando desde acá directamente — pero ese prompt interactivo nunca tuvo un valor real que escribirle (nadie tenía la key en ese momento), así que guardó algo vacío mientras reportaba éxito. El log en vivo lo confirmó sin ambigüedad: `GEMINI_API_KEY presente: false`. Lección operativa: un comando que pide un secreto por stdin interactivo tiene que correrlo la persona que tiene el secreto, siempre — nunca "arreglar" el error de otro corriéndolo una misma.
+2. **Hallazgo de seguridad real, no relacionado con Gemini:** al diagnosticar por qué `wrangler secret put` seguía fallando (esta vez por autenticación con Cloudflare, no por la key de Gemini), apareció que `~/.zshrc` tenía la variable `CLOUDFLARE_API_TOKEN` corrupta — en algún momento se pegó un comando `curl` completo (con el token real incrustado adentro) en vez del token solo, rompiendo el formato del header de autenticación. Al diagnosticarlo, los dos tokens reales que había en ese texto (el de la asignación y uno más, atrapado en el fragmento del curl) quedaron visibles en esta conversación — se rotaron los dos de inmediato en el dashboard de Cloudflare (regla ya existente del proyecto: un secreto expuesto en una conversación se rota, sin excepción) y se limpiaron `.zshrc`/`.zshenv` por completo. La sesión terminó autenticando por OAuth en vez de con un token de variable de entorno — más permisos de los mínimos que se buscaban originalmente, pero funcional; queda pendiente, no urgente, volver a un token acotado más adelante.
+3. **`gemini-2.5-flash` ya no está disponible para cuentas nuevas** — la propia API de Gemini respondió 404 pidiendo migrar a `gemini-3.8-flash` ("Please update your code to use models/gemini-3.8-flash"). `GEMINI_MODEL` actualizado a ese valor.
+
+**Archivos:** `worker/vita-proxy.js` (`GEMINI_MODEL`: `gemini-2.5-flash` → `gemini-3.8-flash`). Los otros dos problemas (el secret vacío, el token de Cloudflare corrupto) se resolvieron fuera del repo — en Cloudflare y en los archivos de shell de Leonardo, no en código versionado acá.
+
+**Verificación:** `node --check`. El verdadero test fue en producción, con `wrangler tail` en vivo: después del fix de modelo, pendiente confirmar en el log real que una regeneración con Gemini complete sin error (quedó encolada la siguiente prueba al momento de este commit).
+
+---
+
 ## Lo que enseña este historial
 
 Tres patrones que se repiten y conviene tener presentes:
