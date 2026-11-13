@@ -1897,13 +1897,30 @@ function revisarBorradorPediatrico(parsed) {
 }
 
 // Segunda capa: el código no puede ver si una afirmación clínica está
-// inventada. Esta llamada le pasa al modelo la MISMA fuente SRB del prompt y el
-// borrador, y le pide señalar lo que no tenga respaldo. Es ADVISORY — si
-// encuentra algo, se anota para Peter pero no se descarta el borrador: un
-// crítico equivocado no debe botar un plan bueno. Nace de que Peter encontró
-// una dosis de sal y una sugerencia de magnesio y vitamina D que no existen en
-// el SRB (reunión del 21 oct 2026).
-async function revisarGroundingConModelo(parsed, env) {
+// inventada, ni calificar qué tan bien un borrador cumple el conjunto
+// completo de reglas. Esta llamada le pasa al modelo la MISMA fuente SRB y
+// las MISMAS adaptaciones del prompt de generación — nunca una copia
+// aparte — y le pide dos cosas: (1) señalar afirmaciones sin respaldo, y
+// (2) calificar contra una rúbrica de 100 puntos en 7 dimensiones. Es
+// ADVISORY — nunca dispara un reintento ni bloquea el guardado; el equipo
+// ve el puntaje en equipo/ y decide a mano si regenerar (12 nov 2026,
+// pedido explícito de Leonardo tras varias rondas de auditoría externa con
+// Gemini: "no podemos estar en esta repetidera" — quiere la auditoría
+// DENTRO del panel, pero sin autocorrección automática, para no romper la
+// regla dura de que regenerar siempre es una acción humana explícita).
+//
+// LA RÚBRICA ES SOLO ESTRUCTURA, NUNCA LA FUENTE DE LA REGLA: los 7
+// renglones de abajo le dicen al modelo EN QUÉ fijarse (mismas categorías
+// que usa la auditoría externa de Gemini, para que los números sean
+// comparables) — pero la regla real, en cada caso, es (A)+(B), que es
+// exactamente lo que ya genera el plan. Esto es deliberado: si (A)/(B)
+// cambian (porque Peter o Leonardo deciden algo nuevo), esta auditoría
+// queda al día automáticamente, sin que nadie tenga que mantener una
+// rúbrica aparte que se desactualice — justo el problema que tenía el
+// manual externo de Gemini (seguía con un criterio de ventana ya corregido
+// acá hace días).
+async function auditarBorrador(parsed, env) {
+  const vacio = { sinRespaldo: [], auditoria: null };
   try {
     const borrador = (parsed.mensaje || "") + "\n\n" + (parsed.habitos || []).map(h => h.texto || "").join("\n");
     const upstream = await fetch("https://api.anthropic.com/v1/messages", {
@@ -1911,15 +1928,12 @@ async function revisarGroundingConModelo(parsed, env) {
       headers: { "Content-Type": "application/json", "x-api-key": env.ANTHROPIC_API_KEY, "anthropic-version": "2023-06-01" },
       body: JSON.stringify({
         model: "claude-sonnet-4-6",
-        max_tokens: 900,
-        system: "Eres un verificador. Recibes (A) el texto fuente del SRB, (B) las adaptaciones pediátricas que ANULAN la fuente donde esta habla para adultos, y (C) un borrador de plan. Tu única tarea es listar afirmaciones concretas del borrador que no estén respaldadas NI por la fuente NI por las adaptaciones: dosis, cantidades, frecuencias, cifras, duraciones o mecanismos clínicos que ninguna de las dos diga. REGLA CLAVE: si el borrador sigue una adaptación pediátrica en vez de la fuente, eso es CORRECTO y NO se reporta — por ejemplo 2 g de sal por litro en lugar de 5 a 7, o una ventana de alimentación de 12 horas o menos en lugar de 4 a 6. Ignora el estilo, el tono y la estructura. Ignora datos que vengan del formulario de la familia (horarios, nombres, lo que come, lo que el padre reportó). Si todo está respaldado, devuelve una lista vacía. Responde SOLO este JSON crudo, sin backticks: {\"sinRespaldo\":[\"afirmación 1\",\"afirmación 2\"]}",
+        max_tokens: 1800,
+        system: "Eres un auditor clínico y técnico de planes pediátricos be360 (SRB). Recibes (A) el texto fuente del SRB, (B) las adaptaciones pediátricas que ANULAN la fuente donde esta habla para adultos, y (C) un borrador de plan ya generado. Tu tarea tiene dos partes:\n\n1. GROUNDING: lista afirmaciones concretas del borrador que no estén respaldadas NI por (A) NI por (B) — dosis, cantidades, frecuencias, cifras, duraciones o mecanismos clínicos que ninguna de las dos diga. Si el borrador sigue (B) en vez de (A), eso es CORRECTO y NO se reporta (ej. 2 g de sal por litro en vez de 5 a 7, o una ventana de máximo 12h en vez de 4 a 6 — (B) manda siempre que exista). Ignora estilo, tono y estructura acá. Ignora datos que vengan del formulario de la familia.\n\n2. AUDITORÍA (100 puntos, 7 dimensiones) — califica el borrador usando (A) y (B) como ÚNICA fuente de verdad sobre qué es correcto; la lista de abajo te dice en qué fijarte, nunca reemplaza lo que (A)/(B) digan:\n   - nutricionSemaforo (25 pts): alimentos físicos tangibles en el semáforo (nunca conceptos abstractos como 'carbohidratos refinados' o 'agua sola'); semáforo consistente con (A)/(B); cero invención de ingredientes o preparaciones no reportadas por el formulario.\n   - hidratacion (15 pts): receta y dosis del suero exactas según (B); prescripción de tomarlo fuera de las comidas.\n   - ritmoVentanaSueno (15 pts): ventana propuesta dentro del techo que diga (B) (nunca exigas un piso mínimo si (B) no lo pide); la MISMA hora de cena en todas las secciones del borrador; fin de semana y corte de pantallas mencionados.\n   - movimiento (10 pts): anclado a actividad real reportada, sin rutinas de adulto inventadas.\n   - citaPediatra (10 pts): sigue el formato exacto que pida (B) para la nota al pediatra, sin metas numéricas de adultos.\n   - fidelidadTono (15 pts): fisiología correcta según (A)/(B), tono respetuoso en segunda persona, CERO frases internas filtradas (como 'no especificado en el formulario').\n   - formatoTecnico (10 pts): estructura fija (empieza en CRONOLOGÍA ACTUAL, viñetas simples sin tablas, cierre con enlace a Vita).\n   Para cada dimensión da un puntaje (puede ser el máximo) y, SOLO si hay algo real que corregir, 1-3 hallazgos concretos citando el texto exacto del borrador. Si una dimensión está perfecta, hallazgos va vacío.\n\nResponde SOLO este JSON crudo, sin backticks ni texto antes o después: {\"sinRespaldo\":[\"afirmación 1\"],\"auditoria\":{\"puntajeTotal\":N,\"dimensiones\":{\"nutricionSemaforo\":{\"puntaje\":N,\"max\":25,\"hallazgos\":[]},\"hidratacion\":{\"puntaje\":N,\"max\":15,\"hallazgos\":[]},\"ritmoVentanaSueno\":{\"puntaje\":N,\"max\":15,\"hallazgos\":[]},\"movimiento\":{\"puntaje\":N,\"max\":10,\"hallazgos\":[]},\"citaPediatra\":{\"puntaje\":N,\"max\":10,\"hallazgos\":[]},\"fidelidadTono\":{\"puntaje\":N,\"max\":15,\"hallazgos\":[]},\"formatoTecnico\":{\"puntaje\":N,\"max\":10,\"hallazgos\":[]}}}}",
         // PROMPT CACHING (5 nov 2026, ver nota en SRB_DRAFT_PROMPT más
         // arriba): (A) y (B) son el mismo texto fijo en cada llamada — el
-        // system de acá es corto (no llega al mínimo cacheable por sí
-        // solo), así que el corte va al final de (A)+(B), DENTRO del
-        // mensaje de usuario — eso cachea system+(A)+(B) juntos, porque el
-        // orden de render es tools→system→messages y un punto de corte
-        // cachea todo lo que viene antes. (C), el borrador, cambia en cada
+        // corte va al final de (A)+(B), dentro del mensaje de usuario, para
+        // cachear system+(A)+(B) juntos. (C), el borrador, cambia en cada
         // caso — va en un bloque aparte, después del corte, sin marcar.
         messages: [{ role: "user", content: [
           { type: "text", text: "(A) FUENTE SRB:\n" + FUENTE_SRB_PEDIATRICA + "\n\n---\n\n(B) ADAPTACIONES PEDIÁTRICAS QUE ANULAN LA FUENTE:\n" + ADAPTACIONES_PEDIATRICAS + "\n\n---\n\n(C) BORRADOR A VERIFICAR:\n", cache_control: { type: "ephemeral" } },
@@ -1930,11 +1944,14 @@ async function revisarGroundingConModelo(parsed, env) {
     const data = await upstream.json();
     const t = (data.content || []).filter(b => b.type === "text").map(b => b.text).join("\n");
     const m = t.match(/\{[\s\S]*\}/);
-    if (!m) return [];
+    if (!m) return vacio;
     const r = JSON.parse(m[0]);
-    return Array.isArray(r.sinRespaldo) ? r.sinRespaldo.slice(0, 6) : [];
+    return {
+      sinRespaldo: Array.isArray(r.sinRespaldo) ? r.sinRespaldo.slice(0, 6) : [],
+      auditoria: (r.auditoria && typeof r.auditoria.puntajeTotal === "number") ? r.auditoria : null,
+    };
   } catch (e) {
-    return []; // si el verificador falla, no bloquea nada — el borrador sigue su camino
+    return vacio; // si el auditor falla, no bloquea nada — el borrador sigue su camino sin puntaje
   }
 }
 
@@ -2179,9 +2196,11 @@ async function generarYVerificarBorrador(dx, env, idPlan) {
       }
     }
 
+    let auditoria = null;
     if (parsed) {
-      const sinRespaldo = await revisarGroundingConModelo(parsed, env);
-      for (const s of sinRespaldo) fallos.push("posible afirmación sin respaldo en el SRB: " + s);
+      const resultadoAuditoria = await auditarBorrador(parsed, env);
+      auditoria = resultadoAuditoria.auditoria;
+      for (const s of resultadoAuditoria.sinRespaldo) fallos.push("posible afirmación sin respaldo en el SRB: " + s);
       // SIN banner "[REVISIÓN AUTOMÁTICA]" en el mensaje (29 oct 2026,
       // Leonardo: "para qué queremos que eso salga... toda la app
       // minimalista y conciso, no añadas mensajes informativos o de
@@ -2232,7 +2251,7 @@ async function generarYVerificarBorrador(dx, env, idPlan) {
       "correcciones o aclaraciones a los datos que proporcionaste, para que los tengamos en cuenta " +
       "más adelante.";
 
-    return { mensajeFinal, habitos: Array.isArray(parsed.habitos) ? parsed.habitos : [] };
+    return { mensajeFinal, habitos: Array.isArray(parsed.habitos) ? parsed.habitos : [], auditoria };
   } catch (e) {
     // Silencioso a propósito: un fallo acá no debe tumbar al que llama.
     // Queda "pendiente" (o, en regeneración, se queda con el contenido
@@ -2276,6 +2295,10 @@ async function generarBorradorAutomatico(dx, ts, env) {
         idPlan,
         mensaje: resultado.mensajeFinal,
         plan: { habitos: resultado.habitos },
+        // Auditoría automática (12 nov 2026) — ADVISORY, ver auditarBorrador()
+        // más arriba. null si el auditor falló por lo que sea; Apps Script lo
+        // guarda tal cual, equipo/ decide si lo muestra o no.
+        auditoria: resultado.auditoria || null,
       }),
     });
   } catch (e) {
@@ -2332,6 +2355,7 @@ async function regenerarBorradorExistente(idPlan, dx, env) {
         idPlan,
         mensaje: resultado.mensajeFinal,
         plan: { habitos: resultado.habitos },
+        auditoria: resultado.auditoria || null,
       }),
     });
     const sheetData = await sheetRes.json().catch(() => null);

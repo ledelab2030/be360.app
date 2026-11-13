@@ -241,6 +241,28 @@ function huellaRegeneracion(estado) {
   return { texto: "✗ Último intento falló (" + cuando + ")" + (detalle ? ": " + detalle : ""), clay: true };
 }
 
+// Auditoría automática (12 nov 2026) — colores del badge según el puntaje.
+// Son umbrales de presentación, no una regla clínica: 95+ se ve "bien" en
+// verde, por debajo de 85 llama la atención en el color de alerta — el
+// equipo sigue siendo quien decide si regenerar, el color solo ayuda a
+// escanear la lista rápido.
+function colorAuditoria(puntaje) {
+  if (puntaje >= 95) return { bg: P.sageSoft, fg: P.sageDeep };
+  if (puntaje >= 85) return { bg: P.line, fg: P.muted };
+  return { bg: P.claySoft, fg: P.clay };
+}
+// Mismas 7 dimensiones y orden que usa la auditoría externa de Gemini, para
+// que el equipo compare números como manzanas con manzanas.
+const DIMENSIONES_AUDITORIA = [
+  ["nutricionSemaforo", "Nutrición y semáforo"],
+  ["hidratacion", "Hidratación (Pilar 1)"],
+  ["ritmoVentanaSueno", "Ritmo, ventana y sueño (Pilar 3)"],
+  ["movimiento", "Movimiento (Pilar 4)"],
+  ["citaPediatra", "Cita con el pediatra"],
+  ["fidelidadTono", "Fidelidad a la fuente y tono"],
+  ["formatoTecnico", "Formato técnico"],
+];
+
 function formatEdad(edad) {
   if (!edad && edad !== 0) return "";
   const s = String(edad).trim();
@@ -788,6 +810,7 @@ function App() {
                 <span>{p.consecutivo && <span style={{color:P.sageDeep}}>#{p.consecutivo} · </span>}{p.nombreNino || "(sin nombre)"}{formatEdad(p.edad)}</span>
                 {p.tieneRecordatoriosPendientes && <span style={{background:P.sageSoft, color:P.sageDeep, fontSize:10.5, fontWeight:800, padding:"2px 8px", borderRadius:999, letterSpacing:".03em"}}>RECORDATORIO</span>}
                 {p.tieneFeedbackFormulario && <span style={{background:P.line, color:P.muted, fontSize:10.5, fontWeight:800, padding:"2px 8px", borderRadius:999, letterSpacing:".03em"}}>FEEDBACK</span>}
+                {typeof p.auditoriaPuntaje === "number" && <span style={{background:colorAuditoria(p.auditoriaPuntaje).bg, color:colorAuditoria(p.auditoriaPuntaje).fg, fontSize:10.5, fontWeight:800, padding:"2px 8px", borderRadius:999, letterSpacing:".03em"}}>AUDITORÍA {p.auditoriaPuntaje}/100</span>}
               </div>
               <div style={{fontSize:12.5, color:P.muted, marginTop:2}}>Padre/madre: {p.nombrePadre || "—"} · {relativeDate(p.timestamp)}</div>
               {p.preocupacionPrincipal && <div style={{fontSize:12.5, color:P.ink, marginTop:5, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap"}}>{p.preocupacionPrincipal}</div>}
@@ -837,6 +860,7 @@ function App() {
                 {p.tieneNovedades && <span style={{background:P.claySoft, color:P.clay, fontSize:10.5, fontWeight:800, padding:"2px 8px", borderRadius:999, letterSpacing:".03em"}}>NOVEDAD</span>}
                 {p.tieneRecordatoriosPendientes && <span style={{background:P.sageSoft, color:P.sageDeep, fontSize:10.5, fontWeight:800, padding:"2px 8px", borderRadius:999, letterSpacing:".03em"}}>RECORDATORIO</span>}
                 {p.tieneFeedbackFormulario && <span style={{background:P.line, color:P.muted, fontSize:10.5, fontWeight:800, padding:"2px 8px", borderRadius:999, letterSpacing:".03em"}}>FEEDBACK</span>}
+                {typeof p.auditoriaPuntaje === "number" && <span style={{background:colorAuditoria(p.auditoriaPuntaje).bg, color:colorAuditoria(p.auditoriaPuntaje).fg, fontSize:10.5, fontWeight:800, padding:"2px 8px", borderRadius:999, letterSpacing:".03em"}}>AUDITORÍA {p.auditoriaPuntaje}/100</span>}
               </div>
               <div style={{fontSize:12.5, color:P.muted, marginTop:2}}>Padre/madre: {p.nombrePadre || "—"} · aprobado {relativeDate(p.correoEnviadoTs || p.timestamp)}</div>
               {huellaRegeneracion(p.regeneracionEstado) && <div style={{fontSize:11.5, color: huellaRegeneracion(p.regeneracionEstado).clay ? P.clay : P.sage, marginTop:4}}>{huellaRegeneracion(p.regeneracionEstado).texto}</div>}
@@ -899,6 +923,40 @@ function App() {
           <div style={{fontSize:11.5, color:detalle.consentimientoTs?P.sageDeep:P.clay, marginTop:4}}>{detalle.consentimientoTs ? ("✓ Consentimiento aceptado "+relativeDate(detalle.consentimientoTs)) : "⚠ Sin registro de consentimiento (caso previo al 9 ago, creado por una prueba directa sin pasar por el formulario real, o un caso real que hay que revisar)"}</div>
           {soloLectura && <div style={{display:"inline-block", marginTop:8, background:P.sageSoft, color:P.sageDeep, fontSize:11.5, fontWeight:800, padding:"4px 10px", borderRadius:999}}>✓ Aprobado</div>}
         </div>
+
+        {/* Auditoría automática (12 nov 2026, pedido de Leonardo — "no
+            podemos estar en esta repetidera" de auditorías manuales con
+            Gemini): ADVISORY, nunca autocorrige — el equipo ve el puntaje y
+            decide a mano si regenerar con el botón que ya existe más abajo.
+            Mismas 7 dimensiones que la auditoría externa, para comparar. */}
+        {detalle.auditoria && (
+          <div style={{background:P.panel, border:"1px solid "+P.line, borderRadius:16, padding:"14px 16px", display:"flex", flexDirection:"column", gap:10}}>
+            <div style={{display:"flex", justifyContent:"space-between", alignItems:"center"}}>
+              <div style={{fontSize:13, fontWeight:800, color:P.sageDeep}}>Auditoría automática</div>
+              <span style={{background:colorAuditoria(detalle.auditoria.puntajeTotal).bg, color:colorAuditoria(detalle.auditoria.puntajeTotal).fg, fontSize:13, fontWeight:800, padding:"4px 12px", borderRadius:999}}>{detalle.auditoria.puntajeTotal}/100</span>
+            </div>
+            <div style={{display:"flex", flexDirection:"column", gap:6}}>
+              {DIMENSIONES_AUDITORIA.map(([clave, label]) => {
+                const dim = detalle.auditoria.dimensiones && detalle.auditoria.dimensiones[clave];
+                if (!dim) return null;
+                const hallazgos = Array.isArray(dim.hallazgos) ? dim.hallazgos : [];
+                return (
+                  <div key={clave} style={{borderBottom:"1px solid "+P.line, paddingBottom:6}}>
+                    <div style={{display:"flex", justifyContent:"space-between", fontSize:12.5}}>
+                      <span style={{color:P.ink}}>{label}</span>
+                      <span style={{color: dim.puntaje < dim.max ? P.clay : P.muted, fontWeight:700}}>{dim.puntaje}/{dim.max}</span>
+                    </div>
+                    {hallazgos.length > 0 && (
+                      <ul style={{margin:"4px 0 0", paddingLeft:18}}>
+                        {hallazgos.map((h, i) => <li key={i} style={{fontSize:12, color:P.muted, lineHeight:1.4}}>{h}</li>)}
+                      </ul>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
 
         {recordatoriosPendientes.length > 0 && (
           <div style={{background:P.sageSoft, border:"1px solid "+P.sage, borderRadius:16, padding:"14px 16px", display:"flex", flexDirection:"column", gap:10}}>

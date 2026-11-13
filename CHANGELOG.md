@@ -1684,6 +1684,20 @@ Nueva ronda de regeneración + auditoría externa sobre los 4 casos pendientes. 
 
 ---
 
+### 12 nov 2026 — Auditoría automática visible en equipo/, ADVISORY, sin autocorrección
+
+Después de 3 rondas de regenerar casos reales y auditarlos a mano con Gemini (copiar el borrador, pegarlo, esperar el resultado, traérmelo), Leonardo fue directo: *"vamos a tener que implementar en el panel la auditoría... no podemos estar en esta repetidera."* Dos decisiones suyas antes de construir: (1) que audite Claude mismo, reusando la fuente SRB y las adaptaciones que YA tiene el generador — nunca un documento de reglas aparte que se desactualice, como le pasó al manual de Gemini (seguía con el piso de ventana que ya habíamos corregido); (2) que el resultado se muestre en el panel pero NUNCA dispare una regeneración sola — sigue siendo el equipo quien decide, con el botón que ya existe, igual que con cualquier otro hallazgo.
+
+**Qué cambia:** la función que antes solo revisaba "grounding" (`revisarGroundingConModelo`, advisory, nunca mostrada en ningún lado — su resultado solo llegaba a los logs del Worker) se reemplaza por `auditarBorrador()`, que hace las dos cosas en una sola llamada: grounding + una calificación de 100 puntos en las mismas 7 dimensiones que usa la auditoría externa (para que los números sean comparables). La rúbrica le dice al modelo EN QUÉ fijarse; la fuente de verdad sobre qué es correcto sigue siendo `FUENTE_SRB_PEDIATRICA`/`ADAPTACIONES_PEDIATRICAS` — las mismas constantes que ya usa la generación, nunca una copia aparte.
+
+**Dónde vive:** nueva columna `auditoria_json` en el Sheet (JSON: puntaje total + por dimensión + hallazgos), guardada junto con cada borrador generado o regenerado. En `equipo/`: badge de puntaje en las listas de Pendientes/Aprobados (verde ≥95, neutro 85-94, alerta <85), y el desglose completo de las 7 dimensiones con sus hallazgos en el detalle del caso — antes de los recordatorios y novedades, para que sea lo primero que vea el equipo al revisar.
+
+**Archivos:** `worker/vita-proxy.js` (`auditarBorrador()` reemplaza `revisarGroundingConModelo()`; `generarYVerificarBorrador()` propaga `auditoria` en su retorno; `generarBorradorAutomatico()`/`regenerarBorradorExistente()` lo mandan a Apps Script), `worker/apps-script-formulario-v2.gs.txt` (`COLS.auditoria_json`, guardado en `guardarBorrador()`/`regenerarBorrador()`, expuesto en `detallePlan()`/`listarPendientes()`/`listarHistorial()`, helper `puntajeAuditoria()`), `equipo/index.html` (badge de puntaje en las dos listas, desglose completo en el detalle, helper `colorAuditoria()`).
+
+**Verificación:** `node --check` sobre ambos archivos del Worker/Apps Script. `@babel/standalone` sobre `equipo/index.html`, sin errores. **Pendiente, solo se puede probar en producción:** pegar el Apps Script actualizado, regenerar un caso real y confirmar que el puntaje aparece correctamente en ambas listas y en el detalle — no se pudo probar la llamada real a Claude ni el flujo completo de principio a fin en esta sesión.
+
+---
+
 ## Lo que enseña este historial
 
 Tres patrones que se repiten y conviene tener presentes:
