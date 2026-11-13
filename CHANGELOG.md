@@ -1769,7 +1769,19 @@ Probar el camino real (`wrangler tail` en vivo + regenerar un caso de verdad des
 
 **Archivos:** `worker/vita-proxy.js` (`GEMINI_MODEL`: `gemini-2.5-flash` → `gemini-3.8-flash`). Los otros dos problemas (el secret vacío, el token de Cloudflare corrupto) se resolvieron fuera del repo — en Cloudflare y en los archivos de shell de Leonardo, no en código versionado acá.
 
-**Verificación:** `node --check`. El verdadero test fue en producción, con `wrangler tail` en vivo: después del fix de modelo, pendiente confirmar en el log real que una regeneración con Gemini complete sin error (quedó encolada la siguiente prueba al momento de este commit).
+**Verificación:** `node --check`. El verdadero test fue en producción, con `wrangler tail` en vivo: después del fix de modelo, pendiente confirmar en el log real que una regeneración con Gemini complete sin error (quedó encolada la siguiente prueba al momento de este commit). La prueba real sí confirmó que la key y el modelo funcionan — el único error que quedó fue un 503 de Gemini por alta demanda del nivel gratuito, no un bug nuestro.
+
+---
+
+### 13 nov 2026 — Meriendas: harina sí, pero nunca de trigo (revierte el "cero harinas" del 30 oct)
+
+Decisión de Peter y Leonardo en reunión clínica: la regla de "CERO harinas... en cualquier merienda, sin excepción" (30 oct 2026) quedó demasiado estricta — si el niño/a quiere o ya consume algo con harina en la merienda, se permite, siempre que sea sin gluten (los mismos ejemplos que ya se usan en cualquier otra comida: pan sin trigo de arroz/quinua/sagú, arepa de maíz). Lo que sigue prohibido es el trigo, las galletas dulces y los ultraprocesados — nunca la harina en sí.
+
+Esto también cierra la divergencia encontrada ayer entre nuestro prompt y el manual de auditoría externo de Gemini: Gemini marcaba como error que un plan mantuviera el sándwich en la merienda (sustituyendo solo el pan) porque su manual nunca tuvo la restricción de "cero harinas" que nosotros sí teníamos — con este cambio, las dos fuentes vuelven a estar alineadas.
+
+**Archivos:** `worker/vita-proxy.js` (regla de "LONCHERA Y MERIENDAS" — la restricción de harinas se acota a "nunca de trigo", y se agrega bloque nuevo explícito "HARINA SÍ, PERO SIN GLUTEN").
+
+**Verificación:** `node --check`. Cambio de prompt únicamente — se confirma en la próxima regeneración real.
 
 ---
 
