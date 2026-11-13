@@ -1743,6 +1743,22 @@ Leonardo pidió resolver de una vez los 2 hallazgos de Gemini que la entrada ant
 
 ---
 
+### 13 nov 2026 — Generador alternativo con Gemini, elegible por caso (nunca reemplaza a Claude)
+
+Pedido de Leonardo, tras comparar varias veces en esta misma sesión el borrador de Claude contra una auditoría externa de Gemini: poder generar un caso CON Gemini directamente, en vez de pegar el texto a mano en un chat para comparar. Decisión explícita (vía pregunta estructurada): alternativa elegible caso por caso, nunca un reemplazo automático ni un respaldo silencioso — y empezar con el modelo más liviano de Gemini ("vamos mirando" si hace falta subir).
+
+1. **`generarYVerificarBorrador(dx, env, idPlan, motor)`** gana un cuarto parámetro: `"claude"` (por defecto, como siempre) o `"gemini"`. El mismo `pedirBorrador` ahora es un despachador entre `llamarClaude()` (el código de siempre, sin cambios de comportamiento) y `llamarGemini()`, nueva — misma `SRB_DRAFT_PROMPT` para los dos, mismos verificadores de código (`revisarBorradorPediatrico`, `revisarHorasDeCenaEnTexto`, el ciclo de hasta 4 intentos) y la misma auditoría `auditarBorrador()` al final — esas tres capas son agnósticas al modelo, auditan el texto final, no cómo se generó.
+2. **Gemini vía API REST** (`generativelanguage.googleapis.com`, modelo en la constante `GEMINI_MODEL = "gemini-2.5-flash"`), con `responseMimeType: "application/json"` — a diferencia de Claude, Gemini sí puede forzar JSON crudo por parámetro de la API, no depende solo de la instrucción de prompt "PROHIBIDO ESCRIBIR NADA ANTES DEL JSON". Se mantiene igual el fallback de extraer `{...}` del texto por si el modelo no la respeta al 100%, y el mismo manejo silencioso de truncamiento/error que ya tenía Claude (nunca revienta, el caso queda "pendiente" si falla).
+3. **Nuevo secret de Cloudflare `GEMINI_API_KEY`**, puesto directo desde la terminal de Leonardo con `wrangler secret put` — nunca pasó por el chat ni quedó en el repo, mismo principio que `ANTHROPIC_API_KEY`.
+4. **Columna nueva `motor`** (Apps Script, `COLS.motor`) — qué modelo redactó el borrador guardado ahora mismo en cada fila. `guardarBorrador()`/`regenerarBorrador()` la escriben, `detallePlan()`/`listarPendientes()`/`listarHistorial()` la devuelven. Sin ella, Peter no tendría cómo saber si lo que está revisando lo escribió Claude o Gemini al comparar casos.
+5. **Selector en `equipo/`**, solo en "Regenerar con el prompt actual" (no en la generación automática de un formulario nuevo, que siempre usa Claude, ni en "Regenerar con esto" de un recordatorio — para no complicar esos flujos de un clic): dos pastillas, Claude/Gemini, resetea a Claude cada vez que se abre la confirmación (nunca queda pegado el motor del caso anterior). Badge "GEMINI" en las listas de Pendientes/Aprobados y en el encabezado del detalle cuando el borrador actual lo generó Gemini.
+
+**Archivos:** `worker/vita-proxy.js` (`GEMINI_MODEL`; `generarYVerificarBorrador` con `motor`; `llamarGemini`/`llamarClaude`; `motor` propagado por `generarBorradorAutomatico`, `regenerarBorradorExistente`, el Durable Object `GeneradorBorradores.alarm()` y `handleRegenerar`), `worker/apps-script-formulario-v2.gs.txt` (`COLS.motor`; escritura y lectura en las mismas 5 funciones que ya tocaban `auditoria_json`), `equipo/index.html` (selector de motor, badges).
+
+**Verificación:** `node --check` en los dos archivos de backend. Transformación con `@babel/standalone` de `equipo/index.html` (sin errores de JSX). Prueba en sandbox de Node de la lógica de parseo de la respuesta de Gemini (`candidates[0].content.parts`) contra 4 formas reales: JSON limpio, JSON con texto alrededor (fallback regex), truncado por `MAX_TOKENS` (debe devolver `null`, nunca romper), y error de la API — las 4 se comportan igual que el camino ya probado de Claude. **Pendiente, solo se puede probar en producción** (regla de CLAUDE.md — no subir generación sin probar el camino real): Leonardo regenerando un caso real con Gemini desde `equipo/`, viendo los logs del Worker en vivo, antes de usarlo para comparar casos de verdad.
+
+---
+
 ## Lo que enseña este historial
 
 Tres patrones que se repiten y conviene tener presentes:

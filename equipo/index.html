@@ -419,6 +419,12 @@ function App() {
   const [confirmandoNovedadIdx, setConfirmandoNovedadIdx] = useState(null);
   const [borrandoNovedad, setBorrandoNovedad] = useState(false);
   const [confirmandoRegenerar, setConfirmandoRegenerar] = useState(false);
+  // motorElegido (13 nov 2026, pedido de Leonardo): generador alternativo
+  // elegible por caso. "claude" por defecto -- Gemini es una elección
+  // explícita, nunca el valor que queda puesto de una regeneración anterior
+  // de OTRO caso (por eso se resetea a "claude" cada vez que se abre la
+  // confirmación, ver onClick de "Regenerar con el prompt actual" abajo).
+  const [motorElegido, setMotorElegido] = useState("claude");
   // Cerrado por defecto (29 oct 2026, Leonardo: "siento que es too much para
   // la ventana del que revisa y aprueba el plan") — la referencia para Vita
   // sigue siendo necesaria (ver nota junto a su render), pero no tiene que
@@ -651,11 +657,11 @@ function App() {
   // INFORMACIÓN DEL SEGUIMIENTO) y, si la regeneración se encoló bien, el
   // recordatorio se marca resuelto ("regenerado") de una vez — nunca al
   // revés (nunca se regenera solo porque un recordatorio existe).
-  const regenerar = async (informacionNueva, recordatorioId) => {
+  const regenerar = async (informacionNueva, recordatorioId, motor) => {
     if (regenerando) return;
     setRegenerando(true); setAccionError(null); setRegeneradoOk(false);
     try {
-      const data = await llamarPanel("regenerar", { idPlan: detalle.idPlan, ...(informacionNueva ? { informacionNueva } : {}) });
+      const data = await llamarPanel("regenerar", { idPlan: detalle.idPlan, ...(informacionNueva ? { informacionNueva } : {}), ...(motor === "gemini" ? { motor: "gemini" } : {}) });
       if (!data.ok) throw new Error(data.error || "error");
       if (recordatorioId) {
         try {
@@ -811,6 +817,7 @@ function App() {
                 {p.tieneRecordatoriosPendientes && <span style={{background:P.sageSoft, color:P.sageDeep, fontSize:10.5, fontWeight:800, padding:"2px 8px", borderRadius:999, letterSpacing:".03em"}}>RECORDATORIO</span>}
                 {p.tieneFeedbackFormulario && <span style={{background:P.line, color:P.muted, fontSize:10.5, fontWeight:800, padding:"2px 8px", borderRadius:999, letterSpacing:".03em"}}>FEEDBACK</span>}
                 {typeof p.auditoriaPuntaje === "number" && <span style={{background:colorAuditoria(p.auditoriaPuntaje).bg, color:colorAuditoria(p.auditoriaPuntaje).fg, fontSize:10.5, fontWeight:800, padding:"2px 8px", borderRadius:999, letterSpacing:".03em"}}>AUDITORÍA {p.auditoriaPuntaje}/100</span>}
+                {p.motor === "gemini" && <span style={{background:"transparent", border:"1px solid "+P.sageDeep, color:P.sageDeep, fontSize:10.5, fontWeight:800, padding:"1px 7px", borderRadius:999, letterSpacing:".03em"}}>GEMINI</span>}
               </div>
               <div style={{fontSize:12.5, color:P.muted, marginTop:2}}>Padre/madre: {p.nombrePadre || "—"} · {relativeDate(p.timestamp)}</div>
               {p.preocupacionPrincipal && <div style={{fontSize:12.5, color:P.ink, marginTop:5, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap"}}>{p.preocupacionPrincipal}</div>}
@@ -861,6 +868,7 @@ function App() {
                 {p.tieneRecordatoriosPendientes && <span style={{background:P.sageSoft, color:P.sageDeep, fontSize:10.5, fontWeight:800, padding:"2px 8px", borderRadius:999, letterSpacing:".03em"}}>RECORDATORIO</span>}
                 {p.tieneFeedbackFormulario && <span style={{background:P.line, color:P.muted, fontSize:10.5, fontWeight:800, padding:"2px 8px", borderRadius:999, letterSpacing:".03em"}}>FEEDBACK</span>}
                 {typeof p.auditoriaPuntaje === "number" && <span style={{background:colorAuditoria(p.auditoriaPuntaje).bg, color:colorAuditoria(p.auditoriaPuntaje).fg, fontSize:10.5, fontWeight:800, padding:"2px 8px", borderRadius:999, letterSpacing:".03em"}}>AUDITORÍA {p.auditoriaPuntaje}/100</span>}
+                {p.motor === "gemini" && <span style={{background:"transparent", border:"1px solid "+P.sageDeep, color:P.sageDeep, fontSize:10.5, fontWeight:800, padding:"1px 7px", borderRadius:999, letterSpacing:".03em"}}>GEMINI</span>}
               </div>
               <div style={{fontSize:12.5, color:P.muted, marginTop:2}}>Padre/madre: {p.nombrePadre || "—"} · aprobado {relativeDate(p.correoEnviadoTs || p.timestamp)}</div>
               {huellaRegeneracion(p.regeneracionEstado) && <div style={{fontSize:11.5, color: huellaRegeneracion(p.regeneracionEstado).clay ? P.clay : P.sage, marginTop:4}}>{huellaRegeneracion(p.regeneracionEstado).texto}</div>}
@@ -918,7 +926,12 @@ function App() {
         </div>
 
         <div>
-          <h1 style={{fontFamily:"-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif", fontWeight:600, fontSize:24, margin:0, color:P.sageDeep}}>{detalle.consecutivo && <span>#{detalle.consecutivo} · </span>}{detalle.nombreNino || "(sin nombre)"}{formatEdad(detalle.edad)}</h1>
+          <h1 style={{fontFamily:"-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif", fontWeight:600, fontSize:24, margin:0, color:P.sageDeep, display:"flex", alignItems:"center", gap:10}}>
+            <span>{detalle.consecutivo && <span>#{detalle.consecutivo} · </span>}{detalle.nombreNino || "(sin nombre)"}{formatEdad(detalle.edad)}</span>
+            {/* Qué motor redactó ESTE borrador (13 nov 2026) — para comparar
+                calidad caso a caso sin perder de vista cuál se está viendo. */}
+            {detalle.motor === "gemini" && <span style={{background:"transparent", border:"1px solid "+P.sageDeep, color:P.sageDeep, fontSize:11, fontWeight:800, padding:"2px 9px", borderRadius:999, letterSpacing:".03em"}}>GEMINI</span>}
+          </h1>
           <div style={{fontSize:13, color:P.muted, marginTop:4}}>Padre/madre: {detalle.nombrePadre || "—"} · {detalle.emailPadre || "sin correo"}</div>
           <div style={{fontSize:11.5, color:detalle.consentimientoTs?P.sageDeep:P.clay, marginTop:4}}>{detalle.consentimientoTs ? ("✓ Consentimiento aceptado "+relativeDate(detalle.consentimientoTs)) : "⚠ Sin registro de consentimiento (caso previo al 9 ago, creado por una prueba directa sin pasar por el formulario real, o un caso real que hay que revisar)"}</div>
           {soloLectura && <div style={{display:"inline-block", marginTop:8, background:P.sageSoft, color:P.sageDeep, fontSize:11.5, fontWeight:800, padding:"4px 10px", borderRadius:999}}>✓ Aprobado</div>}
@@ -1107,14 +1120,23 @@ function App() {
           {regeneradoOk ? (
             <div style={{fontSize:13, color:P.sageDeep, lineHeight:1.5}}>✓ Regenerando con el prompt actual — tarda cerca de un minuto. Puedes navegar a otra sección, no hace falta esperar acá: avisa con una notificación cuando termine (quedó en "pendiente de aprobación").</div>
           ) : !confirmandoRegenerar ? (
-            <span onClick={()=>setConfirmandoRegenerar(true)} style={{fontSize:12.5, color:P.muted, textDecoration:"underline", cursor:"pointer"}}>Regenerar con el prompt actual</span>
+            <span onClick={()=>{setMotorElegido("claude"); setConfirmandoRegenerar(true);}} style={{fontSize:12.5, color:P.muted, textDecoration:"underline", cursor:"pointer"}}>Regenerar con el prompt actual</span>
           ) : (
             <div style={{background:P.sageSoft, border:"1px solid "+P.sage, borderRadius:14, padding:"12px 16px"}}>
               <div style={{fontSize:13, color:P.sageDeep, marginBottom:10, lineHeight:1.5}}>
                 ¿Regenerar el plan de {detalle.nombreNino || "este niño/a"} con el prompt actual? Vuelve a llamar al modelo con los mismos datos del formulario{detalle.correoEnviadoTs ? " — este caso ya está aprobado y la familia puede estar viendo el plan actual; el nuevo contenido queda en pendiente de aprobación hasta que lo revises y apruebes otra vez" : ""}.
               </div>
+              {/* Selector de motor (13 nov 2026): "claude" por defecto siempre
+                  que se abre esta confirmación — Gemini es una elección
+                  explícita cada vez, nunca algo que queda puesto de un caso
+                  anterior. */}
+              <div style={{display:"flex", gap:6, marginBottom:12}}>
+                {[["claude","Claude"],["gemini","Gemini (gemini-2.5-flash)"]].map(([valor,etiqueta]) => (
+                  <button key={valor} onClick={()=>setMotorElegido(valor)} style={{background:"none", border:"1px solid "+(motorElegido===valor?P.sageDeep:P.line), color:motorElegido===valor?P.sageDeep:P.muted, borderRadius:999, padding:"6px 12px", fontSize:12, fontWeight:700, cursor:"pointer", fontFamily:"-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif"}}>{etiqueta}</button>
+                ))}
+              </div>
               <div style={{display:"flex", gap:8}}>
-                <button onClick={()=>regenerar()} disabled={regenerando} style={{...btnPrimary, opacity:regenerando?.7:1}}>{regenerando?"Encolando…":"Sí, regenerar"}</button>
+                <button onClick={()=>regenerar(undefined, undefined, motorElegido)} disabled={regenerando} style={{...btnPrimary, opacity:regenerando?.7:1}}>{regenerando?"Encolando…":"Sí, regenerar"}</button>
                 <button onClick={()=>setConfirmandoRegenerar(false)} style={btnGhost}>Cancelar</button>
               </div>
             </div>

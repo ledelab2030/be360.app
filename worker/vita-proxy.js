@@ -6,6 +6,10 @@
 //     Nombre:  ANTHROPIC_API_KEY
 //     Valor:   sk-ant-...   (tu key de Anthropic)
 //
+// GEMINI_API_KEY (13 nov 2026) — mismo principio, secreto aparte: generador
+// alternativo elegible por caso (ver GEMINI_MODEL y generarYVerificarBorrador,
+// motor "gemini"), nunca reemplaza a Claude, solo se usa si se pide explícito.
+//
 // CORS restringido: solo be360.app puede usar este Worker.
 //
 // NUEVO (8 ago 2026): panel/index.html (panel de revisión de Peter). Las
@@ -109,6 +113,13 @@
 const ALLOWED_ORIGIN = "https://be360.app";
 const LIMITE_POR_MINUTO = 30; // por IP — generoso para una familia usando el chat de verdad, corta un loop/curl
 
+// Generador alternativo con Gemini (13 nov 2026, pedido de Leonardo) — ver
+// generarYVerificarBorrador(..., motor). Empieza con el modelo más liviano
+// de la familia 2.5 a propósito (decisión explícita de Leonardo: "empecemos
+// con el más liviano y vamos mirando") — subir a un modelo más grande es
+// cambiar esta constante, no tocar el resto del código.
+const GEMINI_MODEL = "gemini-2.5-flash";
+
 // Durable Object: una instancia por IP (env.RATE_LIMITER.idFromName(ip)).
 // Cloudflare garantiza que las peticiones a la MISMA instancia se procesan
 // una por una — por eso este contador sí es confiable, a diferencia del
@@ -170,7 +181,7 @@ export class GeneradorBorradores {
     // generación tarda ~70s, no cabe en ctx.waitUntil), pero guarda por
     // idPlan en vez de ts.
     if (trabajo.modo === "regenerar") {
-      await regenerarBorradorExistente(trabajo.idPlan, trabajo.dx, this.env);
+      await regenerarBorradorExistente(trabajo.idPlan, trabajo.dx, this.env, trabajo.motor);
     } else {
       await generarBorradorAutomatico(trabajo.dx, trabajo.ts, this.env);
     }
@@ -2066,7 +2077,12 @@ async function auditarBorrador(parsed, dx, env) {
 // { mensajeFinal, habitos } o null si no se pudo generar nada limpio. Nunca
 // lanza — un fallo acá se trata igual que "no se pudo generar", nunca
 // revienta al que la llama.
-async function generarYVerificarBorrador(dx, env, idPlan) {
+// motor (13 nov 2026, pedido de Leonardo): "claude" (por defecto) o "gemini"
+// — alternativa elegible por caso, para comparar calidad real caso a caso en
+// vez de pegar el texto a mano en el chat de Gemini. Mismo SRB_DRAFT_PROMPT
+// para los dos, mismos verificadores de código y misma auditoría (ver
+// pedirBorrador más abajo) — lo único que cambia es qué modelo redacta.
+async function generarYVerificarBorrador(dx, env, idPlan, motor) {
   try {
     // Un solo prompt para todo formulario real desde el 27 oct 2026 (ver
     // comentario "SRB PEDIÁTRICO — PROMOVIDO A PRODUCCIÓN" junto a
@@ -2082,7 +2098,46 @@ async function generarYVerificarBorrador(dx, env, idPlan) {
 
     // "correcciones" se usa en el reintento: se le dice al modelo qué estuvo
     // mal en su intento anterior, en vez de pedirle lo mismo y esperar suerte.
-    const pedirBorrador = async (correcciones) => {
+    const textoUsuario = (correcciones) => "Formulario capturado (JSON):\n" + JSON.stringify(dx) +
+      ((correcciones && correcciones.length)
+        ? "\n\nTu intento anterior tuvo estos problemas. Vuelve a escribir el plan completo sin ellos:\n- " + correcciones.join("\n- ")
+        : "");
+
+    const llamarGemini = async (correcciones) => {
+      console.log("[generarYVerificarBorrador] llamando a Gemini (" + GEMINI_MODEL + ")" + (correcciones && correcciones.length ? " (reintento, " + correcciones.length + " correcciones)" : " (primer intento)") + ", GEMINI_API_KEY presente: " + !!env.GEMINI_API_KEY);
+      const upstream = await fetch("https://generativelanguage.googleapis.com/v1beta/models/" + GEMINI_MODEL + ":generateContent?key=" + env.GEMINI_API_KEY, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          systemInstruction: { parts: [{ text: SRB_DRAFT_PROMPT }] },
+          contents: [{ role: "user", parts: [{ text: textoUsuario(correcciones) }] }],
+          // responseMimeType "application/json" (13 nov 2026): a diferencia de
+          // Claude, Gemini sí puede forzar salida JSON cruda por API — no
+          // depende solo de la instrucción "PROHIBIDO ESCRIBIR NADA ANTES DEL
+          // JSON" del prompt. Igual se deja el fallback de extraer "{...}" más
+          // abajo, por si el modelo no la respeta al 100%.
+          generationConfig: { maxOutputTokens: 7000, responseMimeType: "application/json" },
+        }),
+      });
+
+      console.log("[generarYVerificarBorrador] respuesta de Gemini: HTTP " + upstream.status);
+      const data = await upstream.json();
+      if (data.error) console.log("[generarYVerificarBorrador] Gemini devolvió error: " + JSON.stringify(data.error));
+      const candidato = (data.candidates || [])[0];
+      const text = ((candidato && candidato.content && candidato.content.parts) || []).filter(p => p.text).map(p => p.text).join("\n");
+      console.log("[generarYVerificarBorrador] finishReason: " + (candidato && candidato.finishReason) + ", texto recibido: " + text.length + " caracteres");
+
+      let parsed = null;
+      try { parsed = JSON.parse(text); }
+      catch (e) {
+        const m = text.match(/\{[\s\S]*\}/);
+        if (m) { try { parsed = JSON.parse(m[0]); } catch (e2) {} }
+      }
+      console.log("[generarYVerificarBorrador] JSON parseado: " + !!parsed + ", trae mensaje: " + !!(parsed && parsed.mensaje));
+      return parsed && parsed.mensaje ? parsed : null;
+    };
+
+    const llamarClaude = async (correcciones) => {
       console.log("[generarYVerificarBorrador] llamando a Claude" + (correcciones && correcciones.length ? " (reintento, " + correcciones.length + " correcciones)" : " (primer intento)") + ", ANTHROPIC_API_KEY presente: " + !!env.ANTHROPIC_API_KEY);
       const upstream = await fetch("https://api.anthropic.com/v1/messages", {
         method: "POST",
@@ -2124,10 +2179,7 @@ async function generarYVerificarBorrador(dx, env, idPlan) {
           // (5 min) alcanza de sobra — los reintentos de un mismo caso van
           // seguidos, nunca separados por minutos.
           system: [{ type: "text", text: SRB_DRAFT_PROMPT, cache_control: { type: "ephemeral" } }],
-          messages: [{ role: "user", content: "Formulario capturado (JSON):\n" + JSON.stringify(dx) +
-            ((correcciones && correcciones.length)
-              ? "\n\nTu intento anterior tuvo estos problemas. Vuelve a escribir el plan completo sin ellos:\n- " + correcciones.join("\n- ")
-              : "") }],
+          messages: [{ role: "user", content: textoUsuario(correcciones) }],
         }),
       });
 
@@ -2153,6 +2205,8 @@ async function generarYVerificarBorrador(dx, env, idPlan) {
       console.log("[generarYVerificarBorrador] JSON parseado: " + !!parsed + ", trae mensaje: " + !!(parsed && parsed.mensaje));
       return parsed && parsed.mensaje ? parsed : null;
     };
+
+    const pedirBorrador = motor === "gemini" ? llamarGemini : llamarClaude;
 
     let parsed = await pedirBorrador();
 
@@ -2352,7 +2406,7 @@ async function generarYVerificarBorrador(dx, env, idPlan) {
       "correcciones o aclaraciones a los datos que proporcionaste, para que los tengamos en cuenta " +
       "más adelante.";
 
-    return { mensajeFinal, habitos: Array.isArray(parsed.habitos) ? parsed.habitos : [], auditoria };
+    return { mensajeFinal, habitos: Array.isArray(parsed.habitos) ? parsed.habitos : [], auditoria, motor: motor === "gemini" ? "gemini" : "claude" };
   } catch (e) {
     // Silencioso a propósito: un fallo acá no debe tumbar al que llama.
     // Queda "pendiente" (o, en regeneración, se queda con el contenido
@@ -2400,6 +2454,11 @@ async function generarBorradorAutomatico(dx, ts, env) {
         // más arriba. null si el auditor falló por lo que sea; Apps Script lo
         // guarda tal cual, equipo/ decide si lo muestra o no.
         auditoria: resultado.auditoria || null,
+        // motor (13 nov 2026) — qué modelo redactó este borrador, para que
+        // equipo/ lo muestre al comparar casos. La generación automática de
+        // un formulario nuevo siempre usa Claude (motor no se pasa arriba);
+        // el selector de Gemini es solo para regenerar un caso ya existente.
+        motor: resultado.motor,
       }),
     });
   } catch (e) {
@@ -2420,8 +2479,8 @@ async function generarBorradorAutomatico(dx, ts, env) {
 // familia, así el caso ya hubiera estado aprobado antes). Se dispara desde
 // /panel/regenerar, por el mismo Durable Object que la generación normal
 // (toma ~70s, no cabe en ctx.waitUntil).
-async function regenerarBorradorExistente(idPlan, dx, env) {
-  console.log("[regenerarBorradorExistente] arrancando para idPlan=" + idPlan);
+async function regenerarBorradorExistente(idPlan, dx, env, motor) {
+  console.log("[regenerarBorradorExistente] arrancando para idPlan=" + idPlan + ", motor=" + (motor || "claude"));
   if (!env.SHEET_WEBHOOK_URL_FORMULARIO) { console.log("[regenerarBorradorExistente] SHEET_WEBHOOK_URL_FORMULARIO no configurado, abortando"); return; }
   // Huella de regeneración (28 oct 2026, pedido de Leonardo — "para saber si
   // se hizo"): a diferencia de generarBorradorAutomatico (que puede fallar
@@ -2441,8 +2500,8 @@ async function regenerarBorradorExistente(idPlan, dx, env) {
     } catch (e) { /* best-effort: si ni esto se puede escribir, no hay más que intentar */ }
   };
   try {
-    const resultado = await generarYVerificarBorrador(dx, env, idPlan);
-    console.log("[regenerarBorradorExistente] generarYVerificarBorrador devolvió: " + (resultado ? "contenido (" + resultado.mensajeFinal.length + " caracteres)" : "null"));
+    const resultado = await generarYVerificarBorrador(dx, env, idPlan, motor);
+    console.log("[regenerarBorradorExistente] generarYVerificarBorrador devolvió: " + (resultado ? "contenido (" + resultado.mensajeFinal.length + " caracteres, motor=" + resultado.motor + ")" : "null"));
     if (!resultado) {
       await marcar("error " + new Date().toISOString() + ": no se pudo generar un borrador limpio (ver logs del Worker)");
       return;
@@ -2457,6 +2516,7 @@ async function regenerarBorradorExistente(idPlan, dx, env) {
         mensaje: resultado.mensajeFinal,
         plan: { habitos: resultado.habitos },
         auditoria: resultado.auditoria || null,
+        motor: resultado.motor,
       }),
     });
     const sheetData = await sheetRes.json().catch(() => null);
@@ -2659,6 +2719,9 @@ async function handleRegenerar(request, env, cors) {
   try {
     const body = await request.json();
     const { panelSecret, idPlan, informacionNueva } = body || {};
+    // motor (13 nov 2026): "claude" (por defecto, si viene cualquier otra
+    // cosa o nada) o "gemini" — ver GEMINI_MODEL y generarYVerificarBorrador.
+    const motor = body && body.motor === "gemini" ? "gemini" : "claude";
     if (!idPlan) {
       return new Response(JSON.stringify({ ok: false, error: "idPlan faltante" }), { status: 400, headers: jsonHeaders });
     }
@@ -2721,7 +2784,7 @@ async function handleRegenerar(request, env, cors) {
     await stub.fetch("https://generador/encolar", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ modo: "regenerar", idPlan, dx }),
+      body: JSON.stringify({ modo: "regenerar", idPlan, dx, motor }),
     });
 
     return new Response(JSON.stringify({ ok: true, encolado: true }), { status: 200, headers: jsonHeaders });
