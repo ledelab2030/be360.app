@@ -285,6 +285,12 @@ var COLS = {
   // decide a mano si regenerar viendo el puntaje en equipo/. Vacío si el
   // auditor falló esa vez (no bloquea el guardado del borrador).
   auditoria_json: 34,
+  // NUEVO (13 nov 2026, pedido de Leonardo): qué motor redactó el borrador
+  // que está guardado ahora mismo — "claude" (por defecto, siempre en
+  // generación automática) o "gemini" (solo si se eligió al regenerar, ver
+  // GEMINI_MODEL en vita-proxy.js). Para que equipo/ muestre con qué modelo
+  // se generó el contenido que Peter está revisando, al comparar casos.
+  motor: 35,
 };
 
 // Extrae el texto de la sección obligatoria "PARA LA PRÓXIMA CITA CON EL
@@ -615,6 +621,7 @@ function listarPendientes(sheet) {
         tieneRecordatoriosPendientes: hayRecordatoriosPendientes(data[r][COLS.recordatorios_json]),
         tieneFeedbackFormulario: !!(data[r][COLS.feedback_formulario] && String(data[r][COLS.feedback_formulario]).trim()),
         auditoriaPuntaje: puntajeAuditoria(data[r][COLS.auditoria_json]),
+        motor: data[r][COLS.motor] || "claude",
       });
     }
   }
@@ -648,6 +655,7 @@ function listarHistorial(sheet) {
         tieneFeedbackFormulario: !!(data[r][COLS.feedback_formulario] && String(data[r][COLS.feedback_formulario]).trim()),
         auditoriaPuntaje: puntajeAuditoria(data[r][COLS.auditoria_json]),
         regeneracionEstado: data[r][COLS.regeneracion_estado],
+        motor: data[r][COLS.motor] || "claude",
       });
     }
   }
@@ -717,6 +725,9 @@ function detallePlan(sheet, body) {
     // prompt de generación (ver COLS.feedback_formulario).
     feedbackFormulario: v[COLS.feedback_formulario] || "",
     auditoria: auditoria,
+    // NUEVO (13 nov 2026): qué motor redactó este borrador -- "claude" por
+    // defecto en casos de antes de este cambio (columna vacía).
+    motor: v[COLS.motor] || "claude",
   });
 }
 
@@ -847,6 +858,7 @@ function guardarBorrador(sheet, body) {
       sheet.getRange(rowNum, COLS.borrador_texto + 1).setValue(body.mensaje || "");
       sheet.getRange(rowNum, COLS.estado + 1).setValue("borrador_listo");
       sheet.getRange(rowNum, COLS.auditoria_json + 1).setValue(body.auditoria ? JSON.stringify(body.auditoria) : "");
+      sheet.getRange(rowNum, COLS.motor + 1).setValue(body.motor || "claude");
       var consecutivo = asignarConsecutivo(sheet, rowNum);
       SpreadsheetApp.flush();
       enviarSolicitudVerificacion(sheet, rowNum, idPlan);
@@ -877,6 +889,7 @@ function regenerarBorrador(sheet, body) {
   sheet.getRange(row, COLS.borrador_texto + 1).setValue(body.mensaje || "");
   sheet.getRange(row, COLS.estado + 1).setValue("borrador_listo");
   sheet.getRange(row, COLS.auditoria_json + 1).setValue(body.auditoria ? JSON.stringify(body.auditoria) : "");
+  sheet.getRange(row, COLS.motor + 1).setValue(body.motor || "claude");
   sheet.getRange(row, COLS.regeneracion_estado + 1).setValue("ok " + new Date().toISOString());
   SpreadsheetApp.flush();
   return respond({ ok: true, idPlan: idPlan, row: row });
