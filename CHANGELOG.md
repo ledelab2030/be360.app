@@ -1714,6 +1714,22 @@ Leonardo regeneró el primer caso real con la auditoría nueva en línea (72/100
 
 ---
 
+### 12 nov 2026 — Mismo caso regenerado otra vez: comparado contra Gemini en paralelo, 2 bugs reales más en la auditoría automática
+
+Leonardo regeneró el mismo caso una tercera vez (ya con las correcciones de la entrada anterior) y comparó, lado a lado, la auditoría automática nueva (76/100) contra una auditoría externa de Gemini del mismo borrador (91/100). Verificado cada hallazgo de las dos auditorías contra el texto real del borrador, no solo el puntaje:
+
+1. **La alucinación de la cita inventada volvió a pasar — bug real en la verificación por código, no en el modelo.** El post-procesamiento que verifica citas (agregado en la entrada anterior) marcaba un hallazgo como verificado si ALGUNA de sus citas existía textualmente — y un hallazgo citaba a la vez un encabezado real del borrador y, en la misma frase, una receta de suero inventada. El encabezado real bastaba para que el hallazgo completo pasara como verificado, tapando la cita falsa. Corregido: ahora exige que TODAS las citas de un hallazgo existan textualmente, no basta con una.
+2. **El patrón de "agua o suero" seguía sin cubrir un caso real:** "Reemplazar el jugo por agua o pedir suero en termo desde casa" no disparaba porque había una palabra ("pedir") entre "o" y "suero" que el patrón exigía pegados. Ampliado para permitir hasta 3 palabras de relleno entre "o" y "suero"/"electrolitos", en los dos órdenes.
+3. **Dos hallazgos falsos de la auditoría propia, por desconocer sus propias reglas:** (a) penalizó que el plan "no explique ni confirme" el cálculo de las 3 horas antes de dormir — pero (B) prohíbe explícitamente narrar ese cálculo al padre ("TODO ESTE CÁLCULO ES INTERNO Y NO SE NARRA"); pedía justo lo que está prohibido hacer. (b) marcó el sushi como "mezcla de categorías" por combinar pescado (proteína/grasa) y arroz (carbohidrato) en un solo ítem de semáforo — una clasificación válida de plato compuesto por su componente más limitante, no la regla de "proteína y grasa no son alternativas intercambiables" que de verdad aplica a listar ítems como opciones. Se agregaron dos reglas explícitas al prompt de `auditarBorrador()` para que no se repitan.
+4. **Dos hallazgos reales que la auditoría propia no encontró y Gemini sí** (quedan como pendiente de prompt, no de este PR): exigir grasa agregada sin distinguir si la proteína elegida ya es grasa (huevo entero) o es magra (pollo); y la eliminación completa del formato sándwich en la merienda de la tarde en vez de ofrecerlo con pan permitido — el mismo patrón de "elimina en vez de sustituir" que ya se había señalado en la ronda de revisión del 10-11 nov.
+5. **Hallazgo de Gemini descartado tras verificar contra el texto real:** citó "6:30 pm" en Hábitos y en el Pilar 3 de este borrador como prueba de inconsistencia de horario — pero el texto real de esta regeneración dice "5:45 pm" en ambas secciones (consistente). Probable contaminación de contexto en el hilo de chat de Gemini entre casos, no un error del borrador. La inconsistencia real en este borrador está en otro número: la ventana propuesta da "4:45 pm" como cierre para días sin entrenamiento, mientras que la viñeta de Hábitos para el mismo escenario dice "5:45 pm" — un hallazgo que ninguna de las dos auditorías señaló con precisión.
+
+**Archivos:** `worker/vita-proxy.js` (verificación de citas: `citas.some(...)` → `citas.every(...)`; patrón de "agua o suero" ampliado con palabras de relleno; dos reglas nuevas en el prompt de `auditarBorrador()` sobre no narrar el cálculo interno y no tratar platos compuestos como mezcla de categorías).
+
+**Verificación:** `node --check`. Prueba en sandbox de Node del fix de citas contra el caso real exacto (hallazgo con cita real + cita inventada en la misma frase: antes pasaba sin marcar, ahora queda marcado). Prueba del patrón de "agua o suero" contra la frase real con "pedir" insertada y contra los casos ya cubiertos (sin regresiones). El hallazgo de la ventana 4:45/5:45 pm (punto 5) queda documentado pero sin chequeo de código nuevo — es un caso más de inconsistencia numérica entre secciones, mismo tipo de bug que ya cubre `revisarHorasDeCenaEnTexto()`, pendiente de confirmar si el texto exacto de ese caso dispara el chequeo existente o si hace falta ampliarlo también.
+
+---
+
 ## Lo que enseña este historial
 
 Tres patrones que se repiten y conviene tener presentes:
