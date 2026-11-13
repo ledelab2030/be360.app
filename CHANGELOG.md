@@ -1698,6 +1698,22 @@ Después de 3 rondas de regenerar casos reales y auditarlos a mano con Gemini (c
 
 ---
 
+### 12 nov 2026 — Primer caso real auditado: 3 correcciones a la auditoría automática recién desplegada
+
+Leonardo regeneró el primer caso real con la auditoría nueva en línea (72/100) y lo revisamos juntos contra el texto exacto del borrador. Resultado: dos bugs reales de código, uno confirmado útil (el sistema de capas funcionó — detectó algo que el reintento automático no logró arreglar solo), y un pedido explícito de cambiar de diseño.
+
+1. **Pedido de Leonardo: usar el manual de auditoría externo TAL CUAL, no una rúbrica reescrita acá.** `auditarBorrador()` ahora recibe el texto literal del "Manual Maestro de Auditoría... v4.26" (nueva constante `MANUAL_AUDITORIA_GEMINI`) como bloque (E) — la misma rúbrica de 7 dimensiones que usa el auditor externo. Como ese manual es un documento externo mantenido a mano en Drive y puede quedar desactualizado (ya pasó: seguía con un rango de ventana que aquí ya se había corregido), el prompt le dice explícitamente al modelo que (A)/(B) — las mismas constantes del generador — ganan si hay un conflicto directo puntual.
+2. **Bug real, mismo patrón de las últimas rondas:** el chequeo de "agua sola como alternativa al suero" solo reconocía el orden "suero ... o agua" — el caso real lo escribió al revés ("Reemplazar el jugo por agua o suero casero") y pasó inadvertido tanto por el chequeo de código como, inicialmente, por el primer intento de la auditoría nueva. Ampliado a los dos órdenes, igual que se hizo antes con "no especificado en el formulario".
+3. **Alucinación real de la auditoría nueva, encontrada y corregida:** el primer intento inventó una cita completa (una receta de suero que nunca aparece en la sección donde dijo que estaba) para justificar un hallazgo que no era real, y también afirmó que el sushi "no fue reportado por el formulario" cuando sí lo estaba, en los gustos de fin de semana — porque la función no recibía el formulario original, solo el borrador. Dos correcciones: (a) ahora recibe el formulario real como bloque (D), para que las afirmaciones de "esto no fue reportado" se verifiquen contra el dato real en vez de adivinarse; (b) cada hallazgo debe incluir una cita textual exacta de (C), y el código verifica por fuera que esa cita de verdad exista en el borrador — si no la encuentra, el hallazgo queda marcado "cita no encontrada, verificar a mano" en vez de presentarse como un hecho confirmado.
+
+**Confirmación de que el diseño de capas funciona:** el hallazgo real de ventana inconsistente (6:30 pm en una sección, 5:30 pm en otra) SÍ lo había detectado `revisarHorasDeCenaEnTexto()` durante la generación — pero el reintento automático no logró resolverlo en los 4 intentos, y antes de hoy esa información se perdía (solo quedaba en los logs del Worker). La auditoría nueva lo volvió a encontrar y, esta vez, Leonardo lo vio en el panel — exactamente el problema que esta función vino a resolver.
+
+**Archivos:** `worker/vita-proxy.js` (`MANUAL_AUDITORIA_GEMINI` nueva constante; `auditarBorrador()` recibe `dx` y usa (E); verificación de citas por código; `revisarBorradorPediatrico()`: patrón de "agua sola" ampliado a los dos órdenes).
+
+**Verificación:** `node --check`. Los 3 escenarios probados en sandbox de Node contra el texto y los hallazgos reales del caso: el patrón de "agua o suero" detecta correctamente el orden invertido sin romper el orden que ya funcionaba; la verificación de citas marca correctamente la cita inventada y deja intactas las citas reales; `revisarHorasDeCenaEnTexto()` re-probado contra el texto completo del caso — sigue detectando la inconsistencia real de horario. Repetida toda la batería de pruebas de las entradas anteriores — sin regresiones. **Pendiente, solo se puede probar en producción:** pegar el Apps Script (sin cambios en este PR, pero hay que confirmar que el Worker desplegado y el Apps Script pegado coincidan) y regenerar otro caso real para confirmar que el manual (E) y el formulario (D) sí mejoran la precisión de la auditoría.
+
+---
+
 ## Lo que enseña este historial
 
 Tres patrones que se repiten y conviene tener presentes:
