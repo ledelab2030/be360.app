@@ -860,6 +860,54 @@ arriba cuando hay conflicto (el texto de arriba fue escrito para adultos):
   PROHIBIDAS") — solo aplica el efecto práctico: cena temprano igual, desayuno más tarde, ventana de
   fin de semana más corta.`;
 
+// MANUAL DE AUDITORÍA EXTERNO (12 nov 2026, pedido explícito de Leonardo:
+// "que use el manual de auditoría que usa Gemini tal cual") — texto literal
+// del "Manual Maestro de Auditoría y Generación Clínica Pediátrica be360
+// (SRB) — v4.26" que ya usa la auditoría externa de Gemini, para que
+// auditarBorrador() califique con la MISMA rúbrica, no una reinventada acá.
+// OJO: este manual es un documento externo que el equipo mantiene a mano en
+// Drive — puede quedar desactualizado frente a ADAPTACIONES_PEDIATRICAS
+// (ya pasó una vez: seguía pidiendo una ventana de "10 a 12 horas" días
+// después de que esa regla se corrigiera acá a "máximo 12h, sin piso").
+// Por eso en auditarBorrador() se le dice explícitamente al modelo que (A)
+// y (B) ganan si hay conflicto directo con este manual — el manual aporta
+// la ESTRUCTURA y las 7 dimensiones, (A)/(B) siguen siendo la autoridad
+// real sobre qué es clínicamente correcto, porque son las mismas constantes
+// que ya usa el generador.
+const MANUAL_AUDITORIA_GEMINI = `MANUAL MAESTRO DE AUDITORÍA Y GENERACIÓN CLÍNICA PEDIÁTRICA be360 (SRB) — v4.26
+Alcance: generación de planes clínicos de hábitos pediátricos (Vita/be360), auditoría técnica de salidas de Claude y evaluación de adherencia en usuarios reales.
+
+1. PRINCIPIOS CLÍNICOS FUNDAMENTALES (SRB PEDIÁTRICO)
+1. Cero Contrabando de Ingredientes y Respeto al Hábito Preexistente: el objetivo del SRB es mejorar la calidad biológica de lo que la familia ya consume, nunca forzar preparaciones o alimentos extraños. Si el niño no consume aguacate, aceitunas o nueces en una comida específica, no se imponen. Se sustituyen preparaciones manteniendo la identidad visual y cultural del plato (pancakes: harina de yuca/plátano verde/sagú; panes y sándwiches: pan sin trigo o arepa de maíz; bebidas calientes: café o chocolate en agua pura, sin leche ni azúcar).
+2. Respeto a la Ingesta Temprana Real (No Imponer Desayunos Sólidos Nuevos): si el reporte indica que la primera ingesta es solo líquida o ligera al levantarse y la primera comida sustancial ocurre en el receso escolar, el plan no debe inventar ni exigir un desayuno sólido temprano. Se respeta el ritmo de la familia y se refuerza la proteína/grasa en el receso escolar.
+3. Manejo Deportivo Estricto (Solo Hidratación Previa): si el niño tuvo su almuerzo completo con 3 horas de margen antes de entrenar, no se indica comida sólida adicional antes de la actividad. Antes, durante y después del ejercicio, la única bebida autorizada es el suero casero isotónico. Quedan expresamente prohibidas las bebidas deportivas comerciales (Gatorade, Powerade) y las bebidas energizantes (Monster, Red Bull).
+4. Hidratación Real: el agua sola, los jugos y las gaseosas diluyen los electrolitos y provocan retención intracelular. La bebida base durante todo el día es el suero casero isotónico.
+5. Consistencia Interna de Horarios: la hora de la cena y el cálculo de la ventana propuesta deben ser idénticos en la Cronología, en Hábitos y en el Pilar 3. Dos horas de cena distintas en un mismo documento anulan el puntaje de ritmo.
+
+2. REGLAS CANÓNICAS POR PILAR
+Pilar 1 — Hidratación Real: fórmula canónica, por cada litro de agua filtrada o hervida, 2 g de sal marina + jugo de limón al gusto. Es la bebida base del día, se consume fuera de las comidas principales.
+Pilar 2 — Proteína y Grasa, Siempre: la proteína y grasa animal estimulan el ácido clorhídrico estomacal y la bilis. Grasa agregada es opcional cuando la proteína ya trae grasa natural visible o suficiente (huevos enteros, carnes con grasa, pollo con piel); solo obligatoria con proteínas magras. Semáforo físico estricto, prohibido incluir conceptos abstractos o "agua sola" en las listas.
+  🔴 ROJO: harinas de trigo, lácteos no madurados, azúcar refinada, jugos de fruta, postres, ultraprocesados, gaseosas, vegetales crudos.
+  🟡 AMARILLO (acompañante moderado, nunca solo ni base): arroz, papa cocida, plátano, yuca, arepa de maíz, pan/pasta sin trigo, empanadas de maíz, avena certificada sin gluten, fruta entera (como acompañante), vegetales bien cocidos.
+  🟢 VERDE (prioridad en cada comida): carnes rojas, pollo con piel/grasa, pescados y mariscos, huevos enteros, aguacate, aceitunas, nueces, queso azul/roquefort, mantequilla real o clarificada, algas marinas, aceites saludables (oliva virgen extra, coco virgen, aguacate, sin restricción de uso o temperatura).
+Pilar 3 — Ritmo y Ventana de Alimentación: fines de semana con desayuno más tarde, cena fija y temprana, ventana más corta que la de semana. Pantallas apagadas mínimo 1 hora antes de dormir. Si falta la hora de la primera comida, en CRONOLOGÍA ACTUAL se marca "no calculable", pero en HÁBITOS Y VENTANA es obligatorio estimar la cifra.
+Pilar 4 — Movimiento como Juego: anclado a la actividad real del niño, nunca rutinas artificiales ni gimnasio forzado.
+Cita con el Pediatra: instrucción directa y sin titubeos ("Solicita a tu pediatra una orden para medir la insulina en ayunas. El objetivo de este examen es evaluar cómo está procesando su organismo los carbohidratos a nivel celular."). Prohibido mencionar metas numéricas de adultos.
+
+3. RÚBRICA OFICIAL DE AUDITORÍA (100 PUNTOS)
+1. Nutrición y Semáforo (25 pts) — criterios: alimentos 100% físicos y tangibles; aceites saludables en verde; avena sin gluten en amarillo; grasa agregada opcional en proteínas con grasa; cero invención culinaria. Penalizaciones típicas: conceptos abstractos en rojo (-2 a -3), "agua sola" en rojo (-3), contrabando de ingredientes o forzar alimentos no reportados (-2).
+2. Fórmulas e Hidratación (15 pts) — proporción exacta del suero, prescripción obligatoria fuera de comidas. Penalizaciones: dosis incorrecta de sal (-5), omitir toma fuera de comidas (-3).
+3. Ritmo, Ventana y Sueño (15 pts) — ventana propuesta calculada explícitamente sin superar el techo; consistencia total de la hora de cena en Cronología, Hábitos y Pilar 3; cena nocturna deportiva pautada al terminar la práctica; regla de fin de semana y pantallas 1h antes de dormir. Penalizaciones: incongruencia horaria de la cena (-4), cenar completo inmediatamente antes de entrenar (-5), omitir la cifra de ventana propuesta (-2).
+4. Movimiento (10 pts) — anclado al deporte o juego libre real; sin planes de adultos. Penalización: imponer rutinas ajenas de gimnasio (-4).
+5. Cita con el Pediatra (10 pts) — solicitud directa de insulina en ayunas; cero metas numéricas de adultos; remisión prudente de síntomas reportados. Penalizaciones: tono dubitativo (-2), metas numéricas de adultos (-5).
+6. Fidelidad y Tono (15 pts) — fisiología SRB correcta, tono respetuoso en segunda persona, cero frases internas filtradas (como "no especificado en el formulario"). Penalizaciones: fisiología errada (-5), filtrar frases técnicas o de borrador (-2).
+7. Formato Técnico (10 pts) — empieza con CRONOLOGÍA ACTUAL, texto plano con viñetas simples sin tablas, cierre con enlace a Vita. Penalizaciones: saltarse la sección inicial (-3), tablas Markdown en el plan (-3).
+
+4. ESTRUCTURA CANÓNICA DE ENTREGA DE UN PLAN
+CRONOLOGÍA ACTUAL (viñetas por hora, cierra con "Ventana de alimentación actual: X horas Y minutos") → DIAGNÓSTICO BREVE → HÁBITOS Y VENTANA NUTRICIONAL PROPUESTA (viñetas por momento del día, cierra con "Ventana de alimentación propuesta: X horas Y minutos" y la nota de fin de semana) → PLAN BAJO EL SISTEMA DE REVERSIÓN BIOLÓGICA (SRB) con los 4 Pilares y el semáforo dentro del Pilar 2 → PARA LA PRÓXIMA CITA CON EL PEDIATRA → cierre con el enlace a Vita.
+
+NOTA IMPORTANTE SOBRE ESTE MANUAL: donde este manual diga algo que CONTRADIGA directamente a (A) FUENTE SRB o (B) ADAPTACIONES PEDIÁTRICAS de abajo — por ejemplo, un rango de horas de ventana distinto al que (B) establezca — (A)/(B) GANAN SIEMPRE, porque son las mismas constantes que usa el generador real y pueden haber cambiado más recientemente que este manual. Este manual aporta la ESTRUCTURA de 7 dimensiones y 100 puntos; (A)/(B) son la autoridad real sobre qué es clínicamente correcto.`;
+
 const FUENTE_SRB_PEDIATRICA = `6.2 Exceso de carbohidratos
 Todos los carbohidratos se convierten en glucosa, que genera inflamación y toxicidad sostenida. El diseño biológico humano no fue concebido para el consumo masivo de granos. El SRB establece un máximo de 70 a 100 g de carbohidratos por día.
 Indicador clave: insulina en ayunas (no glucosa). El objetivo terapéutico del SRB es alcanzar 2.5 unidades (óptimo biológico). Por debajo de 8 es aceptable para iniciar el protocolo. Entre 8 y 12 hay deterioro silencioso activo — el paciente ya está en nivel 3 del espectro aunque los exámenes rutinarios salgan normales. Por encima de 12 hay resistencia a la insulina instalada. La glucosa en sangre no detecta este deterioro — la insulina en ayunas sí.
@@ -1712,7 +1760,12 @@ function revisarBorradorPediatrico(parsed) {
   revisar(/\*\*[^*]+\*\*/, "usa \"**negrilla**\" (markdown) en vez de MAYÚSCULAS — se ve como asteriscos literales en el panel de edición");
   // "o agua" como alternativa al suero/electrolitos se coló tres veces en el
   // mismo plan real (ritual de sueño, media tarde, después de la cena).
-  revisar(/(?:suero|electrolitos)[^.\n]{0,30}\bo agua\b/i, "ofrece agua sola como alternativa al suero/electrolitos (prohibido — siempre agua CON electrolitos)");
+  // AMPLIADO (12 nov 2026, encontrado por la auditoría automática nueva en
+  // un caso real): la versión original solo reconocía "suero/electrolitos
+  // ... o agua" — un caso real lo escribió al revés ("agua o suero casero")
+  // y pasó inadvertido. Mismo patrón de bug que "no especificado" (ver
+  // arriba) — ahora cubre los dos órdenes.
+  revisar(/\bagua\s+o\s+(?:suero|electrolitos)\b|(?:suero|electrolitos)[^.\n]{0,30}\bo\s+agua\b/i, "ofrece agua sola como alternativa al suero/electrolitos, en cualquier orden (prohibido — siempre agua CON electrolitos)");
   // "Hábitos recomendados" es el encabezado de la sección de tarjetas en
   // equipo/ y en la pestaña Hoy de app/ — nunca debería aparecer como texto
   // dentro del "mensaje" narrado al padre; si aparece, es la misma familia de
@@ -1909,35 +1962,45 @@ function revisarBorradorPediatrico(parsed) {
 // DENTRO del panel, pero sin autocorrección automática, para no romper la
 // regla dura de que regenerar siempre es una acción humana explícita).
 //
-// LA RÚBRICA ES SOLO ESTRUCTURA, NUNCA LA FUENTE DE LA REGLA: los 7
-// renglones de abajo le dicen al modelo EN QUÉ fijarse (mismas categorías
-// que usa la auditoría externa de Gemini, para que los números sean
-// comparables) — pero la regla real, en cada caso, es (A)+(B), que es
-// exactamente lo que ya genera el plan. Esto es deliberado: si (A)/(B)
-// cambian (porque Peter o Leonardo deciden algo nuevo), esta auditoría
-// queda al día automáticamente, sin que nadie tenga que mantener una
-// rúbrica aparte que se desactualice — justo el problema que tenía el
-// manual externo de Gemini (seguía con un criterio de ventana ya corregido
-// acá hace días).
-async function auditarBorrador(parsed, env) {
+// USA EL MANUAL DE AUDITORÍA EXTERNO TAL CUAL (12 nov 2026, pedido explícito
+// de Leonardo, segunda vuelta: la primera versión de esta función usaba una
+// rúbrica reescrita acá mismo; ahora usa el texto literal de
+// MANUAL_AUDITORIA_GEMINI — el mismo documento que ya usa la auditoría
+// externa de Gemini — para que los dos auditores midan con la misma vara.
+// Pero (A)+(B) siguen siendo la autoridad real sobre qué es clínicamente
+// correcto: si el manual contradice a (A)/(B) en algo puntual (ya pasó una
+// vez: el manual seguía pidiendo una ventana de "10 a 12 horas" días después
+// de que esa regla se corrigiera acá a "máximo 12h, sin piso"), ganan (A)/(B)
+// — son las mismas constantes que usa el generador, y pueden haber cambiado
+// más recientemente que el manual, que es un documento externo mantenido a
+// mano en Drive.
+async function auditarBorrador(parsed, dx, env) {
   const vacio = { sinRespaldo: [], auditoria: null };
   try {
     const borrador = (parsed.mensaje || "") + "\n\n" + (parsed.habitos || []).map(h => h.texto || "").join("\n");
+    // (D) FORMULARIO (12 nov 2026, corrigiendo un hallazgo real del primer
+    // caso auditado): la versión anterior NO recibía el formulario, así que
+    // cualquier hallazgo tipo "esto no fue reportado por la familia" era
+    // pura adivinanza del auditor — y en el primer caso real, adivinó mal
+    // (dijo que el sushi "no fue reportado", cuando el formulario sí lo
+    // traía en los gustos de fin de semana). Ahora (D) le da el dato real.
+    const formulario = Object.entries(dx || {}).filter(([k, v]) => typeof v === "string" && v.trim() && k !== "nombre_padre" && k !== "email_padre")
+      .map(([k, v]) => k + ": " + v).join("\n");
     const upstream = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
       headers: { "Content-Type": "application/json", "x-api-key": env.ANTHROPIC_API_KEY, "anthropic-version": "2023-06-01" },
       body: JSON.stringify({
         model: "claude-sonnet-4-6",
         max_tokens: 1800,
-        system: "Eres un auditor clínico y técnico de planes pediátricos be360 (SRB). Recibes (A) el texto fuente del SRB, (B) las adaptaciones pediátricas que ANULAN la fuente donde esta habla para adultos, y (C) un borrador de plan ya generado. Tu tarea tiene dos partes:\n\n1. GROUNDING: lista afirmaciones concretas del borrador que no estén respaldadas NI por (A) NI por (B) — dosis, cantidades, frecuencias, cifras, duraciones o mecanismos clínicos que ninguna de las dos diga. Si el borrador sigue (B) en vez de (A), eso es CORRECTO y NO se reporta (ej. 2 g de sal por litro en vez de 5 a 7, o una ventana de máximo 12h en vez de 4 a 6 — (B) manda siempre que exista). Ignora estilo, tono y estructura acá. Ignora datos que vengan del formulario de la familia.\n\n2. AUDITORÍA (100 puntos, 7 dimensiones) — califica el borrador usando (A) y (B) como ÚNICA fuente de verdad sobre qué es correcto; la lista de abajo te dice en qué fijarte, nunca reemplaza lo que (A)/(B) digan:\n   - nutricionSemaforo (25 pts): alimentos físicos tangibles en el semáforo (nunca conceptos abstractos como 'carbohidratos refinados' o 'agua sola'); semáforo consistente con (A)/(B); cero invención de ingredientes o preparaciones no reportadas por el formulario.\n   - hidratacion (15 pts): receta y dosis del suero exactas según (B); prescripción de tomarlo fuera de las comidas.\n   - ritmoVentanaSueno (15 pts): ventana propuesta dentro del techo que diga (B) (nunca exigas un piso mínimo si (B) no lo pide); la MISMA hora de cena en todas las secciones del borrador; fin de semana y corte de pantallas mencionados.\n   - movimiento (10 pts): anclado a actividad real reportada, sin rutinas de adulto inventadas.\n   - citaPediatra (10 pts): sigue el formato exacto que pida (B) para la nota al pediatra, sin metas numéricas de adultos.\n   - fidelidadTono (15 pts): fisiología correcta según (A)/(B), tono respetuoso en segunda persona, CERO frases internas filtradas (como 'no especificado en el formulario').\n   - formatoTecnico (10 pts): estructura fija (empieza en CRONOLOGÍA ACTUAL, viñetas simples sin tablas, cierre con enlace a Vita).\n   Para cada dimensión da un puntaje (puede ser el máximo) y, SOLO si hay algo real que corregir, 1-3 hallazgos concretos citando el texto exacto del borrador. Si una dimensión está perfecta, hallazgos va vacío.\n\nResponde SOLO este JSON crudo, sin backticks ni texto antes o después: {\"sinRespaldo\":[\"afirmación 1\"],\"auditoria\":{\"puntajeTotal\":N,\"dimensiones\":{\"nutricionSemaforo\":{\"puntaje\":N,\"max\":25,\"hallazgos\":[]},\"hidratacion\":{\"puntaje\":N,\"max\":15,\"hallazgos\":[]},\"ritmoVentanaSueno\":{\"puntaje\":N,\"max\":15,\"hallazgos\":[]},\"movimiento\":{\"puntaje\":N,\"max\":10,\"hallazgos\":[]},\"citaPediatra\":{\"puntaje\":N,\"max\":10,\"hallazgos\":[]},\"fidelidadTono\":{\"puntaje\":N,\"max\":15,\"hallazgos\":[]},\"formatoTecnico\":{\"puntaje\":N,\"max\":10,\"hallazgos\":[]}}}}",
+        system: "Eres un auditor clínico y técnico de planes pediátricos be360 (SRB). Recibes (A) el texto fuente del SRB, (B) las adaptaciones pediátricas que ANULAN la fuente donde esta habla para adultos, (E) el manual de auditoría oficial (la misma rúbrica que usa el auditor externo), (C) un borrador de plan ya generado, y (D) el formulario real que la familia reportó. Tu tarea tiene dos partes:\n\n1. GROUNDING: lista afirmaciones concretas del borrador que no estén respaldadas NI por (A) NI por (B) — dosis, cantidades, frecuencias, cifras, duraciones o mecanismos clínicos que ninguna de las dos diga. Si el borrador sigue (B) en vez de (A), eso es CORRECTO y NO se reporta (ej. 2 g de sal por litro en vez de 5 a 7 — (B) manda siempre que exista). Ignora estilo, tono y estructura acá.\n\n2. AUDITORÍA (100 puntos, 7 dimensiones) — usa (E) TAL CUAL para la estructura, las 7 dimensiones y sus puntajes máximos. PERO donde (E) contradiga directamente a (A)/(B) en algo puntual (por ejemplo un rango de horas de ventana distinto), GANAN SIEMPRE (A)/(B) — son las mismas constantes que usa el generador real, y (E) es un documento externo que puede estar desactualizado. Reglas adicionales, más estrictas que lo que (E) explicita, que debes aplicar igual:\n   - Nunca digas 'esto no fue reportado por la familia' sin buscar primero en (D) — si está ahí aunque sea de pasada, sí fue reportado.\n   - 'Agua' como alternativa al suero es inválido en CUALQUIER orden de la frase ('agua o suero' es igual de inválido que 'suero o agua').\n   - La consistencia de hora de cena (dimensión de Ritmo/Ventana/Sueño) exige la MISMA hora en TODAS las secciones para el MISMO escenario (mismo tipo de día) — un borrador que da una hora en una sección y otra distinta en otra, para el mismo escenario, es un fallo real aunque mencione una excepción para un escenario DIFERENTE cerca.\n   - La frase interna 'no especificado en el formulario' (o equivalente) es un fallo en cualquier orden de la frase ('el formulario no especifica...' cuenta igual).\n   Para cada dimensión de (E) da un puntaje (puede ser el máximo) y, SOLO si hay algo real que corregir, 1-3 hallazgos concretos. CADA hallazgo DEBE incluir, entre comillas, una SUBCADENA EXACTA Y VERBATIM copiada de (C) — nunca parafrasees ni inventes una cita; si no puedes copiar la frase exacta tal cual aparece en (C), no reportes ese hallazgo. Si una dimensión está perfecta, hallazgos va vacío.\n\nResponde SOLO este JSON crudo, sin backticks ni texto antes o después, usando EXACTAMENTE estas 7 claves de dimensión: {\"sinRespaldo\":[\"afirmación 1\"],\"auditoria\":{\"puntajeTotal\":N,\"dimensiones\":{\"nutricionSemaforo\":{\"puntaje\":N,\"max\":25,\"hallazgos\":[]},\"hidratacion\":{\"puntaje\":N,\"max\":15,\"hallazgos\":[]},\"ritmoVentanaSueno\":{\"puntaje\":N,\"max\":15,\"hallazgos\":[]},\"movimiento\":{\"puntaje\":N,\"max\":10,\"hallazgos\":[]},\"citaPediatra\":{\"puntaje\":N,\"max\":10,\"hallazgos\":[]},\"fidelidadTono\":{\"puntaje\":N,\"max\":15,\"hallazgos\":[]},\"formatoTecnico\":{\"puntaje\":N,\"max\":10,\"hallazgos\":[]}}}}",
         // PROMPT CACHING (5 nov 2026, ver nota en SRB_DRAFT_PROMPT más
-        // arriba): (A) y (B) son el mismo texto fijo en cada llamada — el
-        // corte va al final de (A)+(B), dentro del mensaje de usuario, para
-        // cachear system+(A)+(B) juntos. (C), el borrador, cambia en cada
-        // caso — va en un bloque aparte, después del corte, sin marcar.
+        // arriba): (A), (B) y (E) son el mismo texto fijo en cada llamada —
+        // el corte va al final de ese bloque, dentro del mensaje de usuario,
+        // para cachear system+(A)+(B)+(E) juntos. (C) y (D) cambian en cada
+        // caso — van en un bloque aparte, después del corte, sin marcar.
         messages: [{ role: "user", content: [
-          { type: "text", text: "(A) FUENTE SRB:\n" + FUENTE_SRB_PEDIATRICA + "\n\n---\n\n(B) ADAPTACIONES PEDIÁTRICAS QUE ANULAN LA FUENTE:\n" + ADAPTACIONES_PEDIATRICAS + "\n\n---\n\n(C) BORRADOR A VERIFICAR:\n", cache_control: { type: "ephemeral" } },
-          { type: "text", text: borrador },
+          { type: "text", text: "(A) FUENTE SRB:\n" + FUENTE_SRB_PEDIATRICA + "\n\n---\n\n(B) ADAPTACIONES PEDIÁTRICAS QUE ANULAN LA FUENTE:\n" + ADAPTACIONES_PEDIATRICAS + "\n\n---\n\n(E) MANUAL DE AUDITORÍA OFICIAL (rúbrica — (A)/(B) ganan si hay conflicto directo):\n" + MANUAL_AUDITORIA_GEMINI + "\n\n---\n\n", cache_control: { type: "ephemeral" } },
+          { type: "text", text: "(D) FORMULARIO REAL REPORTADO POR LA FAMILIA:\n" + formulario + "\n\n---\n\n(C) BORRADOR A VERIFICAR:\n" + borrador },
         ] }],
       }),
     });
@@ -1946,9 +2009,32 @@ async function auditarBorrador(parsed, env) {
     const m = t.match(/\{[\s\S]*\}/);
     if (!m) return vacio;
     const r = JSON.parse(m[0]);
+    const auditoria = (r.auditoria && typeof r.auditoria.puntajeTotal === "number") ? r.auditoria : null;
+    // VERIFICACIÓN DE CITAS (12 nov 2026, encontrado en el primer caso real
+    // auditado: el modelo inventó una cita completa — una receta de suero
+    // que nunca aparece en esa sección del borrador — para justificar un
+    // hallazgo que no era real). Se le pidió citar texto EXACTO de (C); acá
+    // se comprueba por código que esa cita de verdad exista, en vez de
+    // confiar en que el auditor no se equivocó al citarse a sí mismo. No se
+    // borra el hallazgo (podría ser real con una cita mal transcrita) — se
+    // marca, para que el equipo sepa que no se verificó automáticamente.
+    if (auditoria && auditoria.dimensiones) {
+      const normalizar = (s) => String(s || "").replace(/\s+/g, " ").trim();
+      const borradorNormalizado = normalizar(borrador);
+      for (const clave of Object.keys(auditoria.dimensiones)) {
+        const dim = auditoria.dimensiones[clave];
+        if (!dim || !Array.isArray(dim.hallazgos)) continue;
+        dim.hallazgos = dim.hallazgos.map((h) => {
+          const citas = [...String(h).matchAll(/['"“]([^'"”]{8,200})['"”]/g)].map((m2) => m2[1]);
+          if (citas.length === 0) return h; // sin cita citada, no hay nada que verificar
+          const algunaVerificada = citas.some((c) => borradorNormalizado.includes(normalizar(c)));
+          return algunaVerificada ? h : h + " [cita no encontrada textualmente en el borrador — verificar a mano antes de actuar sobre este hallazgo]";
+        });
+      }
+    }
     return {
       sinRespaldo: Array.isArray(r.sinRespaldo) ? r.sinRespaldo.slice(0, 6) : [],
-      auditoria: (r.auditoria && typeof r.auditoria.puntajeTotal === "number") ? r.auditoria : null,
+      auditoria,
     };
   } catch (e) {
     return vacio; // si el auditor falla, no bloquea nada — el borrador sigue su camino sin puntaje
@@ -2198,7 +2284,7 @@ async function generarYVerificarBorrador(dx, env, idPlan) {
 
     let auditoria = null;
     if (parsed) {
-      const resultadoAuditoria = await auditarBorrador(parsed, env);
+      const resultadoAuditoria = await auditarBorrador(parsed, dx, env);
       auditoria = resultadoAuditoria.auditoria;
       for (const s of resultadoAuditoria.sinRespaldo) fallos.push("posible afirmación sin respaldo en el SRB: " + s);
       // SIN banner "[REVISIÓN AUTOMÁTICA]" en el mensaje (29 oct 2026,
