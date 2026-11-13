@@ -278,6 +278,13 @@ var COLS = {
   // planes, que no tiene nada que ver con esto. Solo lo ve el equipo, en
   // equipo/ (ver detallePlan, listarPendientes, listarHistorial).
   feedback_formulario: 33,
+  // NUEVO (12 nov 2026, pedido de Leonardo — "no podemos estar en esta
+  // repetidera" de auditorías manuales con Gemini): auditoría automática del
+  // borrador (JSON: {puntajeTotal, dimensiones:{...}}), ver auditarBorrador()
+  // en vita-proxy.js. ADVISORY — nunca dispara regeneración sola, el equipo
+  // decide a mano si regenerar viendo el puntaje en equipo/. Vacío si el
+  // auditor falló esa vez (no bloquea el guardado del borrador).
+  auditoria_json: 34,
 };
 
 // Extrae el texto de la sección obligatoria "PARA LA PRÓXIMA CITA CON EL
@@ -362,6 +369,17 @@ function hayRecordatoriosPendientes(recordatoriosJsonCrudo) {
   var lista = [];
   try { lista = JSON.parse(recordatoriosJsonCrudo); } catch (ex) { return false; }
   return lista.some(function (r) { return !r.resueltoTs; });
+}
+
+// Puntaje de la auditoría automática, para las listas (12 nov 2026) — null
+// si no hay auditoría todavía (casos de antes de este cambio, o el auditor
+// falló esa vez). Ver auditarBorrador() en vita-proxy.js.
+function puntajeAuditoria(auditoriaJsonCrudo) {
+  if (!auditoriaJsonCrudo) return null;
+  try {
+    var a = JSON.parse(auditoriaJsonCrudo);
+    return (a && typeof a.puntajeTotal === "number") ? a.puntajeTotal : null;
+  } catch (ex) { return null; }
 }
 
 // Asigna el siguiente consecutivo libre a una fila, bajo un lock para que
@@ -596,6 +614,7 @@ function listarPendientes(sheet) {
         regeneracionEstado: data[r][COLS.regeneracion_estado],
         tieneRecordatoriosPendientes: hayRecordatoriosPendientes(data[r][COLS.recordatorios_json]),
         tieneFeedbackFormulario: !!(data[r][COLS.feedback_formulario] && String(data[r][COLS.feedback_formulario]).trim()),
+        auditoriaPuntaje: puntajeAuditoria(data[r][COLS.auditoria_json]),
       });
     }
   }
@@ -627,6 +646,7 @@ function listarHistorial(sheet) {
         tieneNovedades: !!(data[r][COLS.novedades_json] && data[r][COLS.novedades_json] !== "[]"),
         tieneRecordatoriosPendientes: hayRecordatoriosPendientes(data[r][COLS.recordatorios_json]),
         tieneFeedbackFormulario: !!(data[r][COLS.feedback_formulario] && String(data[r][COLS.feedback_formulario]).trim()),
+        auditoriaPuntaje: puntajeAuditoria(data[r][COLS.auditoria_json]),
         regeneracionEstado: data[r][COLS.regeneracion_estado],
       });
     }
@@ -666,6 +686,11 @@ function detallePlan(sheet, body) {
   // agregarRecordatorio()/resolverRecordatorio() más arriba.
   var recordatorios = [];
   try { recordatorios = JSON.parse(v[COLS.recordatorios_json] || "[]"); } catch (ex) {}
+  // NUEVO (12 nov 2026): auditoría automática del borrador -- ver
+  // auditarBorrador() en vita-proxy.js. null si no hay (casos de antes de
+  // este cambio, o si el auditor falló esa vez).
+  var auditoria = null;
+  try { auditoria = v[COLS.auditoria_json] ? JSON.parse(v[COLS.auditoria_json]) : null; } catch (ex) {}
   return respond({
     ok: true,
     idPlan: idPlan,
@@ -691,6 +716,7 @@ function detallePlan(sheet, body) {
     // formulario — nota aparte para el equipo, nunca parte del plan ni del
     // prompt de generación (ver COLS.feedback_formulario).
     feedbackFormulario: v[COLS.feedback_formulario] || "",
+    auditoria: auditoria,
   });
 }
 
@@ -820,6 +846,7 @@ function guardarBorrador(sheet, body) {
       sheet.getRange(rowNum, COLS.decision + 1).setValue("pendiente_aprobacion");
       sheet.getRange(rowNum, COLS.borrador_texto + 1).setValue(body.mensaje || "");
       sheet.getRange(rowNum, COLS.estado + 1).setValue("borrador_listo");
+      sheet.getRange(rowNum, COLS.auditoria_json + 1).setValue(body.auditoria ? JSON.stringify(body.auditoria) : "");
       var consecutivo = asignarConsecutivo(sheet, rowNum);
       SpreadsheetApp.flush();
       enviarSolicitudVerificacion(sheet, rowNum, idPlan);
@@ -849,6 +876,7 @@ function regenerarBorrador(sheet, body) {
   sheet.getRange(row, COLS.decision + 1).setValue("pendiente_aprobacion");
   sheet.getRange(row, COLS.borrador_texto + 1).setValue(body.mensaje || "");
   sheet.getRange(row, COLS.estado + 1).setValue("borrador_listo");
+  sheet.getRange(row, COLS.auditoria_json + 1).setValue(body.auditoria ? JSON.stringify(body.auditoria) : "");
   sheet.getRange(row, COLS.regeneracion_estado + 1).setValue("ok " + new Date().toISOString());
   SpreadsheetApp.flush();
   return respond({ ok: true, idPlan: idPlan, row: row });
