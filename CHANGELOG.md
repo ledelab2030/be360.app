@@ -1670,6 +1670,20 @@ Cierre de la revisión de los 5 casos reales auditados por Gemini bajo el Manual
 
 ---
 
+### 12 nov 2026 — Tercera ronda de auditorías: el chequeo de "no especificado" no cubría el orden invertido, más dos hallazgos nuevos
+
+Nueva ronda de regeneración + auditoría externa sobre los 4 casos pendientes. Tres hallazgos reales:
+
+1. **El chequeo de "no especificado en el formulario" (desplegado hace minutos) se quedó corto** — un caso real lo escribió en el orden contrario ("como el formulario no especifica qué come...", "el formulario no especifica el contenido...") y el patrón original solo reconocía "no especificado ... formulario", no "formulario ... no especifica". Ampliado para cubrir los dos órdenes.
+2. **Vinagre de manzana en ayunas, en un plan pediátrico real** — esto NO es un hallazgo nuevo de regla: `ADAPTACIONES_PEDIATRICAS` ya prohíbe explícitamente los "6 pasos para restaurar la microbiota" de la fuente de adultos (vinagre de manzana en ayunas, levadura de cerveza cruda, queso azul obligatorio) desde antes de este historial — y aun así se coló. Como con la hora de cena, la instrucción de texto sola no bastó; se agrega chequeo de código.
+3. **Plan sin ninguna mención de fin de semana** — mismo criterio que la regla de pantallas ya existente: la ventana más corta el fin de semana es una regla que siempre aplica, se agrega el mismo tipo de chequeo de "sección omitida por completo".
+
+**Archivos:** `worker/vita-proxy.js` (`revisarBorradorPediatrico()`: patrón de "no especificado" ampliado a los dos órdenes, patrón nuevo para vinagre de manzana/levadura de cerveza, chequeo nuevo de fin de semana omitido).
+
+**Verificación:** `node --check`. Los 3 chequeos probados contra las frases reales exactas que los originaron — los 3 detectan correctamente el problema. Repetida la batería de pruebas de las dos entradas anteriores (chequeos de hora de cena, "no especificado" versión anterior, fruta cruda) — sin regresiones.
+
+---
+
 ## Lo que enseña este historial
 
 Tres patrones que se repiten y conviene tener presentes:

@@ -1874,7 +1874,25 @@ function revisarBorradorPediatrico(parsed) {
   // de cena: una instrucción de texto sola no basta). Si falta el contenido
   // de una comida, la regla pide omitirla del todo, nunca narrar la
   // ausencia del dato como si fuera parte del plan.
-  revisar(/no\s+especific\w*(?:\s+\w+){0,4}\s+(?:en\s+el\s+)?formulario|sin\s+especificar(?:\s+\w+){0,4}\s+(?:en\s+el\s+)?formulario|sin\s+dato\s+(?:en\s+el\s+)?formulario/i, "muestra una nota interna de ausencia de dato (\"no especificado en el formulario\" o similar) como si fuera parte del plan — si falta el contenido de una comida, se omite esa comida, nunca se narra el hueco");
+  // AMPLIADO (12 nov 2026, segunda vez que se cuela en un caso real): la
+  // primera versión solo reconocía el orden "no especificado ... formulario"
+  // — un caso real lo escribió al revés ("como el formulario no especifica
+  // qué come...", "el formulario no especifica el contenido...") y pasó
+  // inadvertido. Ahora cubre los dos órdenes, con la palabra "formulario" en
+  // cualquier lado de la frase de ausencia de dato.
+  revisar(/(?:no\s+especific\w*|sin\s+especificar|sin\s+dato)(?:\s+\w+){0,6}?\s+(?:en\s+el\s+)?formulario|\bformulario\b(?:\s+\w+){0,6}?\s+(?:no\s+especific\w*|sin\s+especificar|sin\s+dato)/i, "muestra una nota interna de ausencia de dato (\"no especificado en el formulario\", \"el formulario no especifica...\", o similar, en cualquier orden) como si fuera parte del plan — si falta el contenido de una comida, se omite esa comida, nunca se narra el hueco");
+  // "6 PASOS PARA RESTAURAR LA MICROBIOTA" de la fuente de adultos —
+  // explícitamente PROHIBIDOS en ADAPTACIONES_PEDIATRICAS desde antes de este
+  // historial, y aun así se coló vinagre de manzana en un caso real (12 nov
+  // 2026) — confirma que no basta con la instrucción de texto.
+  revisar(/vinagre\s+de\s+manzana|levadura\s+de\s+cerveza/i, "usa un ingrediente de los \"6 pasos para restaurar la microbiota\" del protocolo de ADULTOS (vinagre de manzana en ayunas, levadura de cerveza cruda) — EXPLÍCITAMENTE PROHIBIDO en pediatría, ver ADAPTACIONES_PEDIATRICAS");
+  // Fin de semana omitido por completo (12 nov 2026, caso real) — mismo
+  // criterio que la regla de pantallas de abajo: la ventana más corta el fin
+  // de semana es una regla que siempre aplica, no condicional a que el
+  // formulario traiga detalle de comidas de fin de semana.
+  if (!/fin\s+de\s+semana|fines\s+de\s+semana/i.test(parsed.mensaje || "")) {
+    problemas.push("el plan no menciona el fin de semana en ninguna parte — la regla de ventana más corta el fin de semana se explica siempre, con los datos reales si el formulario los trae y como principio general si no");
+  }
   return problemas;
 }
 
