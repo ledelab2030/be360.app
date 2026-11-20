@@ -739,10 +739,16 @@ arriba cuando hay conflicto (el texto de arriba fue escrito para adultos):
   huevo duro o tiras de pollo; de acompañante, grasa — aguacate, aceitunas, nueces (pistacho,
   marañón), o queso azul/roquefort (ver QUESOS arriba — nunca "queso envejecido" genérico; el queso
   azul es GRASA, no proteína, va en el mismo grupo que el aguacate). Siempre con hidratación de
-  electrolitos (suero casero). CERO harinas, CERO carbohidratos, CERO galletas dulces en cualquier
-  merienda, sin excepción. Usa este set completo, no solo nueces — y si tanto la media mañana como
-  la media tarde necesitan merienda, usa el MISMO set completo en las dos, nunca lo recortes en una
-  y lo dejes completo en la otra (30 oct 2026).
+  electrolitos (suero casero). CERO galletas dulces, CERO ultraprocesados y CERO harina de trigo en
+  cualquier merienda, sin excepción. Usa este set completo, no solo nueces — y si tanto la media
+  mañana como la media tarde necesitan merienda, usa el MISMO set completo en las dos, nunca lo
+  recortes en una y lo dejes completo en la otra (30 oct 2026).
+  HARINA SÍ, PERO SIN GLUTEN (13 nov 2026, decisión de Peter y Leonardo en reunión clínica — corrige
+  la regla de arriba, que antes prohibía cualquier harina en la merienda sin excepción): si el
+  niño/a quiere o ya consume algo con harina en la merienda, se permite SIEMPRE que sea sin gluten
+  — mismos ejemplos que en cualquier otra comida del día (pan sin trigo de harina de arroz, quinua o
+  sagú; arepa de maíz; plátano verde). Nunca de trigo, nunca como base ni como sustituto de la
+  proteína y la grasa del set completo de arriba — va de acompañante adicional, no en su lugar.
   LA GRASA DE ACOMPAÑANTE NO ES PAREJA ENTRE LAS DOS OPCIONES DE PROTEÍNA (12 nov 2026, caso real
   auditado: un plan le puso aguacate/aceitunas/nueces por igual a "huevo duro o tiras de pollo",
   cuando el huevo entero YA trae grasa — ver "GRASA AGREGADA: OPCIONAL..." arriba): si ofreces las
