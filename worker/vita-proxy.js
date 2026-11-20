@@ -2404,10 +2404,22 @@ async function generarYVerificarBorrador(dx, env, idPlan, motor) {
     // (ver generarBorradorAutomatico/regenerarBorradorExistente), no
     // después como antes. Si por lo que sea no llega idPlan, se omite el
     // link en vez de escribir uno roto.
+    //
+    // EL LINK VA EN SU PROPIA LÍNEA (20 nov 2026, primer caso real del
+    // piloto, correo de Hotmail/Outlook — el link de este cierre le llegó como
+    // texto roto sin funcionar como hipervínculo, mientras que el otro link
+    // del mismo correo ["Puedes marcar tu progreso...", en
+    // enviarPlanAprobado() del Apps Script] sí funcionó. La diferencia: ese
+    // otro siempre estuvo en su propia línea; este iba pegado a la frase,
+    // con un punto y más texto justo después, sin espacio — el patrón
+    // clásico que rompe la detección automática de URLs de varios clientes
+    // de correo (Outlook/Hotmail en particular, con o sin el reescritor de
+    // Safe Links de por medio). Mismo patrón que el otro link, que sí
+    // funciona: la URL sola en su línea, con un salto antes y después.
     const linkVita = idPlan ? "https://be360.app/app/?id=" + idPlan + "&tab=vita" : "";
     mensajeFinal = mensajeFinal + "\n\n" + "═".repeat(40) + "\n\n" +
-      "Te invitamos a hacerle seguimiento al plan con ayuda de Vita" + (linkVita ? ": " + linkVita : "") +
-      ". También podrás hacer preguntas sobre el mismo o agregar más información, así como pedir " +
+      "Te invitamos a hacerle seguimiento al plan con ayuda de Vita" + (linkVita ? ":\n" + linkVita + "\n\n" : ".\n\n") +
+      "También podrás hacer preguntas sobre el mismo o agregar más información, así como pedir " +
       "correcciones o aclaraciones a los datos que proporcionaste, para que los tengamos en cuenta " +
       "más adelante.";
 
