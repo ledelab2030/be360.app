@@ -1785,6 +1785,18 @@ Esto también cierra la divergencia encontrada ayer entre nuestro prompt y el ma
 
 ---
 
+### 20 nov 2026 — Primer caso real del piloto: el link de seguimiento llegó roto en Hotmail/Outlook
+
+Primera familia real probando el sistema de punta a punta — el padre/madre recibió el correo de aprobación, pero el link de "hacerle seguimiento al plan con ayuda de Vita" le llegó como texto plano sin funcionar como hipervínculo. En el mismo correo hay otro link ("Puedes marcar tu progreso...", de `enviarPlanAprobado()` en el Apps Script) que sí funcionó.
+
+La diferencia, revisando los dos: el link que sí funciona siempre estuvo solo en su propia línea, con un salto antes y después. El que falló iba pegado dentro de la misma frase, con un punto y más texto justo a continuación, sin ningún espacio ni salto de línea — el patrón clásico que rompe la detección automática de URLs en varios clientes de correo (Outlook/Hotmail en particular, más el reescritor de Safe Links de Microsoft encima). El correo se manda como texto plano (`MailApp` no renderiza HTML), así que cada cliente decide solo, con su propio criterio, dónde empieza y termina una URL dentro del texto — y una URL pegada a puntuación y prosa es terreno fértil para que ese criterio falle.
+
+**Archivo:** `worker/vita-proxy.js` — el cierre fijo del mensaje (`generarYVerificarBorrador`) pone el link de Vita en su propia línea, igual que el que ya funcionaba en el Apps Script, en vez de pegarlo dentro de la frase.
+
+**Verificación:** `node --check`. No hay forma de probar el renderizado real de un cliente de correo en sandbox — queda pendiente confirmar con el próximo correo real que el link llegue como hipervínculo normal en Hotmail/Outlook.
+
+---
+
 ## Lo que enseña este historial
 
 Tres patrones que se repiten y conviene tener presentes:
