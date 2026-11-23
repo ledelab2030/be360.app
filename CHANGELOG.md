@@ -1797,6 +1797,20 @@ La diferencia, revisando los dos: el link que sí funciona siempre estuvo solo e
 
 ---
 
+### 23 nov 2026 — "Olvidé mi link": página pública para pedir de nuevo el acceso por correo
+
+Misma motivación que el ícono de pantalla de inicio: la primera familia real no quería tener que buscar el correo cada vez. Pregunta aparte, con dos caminos posibles (pregunta estructurada a Leonardo): ¿link mágico por correo, PIN por familia, o usuario/contraseña real? ¿Convive con el link de siempre o lo reemplaza? Decisión: link mágico por correo, conviviendo con el de siempre — no cambia nada de lo que ya funciona para las familias actuales, solo agrega una puerta de entrada más para cuando no encuentran el correo.
+
+Nueva página pública `entrar/index.html` (vanilla JS, mismo patrón visual que `verificar/index.html` — no necesita React para un formulario de una pregunta) con un solo campo: el correo con el que registraron al niño/a. Pega al nuevo endpoint `/solicitar-acceso` del Worker (passthrough genérico vía `handlePanelAction`, igual que `/verificar`), que llama a `solicitarAcceso()` en el Apps Script: busca TODOS los casos aprobados con ese correo (sin distinguir mayúsculas) y manda un solo correo con el link de cada uno — pensado para cuando el mismo correo tiene más de un hijo/a inscrito.
+
+**Regla de privacidad explícita, no solo buena práctica:** la acción SIEMPRE responde `ok:true`, exista o no ese correo en el sistema — igual que cualquier flujo decente de "olvidé mi acceso". Sin esto, cualquiera podría usar esta página para enumerar qué correos tienen un caso real en be360, probando direcciones una por una y viendo cuáles responden distinto.
+
+**Archivos:** `entrar/index.html` (nuevo); `worker/vita-proxy.js` (ruta `/solicitar-acceso`); `worker/apps-script-formulario-v2.gs.txt` (acción pública `solicitar_acceso`, función `solicitarAcceso()`).
+
+**Verificación:** `node --check` en los dos archivos de backend. Página servida local con el server estático de `.claude/launch.json`: validación de correo vacío/inválido probada en el navegador (bloquea antes de llamar al Worker), y el envío real probado por botón (el campo del formulario, no solo Enter) — llega hasta el `fetch`, y falla con el mensaje de "no se pudo conectar" esperado porque la ruta todavía no está desplegada y la prueba corre desde `localhost`, no desde `be360.app` (el Worker exige ese origen exacto). **Pendiente, no se puede probar del todo en sandbox:** confirmar en producción que el correo real llega con el link en su propia línea (mismo criterio que la entrada anterior) y decidir si vale la pena enlazar `entrar/` desde algún otro lado (el correo de aprobación, la home) para que sea más fácil de encontrar en el momento en que de verdad hace falta.
+
+---
+
 ## Lo que enseña este historial
 
 Tres patrones que se repiten y conviene tener presentes:
