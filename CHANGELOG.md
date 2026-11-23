@@ -1797,6 +1797,20 @@ La diferencia, revisando los dos: el link que sí funciona siempre estuvo solo e
 
 ---
 
+### 20 nov 2026 — Ícono de be360 en la pantalla de inicio, sin manifest.json ni login
+
+La primera familia real pidió algo más simple que buscar el link en el correo cada vez: un ícono en su teléfono. Se agregó soporte de "Agregar a pantalla de inicio" a `app/index.html` — a propósito SIN un `manifest.json` ni un service worker, que es el camino estándar de una PWA instalable: un manifest exige un `start_url` fijo, y como cada familia accede por su propio `?id=...` en la URL (no por cuenta), un `start_url` genérico le haría perder su id al instalar — terminaría abriendo un "be360" sin ningún plan adentro, no el suyo. El mecanismo nativo del navegador (el botón compartir de Safari en iOS, el menú de Chrome en Android) ya guarda la URL EXACTA que el padre/madre tenía abierta en ese momento — id incluido — sin que haga falta ningún manifest; lo único que faltaba era darle un ícono y un modo "standalone" decentes en vez del favicon genérico y la barra del navegador.
+
+De paso, generados los primeros íconos PNG reales del proyecto (180/192/512 px) a partir de `assets/favicon.svg`, que hasta hoy no estaba referenciado en ninguna página — ni `app/index.html` ni ninguna otra tenían siquiera un favicon básico enlazado en el `<head>`.
+
+**Archivos:** `app/index.html` (`<link rel="icon">`, `<link rel="apple-touch-icon">`, metas `apple-mobile-web-app-*` y `theme-color`); `assets/icon-180.png`, `assets/icon-192.png`, `assets/icon-512.png` (nuevos, generados con `sharp` a partir de `assets/favicon.svg`).
+
+**Verificación:** transformación con `@babel/standalone` (sin errores de JSX — el cambio vive en el `<head>`, fuera del script de React). Servido localmente con el server estático de `.claude/launch.json` y verificado por código (`fetch` a cada ícono, los 4 responden 200) y visualmente (la página carga igual que antes, sin romper nada). Pendiente, no se puede probar en sandbox: confirmar en un iPhone/Android real que "Agregar a pantalla de inicio" guarda la URL completa con el `id` real de un caso y abre en modo standalone.
+
+**Pendiente, mencionado pero no decidido todavía:** Leonardo pidió evaluar en paralelo una opción más grande — login real (cuenta/contraseña o código propio) en vez del acceso por `id` en la URL. Cambia la arquitectura actual de fondo; queda para una conversación de alcance aparte, no se empezó a construir.
+
+---
+
 ### 23 nov 2026 — "Olvidé mi link": página pública para pedir de nuevo el acceso por correo
 
 Misma motivación que el ícono de pantalla de inicio: la primera familia real no quería tener que buscar el correo cada vez. Pregunta aparte, con dos caminos posibles (pregunta estructurada a Leonardo): ¿link mágico por correo, PIN por familia, o usuario/contraseña real? ¿Convive con el link de siempre o lo reemplaza? Decisión: link mágico por correo, conviviendo con el de siempre — no cambia nada de lo que ya funciona para las familias actuales, solo agrega una puerta de entrada más para cuando no encuentran el correo.

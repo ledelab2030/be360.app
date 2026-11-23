@@ -5,6 +5,24 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
 <meta name="robots" content="noindex" />
 <title>be360 · Plan de bienestar</title>
+<!-- Ícono instalable en pantalla de inicio (20 nov 2026, pedido de
+     Leonardo — primera familia real: "más fácil que buscar el link en el
+     correo cada vez"). A propósito SIN manifest.json ni service worker:
+     cada familia tiene su propio link (?id=...) en vez de una cuenta, y un
+     manifest con un start_url fijo le haría perder SU id al instalar —
+     terminaría abriendo un "be360" genérico, no su plan. "Agregar a
+     pantalla de inicio" de iOS (vía el botón compartir de Safari) y
+     "Agregar a pantalla de inicio" de Android ya guardan la URL exacta que
+     el padre/madre tenía abierta en ese momento, id incluido — lo único
+     que faltaba era darles un ícono y un modo "standalone" decentes en vez
+     del favicon genérico y la barra del navegador. -->
+<link rel="icon" href="/assets/favicon.svg" type="image/svg+xml" />
+<link rel="icon" href="/assets/icon-192.png" type="image/png" sizes="192x192" />
+<link rel="apple-touch-icon" href="/assets/icon-180.png" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-title" content="be360" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="theme-color" content="#2B5F45" />
 <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
 <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
 <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
