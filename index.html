@@ -235,5 +235,20 @@
     <div>© 2026 be360 · Barranquilla, Colombia</div>
   </footer>
 
+  <!-- Registro del service worker (23 nov 2026) — ver sw.js. Es lo que le
+       falta al manifest.json de más arriba para que Chrome en Android
+       ofrezca el aviso automático de instalación, en vez de depender de
+       que alguien busque "Instalar app" en el menú. Dentro de un try/catch
+       y detrás de la comprobación de soporte del navegador: un service
+       worker es 100% opcional para que la home funcione, así que un fallo
+       acá nunca debe afectar a nadie viendo la página. -->
+  <script>
+    if ("serviceWorker" in navigator) {
+      window.addEventListener("load", () => {
+        navigator.serviceWorker.register("/sw.js").catch(() => {});
+      });
+    }
+  </script>
+
 </body>
 </html>

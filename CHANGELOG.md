@@ -1855,6 +1855,18 @@ A diferencia de `app/` (20 nov — ahí un `manifest.json` con `start_url` fijo 
 
 ---
 
+### 23 nov 2026 — Service worker mínimo en la home, para el aviso automático de instalación en Android
+
+Mismo día, pedido de seguimiento tras la entrada anterior: Leonardo esperaba que entrar a la home sola bastara para que apareciera el aviso de "instalar app" — ese aviso automático de Chrome exige un service worker activo además del `manifest.json`, cosa que la entrada anterior dejó fuera a propósito (riesgo de caché viejo cacheado por muy poco beneficio en esa etapa). Confirmado que sí quería ese beneficio, se agrega — `sw.js` nuevo, a propósito SIN NINGÚN caché: el único trabajo de su `fetch` es no hacer nada, dejando pasar cada petición directo a la red. Existe solo para cumplir el requisito técnico de instalabilidad de Chrome, nunca para servir una versión guardada de la página — la misma falla silenciosa (contenido viejo sin que nadie se entere) que ya le costó tiempo a este proyecto en otras partes del sistema (ver "Lo que enseña este historial" más abajo).
+
+Registro del service worker en `index.html`, detrás de una comprobación de soporte del navegador y en su propio `try/catch` — un service worker es 100% opcional para que la home funcione; un fallo al registrarlo nunca debe afectar a nadie viendo la página.
+
+**Archivos:** `sw.js` (nuevo); `index.html` (registro del service worker, al final del body).
+
+**Verificación:** servido local — confirmado por código (`navigator.serviceWorker.getRegistrations()`) que el service worker queda activo con el scope correcto, cero errores en la consola del navegador, y la home se ve igual que antes. **Pendiente, no se puede probar en sandbox:** confirmar en un Android real que ahora sí aparece el aviso automático de instalación.
+
+---
+
 ## Lo que enseña este historial
 
 Tres patrones que se repiten y conviene tener presentes:
