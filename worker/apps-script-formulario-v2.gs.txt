@@ -1271,6 +1271,8 @@ function enviarPlanAprobado(sheet, row) {
       "Puedes marcar tu progreso y escribirle a Vita cuando quieras aquí:\n" +
       planUrl + "\n\n" +
       "Esto acompaña y suma con su pediatra — no lo reemplaza.\n\n" +
+      "¿Perdiste este correo más adelante? Pide el link de nuevo aquí:\n" +
+      "https://be360.app/entrar/\n\n" +
       "— El equipo de be360",
   });
 
