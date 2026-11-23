@@ -1843,6 +1843,18 @@ Se agregó el mismo par de `<link rel="icon">` (SVG + PNG de respaldo) a las 17 
 
 ---
 
+### 23 nov 2026 — La home también se puede instalar, para quien todavía no tiene plan ni URL personalizada
+
+Mismo día, pedido de seguimiento: Leonardo quería que quien TODAVÍA no tiene un plan (no llenó el formulario, o lo llenó pero no se lo han aprobado) también pueda instalar un ícono de be360, no solo las familias con un `?id=...` ya aprobado. Pregunta estructurada sobre desde qué página instalar (el ícono siempre abre la página desde la que se instaló): `entrar/`, la home, o el formulario directamente — decisión: **la home**.
+
+A diferencia de `app/` (20 nov — ahí un `manifest.json` con `start_url` fijo le haría perder a cada familia su `id` propio al instalar), acá SÍ tiene sentido un manifest real: la home es la MISMA página para todo el mundo, no depende de ningún id por familia, así que no hay nada que perder. Se agrega `manifest.json` (nuevo, en la raíz) con `start_url:"/"`, más los mismos metas de iOS que ya tiene `app/` (`apple-touch-icon`, `apple-mobile-web-app-capable`, `theme-color`). Sin service worker a propósito: no hace falta para que Android ofrezca "Instalar app" desde el menú del navegador, y evita el riesgo de servir una versión vieja cacheada de la home.
+
+**Archivos:** `manifest.json` (nuevo); `index.html` (`<link rel="manifest">`, `apple-touch-icon`, metas `apple-mobile-web-app-*` y `theme-color`).
+
+**Verificación:** servido local con el server estático de `.claude/launch.json` — `manifest.json` responde con el JSON esperado vía `fetch`, el ícono de 180px responde 200, y la home se ve exactamente igual que antes (sin JSX que compilar, es una página vanilla). **Pendiente, no se puede probar en sandbox:** confirmar en un Android real que el menú de Chrome ofrece "Instalar app" (no solo "Agregar a pantalla de inicio" genérico) con este manifest.
+
+---
+
 ## Lo que enseña este historial
 
 Tres patrones que se repiten y conviene tener presentes:

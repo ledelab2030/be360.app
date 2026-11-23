@@ -29,6 +29,21 @@
   <title>be360 · Cuerpo sano, mente brillante</title>
   <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml" />
   <link rel="icon" href="/assets/icon-192.png" type="image/png" sizes="192x192" />
+  <!-- Instalable desde la home (23 nov 2026, pedido de Leonardo: que quien
+       todavía no tenga plan ni URL personalizada también pueda instalar el
+       ícono) — a diferencia de app/ (ver esa página, 20 nov), acá SÍ tiene
+       sentido un manifest.json con start_url fijo: la home es la MISMA
+       página para todo el mundo, no depende de un ?id=... por familia, así
+       que no hay ningún id que perder al instalar. El ícono instalado
+       siempre abre la home; desde ahí la persona navega a entrar/ o al
+       formulario según lo que necesite. Sin service worker a propósito —
+       no hace falta para que Android ofrezca "Instalar app" desde el menú,
+       y evita el riesgo de servir una versión vieja cacheada de la home. -->
+  <link rel="manifest" href="/manifest.json" />
+  <link rel="apple-touch-icon" href="/assets/icon-180.png" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-title" content="be360" />
+  <meta name="theme-color" content="#2B5F45" />
   <meta name="description" content="Acompañamiento de bienestar familiar basado en evidencia — para tu hogar, o para tu comunidad.">
   <meta property="og:title" content="be360">
   <meta property="og:description" content="Cuerpo sano, mente brillante.">
