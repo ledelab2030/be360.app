@@ -1827,6 +1827,20 @@ Nueva página pública `entrar/index.html` (vanilla JS, mismo patrón visual que
 
 **Verificación:** `node --check` en los dos archivos de backend. Transformación con `@babel/standalone` de `app/index.html` (sin errores de JSX). Página `entrar/` servida local con el server estático de `.claude/launch.json`: validación de correo vacío/inválido probada en el navegador (bloquea antes de llamar al Worker), y el envío real probado por botón (el campo del formulario, no solo Enter) — llega hasta el `fetch`, y falla con el mensaje de "no se pudo conectar" esperado porque la ruta todavía no está desplegada y la prueba corre desde `localhost`, no desde `be360.app` (el Worker exige ese origen exacto). La pantalla "Todavía no está listo" de `app/` verificada visualmente contra el Worker real (un `id` inexistente) — el link nuevo aparece bien, sin romper nada de lo que ya había. **Pendiente, no se puede probar del todo en sandbox:** confirmar en producción que el correo real llega con el link en su propia línea (mismo criterio que la entrada anterior).
 
+**Confirmado en producción el mismo día:** tras publicar la nueva versión del Apps Script, `/solicitar-acceso` contra el Worker real responde `{"ok":true}` tanto para un correo inventado como se espera (anti-enumeración funcionando), y `entrar/` carga en `https://be360.app/entrar/`.
+
+---
+
+### 23 nov 2026 — El favicon de be360 en las 17 páginas que todavía no lo tenían
+
+Pedido de Leonardo al ver el ícono nuevo en la pestaña del navegador de `app/` (ver la entrada del ícono de pantalla de inicio, 20 nov): que todas las páginas del sitio se vean igual, no solo esa. Revisado todo el repo — fuera de `app/index.html`, ninguna otra página tenía siquiera un favicon básico enlazado en el `<head>` (`assets/favicon.svg` existía desde antes pero no estaba referenciado en ningún lado).
+
+Se agregó el mismo par de `<link rel="icon">` (SVG + PNG de respaldo) a las 17 páginas restantes del sitio: `documentos/`, `en/`, `entrar/`, `equipo/`, `javier-institute/`, `leonardo/`, `nucleo/`, `panel-colegio/`, `panel-colegio-proyeccion/`, `plan/`, `talentos/`, `terminos/`, `verificar/`, `vita-demo-formulario/`, `vita-demo-formulario-v2/`, `vita-demo-srb-3/`, y la home (`index.html`). A propósito SIN tocar `vita-demo-3k9x/`, `vita-demo-srb-1/` ni `vita-demo-srb-2/` — están marcadas "no tocar" en CLAUDE.md. Solo el ícono de pestaña (`rel="icon"`); no se agregaron los metas de "Agregar a pantalla de inicio" (`apple-touch-icon`, `apple-mobile-web-app-*`) que sí tiene `app/` — esas son específicas de esa página familiar, no de todo el sitio.
+
+**Archivos:** las 17 páginas listadas arriba, cada una con las mismas 2 líneas nuevas justo después de su `<title>`.
+
+**Verificación:** transformación con `@babel/standalone` en las 6 páginas que usan React/JSX (`equipo/`, `panel-colegio/`, `panel-colegio-proyeccion/`, `plan/`, `vita-demo-formulario/`, `vita-demo-srb-3/`) — sin errores. Revisión visual del `<head>` resultante en varias páginas (la home, `talentos/`) para confirmar que la inserción quedó bien formada.
+
 ---
 
 ## Lo que enseña este historial
