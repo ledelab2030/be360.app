@@ -1811,6 +1811,24 @@ De paso, generados los primeros íconos PNG reales del proyecto (180/192/512 px)
 
 ---
 
+### 23 nov 2026 — "Olvidé mi link": página pública para pedir de nuevo el acceso por correo
+
+Misma motivación que el ícono de pantalla de inicio: la primera familia real no quería tener que buscar el correo cada vez. Pregunta aparte, con dos caminos posibles (pregunta estructurada a Leonardo): ¿link mágico por correo, PIN por familia, o usuario/contraseña real? ¿Convive con el link de siempre o lo reemplaza? Decisión: link mágico por correo, conviviendo con el de siempre — no cambia nada de lo que ya funciona para las familias actuales, solo agrega una puerta de entrada más para cuando no encuentran el correo.
+
+Nueva página pública `entrar/index.html` (vanilla JS, mismo patrón visual que `verificar/index.html` — no necesita React para un formulario de una pregunta) con un solo campo: el correo con el que registraron al niño/a. Pega al nuevo endpoint `/solicitar-acceso` del Worker (passthrough genérico vía `handlePanelAction`, igual que `/verificar`), que llama a `solicitarAcceso()` en el Apps Script: busca TODOS los casos aprobados con ese correo (sin distinguir mayúsculas) y manda un solo correo con el link de cada uno — pensado para cuando el mismo correo tiene más de un hijo/a inscrito.
+
+**Regla de privacidad explícita, no solo buena práctica:** la acción SIEMPRE responde `ok:true`, exista o no ese correo en el sistema — igual que cualquier flujo decente de "olvidé mi acceso". Sin esto, cualquiera podría usar esta página para enumerar qué correos tienen un caso real en be360, probando direcciones una por una y viendo cuáles responden distinto.
+
+**Dónde queda enlazada** (decisión de Leonardo: "1 y 2" de tres opciones — correo de aprobación, pantalla de error de `app/`, home — se descartó la home por ahora):
+1. El correo de aprobación (`enviarPlanAprobado()`) agrega una línea al final: "¿Perdiste este correo más adelante? Pide el link de nuevo aquí" + el link de `entrar/`, en su propia línea.
+2. La pantalla "Todavía no está listo" de `app/index.html` (cuando el `id` de la URL no existe o el caso no está aprobado) agrega un link secundario y discreto debajo del botón de WhatsApp — a propósito más chico que el CTA principal, porque WhatsApp sigue siendo la salida correcta para un error real, y esto es solo para quien SÍ tiene un plan aprobado pero perdió el correo.
+
+**Archivos:** `entrar/index.html` (nuevo); `worker/vita-proxy.js` (ruta `/solicitar-acceso`); `worker/apps-script-formulario-v2.gs.txt` (acción pública `solicitar_acceso`, función `solicitarAcceso()`, línea nueva en el correo de aprobación); `app/index.html` (link a `entrar/` en la pantalla "Todavía no está listo").
+
+**Verificación:** `node --check` en los dos archivos de backend. Transformación con `@babel/standalone` de `app/index.html` (sin errores de JSX). Página `entrar/` servida local con el server estático de `.claude/launch.json`: validación de correo vacío/inválido probada en el navegador (bloquea antes de llamar al Worker), y el envío real probado por botón (el campo del formulario, no solo Enter) — llega hasta el `fetch`, y falla con el mensaje de "no se pudo conectar" esperado porque la ruta todavía no está desplegada y la prueba corre desde `localhost`, no desde `be360.app` (el Worker exige ese origen exacto). La pantalla "Todavía no está listo" de `app/` verificada visualmente contra el Worker real (un `id` inexistente) — el link nuevo aparece bien, sin romper nada de lo que ya había. **Pendiente, no se puede probar del todo en sandbox:** confirmar en producción que el correo real llega con el link en su propia línea (mismo criterio que la entrada anterior).
+
+---
+
 ## Lo que enseña este historial
 
 Tres patrones que se repiten y conviene tener presentes:

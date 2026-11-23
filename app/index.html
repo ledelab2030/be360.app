@@ -586,6 +586,14 @@ function App() {
           <div style={{fontFamily:"-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif", fontSize:22, color:P.sageDeep, marginBottom:10}}>Todavía no está listo</div>
           <p style={{fontSize:14, color:P.muted, lineHeight:1.6, marginBottom:22}}>Este plan aún está en revisión, o el link no es válido. Si crees que es un error, escríbenos.</p>
           <a href={"https://wa.me/"+waNum+"?text="+waMsg} target="_blank" rel="noopener noreferrer" style={{display:"inline-flex", alignItems:"center", justifyContent:"center", gap:8, background:P.sage, color:"#fff", fontWeight:800, fontSize:14.5, borderRadius:999, padding:"13px 24px", textDecoration:"none", boxShadow:"0 10px 24px rgba(74,112,69,.30)"}}>Escribirnos por WhatsApp</a>
+          {/* "Olvidé mi link" (23 nov 2026, pedido de Leonardo) — enlace
+              secundario, discreto a propósito: WhatsApp sigue siendo la
+              salida principal para un error real; esto es solo para quien
+              SÍ tiene un plan aprobado pero perdió o no encuentra el
+              correo con su link. Ver entrar/index.html. */}
+          <div style={{marginTop:14}}>
+            <a href="https://be360.app/entrar/" style={{fontSize:13, color:P.muted, textDecoration:"underline"}}>¿Perdiste tu link? Pídelo de nuevo aquí</a>
+          </div>
         </div>
       </div>
     );

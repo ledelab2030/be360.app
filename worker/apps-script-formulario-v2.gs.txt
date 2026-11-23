@@ -464,6 +464,16 @@ function doPost(e) {
     // enumerable. El código en sí es la credencial real.
     if (body.action === "verificar_codigo") return verificarCodigo(sheet, body);
 
+    // NUEVO (23 nov 2026, pedido de Leonardo): "link mágico" para la familia
+    // que perdió el correo con su acceso — viene de entrar/index.html (página
+    // pública). Convive con el link de siempre, no lo reemplaza. Pública a
+    // propósito, igual que verificar_codigo arriba, pero con una regla extra
+    // de privacidad: SIEMPRE responde ok:true, exista o no ese correo en el
+    // sistema (ver solicitarAcceso) -- de lo contrario cualquiera podría usar
+    // esta acción para enumerar qué correos tienen un caso real en be360,
+    // probando direcciones una por una.
+    if (body.action === "solicitar_acceso") return solicitarAcceso(sheet, body);
+
     // Panel de colegio (panel-colegio/index.html) — su propio secreto por
     // colegio (PANEL_COLEGIO_SECRETS), validado adentro de resumenColegio.
     if (body.action === "resumen_colegio") return resumenColegio(sheet, body);
@@ -1261,6 +1271,8 @@ function enviarPlanAprobado(sheet, row) {
       "Puedes marcar tu progreso y escribirle a Vita cuando quieras aquí:\n" +
       planUrl + "\n\n" +
       "Esto acompaña y suma con su pediatra — no lo reemplaza.\n\n" +
+      "¿Perdiste este correo más adelante? Pide el link de nuevo aquí:\n" +
+      "https://be360.app/entrar/\n\n" +
       "— El equipo de be360",
   });
 
@@ -1427,6 +1439,43 @@ function verificarCodigo(sheet, body) {
   sheet.getRange(found.row, COLS.codigo_colegio + 1).setValue(CODIGOS_VALIDOS_COLEGIO[codigo]);
   sheet.getRange(found.row, COLS.verificacion_ts + 1).setValue(new Date().toISOString());
   SpreadsheetApp.flush();
+  return respond({ ok: true });
+}
+
+// "Olvidé mi link" (23 nov 2026, pedido de Leonardo, primera familia real:
+// "más fácil que buscar el link en el correo cada vez") — ver
+// entrar/index.html. Busca TODOS los casos aprobados cuyo email_padre
+// coincida (sin distinguir mayúsculas/espacios) y manda un solo correo con
+// el link de cada uno (normal que un correo tenga más de un hijo/a
+// inscrito). SIEMPRE responde ok:true exista o no una coincidencia real —
+// ver la nota junto a la acción "solicitar_acceso" en doPost: lo contrario
+// permitiría enumerar qué correos tienen un caso real probando direcciones
+// una por una. El link va en su propia línea, mismo criterio que ya se
+// corrigió en enviarPlanAprobado() tras el primer correo real que llegó con
+// un link roto en Hotmail/Outlook.
+function solicitarAcceso(sheet, body) {
+  var email = String(body.email || "").trim().toLowerCase();
+  if (!email) return respond({ ok: false, error: "correo faltante" }, 400);
+  var data = sheet.getDataRange().getValues();
+  var encontrados = [];
+  for (var r = 1; r < data.length; r++) {
+    if (data[r][COLS.decision] === "aprobado" && String(data[r][COLS.email_padre] || "").trim().toLowerCase() === email) {
+      encontrados.push({ idPlan: data[r][COLS.id_plan], nombreNino: data[r][COLS.nombre_nino] || "tu hijo/a" });
+    }
+  }
+  if (encontrados.length > 0) {
+    try {
+      var lineas = encontrados.map(function (c) {
+        return c.nombreNino + ":\nhttps://be360.app/app/?id=" + c.idPlan + "&tab=plan";
+      }).join("\n\n");
+      MailApp.sendEmail({
+        to: email,
+        name: "be360",
+        subject: encontrados.length > 1 ? "Tus links de acceso a be360" : "Tu link de acceso al plan de " + encontrados[0].nombreNino,
+        body: "Hola,\n\nAquí tienes de nuevo tu acceso:\n\n" + lineas + "\n\n— El equipo de be360",
+      });
+    } catch (ex) { /* best-effort: un correo que falla no debe revelar nada distinto de "ok" */ }
+  }
   return respond({ ok: true });
 }
 

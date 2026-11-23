@@ -339,6 +339,13 @@ export default {
     // NUEVO (10 ago 2026): verificación del código de colegio — ver nota grande arriba.
     if (url.pathname === "/verificar") return handlePanelAction(request, env, cors, "verificar_codigo");
 
+    // NUEVO (23 nov 2026, pedido de Leonardo): "olvidé mi link" — viene de
+    // entrar/index.html (página pública). Convive con el link de siempre,
+    // no lo reemplaza. Mismo passthrough genérico que /verificar; la
+    // privacidad real (nunca revelar si un correo tiene o no un caso) vive
+    // en solicitarAcceso() del Apps Script, no acá.
+    if (url.pathname === "/solicitar-acceso") return handlePanelAction(request, env, cors, "solicitar_acceso");
+
     // NUEVO (14 ago 2026): panel de colegio (panel-colegio/index.html) — SOLO
     // agregados del colegio (nunca un caso individual), con su propio PIN por
     // colegio (PANEL_COLEGIO_SECRETS en Apps Script, distinto del PANEL_SECRET
