@@ -1907,6 +1907,20 @@ Quedan **fuera de las pestañas, siempre visibles** (no estaban en la lista de L
 
 ---
 
+### 24 nov 2026 — Gemini pasa a generar el camino principal, con Claude de respaldo automático
+
+Leonardo activó la facturación de Google Cloud para el proyecto be360 (resolviendo el "Cuenta cerrada" de días atrás) y pidió que Gemini sea quien genere los planes. Pregunta estructurada antes de tocar el camino principal del producto: ¿reemplazo directo de Claude, o Gemini primero con Claude de respaldo si falla? Decisión: **respaldo automático** — este sistema "falla en silencio por diseño" (ver CLAUDE.md, §5) y un caso que se queda sin borrador es, ya documentado, el hueco de observabilidad más grave del proyecto. Apostarlo todo a un solo proveedor nuevo, sin red de seguridad, habría sido repetir ese riesgo a propósito.
+
+`generarBorradorAutomatico()` ahora llama primero a `generarYVerificarBorrador(..., "gemini")`; si Gemini agota sus 4 intentos sin producir nada usable (`null`), se reintenta el ciclo completo con `"claude"` antes de rendirse — nunca un caso real se queda sin plan por un fallo de un solo proveedor. Si Gemini falla, queda un log explícito (`Gemini no pudo generar un borrador limpio... reintentando con Claude`) para que esto nunca sea invisible.
+
+**La regeneración manual desde `equipo/` NO cambia**: sigue siendo Claude por defecto, Gemini una elección explícita cada vez (el selector se resetea a "claude" al abrir cada caso) — este respaldo es exclusivo de la generación automática de un formulario nuevo.
+
+**Archivo:** `worker/vita-proxy.js` — `generarBorradorAutomatico()` llama a `generarYVerificarBorrador` con `"gemini"` primero y `"claude"` como respaldo si el primero devuelve `null`.
+
+**Verificación:** `node --check`. Prueba en sandbox de Node de la lógica de respaldo (sin tocar red real) contra los 3 escenarios posibles: Gemini funciona a la primera (solo se llama una vez, resultado de Gemini); Gemini falla y Claude lo cubre (se llaman los dos, resultado de Claude, con `motor:"claude"` correctamente reflejado para el badge de `equipo/`); los dos fallan (el caso queda "pendiente", igual que el comportamiento de siempre cuando el único proveedor fallaba). **Pendiente, solo se puede confirmar en producción:** que un formulario real nuevo efectivamente use Gemini de punta a punta ahora que la facturación está activa.
+
+---
+
 ## Lo que enseña este historial
 
 Tres patrones que se repiten y conviene tener presentes:
