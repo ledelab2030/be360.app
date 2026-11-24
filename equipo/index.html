@@ -17,9 +17,6 @@
   *{box-sizing:border-box}
   .rise{animation:rise .22s cubic-bezier(.2,.8,.2,1)}
   @keyframes rise{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
-  .panel-split{display:grid; grid-template-columns:1fr 1fr; gap:20px; align-items:start}
-  @media (max-width:860px){.panel-split{grid-template-columns:1fr}}
-  @media (min-width:861px){.panel-split-ref{position:sticky; top:28px; max-height:calc(100vh - 56px); overflow-y:auto}}
   /* Nav responsive (27 oct 2026) — rail fijo en escritorio, barra superior +
      cajón deslizante en móvil. panel/index.html no tenía esto porque Peter
      solo lo usa en escritorio; acá sí hace falta desde el día uno. */
@@ -436,6 +433,11 @@ function App() {
   const [regeneradoOk, setRegeneradoOk] = useState(false);
   const [resolviendoRecordatorio, setResolviendoRecordatorio] = useState(false);
   const [limpiandoRegeneracion, setLimpiandoRegeneracion] = useState(false);
+  // Pestañas del detalle (24 nov 2026, pedido de Leonardo): "mensaje" por
+  // defecto -- es el contenido principal, lo que de verdad se revisa y se
+  // aprueba. Se resetea a "mensaje" cada vez que se abre un caso nuevo (ver
+  // abrirDetalle) -- nunca debe quedar en la pestaña de otro caso.
+  const [tabDetalle, setTabDetalle] = useState("mensaje");
 
   const llamarPanel = async (ruta, extra) => {
     const res = await fetch(WORKER_URL + "/panel/" + ruta, {
@@ -594,6 +596,7 @@ function App() {
   const abrirDetalle = async (idPlan, desde) => {
     setStage("detalle"); setDetalle(null); setAccionError(null); setConfirmando(false); setGuardadoOk(false); setConfirmandoDescarte(false);
     setSoloLectura(desde === "historial");
+    setTabDetalle("mensaje");
     try {
       const data = await llamarPanel("detalle", { idPlan });
       if (!data.ok) throw new Error(data.error || "error");
@@ -990,26 +993,6 @@ function App() {
           </div>
         )}
 
-        {recordatoriosPendientes.length > 0 && (
-          <div style={{background:P.sageSoft, border:"1px solid "+P.sage, borderRadius:16, padding:"14px 16px", display:"flex", flexDirection:"column", gap:10}}>
-            <div style={{fontSize:13, fontWeight:800, color:P.sageDeep}}>Recordatorios pendientes ({recordatoriosPendientes.length})</div>
-            {recordatoriosPendientes.map((r) => (
-              <div key={r.id} style={{background:P.panelRaised, border:"1px solid "+P.line, borderRadius:12, padding:"10px 12px"}}>
-                <div style={{fontSize:11, color:P.muted, marginBottom:4}}>{relativeDate(r.creadoTs)} · {r.tipo === "proxima_cita" ? "próxima cita con el pediatra" : "información nueva sin revisar"}</div>
-                <div style={{fontSize:13.5, color:P.ink, lineHeight:1.5, marginBottom:8}}>{r.texto}</div>
-                {r.tipo === "proxima_cita" ? (
-                  <span onClick={()=>!resolviendoRecordatorio && resolverRecordatorioAccion(r.id, "confirmado_manual")} style={{fontSize:11.5, color:P.sageDeep, fontWeight:800, textDecoration:"underline", cursor:"pointer"}}>{resolviendoRecordatorio?"Guardando…":"Marcar como respondido"}</span>
-                ) : (
-                  <span style={{display:"flex", gap:14}}>
-                    <span onClick={()=>!regenerando && !resolviendoRecordatorio && regenerar(r.texto, r.id)} style={{fontSize:11.5, color:P.sageDeep, fontWeight:800, textDecoration:"underline", cursor:"pointer"}}>{regenerando?"Encolando…":"Regenerar con esto"}</span>
-                    <span onClick={()=>!resolviendoRecordatorio && resolverRecordatorioAccion(r.id, "descartado")} style={{fontSize:11.5, color:P.muted, textDecoration:"underline", cursor:"pointer"}}>{resolviendoRecordatorio?"Guardando…":"Descartar"}</span>
-                  </span>
-                )}
-              </div>
-            ))}
-          </div>
-        )}
-
         {novedades.length > 0 && (
           <div style={{background:P.claySoft, border:"1px solid "+P.clay, borderRadius:16, padding:"14px 16px", display:"flex", flexDirection:"column", gap:10}}>
             <div style={{fontSize:13, fontWeight:800, color:P.clay}}>Novedades reportadas por la familia ({novedades.length})</div>
@@ -1032,142 +1015,188 @@ function App() {
           </div>
         )}
 
-        {/* Feedback sobre LLENAR el formulario (10 nov 2026, pedido de
-            Leonardo) — a propósito separado del "Formulario completo" de
-            abajo, que es contexto clínico del niño/a. Esto es sobre el
-            PROCESO, nunca viajó al prompt de generación (ver
-            COLS.feedback_formulario). */}
-        {detalle.feedbackFormulario && (
-          <div style={{background:P.panel, border:"1px solid "+P.line, borderRadius:16, padding:"14px 16px"}}>
-            <div style={{fontSize:13, fontWeight:800, color:P.muted, marginBottom:6}}>Feedback de la familia sobre llenar el formulario</div>
-            <div style={{fontSize:13.5, color:P.ink, lineHeight:1.5}}>{detalle.feedbackFormulario}</div>
-          </div>
-        )}
-
-        <div className="panel-split">
-          <div className="panel-split-ref" style={{background:P.panel, border:"1px solid "+P.line, borderRadius:16, padding:"16px 18px"}}>
-            <div style={{fontSize:13.5, fontWeight:800, color:P.sageDeep, marginBottom:12}}>Formulario completo (contexto clínico)</div>
-            <div style={{display:"flex", flexDirection:"column", gap:10}}>
-              {camposParaDetalle(detalle).map(f => detalle[f.key] ? (
-                <div key={f.key}>
-                  <div style={{fontSize:11, fontWeight:800, color:P.muted, textTransform:"uppercase", letterSpacing:.3}}>{f.label}</div>
-                  {f.hint && <div style={{fontSize:11.5, color:P.muted, fontStyle:"italic", marginTop:1, marginBottom:3}}>{f.hint}</div>}
-                  <div style={{fontSize:13.5, color:P.ink, lineHeight:1.5, whiteSpace:"pre-wrap"}}>{detalle[f.key]}</div>
-                </div>
-              ) : null)}
-            </div>
-          </div>
-
-          <div>
-            <div style={{fontSize:13, fontWeight:800, color:P.sageDeep, marginBottom:6}}>Mensaje al padre/madre</div>
-            {soloLectura ? (
-              <div style={{background:P.panelRaised, border:"1px solid "+P.line, borderRadius:14, padding:"12px 14px", fontSize:14, color:P.ink, lineHeight:1.5, whiteSpace:"pre-wrap"}}>{mensaje || "—"}</div>
-            ) : (
-              <textarea value={mensaje} onChange={e=>setMensaje(e.target.value)} rows={28}
-                style={{width:"100%", border:"1px solid "+P.line, borderRadius:14, padding:"12px 14px", fontSize:14, fontFamily:"-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif", background:P.panelRaised, color:P.ink, outline:"none", resize:"vertical", lineHeight:1.5}}/>
-            )}
-          </div>
-        </div>
-
-        <div>
-          {/* Antes "Hábitos recomendados (X de Y incluidos)" — se leía como el
-              mismo checklist del mensaje, repetido (28 oct 2026, Leonardo).
-              La pestaña "Hoy" que mostraba esto a la familia se quitó el
-              mismo día; lo único que sigue leyendo esta lista es el chat de
-              Vita, como su referencia de qué se aprobó (ver
-              buildSeguimientoPrompt en app/ y plan/) — de ahí el nombre
-              nuevo. El toggle "incluido" se quita: nada lo filtra ya por
-              ese campo, Vita siempre usa la lista completa. Cerrada por
-              defecto desde el 29 oct 2026 (Leonardo: "too much para la
-              ventana del que revisa y aprueba") — sigue siendo necesaria
-              para el backend, solo no compite con el mensaje a la vista. */}
-          <span onClick={()=>setMostrarReferenciaVita(v=>!v)} style={{fontSize:13, fontWeight:800, color:P.muted, cursor:"pointer", display:"inline-flex", alignItems:"center", gap:5}}>
-            <span style={{display:"inline-block", transition:"transform .15s", transform: mostrarReferenciaVita?"rotate(90deg)":"none"}}>▸</span>
-            Referencia para Vita {habitos.length ? "(" + habitos.length + ")" : ""}
-          </span>
-          {mostrarReferenciaVita && (
-            <div style={{marginTop:8}}>
-              <div style={{fontSize:12, color:P.muted, marginBottom:8}}>Lo que Vita usa como fuente en el chat de seguimiento — no es un resumen aparte para el padre/madre, eso ya está en el mensaje de arriba.</div>
-              <div style={{display:"flex", flexDirection:"column", gap:10}}>
-                {soloLectura ? habitos.map((h, i) => (
-                  <div key={i} style={{background:P.panelRaised, border:"1px solid "+P.line, borderRadius:14, padding:"12px 14px"}}>
-                    <div style={{fontSize:13.5, fontWeight:800, color:P.ink, marginBottom:4}}>{h.titulo}</div>
-                    <div style={{fontSize:13, color:P.muted, lineHeight:1.45}}>{h.texto}</div>
-                  </div>
-                )) : habitos.map((h, i) => (
-                  <div key={i} style={{background:P.panelRaised, border:"1px solid "+P.line, borderRadius:14, padding:"12px 14px"}}>
-                    <div style={{display:"flex", flexDirection:"column", gap:6}}>
-                      <input value={h.titulo} onChange={e=>actualizarHabito(i,"titulo",e.target.value)} placeholder="Título del hábito"
-                        style={{border:"1px solid "+P.line, borderRadius:9, padding:"7px 10px", fontSize:13.5, fontWeight:800, fontFamily:"-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif", color:P.ink, outline:"none"}}/>
-                      <textarea value={h.texto} onChange={e=>actualizarHabito(i,"texto",e.target.value)} rows={2} placeholder="Para el chat de Vita"
-                        style={{border:"1px solid "+P.line, borderRadius:9, padding:"7px 10px", fontSize:13, fontFamily:"-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif", color:P.ink, outline:"none", resize:"vertical", lineHeight:1.4}}/>
-                    </div>
-                  </div>
-                ))}
-                {habitos.length === 0 && <p style={{fontSize:13, color:P.muted}}>No hay hábitos en el borrador — revisa el formulario completo arriba.</p>}
-              </div>
-            </div>
-          )}
-        </div>
-
         {accionError && <div style={{background:P.claySoft, border:"1px solid "+P.clay, borderRadius:12, padding:"10px 14px", fontSize:13, color:P.ink}}>{accionError}</div>}
 
-        {soloLectura ? (
-          <a href={"https://be360.app/app/?id="+detalle.idPlan} target="_blank" rel="noopener noreferrer"
-            style={{...btnPrimary, alignSelf:"flex-start", textDecoration:"none", display:"inline-block"}}>Ver el plan del padre/madre →</a>
-        ) : (
-          <div style={{display:"flex", gap:10, flexWrap:"wrap"}}>
-            <button onClick={guardarCambios} disabled={guardando} style={{...btnGhost, opacity:guardando?.6:1}}>{guardando?"Guardando…":(guardadoOk?"✓ Guardado":"Guardar cambios")}</button>
-            {!confirmando ? (
-              <button onClick={()=>setConfirmando(true)} style={btnPrimary}>Aprobar y enviar →</button>
-            ) : (
-              <div style={{background:P.sageSoft, border:"1px solid "+P.sage, borderRadius:14, padding:"12px 16px", flex:1, minWidth:260}}>
-                <div style={{fontSize:13, color:P.sageDeep, marginBottom:10, lineHeight:1.5}}>¿Confirmas? Esto le manda un correo real a {detalle.nombrePadre || "el padre/madre"}{detalle.emailPadre?" ("+detalle.emailPadre+")":""} con el link del plan.</div>
-                <div style={{display:"flex", gap:8}}>
-                  <button onClick={aprobar} disabled={aprobando} style={{...btnPrimary, opacity:aprobando?.7:1}}>{aprobando?"Enviando…":"Sí, aprobar y enviar"}</button>
-                  <button onClick={()=>setConfirmando(false)} style={btnGhost}>Cancelar</button>
+        {/* Pestañas del detalle (24 nov 2026, pedido de Leonardo: reorganizar
+            el panel) — 3 al mismo nivel: Recordatorios Pendientes, Formulario,
+            Mensaje al Padre/Madre. Referencia para Vita y Regenerar plan
+            quedan ANIDADOS dentro de Mensaje (secciones colapsables, mismo
+            patrón que Referencia ya tenía) -- son consecuencia directa de
+            revisar el mensaje, no cosas aparte al mismo nivel. */}
+        <div style={{display:"flex", gap:22, borderBottom:"1px solid "+P.line}}>
+          {[
+            ["recordatorios", "Recordatorios Pendientes" + (recordatoriosPendientes.length ? " (" + recordatoriosPendientes.length + ")" : "")],
+            ["formulario", "Formulario"],
+            ["mensaje", "Mensaje al Padre/Madre"],
+          ].map(([valor, etiqueta]) => (
+            <span key={valor} onClick={()=>setTabDetalle(valor)}
+              style={{fontSize:13.5, fontWeight:700, color: tabDetalle===valor?P.sageDeep:P.muted, padding:"9px 0", cursor:"pointer", borderBottom: tabDetalle===valor?"2px solid "+P.sageDeep:"2px solid transparent"}}>
+              {etiqueta}
+            </span>
+          ))}
+        </div>
+
+        {tabDetalle === "recordatorios" && (
+          recordatoriosPendientes.length === 0 ? (
+            <p style={{fontSize:13, color:P.muted}}>No hay recordatorios pendientes para este caso.</p>
+          ) : (
+            <div style={{display:"flex", flexDirection:"column", gap:10}}>
+              {recordatoriosPendientes.map((r) => (
+                <div key={r.id} style={{background:P.sageSoft, border:"1px solid "+P.sage, borderRadius:14, padding:"12px 14px"}}>
+                  <div style={{fontSize:11, color:P.muted, marginBottom:4}}>{relativeDate(r.creadoTs)} · {r.tipo === "proxima_cita" ? "próxima cita con el pediatra" : "información nueva sin revisar"}</div>
+                  <div style={{fontSize:13.5, color:P.ink, lineHeight:1.5, marginBottom:8}}>{r.texto}</div>
+                  {r.tipo === "proxima_cita" ? (
+                    <span onClick={()=>!resolviendoRecordatorio && resolverRecordatorioAccion(r.id, "confirmado_manual")} style={{fontSize:11.5, color:P.sageDeep, fontWeight:800, textDecoration:"underline", cursor:"pointer"}}>{resolviendoRecordatorio?"Guardando…":"Marcar como respondido"}</span>
+                  ) : (
+                    <span style={{display:"flex", gap:14}}>
+                      <span onClick={()=>!regenerando && !resolviendoRecordatorio && regenerar(r.texto, r.id)} style={{fontSize:11.5, color:P.sageDeep, fontWeight:800, textDecoration:"underline", cursor:"pointer"}}>{regenerando?"Encolando…":"Regenerar con esto"}</span>
+                      <span onClick={()=>!resolviendoRecordatorio && resolverRecordatorioAccion(r.id, "descartado")} style={{fontSize:11.5, color:P.muted, textDecoration:"underline", cursor:"pointer"}}>{resolviendoRecordatorio?"Guardando…":"Descartar"}</span>
+                    </span>
+                  )}
                 </div>
+              ))}
+            </div>
+          )
+        )}
+
+        {tabDetalle === "formulario" && (
+          <div style={{display:"flex", flexDirection:"column", gap:16}}>
+            {/* Feedback sobre LLENAR el formulario (10 nov 2026, pedido de
+                Leonardo) — a propósito separado del "Formulario completo" de
+                abajo, que es contexto clínico del niño/a. Esto es sobre el
+                PROCESO, nunca viajó al prompt de generación (ver
+                COLS.feedback_formulario). */}
+            {detalle.feedbackFormulario && (
+              <div style={{background:P.panel, border:"1px solid "+P.line, borderRadius:16, padding:"14px 16px"}}>
+                <div style={{fontSize:13, fontWeight:800, color:P.muted, marginBottom:6}}>Feedback de la familia sobre llenar el formulario</div>
+                <div style={{fontSize:13.5, color:P.ink, lineHeight:1.5}}>{detalle.feedbackFormulario}</div>
               </div>
             )}
+            <div style={{background:P.panel, border:"1px solid "+P.line, borderRadius:16, padding:"16px 18px"}}>
+              <div style={{display:"flex", flexDirection:"column", gap:10}}>
+                {camposParaDetalle(detalle).map(f => detalle[f.key] ? (
+                  <div key={f.key}>
+                    <div style={{fontSize:11, fontWeight:800, color:P.muted, textTransform:"uppercase", letterSpacing:.3}}>{f.label}</div>
+                    {f.hint && <div style={{fontSize:11.5, color:P.muted, fontStyle:"italic", marginTop:1, marginBottom:3}}>{f.hint}</div>}
+                    <div style={{fontSize:13.5, color:P.ink, lineHeight:1.5, whiteSpace:"pre-wrap"}}>{detalle[f.key]}</div>
+                  </div>
+                ) : null)}
+              </div>
+            </div>
           </div>
         )}
 
-        <div style={{borderTop:"1px solid "+P.line, paddingTop:14, marginTop:4, display:"flex", flexDirection:"column", gap:8}}>
-          {!regeneradoOk && huellaRegeneracion(detalle.regeneracionEstado) && (
-            <div style={{fontSize:12, color: huellaRegeneracion(detalle.regeneracionEstado).clay ? P.clay : P.muted, lineHeight:1.5, display:"flex", alignItems:"center", gap:8, flexWrap:"wrap"}}>
-              <span>{huellaRegeneracion(detalle.regeneracionEstado).texto}</span>
-              {/* Solo para el estado "error" final -- nunca para "iniciado"
-                  (regeneración en curso), que no tiene nada que descartar. */}
-              {/^error\b/.test(detalle.regeneracionEstado || "") && (
-                <span onClick={limpiarErrorRegeneracion} style={{textDecoration:"underline", cursor:limpiandoRegeneracion?"default":"pointer", opacity:limpiandoRegeneracion?.6:1, flexShrink:0}}>{limpiandoRegeneracion?"Descartando…":"Descartar"}</span>
+        {tabDetalle === "mensaje" && (
+          <div style={{display:"flex", flexDirection:"column", gap:16}}>
+            <div>
+              {soloLectura ? (
+                <div style={{background:P.panelRaised, border:"1px solid "+P.line, borderRadius:14, padding:"12px 14px", fontSize:14, color:P.ink, lineHeight:1.5, whiteSpace:"pre-wrap"}}>{mensaje || "—"}</div>
+              ) : (
+                <textarea value={mensaje} onChange={e=>setMensaje(e.target.value)} rows={28}
+                  style={{width:"100%", border:"1px solid "+P.line, borderRadius:14, padding:"12px 14px", fontSize:14, fontFamily:"-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif", background:P.panelRaised, color:P.ink, outline:"none", resize:"vertical", lineHeight:1.5}}/>
               )}
             </div>
-          )}
-          {regeneradoOk ? (
-            <div style={{fontSize:13, color:P.sageDeep, lineHeight:1.5}}>✓ Regenerando con el prompt actual — tarda cerca de un minuto. Puedes navegar a otra sección, no hace falta esperar acá: avisa con una notificación cuando termine (quedó en "pendiente de aprobación").</div>
-          ) : !confirmandoRegenerar ? (
-            <span onClick={()=>{setMotorElegido("claude"); setConfirmandoRegenerar(true);}} style={{fontSize:12.5, color:P.muted, textDecoration:"underline", cursor:"pointer"}}>Regenerar con el prompt actual</span>
-          ) : (
-            <div style={{background:P.sageSoft, border:"1px solid "+P.sage, borderRadius:14, padding:"12px 16px"}}>
-              <div style={{fontSize:13, color:P.sageDeep, marginBottom:10, lineHeight:1.5}}>
-                ¿Regenerar el plan de {detalle.nombreNino || "este niño/a"} con el prompt actual? Vuelve a llamar al modelo con los mismos datos del formulario{detalle.correoEnviadoTs ? " — este caso ya está aprobado y la familia puede estar viendo el plan actual; el nuevo contenido queda en pendiente de aprobación hasta que lo revises y apruebes otra vez" : ""}.
+
+            {soloLectura ? (
+              <a href={"https://be360.app/app/?id="+detalle.idPlan} target="_blank" rel="noopener noreferrer"
+                style={{...btnPrimary, alignSelf:"flex-start", textDecoration:"none", display:"inline-block"}}>Ver el plan del padre/madre →</a>
+            ) : (
+              <div style={{display:"flex", gap:10, flexWrap:"wrap"}}>
+                <button onClick={guardarCambios} disabled={guardando} style={{...btnGhost, opacity:guardando?.6:1}}>{guardando?"Guardando…":(guardadoOk?"✓ Guardado":"Guardar cambios")}</button>
+                {!confirmando ? (
+                  <button onClick={()=>setConfirmando(true)} style={btnPrimary}>Aprobar y enviar →</button>
+                ) : (
+                  <div style={{background:P.sageSoft, border:"1px solid "+P.sage, borderRadius:14, padding:"12px 16px", flex:1, minWidth:260}}>
+                    <div style={{fontSize:13, color:P.sageDeep, marginBottom:10, lineHeight:1.5}}>¿Confirmas? Esto le manda un correo real a {detalle.nombrePadre || "el padre/madre"}{detalle.emailPadre?" ("+detalle.emailPadre+")":""} con el link del plan.</div>
+                    <div style={{display:"flex", gap:8}}>
+                      <button onClick={aprobar} disabled={aprobando} style={{...btnPrimary, opacity:aprobando?.7:1}}>{aprobando?"Enviando…":"Sí, aprobar y enviar"}</button>
+                      <button onClick={()=>setConfirmando(false)} style={btnGhost}>Cancelar</button>
+                    </div>
+                  </div>
+                )}
               </div>
-              {/* Selector de motor (13 nov 2026): "claude" por defecto siempre
-                  que se abre esta confirmación — Gemini es una elección
-                  explícita cada vez, nunca algo que queda puesto de un caso
-                  anterior. */}
-              <div style={{display:"flex", gap:6, marginBottom:12}}>
-                {[["claude","Claude"],["gemini","Gemini (gemini-2.5-flash)"]].map(([valor,etiqueta]) => (
-                  <button key={valor} onClick={()=>setMotorElegido(valor)} style={{background:"none", border:"1px solid "+(motorElegido===valor?P.sageDeep:P.line), color:motorElegido===valor?P.sageDeep:P.muted, borderRadius:999, padding:"6px 12px", fontSize:12, fontWeight:700, cursor:"pointer", fontFamily:"-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif"}}>{etiqueta}</button>
-                ))}
-              </div>
-              <div style={{display:"flex", gap:8}}>
-                <button onClick={()=>regenerar(undefined, undefined, motorElegido)} disabled={regenerando} style={{...btnPrimary, opacity:regenerando?.7:1}}>{regenerando?"Encolando…":"Sí, regenerar"}</button>
-                <button onClick={()=>setConfirmandoRegenerar(false)} style={btnGhost}>Cancelar</button>
-              </div>
+            )}
+
+            <div style={{borderTop:"1px solid "+P.line, paddingTop:14}}>
+              {/* Antes "Hábitos recomendados (X de Y incluidos)" — se leía como el
+                  mismo checklist del mensaje, repetido (28 oct 2026, Leonardo).
+                  La pestaña "Hoy" que mostraba esto a la familia se quitó el
+                  mismo día; lo único que sigue leyendo esta lista es el chat de
+                  Vita, como su referencia de qué se aprobó (ver
+                  buildSeguimientoPrompt en app/ y plan/) — de ahí el nombre
+                  nuevo. El toggle "incluido" se quita: nada lo filtra ya por
+                  ese campo, Vita siempre usa la lista completa. Cerrada por
+                  defecto desde el 29 oct 2026 (Leonardo: "too much para la
+                  ventana del que revisa y aprueba") — sigue siendo necesaria
+                  para el backend, solo no compite con el mensaje a la vista. */}
+              <span onClick={()=>setMostrarReferenciaVita(v=>!v)} style={{fontSize:13, fontWeight:800, color:P.muted, cursor:"pointer", display:"inline-flex", alignItems:"center", gap:5}}>
+                <span style={{display:"inline-block", transition:"transform .15s", transform: mostrarReferenciaVita?"rotate(90deg)":"none"}}>▸</span>
+                Referencia para Vita {habitos.length ? "(" + habitos.length + ")" : ""}
+              </span>
+              {mostrarReferenciaVita && (
+                <div style={{marginTop:8}}>
+                  <div style={{fontSize:12, color:P.muted, marginBottom:8}}>Lo que Vita usa como fuente en el chat de seguimiento — no es un resumen aparte para el padre/madre, eso ya está en el mensaje de arriba.</div>
+                  <div style={{display:"flex", flexDirection:"column", gap:10}}>
+                    {soloLectura ? habitos.map((h, i) => (
+                      <div key={i} style={{background:P.panelRaised, border:"1px solid "+P.line, borderRadius:14, padding:"12px 14px"}}>
+                        <div style={{fontSize:13.5, fontWeight:800, color:P.ink, marginBottom:4}}>{h.titulo}</div>
+                        <div style={{fontSize:13, color:P.muted, lineHeight:1.45}}>{h.texto}</div>
+                      </div>
+                    )) : habitos.map((h, i) => (
+                      <div key={i} style={{background:P.panelRaised, border:"1px solid "+P.line, borderRadius:14, padding:"12px 14px"}}>
+                        <div style={{display:"flex", flexDirection:"column", gap:6}}>
+                          <input value={h.titulo} onChange={e=>actualizarHabito(i,"titulo",e.target.value)} placeholder="Título del hábito"
+                            style={{border:"1px solid "+P.line, borderRadius:9, padding:"7px 10px", fontSize:13.5, fontWeight:800, fontFamily:"-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif", color:P.ink, outline:"none"}}/>
+                          <textarea value={h.texto} onChange={e=>actualizarHabito(i,"texto",e.target.value)} rows={2} placeholder="Para el chat de Vita"
+                            style={{border:"1px solid "+P.line, borderRadius:9, padding:"7px 10px", fontSize:13, fontFamily:"-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif", color:P.ink, outline:"none", resize:"vertical", lineHeight:1.4}}/>
+                        </div>
+                      </div>
+                    ))}
+                    {habitos.length === 0 && <p style={{fontSize:13, color:P.muted}}>No hay hábitos en el borrador — revisa el formulario completo en su pestaña.</p>}
+                  </div>
+                </div>
+              )}
             </div>
-          )}
-        </div>
+
+            <div style={{borderTop:"1px solid "+P.line, paddingTop:14, display:"flex", flexDirection:"column", gap:8}}>
+              <div style={{fontSize:13, fontWeight:800, color:P.sageDeep}}>Regenerar plan</div>
+              {!regeneradoOk && huellaRegeneracion(detalle.regeneracionEstado) && (
+                <div style={{fontSize:12, color: huellaRegeneracion(detalle.regeneracionEstado).clay ? P.clay : P.muted, lineHeight:1.5, display:"flex", alignItems:"center", gap:8, flexWrap:"wrap"}}>
+                  <span>{huellaRegeneracion(detalle.regeneracionEstado).texto}</span>
+                  {/* Solo para el estado "error" final -- nunca para "iniciado"
+                      (regeneración en curso), que no tiene nada que descartar. */}
+                  {/^error\b/.test(detalle.regeneracionEstado || "") && (
+                    <span onClick={limpiarErrorRegeneracion} style={{textDecoration:"underline", cursor:limpiandoRegeneracion?"default":"pointer", opacity:limpiandoRegeneracion?.6:1, flexShrink:0}}>{limpiandoRegeneracion?"Descartando…":"Descartar"}</span>
+                  )}
+                </div>
+              )}
+              {regeneradoOk ? (
+                <div style={{fontSize:13, color:P.sageDeep, lineHeight:1.5}}>✓ Regenerando con el prompt actual — tarda cerca de un minuto. Puedes navegar a otra sección, no hace falta esperar acá: avisa con una notificación cuando termine (quedó en "pendiente de aprobación").</div>
+              ) : !confirmandoRegenerar ? (
+                <span onClick={()=>{setMotorElegido("claude"); setConfirmandoRegenerar(true);}} style={{fontSize:12.5, color:P.muted, textDecoration:"underline", cursor:"pointer"}}>Regenerar con el prompt actual</span>
+              ) : (
+                <div style={{background:P.sageSoft, border:"1px solid "+P.sage, borderRadius:14, padding:"12px 16px"}}>
+                  <div style={{fontSize:13, color:P.sageDeep, marginBottom:10, lineHeight:1.5}}>
+                    ¿Regenerar el plan de {detalle.nombreNino || "este niño/a"} con el prompt actual? Vuelve a llamar al modelo con los mismos datos del formulario{detalle.correoEnviadoTs ? " — este caso ya está aprobado y la familia puede estar viendo el plan actual; el nuevo contenido queda en pendiente de aprobación hasta que lo revises y apruebes otra vez" : ""}.
+                  </div>
+                  {/* Selector de motor (13 nov 2026): "claude" por defecto siempre
+                      que se abre esta confirmación — Gemini es una elección
+                      explícita cada vez, nunca algo que queda puesto de un caso
+                      anterior. */}
+                  <div style={{display:"flex", gap:6, marginBottom:12}}>
+                    {[["claude","Claude"],["gemini","Gemini (gemini-2.5-flash)"]].map(([valor,etiqueta]) => (
+                      <button key={valor} onClick={()=>setMotorElegido(valor)} style={{background:"none", border:"1px solid "+(motorElegido===valor?P.sageDeep:P.line), color:motorElegido===valor?P.sageDeep:P.muted, borderRadius:999, padding:"6px 12px", fontSize:12, fontWeight:700, cursor:"pointer", fontFamily:"-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif"}}>{etiqueta}</button>
+                    ))}
+                  </div>
+                  <div style={{display:"flex", gap:8}}>
+                    <button onClick={()=>regenerar(undefined, undefined, motorElegido)} disabled={regenerando} style={{...btnPrimary, opacity:regenerando?.7:1}}>{regenerando?"Encolando…":"Sí, regenerar"}</button>
+                    <button onClick={()=>setConfirmandoRegenerar(false)} style={btnGhost}>Cancelar</button>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
 
         {!detalle.correoEnviadoTs && (
           <div style={{borderTop:"1px solid "+P.line, paddingTop:14, marginTop:4}}>
