@@ -366,6 +366,23 @@ function resolverRecordatorio(sheet, body) {
   return respond({ ok: true });
 }
 
+// Descarta el mensaje de "último intento falló" / "regenerando" de un caso
+// (24 nov 2026, pedido de Leonardo -- caso real: un intento de regenerar
+// fallido después de que el caso YA estaba aprobado y entregado con un
+// borrador bueno de antes, dejó el mensaje de error pegado en el panel sin
+// que nada estuviera roto de verdad). Solo vacía regeneracion_estado --
+// NUNCA toca borrador_texto, plan_json ni decision, así que no hay forma de
+// que esto dispare ni simule una regeneración real.
+function limpiarRegeneracion(sheet, body) {
+  var idPlan = body.idPlan;
+  if (!idPlan) return respond({ ok: false, error: "idPlan faltante" }, 400);
+  var found = encontrarFilaPorIdPlan(sheet, idPlan);
+  if (!found) return respond({ ok: false, error: "no encontrado" }, 404);
+  sheet.getRange(found.row, COLS.regeneracion_estado + 1).setValue("");
+  SpreadsheetApp.flush();
+  return respond({ ok: true });
+}
+
 // true si el valor crudo de la celda recordatorios_json trae al menos un
 // recordatorio sin resolver — para el badge rápido en listarPendientes()/
 // listarHistorial(), sin que el panel tenga que abrir el detalle de cada
@@ -426,6 +443,10 @@ function doPost(e) {
     if (body.action === "descartar_pendiente") return conPanelSecret(body, function () { return descartarPendiente(sheet, body); });
     if (body.action === "eliminar_novedad") return conPanelSecret(body, function () { return eliminarNovedad(sheet, body); });
     if (body.action === "resolver_recordatorio") return conPanelSecret(body, function () { return resolverRecordatorio(sheet, body); });
+    // NUEVO (24 nov 2026, pedido de Leonardo): descartar el mensaje de "último
+    // intento falló" de un caso ya aprobado y entregado -- ver limpiarRegeneracion()
+    // más abajo. NUNCA dispara una regeneración, solo vacía regeneracion_estado.
+    if (body.action === "limpiar_regeneracion") return conPanelSecret(body, function () { return limpiarRegeneracion(sheet, body); });
     // NUEVO (6 nov 2026, pedido de Leonardo): borrado masivo de casos ya
     // aprobados — limpiar los sintéticos de auditoría del historial real.
     // Ver eliminarAprobados() más abajo para el porqué de NO bloquear por

@@ -435,6 +435,7 @@ function App() {
   const [regenerando, setRegenerando] = useState(false);
   const [regeneradoOk, setRegeneradoOk] = useState(false);
   const [resolviendoRecordatorio, setResolviendoRecordatorio] = useState(false);
+  const [limpiandoRegeneracion, setLimpiandoRegeneracion] = useState(false);
 
   const llamarPanel = async (ruta, extra) => {
     const res = await fetch(WORKER_URL + "/panel/" + ruta, {
@@ -694,6 +695,22 @@ function App() {
       setDetalle(d => ({ ...d, recordatorios: (d.recordatorios||[]).map(r => r.id === recordatorioId ? { ...r, resueltoTs: new Date().toISOString(), resueltoMotivo: motivo } : r) }));
     } catch (e) { setAccionError(e.message === "PIN incorrecto" ? null : (e.message || "No se pudo resolver. Reintenta.")); }
     finally { setResolviendoRecordatorio(false); }
+  };
+
+  // Descarta el mensaje de "último intento falló" (24 nov 2026, pedido de
+  // Leonardo: casos ya aprobados y entregados con un borrador bueno, donde
+  // un intento posterior de regenerar falló y dejó el error pegado en el
+  // panel sin que nada estuviera roto de verdad). NUNCA regenera -- solo
+  // vacía el texto en el Sheet, ver limpiarRegeneracion() en Apps Script.
+  const limpiarErrorRegeneracion = async () => {
+    if (limpiandoRegeneracion) return;
+    setLimpiandoRegeneracion(true); setAccionError(null);
+    try {
+      const data = await llamarPanel("limpiar-regeneracion", { idPlan: detalle.idPlan });
+      if (!data.ok) throw new Error(data.error || "error");
+      setDetalle(d => ({ ...d, regeneracionEstado: "" }));
+    } catch (e) { setAccionError(e.message === "PIN incorrecto" ? null : (e.message || "No se pudo limpiar. Reintenta.")); }
+    finally { setLimpiandoRegeneracion(false); }
   };
 
   const borrarNovedad = async (index) => {
@@ -1117,7 +1134,14 @@ function App() {
 
         <div style={{borderTop:"1px solid "+P.line, paddingTop:14, marginTop:4, display:"flex", flexDirection:"column", gap:8}}>
           {!regeneradoOk && huellaRegeneracion(detalle.regeneracionEstado) && (
-            <div style={{fontSize:12, color: huellaRegeneracion(detalle.regeneracionEstado).clay ? P.clay : P.muted, lineHeight:1.5}}>{huellaRegeneracion(detalle.regeneracionEstado).texto}</div>
+            <div style={{fontSize:12, color: huellaRegeneracion(detalle.regeneracionEstado).clay ? P.clay : P.muted, lineHeight:1.5, display:"flex", alignItems:"center", gap:8, flexWrap:"wrap"}}>
+              <span>{huellaRegeneracion(detalle.regeneracionEstado).texto}</span>
+              {/* Solo para el estado "error" final -- nunca para "iniciado"
+                  (regeneración en curso), que no tiene nada que descartar. */}
+              {/^error\b/.test(detalle.regeneracionEstado || "") && (
+                <span onClick={limpiarErrorRegeneracion} style={{textDecoration:"underline", cursor:limpiandoRegeneracion?"default":"pointer", opacity:limpiandoRegeneracion?.6:1, flexShrink:0}}>{limpiandoRegeneracion?"Descartando…":"Descartar"}</span>
+              )}
+            </div>
           )}
           {regeneradoOk ? (
             <div style={{fontSize:13, color:P.sageDeep, lineHeight:1.5}}>✓ Regenerando con el prompt actual — tarda cerca de un minuto. Puedes navegar a otra sección, no hace falta esperar acá: avisa con una notificación cuando termine (quedó en "pendiente de aprobación").</div>

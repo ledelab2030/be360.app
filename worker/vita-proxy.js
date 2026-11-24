@@ -312,6 +312,13 @@ export default {
     // "novedad_pendiente" sin regenerar) — mismo principio que las rutas de
     // arriba.
     if (url.pathname === "/panel/resolver-recordatorio") return handlePanelAction(request, env, cors, "resolver_recordatorio");
+    // NUEVO (24 nov 2026, pedido de Leonardo): descartar el mensaje de "último
+    // intento falló" de un caso YA aprobado y entregado — un intento de
+    // regenerar puede fallar después de que el caso ya se aprobó con un
+    // borrador bueno de antes, y ese mensaje de error se queda pegado en el
+    // panel sin que nada esté roto de verdad. Mismo principio que las rutas
+    // de arriba: NUNCA dispara una regeneración, solo limpia el texto.
+    if (url.pathname === "/panel/limpiar-regeneracion") return handlePanelAction(request, env, cors, "limpiar_regeneracion");
     // NUEVO (6 nov 2026, pedido de Leonardo): borrado masivo en Aprobados —
     // a diferencia de "descartar" (Pendientes), acá sí se espera que
     // correo_enviado_ts tenga valor (así llega un caso a Aprobados), así que

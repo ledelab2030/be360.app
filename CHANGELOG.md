@@ -1881,6 +1881,18 @@ Se agrega un link discreto bajo el botón principal "Quiero probarlo": "¿Ya tie
 
 ---
 
+### 24 nov 2026 — Descartar el mensaje de "último intento falló" sin regenerar
+
+Leonardo pidió revisar los casos #3-#5 con el mismo rigor que el #2 (pendiente desde antes) y, al abrir `equipo/`, encontró dos casos ya aprobados y entregados (con un borrador bueno de antes) mostrando "✗ Último intento falló... no se pudo generar un borrador limpio" — de un intento de regenerar posterior que sí falló, pero sin que el caso en sí tuviera nada roto. Pidió limpiar el mensaje, explícitamente SIN regenerar nada (los casos ya están aprobados y enviados a la familia).
+
+Nueva acción de panel `limpiar_regeneracion` (protegida por PIN, igual que `resolver_recordatorio`/`eliminar_novedad`): solo vacía la columna `regeneracion_estado` del caso — nunca toca `borrador_texto`, `plan_json` ni `decision`, así que no hay forma de que dispare ni simule una regeneración real. En `equipo/`, un link "Descartar" aparece junto al mensaje de error SOLO cuando el estado es `error` (nunca para "iniciado", que sí está en curso y no tiene nada que descartar).
+
+**Archivos:** `worker/vita-proxy.js` (ruta `/panel/limpiar-regeneracion`); `worker/apps-script-formulario-v2.gs.txt` (acción `limpiar_regeneracion`, función `limpiarRegeneracion()`); `equipo/index.html` (link "Descartar" junto al mensaje de error, estado `limpiandoRegeneracion`).
+
+**Verificación:** `node --check` en los dos archivos de backend. Transformación con `@babel/standalone` de `equipo/index.html` — sin errores de JSX.
+
+---
+
 ## Lo que enseña este historial
 
 Tres patrones que se repiten y conviene tener presentes:
