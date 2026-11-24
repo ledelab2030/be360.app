@@ -2146,7 +2146,20 @@ async function generarYVerificarBorrador(dx, env, idPlan, motor) {
       });
 
       console.log("[generarYVerificarBorrador] respuesta de Gemini: HTTP " + upstream.status);
-      const data = await upstream.json();
+      // NUNCA .json() directo (24 nov 2026, caso real: un 524 de Cloudflare —
+      // timeout hablando con la API de Gemini — devuelve texto plano
+      // ("error code: 524"), no JSON. Sin este try/catch, ese SyntaxError se
+      // escapaba hasta el catch de más afuera y tumbaba la función entera de
+      // un solo golpe, saltándose los 4 intentos previstos (ver
+      // MAX_INTENTOS) — Gemini nunca llegaba a reintentar, pasaba derecho al
+      // respaldo de Claude en el primer tropiezo. Ahora un cuerpo no-JSON
+      // se trata igual que cualquier otro intento fallido: data queda
+      // vacío, parsed queda null más abajo, y el ciclo de reintentos sigue
+      // su curso normal.
+      const textoCrudo = await upstream.text();
+      let data = {};
+      try { data = JSON.parse(textoCrudo); }
+      catch (e) { console.log("[generarYVerificarBorrador] Gemini no devolvió JSON (HTTP " + upstream.status + "): " + textoCrudo.slice(0, 200)); }
       if (data.error) console.log("[generarYVerificarBorrador] Gemini devolvió error: " + JSON.stringify(data.error));
       const candidato = (data.candidates || [])[0];
       const text = ((candidato && candidato.content && candidato.content.parts) || []).filter(p => p.text).map(p => p.text).join("\n");
@@ -2209,7 +2222,13 @@ async function generarYVerificarBorrador(dx, env, idPlan, motor) {
       });
 
       console.log("[generarYVerificarBorrador] respuesta de Claude: HTTP " + upstream.status);
-      const data = await upstream.json();
+      // Mismo blindaje que llamarGemini arriba -- un cuerpo no-JSON (ej. un
+      // 524 de Cloudflare) no debe tumbar la función entera y saltarse los
+      // reintentos; se trata como un intento fallido más.
+      const textoCrudo = await upstream.text();
+      let data = {};
+      try { data = JSON.parse(textoCrudo); }
+      catch (e) { console.log("[generarYVerificarBorrador] Claude no devolvió JSON (HTTP " + upstream.status + "): " + textoCrudo.slice(0, 200)); }
       if (data.error) console.log("[generarYVerificarBorrador] Claude devolvió error: " + JSON.stringify(data.error));
       // Verificación de prompt caching (5 nov 2026) — la guía de Anthropic es
       // explícita: "el único terreno firme es usage.cache_read_input_tokens",

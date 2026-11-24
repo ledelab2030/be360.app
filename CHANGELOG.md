@@ -1921,6 +1921,20 @@ Leonardo activó la facturación de Google Cloud para el proyecto be360 (resolvi
 
 ---
 
+### 24 nov 2026 — Primera prueba real del respaldo: un 524 de Cloudflare se saltaba los 4 intentos de Gemini de un solo golpe
+
+Probar el camino real (regla de CLAUDE.md — no subir cambios a la generación sin probarlos de punta a punta) con un caso de prueba real (`PRUEBA-Gemini`, formulario enviado vía `/log` como lo haría un padre) encontró un bug real en el respaldo del PR anterior, el mismo día que se mergeó.
+
+Gemini respondió con un **524 de Cloudflare** (timeout hablando con la API de Gemini) — y esa respuesta viene en **texto plano** ("error code: 524"), no JSON. `llamarGemini()` hacía `await upstream.json()` sin capturar el error de parseo: ese `SyntaxError` se escapaba hasta el catch de más afuera de `generarYVerificarBorrador` y tumbaba la función ENTERA de un solo golpe — Gemini nunca llegó a sus 4 intentos previstos (`MAX_INTENTOS`), pasó derecho al respaldo de Claude en el primer tropiezo. El respaldo en sí funcionó bien (Claude generó el borrador), pero el diseño "Gemini agota sus 4 intentos antes de caer a Claude" no se estaba cumpliendo de verdad.
+
+**Corregido en `llamarGemini()` y, por el mismo riesgo, también en `llamarClaude()`:** en vez de `await upstream.json()` directo, se lee el cuerpo como texto y se intenta `JSON.parse()` en un try/catch propio — un cuerpo no-JSON ahora se trata como un intento fallido más (`data` queda `{}`, el resto de la función sigue su curso normal), nunca como una excepción que corta el ciclo de reintentos.
+
+**Archivo:** `worker/vita-proxy.js` — `llamarGemini()` y `llamarClaude()`, lectura de la respuesta HTTP.
+
+**Verificación:** `node --check`. Prueba en sandbox de Node con el texto EXACTO que devolvió Cloudflare en el caso real ("error code: 524") confirmando que ya no lanza una excepción sin capturar, y que un JSON válido se sigue parseando igual que antes.
+
+---
+
 ## Lo que enseña este historial
 
 Tres patrones que se repiten y conviene tener presentes:
