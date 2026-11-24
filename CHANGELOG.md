@@ -1863,7 +1863,21 @@ Registro del service worker en `index.html`, detrás de una comprobación de sop
 
 **Archivos:** `sw.js` (nuevo); `index.html` (registro del service worker, al final del body).
 
-**Verificación:** servido local — confirmado por código (`navigator.serviceWorker.getRegistrations()`) que el service worker queda activo con el scope correcto, cero errores en la consola del navegador, y la home se ve igual que antes. **Pendiente, no se puede probar en sandbox:** confirmar en un Android real que ahora sí aparece el aviso automático de instalación.
+**Verificación:** servido local — confirmado por código (`navigator.serviceWorker.getRegistrations()`) que el service worker queda activo con el scope correcto, cero errores en la consola del navegador, y la home se ve igual que antes.
+
+**Confirmado en Android real el mismo día** (Leonardo, Chrome): el menú de los tres puntos (⋮) ya ofrece "Instalar app" — hizo falta una recarga de la página después de la primera visita (el service worker se registra en esa primera carga; Chrome solo vuelve a evaluar si el sitio es instalable en una carga posterior, ya con el service worker activo). No apareció ningún aviso emergente automático, pero eso es el comportamiento esperado en las versiones recientes de Chrome — el camino real es el menú, no un banner.
+
+---
+
+### 24 nov 2026 — Link a entrar/ en la home, para quien instaló el ícono ahí
+
+Pregunta de Leonardo tras confirmar la instalación en Android: "¿y cuando el usuario inicia, cómo se loguea?" — reveló un hueco real: la home no tenía ningún link visible hacia `entrar/`. Quien instala el ícono desde la home (23 nov) siempre vuelve a ESA página, no a su plan — sin un link ahí mismo, no había forma de llegar al plan desde el ícono instalado salvo escribir la URL de `entrar/` a mano.
+
+Se agrega un link discreto bajo el botón principal "Quiero probarlo": "¿Ya tienes un plan? Entra aquí" → `/entrar/`.
+
+**Archivos:** `index.html` (link nuevo bajo el CTA del hero).
+
+**Verificación:** servido local con el server estático de `.claude/launch.json` — revisión visual (el link queda discreto, no compite con el CTA principal) y confirmado por código que el `href` apunta a `/entrar/`.
 
 ---
 
