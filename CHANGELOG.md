@@ -1893,6 +1893,20 @@ Nueva acción de panel `limpiar_regeneracion` (protegida por PIN, igual que `res
 
 ---
 
+### 24 nov 2026 — El detalle de un caso se reorganiza en pestañas
+
+Pedido de Leonardo: reorganizar el detalle de `equipo/` en pestañas ("Recordatorios Pendientes", "Formulario", "Mensaje al Padre/Madre", "Referencias para Vita", "Regenerar plan"), preguntando si debían ir todas al mismo nivel o algunas anidadas. Pregunta estructurada para confirmar antes de tocar el panel que el equipo usa todos los días: **3 pestañas al mismo nivel** (Recordatorios Pendientes / Formulario / Mensaje al Padre/Madre) y **Referencias para Vita + Regenerar plan anidadas dentro de Mensaje**, como secciones colapsables — son consecuencia directa de revisar el mensaje, no cosas aparte con el mismo peso visual que el contenido principal.
+
+Quedan **fuera de las pestañas, siempre visibles** (no estaban en la lista de Leonardo, y esconderlas detrás de un clic les quitaría la urgencia que ya tienen hoy): el encabezado del caso, la Auditoría automática, y Novedades reportadas por la familia. "Descartar este caso" sigue como pie de página, fuera de las pestañas (acción rara y destructiva, no asociada a ningún contenido en particular).
+
+"Mensaje al Padre/Madre" queda como pestaña por defecto al abrir cualquier caso — es el contenido principal, lo que de verdad se revisa y se aprueba. La pestaña de Recordatorios muestra el conteo entre paréntesis cuando hay alguno pendiente, igual que ya hacía el badge de la lista.
+
+**Archivo:** `equipo/index.html` — reorganización del detalle en pestañas (estado nuevo `tabDetalle`, reseteado a "mensaje" en `abrirDetalle`); eliminadas las clases CSS `panel-split`/`panel-split-ref` (quedaron sin uso al quitar el layout de dos columnas).
+
+**Verificación:** transformación con `@babel/standalone` — sin errores de JSX. Probado visualmente en el navegador con un caso simulado (login y datos de un caso real-mente estructurado, inyectados sobre `fetch`, sin tocar el Worker de producción): las 3 pestañas cambian correctamente, el conteo de Recordatorios se ve en la pestaña, y dentro de Mensaje aparecen Referencia para Vita, el aviso de "último intento falló" con su link de Descartar, y Regenerar plan, todo funcionando igual que antes de la reorganización.
+
+---
+
 ## Lo que enseña este historial
 
 Tres patrones que se repiten y conviene tener presentes:
