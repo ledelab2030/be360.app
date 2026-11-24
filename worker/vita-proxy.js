@@ -2456,14 +2456,27 @@ async function generarYVerificarBorrador(dx, env, idPlan, motor) {
   }
 }
 
-// Genera el borrador automáticamente (Claude + Prompt Maestro embebido) y lo
-// guarda solo, vía la misma acción "guardar_borrador" del Apps Script. Corre
-// en segundo plano (ctx.waitUntil) — si falla por lo que sea, no revienta
+// Genera el borrador automáticamente (Prompt Maestro embebido) y lo guarda
+// solo, vía la misma acción "guardar_borrador" del Apps Script. Corre en
+// segundo plano (ctx.waitUntil) — si falla por lo que sea, no revienta
 // nada: la fila simplemente se queda en "pendiente" para revisión manual,
 // igual que se comportaba el sistema antes de esta automatización.
+//
+// GEMINI PRIMERO, CLAUDE DE RESPALDO (24 nov 2026, pedido de Leonardo, tras
+// activar la facturación de Google Cloud): el camino principal del
+// producto ya usó Claude en exclusiva desde el día uno por algo — este
+// sistema "falla en silencio por diseño" (ver CLAUDE.md) y un caso que se
+// queda sin borrador es el hueco de observabilidad más grave del proyecto.
+// En vez de apostarlo todo a que Gemini funcione siempre, si Gemini agota
+// sus 4 intentos sin producir nada usable, se reintenta el ciclo completo
+// con Claude antes de rendirse — nunca un caso real se queda sin plan por
+// un fallo de un solo proveedor. La regeneración manual desde equipo/ NO
+// cambia: sigue siendo Claude por defecto, Gemini una elección explícita
+// cada vez (ver motorElegido en equipo/index.html) — este respaldo es
+// exclusivo de la generación automática de un formulario nuevo.
 async function generarBorradorAutomatico(dx, ts, env) {
   if (!env.SHEET_WEBHOOK_URL_FORMULARIO) return;
-  // idPlan se genera ACÁ, antes de llamar a Claude (30 oct 2026, pedido de
+  // idPlan se genera ACÁ, antes de llamar al modelo (30 oct 2026, pedido de
   // Leonardo) -- el cierre fijo del mensaje necesita un link real al plan
   // ("https://be360.app/app/?id=..."), y antes de este cambio el idPlan no
   // existía hasta que Apps Script lo asignaba DESPUÉS de guardar el
@@ -2474,7 +2487,11 @@ async function generarBorradorAutomatico(dx, ts, env) {
   // guardarBorrador() en el .gs) -- nunca genera uno distinto cuando ya
   // viene uno, para que el link que el mensaje ya trae siempre coincida.
   const idPlan = crypto.randomUUID().replace(/-/g, "").slice(0, 16);
-  const resultado = await generarYVerificarBorrador(dx, env, idPlan);
+  let resultado = await generarYVerificarBorrador(dx, env, idPlan, "gemini");
+  if (!resultado) {
+    console.log("[generarBorradorAutomatico] Gemini no pudo generar un borrador limpio en " + idPlan + " — reintentando con Claude como respaldo");
+    resultado = await generarYVerificarBorrador(dx, env, idPlan, "claude");
+  }
   if (!resultado) return;
   try {
     await fetch(env.SHEET_WEBHOOK_URL_FORMULARIO, {
