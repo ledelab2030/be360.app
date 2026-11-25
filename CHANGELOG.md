@@ -1935,6 +1935,19 @@ Gemini respondió con un **524 de Cloudflare** (timeout hablando con la API de G
 
 ---
 
+### 24 nov 2026 — Dos reglas reforzadas a partir de una auditoría externa de Gemini, SIN verificar contra el texto real
+
+Excepción explícita a la práctica de toda la sesión (comparar cada hallazgo contra el texto real del borrador antes de actuar): Leonardo pegó una auditoría externa de Gemini (96/100) de un caso regenerado, y pidió corregir el prompt directamente a partir de ella. Se decidió aplicar los dos hallazgos porque ambos son coherentes con reglas que YA EXISTEN y que ya habían fallado de forma parecida antes (no son afirmaciones nuevas sin respaldo) — pero quedan sin el cruce línea por línea contra el borrador real que se le ha hecho a cada hallazgo anterior en esta sesión. Pendiente confirmarlo cuando Leonardo comparta los textos reales de los casos de prueba.
+
+1. **"Eliminación de formatos habituales sin ofrecer alternativa sin gluten"** (pan con mermelada, pasta con salsa) — la regla "PRINCIPIO DE RESPETO A LA RUTINA Y SUSTITUCIÓN DE INGREDIENTES" (5 nov 2026) ya cubría panes/sándwiches y pancakes, pero nunca mencionó **pasta** como alimento habitual a sustituir (no eliminar) — se agrega como punto nuevo de la lista, y se amplía el punto del pan para cubrir cualquier forma (no solo "sándwiches").
+2. **"Omisión de la regla de fin de semana en Pilar 3"** — la regla ya existía pero solo decía "aplica el efecto práctico", sin especificar que debe aparecer en las DOS secciones del plan (HÁBITOS Y VENTANA NUTRICIONAL PROPUESTA y Pilar 3) — ahora lo dice explícito.
+
+**Archivo:** `worker/vita-proxy.js` — `ADAPTACIONES_PEDIATRICAS`: punto nuevo de pasta en "PRINCIPIO DE RESPETO A LA RUTINA...", y aclaración de las dos secciones en "VENTANA DE ALIMENTACIÓN: MÁS CORTA EL FIN DE SEMANA".
+
+**Verificación:** `node --check` únicamente. Cambio de prompt sin caso real para confirmar contra texto — a diferencia del resto de entradas de este historial, esta es la excepción explícita, documentada como tal.
+
+---
+
 ## Lo que enseña este historial
 
 Tres patrones que se repiten y conviene tener presentes:
