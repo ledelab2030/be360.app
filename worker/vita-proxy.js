@@ -711,18 +711,25 @@ arriba cuando hay conflicto (el texto de arriba fue escrito para adultos):
   rutina y sustituye ÚNICAMENTE los ingredientes contrarios al SRB por equivalentes compatibles —
   NUNCA cambies el tipo de plato ni agregues alimentos comodín de la lista VERDE (como aguacate,
   aceitunas o nueces) si el formulario no los describe en ese momento del día:
-  1. Si consume panes o sándwiches de trigo: reemplaza la harina de trigo por pan sin trigo
-     (harina de arroz, quinua o sagú).
+  1. Si consume PAN en cualquier forma (de molde, con mermelada, en sándwich, solo, tostado): reemplaza
+     la harina de trigo por pan sin trigo (harina de arroz, quinua o sagú) — NUNCA elimines el pan de la
+     comida ni lo reemplaces por un plato distinto; la preparación que lo acompañaba (mermelada, queso,
+     relleno) se ajusta con las mismas reglas de esta lista, nunca se elimina sin más.
   2. Si consume pancakes, tortas o wafles de trigo: mantén la preparación sustituyendo la masa por
      harinas compatibles sin trigo (yuca, plátano verde o sagú), indicando huevo o proteína real
      al lado para asegurar saciedad.
-  3. Si consume bebidas calientes o batidos con leche/azúcar (chocolate, cocoa, batidos
+  3. Si consume PASTA de trigo (con cualquier salsa — tomate, crema, pesto): mantén el plato
+     sustituyendo únicamente la pasta por pasta sin trigo (de arroz, quinua o maíz), con la MISMA
+     salsa/preparación que ya disfruta — nunca cambies el plato completo por otra cosa (12 nov 2026,
+     caso real auditado: un borrador eliminó por completo "pasta con salsa" en vez de sustituir solo
+     la pasta).
+  4. Si consume bebidas calientes o batidos con leche/azúcar (chocolate, cocoa, batidos
      comerciales de proteína): mantén la bebida caliente pero prepárala en agua sola, suprimiendo
      la leche animal/vegetal azucarada, los batidos con lactosuero y el azúcar/mermeladas.
-  4. Si consume quesos frescos en sus preparaciones: reemplaza por opciones grasas compatibles
+  5. Si consume quesos frescos en sus preparaciones: reemplaza por opciones grasas compatibles
      afines a la preparación (mantequilla clarificada o queso azul/roquefort) o retira el lácteo
      fresco manteniendo el relleno base.
-  5. CERO INGREDIENTES INVENTADOS: en la propuesta de cada comida, básate estrictamente en los
+  6. CERO INGREDIENTES INVENTADOS: en la propuesta de cada comida, básate estrictamente en los
      alimentos descritos en la cronología del paciente. No introduzcas "de oficio" alimentos de la
      lista VERDE si el niño/a no los consume en ese horario.
 - CARBOHIDRATOS — SIEMPRE ACOMPAÑANTE: arroz, lentejas, patacones, papa (cocida, de acompañante —
@@ -900,7 +907,11 @@ arriba cuando hay conflicto (el texto de arriba fue escrito para adultos):
   semana queda MÁS CORTA que la de semana, nunca igual ni más larga. No expliques el mecanismo
   interno al padre (la razón clínica usa una palabra que está prohibida más arriba, en "PALABRAS
   PROHIBIDAS") — solo aplica el efecto práctico: cena temprano igual, desayuno más tarde, ventana de
-  fin de semana más corta.`;
+  fin de semana más corta. ESTA REGLA VA EN LAS DOS SECCIONES, NO SOLO EN UNA (12 nov 2026, caso real
+  auditado: un borrador la mencionó en HÁBITOS Y VENTANA NUTRICIONAL PROPUESTA pero la omitió en
+  Pilar 3) — una línea breve en HÁBITOS Y VENTANA NUTRICIONAL PROPUESTA ("Fin de semana: desayuno más
+  tarde, cena a la misma hora temprana, ventana más corta") Y la misma idea repetida en una frase
+  corta dentro de Pilar 3 — Ritmo y ventana de alimentación, nunca omitida en ninguna de las dos.`;
 
 // MANUAL DE AUDITORÍA EXTERNO (12 nov 2026, pedido explícito de Leonardo:
 // "que use el manual de auditoría que usa Gemini tal cual") — texto literal
