@@ -1948,6 +1948,19 @@ Excepción explícita a la práctica de toda la sesión (comparar cada hallazgo 
 
 ---
 
+### 24 nov 2026 — Jamón y embutidos en ROJO; "pantallas omitidas" se descarta como hallazgo
+
+Leonardo regeneró el mismo caso de prueba con Gemini (ya con el PR #221 desplegado) y compartió otra auditoría externa (96/100) con dos hallazgos nuevos. Esta vez sí se verificó cada uno contra el prompt real antes de actuar — mismo criterio del resto de la sesión, retomado tras la excepción de la entrada anterior:
+
+1. **Real, corregido:** "jamón" y "embutidos" nunca aparecían en ningún lado del prompt (confirmado por búsqueda directa) — un formulario que reporta "sándwich de jamón y queso" no tenía forma de que el jamón quedara clasificado en 🔴 ROJO. Se agrega a la misma regla que ya cubre helados y salchipapas ("CHATARRA EXPLÍCITA EN ROJO").
+2. **Descartado, no es un hueco de reglas:** la omisión de "pantallas" ya tiene regla explícita en el prompt ("PANTALLAS ANTES DE DORMIR") Y un chequeo determinístico por código que la exige en el ciclo de reintentos (`revisarBorradorPediatrico`, "el plan no menciona pantallas en ninguna parte"). Si el hallazgo es real, es un caso de los 4 intentos no siendo suficientes para limpiarlo — no una regla faltante que corregir en el prompt.
+
+**Archivo:** `worker/vita-proxy.js` — "CHATARRA EXPLÍCITA EN ROJO" ampliada con jamón y embutidos/fiambres.
+
+**Verificación:** `node --check`. La ausencia de "jamón"/"embutido" en el prompt se confirmó por búsqueda directa en el archivo, no por inferencia — mismo nivel de verificación que el resto de la sesión (la entrada anterior fue la excepción, esta vuelve a la norma).
+
+---
+
 ## Lo que enseña este historial
 
 Tres patrones que se repiten y conviene tener presentes:
