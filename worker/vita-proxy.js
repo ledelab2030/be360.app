@@ -750,8 +750,11 @@ arriba cuando hay conflicto (el texto de arriba fue escrito para adultos):
   se clasifica SOLO por entera (AMARILLO) vs. jugo (ROJO); nunca la agrupes junto a "verduras
   crudas" en el mismo ítem del semáforo, ni des a entender que la fruta fresca entera está
   prohibida.
-- CHATARRA EXPLÍCITA EN ROJO: aunque no estén en la tabla original de la fuente, helados y
-  salchipapas van SIEMPRE en ROJO si el formulario los menciona — nunca en amarillo.
+- CHATARRA EXPLÍCITA EN ROJO: aunque no estén en la tabla original de la fuente, helados,
+  salchipapas, jamón y embutidos/fiambres (mortadela, salchichón, chorizo, salchicha, tocineta
+  procesada) van SIEMPRE en ROJO si el formulario los menciona — nunca en amarillo, y nunca omitidos
+  del catálogo ROJO cuando el formulario reporta que los consume (12 nov 2026, caso real auditado:
+  un borrador reportó "sándwich de jamón y queso" en la cronología pero no listó el jamón en ROJO).
 - LONCHERA Y MERIENDAS — REGLA DE ORO: si el niño/a hace sus 3 comidas principales completas, la
   recomendación por defecto es NO merendar entre comidas — ni en la lonchera del colegio ni en la
   tarde. Si el formulario deja claro que SÍ hace falta una merienda (lonchera por horario escolar
