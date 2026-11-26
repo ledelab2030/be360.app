@@ -757,22 +757,42 @@ arriba cuando hay conflicto (el texto de arriba fue escrito para adultos):
   un borrador reportó "sándwich de jamón y queso" en la cronología pero no listó el jamón en ROJO).
 - LONCHERA Y MERIENDAS — REGLA DE ORO: si el niño/a hace sus 3 comidas principales completas, la
   recomendación por defecto es NO merendar entre comidas — ni en la lonchera del colegio ni en la
-  tarde. Si el formulario deja claro que SÍ hace falta una merienda (lonchera por horario escolar
-  largo, o hambre real entre comidas principales), separa SIEMPRE proteína de grasa, nunca una lista
-  plana con "o" (mismo criterio que "PROTEÍNA Y GRASA SON COSAS DISTINTAS" más abajo): proteína —
-  huevo duro o tiras de pollo; de acompañante, grasa — aguacate, aceitunas, nueces (pistacho,
-  marañón), o queso azul/roquefort (ver QUESOS arriba — nunca "queso envejecido" genérico; el queso
-  azul es GRASA, no proteína, va en el mismo grupo que el aguacate). Siempre con hidratación de
-  electrolitos (suero casero). CERO galletas dulces, CERO ultraprocesados y CERO harina de trigo en
-  cualquier merienda, sin excepción. Usa este set completo, no solo nueces — y si tanto la media
-  mañana como la media tarde necesitan merienda, usa el MISMO set completo en las dos, nunca lo
-  recortes en una y lo dejes completo en la otra (30 oct 2026).
+  tarde.
+  MERIENDA DE MEDIA TARDE (entre almuerzo y cena) — SE DESACONSEJA CON MÁS FUERZA (24 nov 2026,
+  decisión explícita de Peter y Leonardo en reunión clínica): a diferencia de la merienda de media
+  mañana, el plan debe advertir explícitamente que esta merienda en particular no se recomienda,
+  porque el tiempo entre el almuerzo y la cena casi nunca alcanza para digerir bien el almuerzo
+  antes de volver a comer. Si el formulario deja claro que la familia de todas formas insiste en
+  hacerla, el plan la permite — pero adviértelo en el texto y aplícala SIEMPRE bajo las mismas
+  condiciones, tipos de alimentos y restricciones de esta regla (el set completo de proteína+grasa,
+  electrolitos, harina sin gluten solo como acompañante opcional, cero trigo/ultraprocesados — ver
+  todo el bloque de abajo) — nunca la ofrezcas "libre" ni la trates como una comida normal.
+  Si el formulario deja claro que SÍ hace falta una merienda (lonchera por horario escolar largo,
+  hambre real entre comidas principales, o media tarde bajo la advertencia de arriba), separa
+  SIEMPRE proteína de grasa, nunca una lista plana con "o" (mismo criterio que "PROTEÍNA Y GRASA SON
+  COSAS DISTINTAS" más abajo): proteína — huevo duro o tiras de pollo; de acompañante, grasa —
+  aguacate, aceitunas, nueces (pistacho, marañón), o queso azul/roquefort (ver QUESOS arriba — nunca
+  "queso envejecido" genérico; el queso azul es GRASA, no proteína, va en el mismo grupo que el
+  aguacate). Siempre con hidratación de electrolitos (suero casero). CERO galletas dulces, CERO
+  ultraprocesados y CERO harina de trigo en cualquier merienda, sin excepción. Usa este set
+  completo, no solo nueces — y si tanto la media mañana como la media tarde necesitan merienda, usa
+  el MISMO set completo en las dos, nunca lo recortes en una y lo dejes completo en la otra (30 oct
+  2026).
   HARINA SÍ, PERO SIN GLUTEN (13 nov 2026, decisión de Peter y Leonardo en reunión clínica — corrige
   la regla de arriba, que antes prohibía cualquier harina en la merienda sin excepción): si el
   niño/a quiere o ya consume algo con harina en la merienda, se permite SIEMPRE que sea sin gluten
   — mismos ejemplos que en cualquier otra comida del día (pan sin trigo de harina de arroz, quinua o
   sagú; arepa de maíz; plátano verde). Nunca de trigo, nunca como base ni como sustituto de la
   proteína y la grasa del set completo de arriba — va de acompañante adicional, no en su lugar.
+  RESPETA EL FORMATO HABITUAL SI ES RECONOCIBLE (24 nov 2026, caso real auditado: un plan vio
+  "sándwich de jamón y queso" en la cronología de la merienda y cayó directo al set genérico de
+  proteína+grasa en vez de adaptar el sándwich): si el formulario muestra que la familia ya tiene un
+  formato de merienda establecido y reconocible (ej. sándwich, lonchera comprada), no lo elimines
+  por completo — aplica el mismo PRINCIPIO DE RESPETO A LA RUTINA Y SUSTITUCIÓN DE INGREDIENTES que
+  usas en las comidas principales (ver arriba): sustituye el pan de trigo por pan sin gluten, y
+  sustituye cualquier ingrediente que caiga en CHATARRA EXPLÍCITA EN ROJO (ej. jamón, embutidos) por
+  su proteína real equivalente — nunca reemplaces el formato completo por una porción genérica de
+  proteína sola.
   LA GRASA DE ACOMPAÑANTE NO ES PAREJA ENTRE LAS DOS OPCIONES DE PROTEÍNA (12 nov 2026, caso real
   auditado: un plan le puso aguacate/aceitunas/nueces por igual a "huevo duro o tiras de pollo",
   cuando el huevo entero YA trae grasa — ver "GRASA AGREGADA: OPCIONAL..." arriba): si ofreces las

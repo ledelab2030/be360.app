@@ -1961,6 +1961,21 @@ Leonardo regeneró el mismo caso de prueba con Gemini (ya con el PR #221 despleg
 
 ---
 
+### 24 nov 2026 — Merienda de media tarde desaconsejada por digestión; se respeta el formato habitual (sándwich) al adaptarla
+
+Leonardo compartió una tercera auditoría externa (98/100) del mismo caso de prueba regenerado: la merienda de las 4 pm seguía sin ofrecer el sándwich en pan sin gluten que la familia ya consume habitualmente, cayendo en cambio al set genérico de "proteína real o prescindir de ella". Antes de tocar el prompt se verificó la regla real contra el texto citado (ver turno anterior): el hueco no era que el prompt estuviera mal, sino que "LONCHERA Y MERIENDAS — REGLA DE ORO" (cómo armar la merienda si hace falta) nunca cruzaba con "PRINCIPIO DE RESPETO A LA RUTINA Y SUSTITUCIÓN DE INGREDIENTES" (no eliminar un formato habitual, sustituir solo el ingrediente problemático) para el caso de una merienda con formato reconocible.
+
+Leonardo aprovechó para traer una decisión clínica explícita de Peter: la merienda de media tarde (entre almuerzo y cena) se desaconseja con más fuerza que la de media mañana, porque el tiempo entre comidas casi nunca alcanza para digerir bien el almuerzo. Dos cambios en la misma regla, ambos aplicables a Claude y Gemini por igual (los dos leen el mismo `SRB_DRAFT_PROMPT`, que embebe `ADAPTACIONES_PEDIATRICAS` byte a byte — confirmado antes de editar, no asumido):
+
+1. **Advertencia explícita de media tarde:** el plan debe decir que esta merienda en particular no se recomienda por el poco tiempo de digestión; si el formulario muestra que la familia insiste en hacerla, se permite pero bajo las mismas condiciones de la regla (nunca "libre" ni como comida normal).
+2. **Respeto al formato habitual:** si el formulario muestra un formato de merienda reconocible (sándwich, lonchera comprada), el plan debe sustituir el ingrediente problemático (pan de trigo → sin gluten, jamón/embutido → proteína real) en vez de reemplazar todo el formato por una porción genérica de proteína sola — mismo principio que ya se aplica a pan y pasta en comidas principales.
+
+**Archivo:** `worker/vita-proxy.js` — `ADAPTACIONES_PEDIATRICAS`, regla "LONCHERA Y MERIENDAS — REGLA DE ORO".
+
+**Verificación:** `node --check`. Pendiente confirmar contra el texto real de una próxima regeneración (Claude o Gemini) que el plan ahora sí ofrezca el sándwich adaptado en vez del set genérico para una familia con ese hábito.
+
+---
+
 ## Lo que enseña este historial
 
 Tres patrones que se repiten y conviene tener presentes:
